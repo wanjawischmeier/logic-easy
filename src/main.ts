@@ -25,6 +25,7 @@ const App = defineComponent({
         id: 'panel_2',
         component: 'panel',
         title: 'Panel 2',
+        position: { referencePanel: 'panel_1', direction: 'right' },
       });
     },
   },
