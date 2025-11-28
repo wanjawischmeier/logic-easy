@@ -1,0 +1,3 @@
+[submodule "src/workers/Espresso-Wasm-Web"]
+	path = src/workers/Espresso-Wasm-Web
+	url = https://github.com/NudelErde/Espresso-Wasm-Web
