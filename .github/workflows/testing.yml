@@ -1,9 +1,9 @@
 name: Unit tests
 
 on:
-  push:  # runs on push to any branch
-  pull_request:
-    branches: [ "master" ]
+  push:  # runs on push to any branch except master
+    branches-ignore:
+      - master
 
 jobs:
   build:
