@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import HomeScreen from '../views/HomeScreen.vue'
+import DockView from '../views/DockView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -6,10 +8,12 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      // simple empty component - the app root contains the dockview
-      component: {
-        template: '<div></div>'
-      }
+      component: HomeScreen,
+    },
+    {
+      path: '/view',
+      name: 'view',
+      component: DockView,
     },
   ],
 })

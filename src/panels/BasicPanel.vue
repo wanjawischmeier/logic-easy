@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { inject, ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
 const title = ref('')
-const message = inject<string>('vu3ProvideInjectEvidenceTestMessage') ?? 'not found'
 let disposable: { dispose?: () => void } | null = null
 
 onMounted(() => {
@@ -24,7 +23,6 @@ onBeforeUnmount(() => {
   <div style="height:100%; color:red;">
     Hello World
     <div>{{ title }}</div>
-    <div>{{ message }}</div>
   </div>
 </template>
 

@@ -1,50 +1,21 @@
 import 'dockview-vue/dist/styles/dockview.css';
 import { createApp, defineComponent } from 'vue';
-import {
-  DockviewVue,
-  type DockviewReadyEvent,
-} from 'dockview-vue';
-import BasicPanel from './components/BasicPanel.vue';
-
-
+import { DockviewVue } from 'dockview-vue';
+import router from './router';
+import BasicPanel from './panels/BasicPanel.vue';
 
 const App = defineComponent({
   name: 'App',
-  components: {
-    'dockview-vue': DockviewVue,
-    panel: BasicPanel,
-  },
-  methods: {
-    onReady(event: DockviewReadyEvent) {
-      event.api.addPanel({
-        id: 'panel_1',
-        component: 'panel',
-        title: 'Panel 1',
-      });
-      event.api.addPanel({
-        id: 'panel_2',
-        component: 'panel',
-        title: 'Panel 2',
-        position: { referencePanel: 'panel_1', direction: 'right' },
-      });
-    },
-  },
-  provide() {
-    return {
-      vu3ProvideInjectEvidenceTestMessage: 'Hello from the provider',
-    };
-  },
-  template: `
-      <dockview-vue
-        style="width:100vw; height:100vh"
-        class="dockview-theme-abyss"
-        @ready="onReady"
-      >
-      </dockview-vue>`,
+  template: `<router-view />`,
 });
 
 const app = createApp(App);
 app.config.errorHandler = (err) => {
   console.log(err);
 };
+
+app.component('dockview-vue', DockviewVue);
+app.component('basic-panel', BasicPanel);
+
+app.use(router);
 app.mount(document.getElementById('app')!);
