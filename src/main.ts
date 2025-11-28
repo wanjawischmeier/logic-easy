@@ -1,49 +1,18 @@
 import 'dockview-vue/dist/styles/dockview.css';
-import { type PropType, createApp, defineComponent } from 'vue';
+import { createApp, defineComponent } from 'vue';
 import {
   DockviewVue,
   type DockviewReadyEvent,
-  type IDockviewPanelProps,
 } from 'dockview-vue';
+import BasicPanel from './components/BasicPanel.vue';
 
-const Panel = defineComponent({
-  inject: ['vu3ProvideInjectEvidenceTestMessage'],
-  name: 'Panel',
-  props: {
-    params: {
-      type: Object as PropType<IDockviewPanelProps>,
-      required: true,
-    },
-  },
-  data() {
-    return {
-      title: '',
-      message: this.vu3ProvideInjectEvidenceTestMessage ?? 'not found',
-    };
-  },
-  mounted() {
-    const disposable = this.params.api.onDidTitleChange(() => {
-      this.title = this.params.api.title;
-    });
-    this.title = this.params.api.title;
 
-    return () => {
-      disposable.dispose();
-    };
-  },
-  template: `
-    <div style="height:100%; color:red;">
-      Hello World
-      <div>{{title}}</div>
-      <div>{{message}}</div>
-    </div>`,
-});
 
 const App = defineComponent({
   name: 'App',
   components: {
     'dockview-vue': DockviewVue,
-    panel: Panel,
+    panel: BasicPanel,
   },
   methods: {
     onReady(event: DockviewReadyEvent) {
