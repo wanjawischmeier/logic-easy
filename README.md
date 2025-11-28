@@ -14,3 +14,9 @@ npm run dev
 npm run build
 serve -s dist
 ```
+
+### Testing
+
+```
+npm run test:unit
+```
