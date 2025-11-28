@@ -1,13 +1,12 @@
 name: Unit tests
 
 on:
-  push:  # runs on push to any branch except master
+  push: # runs on push to any branch except master
     branches-ignore:
       - master
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -15,19 +14,22 @@ jobs:
         node-version: [24.x]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '24'
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: run tests
-      run: npm run test:unit
+      - name: run tests
+        run: npm run test:unit
 
-    - name: run build
-      run: npm run build
+      - name: run build
+        run: npm run build
