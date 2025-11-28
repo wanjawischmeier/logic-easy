@@ -18,7 +18,12 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       vue: 'vue/dist/vue.esm-bundler.js',
+      // Ensure the browser-friendly buffer package is used and bundled
+      buffer: 'buffer/',
     },
+  },
+  optimizeDeps: {
+    include: ['buffer']
   },
   base: '/logic-easy/',
 })

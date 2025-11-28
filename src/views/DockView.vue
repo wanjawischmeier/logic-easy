@@ -2,9 +2,11 @@
 import BasicPanel from '../panels/BasicPanel.vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
+import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue'
 
 const dockComponents = {
   'basic-panel': BasicPanel,
+  'espresso-testing-panel': EspressoTestingPanel,
 }
 
 const onReady = (event: DockviewReadyEvent) => {
@@ -16,8 +18,8 @@ const onReady = (event: DockviewReadyEvent) => {
   })
   event.api.addPanel({
     id: 'panel_2',
-    component: 'basic-panel',
-    title: 'Panel 2',
+    component: 'espresso-testing-panel',
+    title: 'Espresso Panel',
     position: { referencePanel: 'panel_1', direction: 'right' },
   })
 }
