@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { EspressoRunner } from '@/lib/espresso'
 
 // Mock @wasmer/wasi before importing the worker module
 vi.mock('@wasmer/wasi', () => {
@@ -46,7 +48,7 @@ vi.mock('@wasmer/wasi', () => {
   }
 })
 
-describe('Espresso worker', () => {
+describe('Espresso', () => {
   let originalFetch: typeof fetch
   let originalWebAssemblyCompileStreaming: typeof WebAssembly.compileStreaming
   let originalWebAssemblyInstantiate: typeof WebAssembly.instantiate
@@ -64,7 +66,7 @@ describe('Espresso worker', () => {
 
     // Mock WebAssembly methods to avoid real WASM operations
     globalThis.WebAssembly.compileStreaming = vi.fn(async () => ({} as WebAssembly.Module))
-
+    // @ts-expect-error - Mocking WebAssembly.instantiate with simplified return type
     globalThis.WebAssembly.instantiate = vi.fn(async () =>
       ({ instance: {} as WebAssembly.Instance, module: {} as WebAssembly.Module })
     )
@@ -77,25 +79,37 @@ describe('Espresso worker', () => {
     globalThis.WebAssembly.instantiate = originalWebAssemblyInstantiate
   })
 
-  it('returns help text that starts with the expected header', async () => {
-    // Dynamically import the worker after mocking
-    // @ts-expect-error - importing worker JS module for test
-    const worker = await import('../workers/Espresso-Wasm-Web/worker.js')
+  it('returns help text with expected header', async () => {
+    const espresso = new EspressoRunner({ wasmPath: '/logic-easy/espresso.wasm' })
 
-    const result = await worker.executeEspresso('', ['--help'], '/logic-easy/espresso.wasm')
+    const result = await espresso.execute('', ['--help'])
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('UC Berkeley, Espresso Version')
     expect(result.stderr).toBe('')
+
+    espresso.dispose()
   })
 
   it('handles input and arguments correctly', async () => {
-    const worker = await import('../workers/Espresso-Wasm-Web/worker.js')
+    const espresso = new EspressoRunner({ wasmPath: '/logic-easy/espresso.wasm' })
 
     const input = '.i 2\n.o 1\n'
-    const result = await worker.executeEspresso(input, ['-t'], '/logic-easy/espresso.wasm')
+    const result = await espresso.execute(input, ['-t'])
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBeTruthy()
+
+    espresso.dispose()
+  })
+
+  it('executes without worker in test environment', async () => {
+    const espresso = new EspressoRunner()
+
+    // Don't initialize worker - should fall back to direct execution
+    const result = await espresso.execute('', ['--help'])
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('UC Berkeley, Espresso Version')
   })
 })

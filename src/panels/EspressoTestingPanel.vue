@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
+import { EspressoRunner } from '@/lib/espresso'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
-const wasmPath: string = '/logic-easy/espresso.wasm';
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
 
-// Worker and UI state for running the Espresso wasm worker
-let espressoWorker: Worker | null = null
+// Espresso runner
+const espresso = new EspressoRunner({ wasmPath: '/logic-easy/espresso.wasm' })
+
+// UI state
 const input = ref<string>('')
 const stdout = ref<string>('')
 const stderr = ref<string>('')
@@ -22,60 +24,34 @@ onMounted(() => {
   })
   title.value = props.params.api.title ?? ''
 
-  // Create a worker instance. Vite will handle bundling the worker when
-  // referenced with `new URL(..., import.meta.url)`.
-  try {
-    espressoWorker = new Worker(new URL('../workers/Espresso-Wasm-Web/worker.js', import.meta.url), { type: 'module' })
-  } catch (e) {
-    console.error('Failed to create Espresso worker', e)
-    espressoWorker = null
-  }
+  // Initialize the worker
+  espresso.initWorker()
 })
 
 onBeforeUnmount(() => {
   disposable?.dispose?.()
-  espressoWorker?.terminate()
+  espresso.dispose()
 })
 
-/** Run the worker with the provided input and args. This wrapper is single-call-at-a-time.
- *  If you need concurrent runs, modify the worker to accept an `id` and echo it back.
- */
-function runEspresso(args: string[] = []) {
-  if (!espressoWorker) {
-    return Promise.reject(new Error('Worker not available'))
-  }
-  if (running.value) return Promise.reject(new Error('Already running'))
+async function runEspresso(args: string[] = []) {
+  if (running.value) return
 
   running.value = true
   stdout.value = ''
   stderr.value = ''
   exitCode.value = null
 
-  return new Promise((resolve, reject) => {
-    const onMessage = (ev: MessageEvent) => {
-      running.value = false
-      espressoWorker?.removeEventListener('message', onMessage)
-      espressoWorker?.removeEventListener('error', onError)
-
-      const data = ev.data ?? {}
-      stdout.value = data.stdout ?? ''
-      stderr.value = data.stderr ?? ''
-      exitCode.value = typeof data.exitCode === 'number' ? data.exitCode : null
-      resolve(data)
-    }
-
-    const onError = (ev: ErrorEvent) => {
-      running.value = false
-      espressoWorker?.removeEventListener('message', onMessage)
-      espressoWorker?.removeEventListener('error', onError)
-      reject(ev.message)
-    }
-
-    espressoWorker.addEventListener('message', onMessage)
-    espressoWorker.addEventListener('error', onError)
-
-    espressoWorker.postMessage({ input: input.value, args, wasmPath: wasmPath.value })
-  })
+  try {
+    const result = await espresso.execute(input.value, args)
+    stdout.value = result.stdout
+    stderr.value = result.stderr
+    exitCode.value = result.exitCode
+  } catch (error) {
+    stderr.value = String(error)
+    exitCode.value = 1
+  } finally {
+    running.value = false
+  }
 }
 </script>
 
@@ -90,7 +66,8 @@ function runEspresso(args: string[] = []) {
     <div class="flex items-center gap-2">
       <button @click="runEspresso()" :disabled="running"
         class="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded">Run</button>
-      <button @click="runEspresso(['--help'])" :disabled="running"
+      <!-- A bit weird cause there is no -h option, but it does show the help -->
+      <button @click="runEspresso(['-h'])" :disabled="running"
         class="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 rounded">Run --help</button>
       <span v-if="running" class="ml-2 text-sm">Running…</span>
     </div>
@@ -99,14 +76,14 @@ function runEspresso(args: string[] = []) {
       <strong>Exit code:</strong> {{ exitCode }}
     </div>
 
-    <div>
+    <div class="flex flex-col flex-1 min-h-0">
       <strong>Stdout</strong>
-      <pre class="bg-gray-800 text-white p-2 rounded overflow-auto">{{ stdout }}</pre>
+      <pre class="bg-gray-800 text-white p-2 rounded overflow-auto flex-1">{{ stdout }}</pre>
     </div>
 
-    <div>
+    <div class="flex flex-col min-h-[100px]">
       <strong>Stderr</strong>
-      <pre class="bg-red-900 text-white p-2 rounded overflow-auto">{{ stderr }}</pre>
+      <pre class="bg-red-900 text-white p-2 rounded overflow-auto max-h-[150px]">{{ stderr }}</pre>
     </div>
   </div>
 </template>
