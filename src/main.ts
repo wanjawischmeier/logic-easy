@@ -3,6 +3,7 @@ import { createApp, defineComponent } from 'vue';
 import { DockviewVue } from 'dockview-vue';
 import router from './router';
 import BasicPanel from './panels/BasicPanel.vue';
+import EspressoTestingPanel from './panels/EspressoTestingPanel.vue';
 
 const App = defineComponent({
   name: 'App',
@@ -16,6 +17,7 @@ app.config.errorHandler = (err) => {
 
 app.component('dockview-vue', DockviewVue);
 app.component('basic-panel', BasicPanel);
+app.component('espresso-testing-panel', EspressoTestingPanel)
 
 app.use(router);
 app.mount(document.getElementById('app')!);
