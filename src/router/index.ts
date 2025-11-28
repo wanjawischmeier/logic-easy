@@ -3,7 +3,7 @@ import HomeScreen from '../views/HomeScreen.vue'
 import DockView from '../views/DockView.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     {
       path: '/',
