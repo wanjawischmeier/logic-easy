@@ -1,8 +1,7 @@
 name: Unit tests
 
 on:
-  push:
-    branches: [ "master" ]
+  push:  # runs on push to any branch
   pull_request:
     branches: [ "master" ]
 
