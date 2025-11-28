@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BasicPanel from '../panels/BasicPanel.vue'
+import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
 
 const dockComponents = {
@@ -23,11 +24,14 @@ const onReady = (event: DockviewReadyEvent) => {
 </script>
 
 <template>
-  <div style="height:100vh;">
-    <dockview-vue class="dockview-theme-abyss" style="width:100%; height:100%" :components="dockComponents"
-      @ready="onReady">
-    </dockview-vue>
+  <div class="flex flex-col h-screen">
+    <div class="h-[50px]">
+      <DockViewHeader />
+    </div>
+
+    <div class="flex-1 min-h-0">
+      <dockview-vue class="dockview-theme-abyss w-full h-[calc(100vh-50px)]" :components="dockComponents"
+        @ready="onReady" />
+    </div>
   </div>
 </template>
-
-<style scoped></style>
