@@ -6,12 +6,12 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/',
+      path: '/logic-easy/',
       name: 'home',
       component: HomeScreen,
     },
     {
-      path: '/view',
+      path: '/logic-easy/view',
       name: 'view',
       component: DockView,
     },
