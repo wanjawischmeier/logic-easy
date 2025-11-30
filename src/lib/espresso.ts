@@ -1,6 +1,9 @@
-/**
- * Espresso WASM wrapper - provides a clean API for executing Espresso logic minimization
- */
+import { Buffer } from 'buffer'
+import { init, WASI } from '@wasmer/wasi'
+
+if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {
+  (globalThis as { Buffer?: unknown }).Buffer = Buffer
+}
 
 export interface EspressoResult {
   exitCode: number
@@ -8,106 +11,55 @@ export interface EspressoResult {
   stderr: string
 }
 
-export interface EspressoOptions {
-  wasmPath?: string
+const WASM_PATH = '/logic-easy/espresso.wasm'
+let isWasiInitialized = false
+const moduleCache: Record<string, WebAssembly.Module> = {}
+
+async function getModule(url: string): Promise<WebAssembly.Module> {
+  if (moduleCache[url]) {
+    return moduleCache[url]
+  }
+
+  const response = await fetch(url)
+  const wasm = await WebAssembly.compileStreaming(response)
+  moduleCache[url] = wasm
+  return wasm
+}
+
+async function instantiateModule(wasi: WASI, url: string): Promise<void> {
+  const module = await getModule(url)
+  const instance = await WebAssembly.instantiate(module, wasi.getImports(module) as WebAssembly.Imports)
+  await wasi.instantiate(instance, {})
 }
 
 /**
- * EspressoRunner - manages Espresso execution via Web Worker or direct calls
- */
-export class EspressoRunner {
-  private worker: Worker | null = null
-  private wasmPath: string
-
-  constructor(options: EspressoOptions = {}) {
-    this.wasmPath = options.wasmPath || '/logic-easy/espresso.wasm'
-  }
-
-  /**
-   * Initialize the worker (call this in browser contexts)
-   */
-  initWorker(): void {
-    if (this.worker) return
-
-    this.worker = new Worker(
-      new URL('../workers/Espresso-Wasm-Web/worker.js', import.meta.url),
-      { type: 'module' }
-    )
-  }
-
-  /**
-   * Execute Espresso with the given input and arguments
-   */
-  async execute(input: string, args: string[] = []): Promise<EspressoResult> {
-    // If worker is available, use it
-    if (this.worker) {
-      return this.executeViaWorker(input, args)
-    }
-
-    // Otherwise, call the function directly (useful for tests)
-    return this.executeDirect(input, args)
-  }
-
-  /**
-   * Execute via Web Worker
-   */
-  private executeViaWorker(input: string, args: string[]): Promise<EspressoResult> {
-    if (!this.worker) {
-      return Promise.reject(new Error('Worker not initialized'))
-    }
-
-    const worker = this.worker
-
-    return new Promise((resolve, reject) => {
-      const onMessage = (event: MessageEvent) => {
-        worker.removeEventListener('message', onMessage)
-        worker.removeEventListener('error', onError)
-        resolve(event.data)
-      }
-
-      const onError = (error: ErrorEvent) => {
-        worker.removeEventListener('message', onMessage)
-        worker.removeEventListener('error', onError)
-        reject(new Error(error.message))
-      }
-
-      worker.addEventListener('message', onMessage)
-      worker.addEventListener('error', onError)
-      worker.postMessage({ input, args, wasmPath: this.wasmPath })
-    })
-  }
-
-  /**
-   * Execute by directly importing and calling the worker function
-   * (Used in test environments or when worker isn't available)
-   */
-  private async executeDirect(input: string, args: string[]): Promise<EspressoResult> {
-    // @ts-expect-error - importing worker JS module
-    const { executeEspresso } = await import('../workers/Espresso-Wasm-Web/worker.js')
-    return executeEspresso(input, args, this.wasmPath)
-  }
-
-  /**
-   * Terminate the worker
-   */
-  dispose(): void {
-    this.worker?.terminate()
-    this.worker = null
-  }
-}
-
-/**
- * Convenience function for one-off executions
+ * Execute Espresso with the given input and arguments
  */
 export async function runEspresso(
   input: string,
   args: string[] = [],
-  options: EspressoOptions = {}
 ): Promise<EspressoResult> {
-  const runner = new EspressoRunner(options)
-  try {
-    return await runner.execute(input, args)
-  } finally {
-    runner.dispose()
+  if (!isWasiInitialized) {
+    await init()
+    isWasiInitialized = true
+  }
+
+  const wasi = new WASI({
+    env: {},
+    args: ['espresso', ...args, '/input.esp'],
+  })
+
+  const file = wasi.fs.open('/input.esp', { read: true, write: true, create: true })
+  file.writeString(input)
+  file.flush()
+
+  await instantiateModule(wasi, WASM_PATH)
+
+  const exitCode = wasi.start()
+
+  return {
+    exitCode,
+    stdout: wasi.getStdoutString(),
+    stderr: wasi.getStderrString(),
   }
 }
