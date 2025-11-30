@@ -11,6 +11,7 @@ export interface EspressoResult {
   stderr: string
 }
 
+// WebAssembly binary taken from the awesome https://github.com/NudelErde/Espresso-Wasm-Web
 const WASM_PATH = '/logic-easy/espresso.wasm'
 let isWasiInitialized = false
 const moduleCache: Record<string, WebAssembly.Module> = {}
