@@ -7,9 +7,9 @@
       <!-- Top Header (Variables) -->
       <div class="col-start-2 row-start-1 flex">
         <!-- Spacer for the corner cell width -->
-        <div class="w-10 shrink-0"></div>
+        <div class="w-14 shrink-0"></div>
         <!-- Centered label over data columns -->
-        <div class="flex-1 flex justify-center items-end">
+        <div class="flex-1 flex justify-center items-end text-green-300">
           <vue-latex :expression="topVariables.join('')" display-mode />
         </div>
       </div>
@@ -17,9 +17,9 @@
       <!-- Left Header (Variables) -->
       <div class="col-start-1 row-start-2 flex flex-col pr-2">
         <!-- Spacer for the header row height -->
-        <div class="h-10 shrink-0"></div>
+        <div class="h-14 shrink-0"></div>
         <!-- Centered label next to data rows -->
-        <div class="flex-1 flex items-center justify-end pr-2">
+        <div class="flex-1 flex items-center justify-end pr-2 text-green-300">
           <vue-latex :expression="leftVariables.join('')" display-mode />
         </div>
       </div>
@@ -29,18 +29,23 @@
         <thead>
           <tr>
             <th class="border-none bg-transparent w-10 h-10"></th>
-            <th v-for="colCode in colCodes" :key="colCode" class="border font-normal text-sm w-10 h-10 p-2 text-center">
-              {{ colCode }}
+            <th v-for="(colCode, cIdx) in colCodes" :key="colCode"
+              class="border border-b-4 border-blue-400 bg-slate-800 text-blue-300 font-normal text-sm w-14 h-14 text-center"
+              :class="{ 'border-l-4': cIdx === 0 }">
+              <vue-latex :expression="colCode" display-mode />
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="rowCode in rowCodes" :key="rowCode">
-            <th class="border font-normal text-sm w-10 h-10 p-2 text-center">
-              {{ rowCode }}
+          <tr v-for="(rowCode, rIdx) in rowCodes" :key="rowCode">
+            <th
+              class="border border-r-4 border-blue-400 bg-slate-800 text-blue-300 font-normal text-sm w-14 text-center"
+              :class="{ 'border-t-4': rIdx === 0 }">
+              <vue-latex :expression="rowCode" display-mode />
             </th>
-            <td v-for="colCode in colCodes" :key="colCode" class="border border-gray-300 w-10 h-10 p-2 text-center">
-              {{ getValue(rowCode, colCode) }}
+            <td v-for="colCode in colCodes" :key="colCode"
+              class="border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-200">
+              <vue-latex :expression="getValue(rowCode, colCode).toString()" display-mode />
             </td>
           </tr>
         </tbody>

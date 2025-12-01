@@ -41,12 +41,12 @@ function getInputValue(rowIdx: number, colIdx: number) {
       <thead>
         <tr>
           <th v-for="(input, idx) in inputVars" :key="input"
-            class="px-3 py-2 text-blue-300 border-b-4 border-blue-400 bg-slate-800 w-32"
+            class="px-3 text-green-300 border-b-4 border-blue-400 bg-slate-800 w-24"
             :class="{ 'border-r-4': idx === inputVars.length - 1, 'border-r': idx !== inputVars.length - 1 }">
             <vue-latex :expression="input" display-mode />
           </th>
           <th v-for="output in outputVars" :key="output"
-            class="px-3 py-2 text-green-300 border-b-4 border-blue-400 bg-slate-800 border-r last:border-r-0 w-32">
+            class="px-3 text-blue-300 border-b-4 border-blue-400 bg-slate-800 border-r last:border-r-0 w-24">
             <vue-latex :expression="output" display-mode />
           </th>
         </tr>
@@ -59,8 +59,8 @@ function getInputValue(rowIdx: number, colIdx: number) {
               'border-r-4': colIdx === inputVars.length - 1,
               'border-r': colIdx !== inputVars.length - 1
             }">
-            <div class="flex-1 flex items-center justify-center p-2">
-              {{ getInputValue(rowIdx, colIdx) }}
+            <div class="flex-1 flex items-center justify-center">
+              <vue-latex :expression="getInputValue(rowIdx, colIdx).toString()" display-mode />
             </div>
           </td>
           <!-- Editable Output Columns -->
@@ -69,8 +69,8 @@ function getInputValue(rowIdx: number, colIdx: number) {
             :class="{
               'border-r': colIdx !== row.length - 1
             }" @click="toggleCell(rowIdx, colIdx)">
-            <div class="flex-1 flex items-center justify-center p-2">
-              {{ cell }}
+            <div class="flex-1 flex items-center justify-center">
+              <vue-latex :expression="cell.toString()" display-mode />
             </div>
           </td>
         </tr>
