@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// ...existing code...
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
 import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue'
@@ -13,14 +12,18 @@ const dockComponents = {
 const onReady = (event: DockviewReadyEvent) => {
   console.log('dockview ready', event)
   // Example variables and values
-  const inputVars = ['A', 'B']
+  const inputVars = ['a', 'b', 'c']
   const outputVars = ['Q']
-  // 2^2 = 4 rows, 3 columns (2 inputs + 1 output)
+  // 2^3 = 8 rows, 1 output column
   const values = [
-    [0, 0, 0],
-    [0, 1, 0],
-    [1, 0, 0],
-    [1, 1, 0],
+    [0],
+    [0],
+    [0],
+    [0],
+    [0],
+    [0],
+    [0],
+    [0],
   ]
   event.api.addPanel({
     id: 'panel_1',

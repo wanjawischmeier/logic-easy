@@ -11,6 +11,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: TruthTableCell[][]): void
 }>()
 
+// colIdx is the index within the output array (modelValue[row])
 function toggleCell(rowIdx: number, colIdx: number) {
   const newValues = props.modelValue.map(row => [...row])
   const row = newValues[rowIdx]
@@ -25,6 +26,12 @@ function toggleCell(rowIdx: number, colIdx: number) {
 
   emit('update:modelValue', newValues)
 }
+
+function getInputValue(rowIdx: number, colIdx: number) {
+  // MSB is at index 0
+  const shiftAmount = props.inputVars.length - 1 - colIdx;
+  return (rowIdx >> shiftAmount) & 1;
+}
 </script>
 
 <template>
@@ -36,21 +43,31 @@ function toggleCell(rowIdx: number, colIdx: number) {
           <th v-for="(input, idx) in inputVars" :key="input"
             class="px-3 py-2 text-blue-300 border-b-4 border-blue-400 bg-slate-800 w-32"
             :class="{ 'border-r-4': idx === inputVars.length - 1, 'border-r': idx !== inputVars.length - 1 }">
-            {{ input }}
+            <vue-latex :expression="input" display-mode />
           </th>
           <th v-for="output in outputVars" :key="output"
             class="px-3 py-2 text-green-300 border-b-4 border-blue-400 bg-slate-800 border-r last:border-r-0 w-32">
-            {{ output }}
+            <vue-latex :expression="output" display-mode />
           </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(row, rowIdx) in modelValue" :key="rowIdx">
-          <td v-for="(cell, colIdx) in row" :key="colIdx"
+          <!-- Generated Input Columns -->
+          <td v-for="(input, colIdx) in inputVars" :key="'in-' + colIdx"
+            class="text-lg font-mono text-center align-middle bg-slate-800 border-b border-blue-400" :class="{
+              'border-r-4': colIdx === inputVars.length - 1,
+              'border-r': colIdx !== inputVars.length - 1
+            }">
+            <div class="flex-1 flex items-center justify-center p-2">
+              {{ getInputValue(rowIdx, colIdx) }}
+            </div>
+          </td>
+          <!-- Editable Output Columns -->
+          <td v-for="(cell, colIdx) in row" :key="'out-' + colIdx"
             class="text-lg font-mono text-center align-middle cursor-pointer bg-slate-800 hover:bg-slate-700 border-b border-blue-400 transition-all duration-200"
             :class="{
-              'border-r-4': colIdx === inputVars.length - 1,
-              'border-r': colIdx !== inputVars.length - 1 && colIdx !== row.length - 1
+              'border-r': colIdx !== row.length - 1
             }" @click="toggleCell(rowIdx, colIdx)">
             <div class="flex-1 flex items-center justify-center p-2">
               {{ cell }}

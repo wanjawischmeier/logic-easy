@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import TruthTable, { type TruthTableCell } from '../components/TruthTable.vue'
+import KVDiagram from '@/components/KVDiagram.vue';
 
 const props = defineProps<{ params: IDockviewPanelProps & { inputVars?: string[]; outputVars?: string[]; values?: TruthTableCell[][] } }>()
 
@@ -43,11 +44,11 @@ const tableValues = ref<TruthTableCell[][]>(initialValues.map(row => [...row]))
 
 <template>
   <div class="h-full text-white flex flex-col p-2 overflow-hidden">
-    <div class="font-semibold mb-2">{{ title }}</div>
-
+    <div class="font-semibold mb-2">TruthTable</div>
     <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />
 
-    <vue-latex :expression="'\\frac{a_i}{1+x}'" display-mode />
+    <div class="font-semibold mb-2">KV Diagram</div>
+    <KVDiagram :input-vars="inputVars" :output-vars="outputVars" :model-value="tableValues" />
   </div>
 </template>
 
