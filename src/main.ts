@@ -5,6 +5,7 @@ import router from './router';
 import BasicPanel from './panels/BasicPanel.vue';
 import EspressoTestingPanel from './panels/EspressoTestingPanel.vue';
 import TruthTablePanel from './panels/TruthTablePanel.vue';
+import { VueLatex } from 'vatex';
 
 const App = defineComponent({
   name: 'App',
@@ -22,4 +23,5 @@ app.component('espresso-testing-panel', EspressoTestingPanel)
 app.component('truth-table', TruthTablePanel)
 
 app.use(router);
+app.component('vue-latex', VueLatex);
 app.mount(document.getElementById('app')!);

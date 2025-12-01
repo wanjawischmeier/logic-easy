@@ -45,8 +45,9 @@ const tableValues = ref<TruthTableCell[][]>(initialValues.map(row => [...row]))
   <div class="h-full text-white flex flex-col p-2 overflow-hidden">
     <div class="font-semibold mb-2">{{ title }}</div>
 
-    <!-- Table -->
     <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />
+
+    <vue-latex :expression="'\\frac{a_i}{1+x}'" display-mode />
   </div>
 </template>
 
