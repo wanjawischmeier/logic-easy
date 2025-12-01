@@ -52,7 +52,6 @@ async function minify(args: string[] = []) {
   <div class="h-full text-white flex flex-col gap-2 p-2">
     <div class="font-semibold">{{ title }}</div>
 
-    <label class="text-sm">Espresso input</label>
     <textarea v-model="input" placeholder="Enter Espresso source here"
       class="w-full min-h-[140px] font-mono bg-gray-900 text-white p-2 rounded border border-gray-700"></textarea>
 
