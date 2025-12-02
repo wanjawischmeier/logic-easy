@@ -64,3 +64,54 @@ export async function runEspresso(
     stderr: wasi.getStderrString(),
   }
 }
+
+export async function minifyTruthTable(
+  inputVars: string[],
+  outputVars: string[],
+  values: (string | number)[][]
+): Promise<(string | number)[][]> {
+  const numInputs = inputVars.length
+  const numOutputs = outputVars.length
+
+  let pla = `.i ${numInputs}\n.o ${numOutputs}\n.ilb ${inputVars.join(' ')}\n.ob ${outputVars.join(' ')}\n`
+  pla += `.p ${values.length}\n`
+
+  values.forEach((row, index) => {
+    const inputBin = index.toString(2).padStart(numInputs, '0')
+    const outputStr = row.map(v => v === '-' ? '-' : String(v)).join('')
+    pla += `${inputBin} ${outputStr}\n`
+  })
+
+  pla += `.e`
+
+  const result = await runEspresso(pla)
+
+  if (result.exitCode !== 0) {
+    console.error('Espresso failed', result.stderr)
+    return []
+  }
+
+  const lines = result.stdout.split('\n')
+  const minifiedTable: (string | number)[][] = []
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('.') || trimmed.startsWith('#')) continue
+
+    const parts = trimmed.split(/\s+/)
+    // Expecting input_part output_part
+    if (parts.length >= 2) {
+      const inputsStr = parts[0]!
+      const outputsStr = parts[1]!
+
+      if (inputsStr.length === numInputs && outputsStr.length === numOutputs) {
+        const row: (string | number)[] = []
+        for (const char of inputsStr) row.push(char === '-' ? '-' : parseInt(char))
+        for (const char of outputsStr) row.push(char === '-' ? '-' : parseInt(char))
+        minifiedTable.push(row)
+      }
+    }
+  }
+
+  return minifiedTable
+}

@@ -1,14 +1,15 @@
 <script setup lang="ts">
 export type TruthTableCell = 0 | 1 | '-';
+export type TruthTableData = TruthTableCell[][];
 
 const props = defineProps<{
   inputVars: string[]
   outputVars: string[]
-  modelValue: TruthTableCell[][]
+  modelValue: TruthTableData
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: TruthTableCell[][]): void
+  (e: 'update:modelValue', value: TruthTableData): void
 }>()
 
 // colIdx is the index within the output array (modelValue[row])
@@ -65,7 +66,7 @@ function getInputValue(rowIdx: number, colIdx: number) {
           </td>
           <!-- Editable Output Columns -->
           <td v-for="(cell, colIdx) in row" :key="'out-' + colIdx"
-            class="text-lg font-mono text-center align-middle cursor-pointer bg-slate-800 hover:bg-slate-700 border-b border-blue-400 transition-all duration-200"
+            class="text-lg font-mono text-center align-middle cursor-pointer bg-slate-800 hover:bg-slate-700 border-b border-blue-400 transition-all duration-100"
             :class="{
               'border-r': colIdx !== row.length - 1
             }" @click="toggleCell(rowIdx, colIdx)">

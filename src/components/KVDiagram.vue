@@ -44,7 +44,7 @@
               <vue-latex :expression="rowCode" display-mode />
             </th>
             <td v-for="colCode in colCodes" :key="colCode"
-              class="border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-200">
+              class="border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-100">
               <vue-latex :expression="getValue(rowCode, colCode).toString()" display-mode />
             </td>
           </tr>
@@ -56,12 +56,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TruthTableCell } from './TruthTable.vue';
+import type { TruthTableData } from './TruthTable.vue';
 
 const props = defineProps<{
   inputVars: string[];
   outputVars: string[];
-  modelValue: TruthTableCell[][];
+  modelValue: TruthTableData;
+  minifiedValues?: TruthTableData;
 }>();
 
 const variables = computed(() => props.inputVars || []);

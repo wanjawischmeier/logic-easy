@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
-import { runEspresso } from '@/lib/espresso'
+import { runEspresso } from '@/utility/espresso'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
