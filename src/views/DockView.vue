@@ -1,24 +1,35 @@
 <script setup lang="ts">
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
-import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue'
-import TruthTablePanel from '@/panels/TruthTablePanel.vue'
-import KVDiagramPanel from '@/panels/KVDiagramPanel.vue'
 import { reactive } from 'vue'
 import { minifyTruthTable } from '@/utility/espresso'
 import { interpretMinifiedTable, type Formula } from '@/utility/truthTableInterpreter'
 import type { TruthTableData } from '@/components/TruthTable.vue'
+import { dockComponents } from '@/components/dockRegistry'
 
-const dockComponents = {
-  'truth-table': TruthTablePanel,
-  'kv-diagram': KVDiagramPanel,
-  'espresso-testing-panel': EspressoTestingPanel,
-}
+type DockviewApiMinimal = {
+  addPanel: (opts: {
+    id: string;
+    component: string;
+    title?: string;
+    params?: Record<string, unknown>;
+    position?: unknown;
+  }) => void;
+};
+
+const componentsForDockview = dockComponents;
 
 const onReady = (event: DockviewReadyEvent) => {
   console.log('dockview ready', event)
 
-  const inputVars = ['a', 'b', 'c']
+    // Expose dockview API and shared panel params so HeaderMenuBar can add panels
+    ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
+
+  // We'll expose shared params (state + updateTruthTable) so dynamically added
+  // panels receive the same params as the initial ones.
+  // Define below after truthTableState & updateTruthTable are created.
+
+  const inputVars = ['a', 'b', 'c', 'd']
   const outputVars = ['x', 'y']
 
   const truthTableState = reactive({
@@ -26,7 +37,9 @@ const onReady = (event: DockviewReadyEvent) => {
     outputVars,
     values: [
       [1, 0], [1, 0], [1, 0], [1, 1],
-      [0, 1], [0, 0], ['-', 1], [1, 1],
+      [1, 1], [1, 0], ['-', 1], [0, 1],
+      [0, 0], [1, 0], [1, 0], [1, 1],
+      ['-', 1], [0, 0], ['-', 1], [0, 1],
     ] as TruthTableData,
     minifiedValues: [] as TruthTableData,
     formulas: {} as Record<string, Record<string, Formula>>
@@ -81,6 +94,12 @@ const onReady = (event: DockviewReadyEvent) => {
   // Initial calculation
   updateTruthTable(truthTableState.values)
 
+    // expose shared params for dynamic panels
+    ; (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams = {
+      state: truthTableState,
+      updateTruthTable,
+    };
+
   event.api.addPanel({
     id: 'panel_1',
     component: 'truth-table',
@@ -105,13 +124,15 @@ const onReady = (event: DockviewReadyEvent) => {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen">
-    <div class="h-[50px]">
+  <div class="flex flex-col h-screen bg-[#1c1c2a]">
+    <div class="h-[30px]">
       <DockViewHeader />
     </div>
 
+    <div class="h-px bg-[#2b2b4a]"></div>
+
     <div class="flex-1 min-h-0">
-      <dockview-vue class="dockview-theme-abyss w-full h-[calc(100vh-50px)]" :components="dockComponents"
+      <dockview-vue class="dockview-theme-abyss w-full h-[calc(100vh-30px)]" :components="componentsForDockview"
         @ready="onReady" />
     </div>
   </div>

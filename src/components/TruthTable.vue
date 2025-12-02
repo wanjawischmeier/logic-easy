@@ -61,7 +61,7 @@ function getInputValue(rowIdx: number, colIdx: number) {
               'border-r': colIdx !== inputVars.length - 1
             }">
             <div class="flex-1 flex items-center justify-center">
-              <vue-latex :expression="getInputValue(rowIdx, colIdx).toString()" display-mode />
+              <vue-latex :fontsize=12 :expression="getInputValue(rowIdx, colIdx).toString()" display-mode />
             </div>
           </td>
           <!-- Editable Output Columns -->
@@ -71,7 +71,7 @@ function getInputValue(rowIdx: number, colIdx: number) {
               'border-r': colIdx !== row.length - 1
             }" @click="toggleCell(rowIdx, colIdx)">
             <div class="flex-1 flex items-center justify-center">
-              <vue-latex :expression="cell.toString()" display-mode />
+              <vue-latex :fontsize=12 :expression="cell.toString()" display-mode />
             </div>
           </td>
         </tr>
