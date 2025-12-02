@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
-import { reactive } from 'vue'
 import { minifyTruthTable } from '@/utility/espresso'
 import { interpretMinifiedTable, type Formula } from '@/utility/truthTableInterpreter'
 import type { TruthTableData } from '@/components/TruthTable.vue'
 import { dockComponents } from '@/components/dockRegistry'
+import { stateManager } from '@/utility/stateManager'
 
 type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -25,34 +25,14 @@ const onReady = (event: DockviewReadyEvent) => {
     // Expose dockview API and shared panel params so HeaderMenuBar can add panels
     ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
 
-  // We'll expose shared params (state + updateTruthTable) so dynamically added
-  // panels receive the same params as the initial ones.
-  // Define below after truthTableState & updateTruthTable are created.
-
-  const inputVars = ['a', 'b', 'c', 'd']
-  const outputVars = ['x', 'y']
-
-  const truthTableState = reactive({
-    inputVars,
-    outputVars,
-    values: [
-      [1, 0], [1, 0], [1, 0], [1, 1],
-      [1, 1], [1, 0], ['-', 1], [0, 1],
-      [0, 0], [1, 0], [1, 0], [1, 1],
-      ['-', 1], [0, 0], ['-', 1], [0, 1],
-    ] as TruthTableData,
-    minifiedValues: [] as TruthTableData,
-    formulas: {} as Record<string, Record<string, Formula>>
-  })
-
   const updateTruthTable = async (newValues: TruthTableData) => {
-    truthTableState.values = newValues
+    stateManager.state.truthTable.values = newValues
 
     // Calculate formulas for each output variable
     const formulas: Record<string, Record<string, Formula>> = {}
 
-    for (let outputIdx = 0; outputIdx < truthTableState.outputVars.length; outputIdx++) {
-      const outputVar = truthTableState.outputVars[outputIdx]
+    for (let outputIdx = 0; outputIdx < stateManager.state.truthTable.outputVars.length; outputIdx++) {
+      const outputVar = stateManager.state.truthTable.outputVars[outputIdx]
       if (!outputVar) continue
 
       // Extract single output column
@@ -60,7 +40,7 @@ const onReady = (event: DockviewReadyEvent) => {
 
       // 1. DNF: Minify ON-set
       const minifiedDNF = await minifyTruthTable(
-        truthTableState.inputVars,
+        stateManager.state.truthTable.inputVars,
         [outputVar],
         singleOutputValues
       )
@@ -74,7 +54,7 @@ const onReady = (event: DockviewReadyEvent) => {
       }) as TruthTableData
 
       const minifiedCNF = await minifyTruthTable(
-        truthTableState.inputVars,
+        stateManager.state.truthTable.inputVars,
         [outputVar],
         invertedValues
       )
@@ -83,20 +63,20 @@ const onReady = (event: DockviewReadyEvent) => {
       const castMinifiedCNF = minifiedCNF as unknown as TruthTableData
 
       formulas[outputVar] = {
-        DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', truthTableState.inputVars),
-        CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', truthTableState.inputVars)
+        DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', stateManager.state.truthTable.inputVars),
+        CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', stateManager.state.truthTable.inputVars)
       }
     }
 
-    truthTableState.formulas = formulas
+    stateManager.state.truthTable.formulas = formulas
   }
 
   // Initial calculation
-  updateTruthTable(truthTableState.values)
+  updateTruthTable(stateManager.state.truthTable.values)
 
     // expose shared params for dynamic panels
     ; (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams = {
-      state: truthTableState,
+      state: stateManager.state.truthTable,
       updateTruthTable,
     };
 
@@ -105,7 +85,7 @@ const onReady = (event: DockviewReadyEvent) => {
     component: 'truth-table',
     title: 'Truth Table',
     params: {
-      state: truthTableState,
+      state: stateManager.state.truthTable,
       updateTruthTable
     },
   })
@@ -116,7 +96,7 @@ const onReady = (event: DockviewReadyEvent) => {
     title: 'KV Diagram',
     position: { referencePanel: 'panel_1', direction: 'right' },
     params: {
-      state: truthTableState,
+      state: stateManager.state.truthTable,
       updateTruthTable
     },
   })
