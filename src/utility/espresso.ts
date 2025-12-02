@@ -1,5 +1,7 @@
 import { Buffer } from 'buffer'
 import { init, WASI } from '@wasmer/wasi'
+import type { TruthTableData } from '@/components/TruthTable.vue'
+import type { TruthTableCell } from './truthTableInterpreter'
 
 if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {
   (globalThis as { Buffer?: unknown }).Buffer = Buffer
@@ -67,8 +69,8 @@ export async function runEspresso(
 export async function minifyTruthTable(
   inputVars: string[],
   outputVars: string[],
-  values: (string | number)[][]
-): Promise<(string | number)[][]> {
+  values: TruthTableData
+): Promise<TruthTableData> {
   const numInputs = inputVars.length
   const numOutputs = outputVars.length
 
@@ -91,7 +93,7 @@ export async function minifyTruthTable(
   }
 
   const lines = result.stdout.split('\n')
-  const minifiedTable: (string | number)[][] = []
+  const minifiedTable: TruthTableData = []
 
   for (const line of lines) {
     const trimmed = line.trim()
@@ -104,9 +106,9 @@ export async function minifyTruthTable(
       const outputsStr = parts[1]!
 
       if (inputsStr.length === numInputs && outputsStr.length === numOutputs) {
-        const row: (string | number)[] = []
-        for (const char of inputsStr) row.push(char === '-' ? '-' : parseInt(char))
-        for (const char of outputsStr) row.push(char === '-' ? '-' : parseInt(char))
+        const row: TruthTableCell[] = []
+        for (const char of inputsStr) row.push(char === '-' ? '-' : (char === '0' ? 0 : 1))
+        for (const char of outputsStr) row.push(char === '-' ? '-' : (char === '0' ? 0 : 1))
         minifiedTable.push(row)
       }
     }
