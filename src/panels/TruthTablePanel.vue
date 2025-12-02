@@ -2,7 +2,6 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import TruthTable, { type TruthTableCell, type TruthTableData } from '../components/TruthTable.vue'
-import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { Formula } from '@/utility/truthTableInterpreter';
 
 const props = defineProps<{
@@ -67,9 +66,6 @@ watch(() => state?.values, (newVal) => {
   <div class="h-full text-white flex flex-col p-2 overflow-hidden">
     <div class="font-semibold mb-2">TruthTable</div>
     <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />
-
-    <div class="font-semibold mb-2">Formula</div>
-    <FormulaRenderer v-if="state?.formulas" :formulas="state.formulas" />
   </div>
 </template>
 

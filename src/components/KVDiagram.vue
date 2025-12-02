@@ -43,10 +43,20 @@
               :class="{ 'border-t-4': rIdx === 0 }">
               <vue-latex :expression="rowCode" display-mode />
             </th>
-            <td v-for="colCode in colCodes" :key="colCode"
-              class="border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-100 cursor-pointer select-none"
+            <td v-for="(colCode, cIdx) in colCodes" :key="colCode"
+              class="relative border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-100 cursor-pointer select-none w-14 h-14"
               @click="toggleCell(rowCode, colCode)">
-              <vue-latex :expression="getValue(rowCode, colCode).toString()" display-mode />
+
+              <!-- Highlights -->
+              <div class="absolute inset-0 pointer-events-none">
+                <div v-for="(highlight, idx) in getHighlights(rIdx, cIdx)" :key="idx"
+                  class="absolute transition-all duration-100" :style="highlight.style">
+                </div>
+              </div>
+              <!-- Content -->
+              <div class="relative z-10 flex items-center justify-center h-full">
+                <vue-latex :expression="getValue(rowCode, colCode).toString()" display-mode />
+              </div>
             </td>
           </tr>
         </tbody>
@@ -58,12 +68,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { TruthTableData, TruthTableCell } from './TruthTable.vue';
+import type { Formula, Term } from '@/utility/truthTableInterpreter';
 
 const props = defineProps<{
   inputVars: string[];
   outputVars: string[];
   modelValue: TruthTableData;
   minifiedValues?: TruthTableData;
+  formula?: Formula;
 }>();
 
 const emit = defineEmits<{
@@ -148,5 +160,79 @@ const toggleCell = (rowCode: string, colCode: string) => {
       emit('update:modelValue', newValues);
     }
   }
+};
+
+const getTermColor = (index: number) => {
+  const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
+  return `hsla(${hue}, 70%, 50%, 0.3)`;
+};
+
+const isCovered = (term: Term, rowCode: string, colCode: string) => {
+  const binaryString = rowCode + colCode;
+  for (const literal of term.literals) {
+    const varIndex = props.inputVars.indexOf(literal.variable);
+    if (varIndex === -1) continue;
+
+    const bit = binaryString[varIndex];
+
+    if (props.formula?.type === 'DNF') {
+      // DNF: Term is product.
+      // literal A (negated=false) matches bit '1'
+      // literal !A (negated=true) matches bit '0'
+      if (!literal.negated && bit !== '1') return false;
+      if (literal.negated && bit !== '0') return false;
+    } else {
+      // CNF: Term is sum (clause).
+      // Clause (A) (negated=false) is FALSE if A=0. So it covers '0's where A=0.
+      // Clause (!A) (negated=true) is FALSE if A=1. So it covers '0's where A=1.
+      if (!literal.negated && bit !== '0') return false;
+      if (literal.negated && bit !== '1') return false;
+    }
+  }
+  return true;
+};
+
+const getHighlights = (rIdx: number, cIdx: number) => {
+  if (!props.formula) return [];
+
+  const rows = rowCodes.value;
+  const cols = colCodes.value;
+  const rowCode = rows[rIdx];
+  const colCode = cols[cIdx];
+
+  if (!rowCode || !colCode) return [];
+
+  const highlights: { style: Record<string, string> }[] = [];
+
+  props.formula.terms.forEach((term, index) => {
+    if (!isCovered(term, rowCode, colCode)) return;
+
+    const color = getTermColor(index);
+
+    // Check neighbors (wrapping)
+    const topRow = rows[(rIdx - 1 + rows.length) % rows.length]!;
+    const bottomRow = rows[(rIdx + 1) % rows.length]!;
+    const leftCol = cols[(cIdx - 1 + cols.length) % cols.length]!;
+    const rightCol = cols[(cIdx + 1) % cols.length]!;
+
+    const hasTop = isCovered(term, topRow, colCode);
+    const hasBottom = isCovered(term, bottomRow, colCode);
+    const hasLeft = isCovered(term, rowCode, leftCol);
+    const hasRight = isCovered(term, rowCode, rightCol);
+
+    const pad = '8px';
+
+    highlights.push({
+      style: {
+        backgroundColor: color,
+        top: hasTop ? '0' : pad,
+        bottom: hasBottom ? '0' : pad,
+        left: hasLeft ? '0' : pad,
+        right: hasRight ? '0' : pad,
+      }
+    });
+  });
+
+  return highlights;
 };
 </script>

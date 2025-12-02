@@ -11,7 +11,7 @@ export interface EspressoResult {
   stderr: string
 }
 
-// WebAssembly binary taken from the awesome https://github.com/NudelErde/Espresso-Wasm-Web
+// WebAssembly binary taken from https://github.com/wanjawischmeier/espresso-logic
 const WASM_PATH = '/logic-easy/espresso.wasm'
 let isWasiInitialized = false
 const moduleCache: Record<string, WebAssembly.Module> = {}
@@ -52,7 +52,6 @@ export async function runEspresso(
 
   const file = wasi.fs.open('/input.esp', { read: true, write: true, create: true })
   file.writeString(input)
-  file.flush()
 
   await instantiateModule(wasi, WASM_PATH)
 
@@ -115,3 +114,4 @@ export async function minifyTruthTable(
 
   return minifiedTable
 }
+

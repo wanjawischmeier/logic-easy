@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import type { Formula } from '@/utility/truthTableInterpreter';
 
 const props = defineProps<{
-  formulas: Record<string, Formula>;
+  formula?: Formula;
 }>();
 
-const selectedType = ref('DNF');
-
-const currentFormula = computed(() => {
-  return props.formulas[selectedType.value];
-});
-
 const latexExpression = computed(() => {
-  const formula = currentFormula.value;
+  const formula = props.formula;
   if (!formula || !formula.terms.length) return '';
 
   const terms = formula.terms.map(term => {
@@ -43,15 +37,7 @@ const latexExpression = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <div class="flex gap-2 text-sm">
-      <button v-for="type in Object.keys(formulas)" :key="type" @click="selectedType = type"
-        :class="['px-2 py-1 rounded', selectedType === type ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300']">
-        {{ type }}
-      </button>
-    </div>
-    <div class="text-xl text-blue-300 p-2">
-      <vue-latex :expression="latexExpression" display-mode />
-    </div>
+  <div class="text-xl text-blue-300 p-2">
+    <vue-latex :expression="latexExpression" display-mode />
   </div>
 </template>

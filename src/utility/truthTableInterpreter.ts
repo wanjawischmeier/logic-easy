@@ -74,7 +74,7 @@ export function interpretMinifiedTable(
 
   // Sort terms to ensure consistent order (e.g. !a before b)
   terms.sort((a, b) => compareTerms(a, b, inputVars));
-  console.log({ 'minified ': formulaType, terms });
+
   return { type: formulaType, terms };
 }
 
