@@ -64,7 +64,11 @@ watch(() => state?.values, (newVal) => {
 }, { deep: true })
 
 const selectedType = ref<'DNF' | 'CNF'>('DNF');
-const currentFormula = computed(() => state?.formulas?.[selectedType.value]);
+const selectedOutputIndex = ref(0);
+const currentFormula = computed(() => {
+  const outputVar = outputVars[selectedOutputIndex.value];
+  return state?.formulas?.[outputVar]?.[selectedType.value];
+});
 </script>
 
 <template>
@@ -72,6 +76,12 @@ const currentFormula = computed(() => state?.formulas?.[selectedType.value]);
     <div class="flex justify-between items-center mb-2">
       <div class="font-semibold">KV Diagram</div>
       <div class="flex gap-2 text-sm">
+        <select v-model="selectedOutputIndex"
+          class="px-2 py-1 rounded bg-gray-700 text-gray-300 border border-gray-600">
+          <option v-for="(outputVar, idx) in outputVars" :key="outputVar" :value="idx">
+            {{ outputVar }}
+          </option>
+        </select>
         <button v-for="type in ['DNF', 'CNF']" :key="type" @click="selectedType = type as 'DNF' | 'CNF'"
           :class="['px-2 py-1 rounded', selectedType === type ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300']">
           {{ type }}
@@ -80,11 +90,12 @@ const currentFormula = computed(() => state?.formulas?.[selectedType.value]);
     </div>
 
     <div class="flex-1 flex flex-col items-center overflow-auto">
-      <KVDiagram :key="selectedType" v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-        :minified-values="state?.minifiedValues || []" :formula="currentFormula" :mode="selectedType" />
+      <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
+        :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="state?.minifiedValues || []"
+        :formula="currentFormula" :mode="selectedType" />
 
       <div class="mt-4 w-full flex justify-center">
-        <FormulaRenderer :formula="currentFormula" />
+        <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />
       </div>
     </div>
   </div>

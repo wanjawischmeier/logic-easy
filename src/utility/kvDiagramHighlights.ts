@@ -67,34 +67,44 @@ export function calculateHighlights(
   const pad = '8px';
 
   if (mode === 'CNF') {
-    // CNF: Only highlight if ALL terms (clauses) cover this cell
-    const allCover = terms.every(term =>
-      isCovered(term, rowCode, colCode, mode, inputVars)
-    );
+    // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
+    // A clause (sum) is FALSE when ALL its literals are false
+    // So we highlight cells where at least one clause is completely false
 
-    if (!allCover) return [];
+    // Check if this cell makes the entire CNF false (at least one clause is false)
+    const anyClauseFalse = terms.some(term => {
+      // A clause is false if NO literal in it is true
+      return !isCovered(term, rowCode, colCode, mode, inputVars);
+    });
 
-    const color = getTermColor(0);
+    if (!anyClauseFalse) return []; // Cell doesn't contribute to making formula false
 
-    // Check neighbors - only if they're also covered by ALL terms
-    const topRow = rows[(rIdx - 1 + rows.length) % rows.length]!;
-    const bottomRow = rows[(rIdx + 1) % rows.length]!;
-    const leftCol = cols[(cIdx - 1 + cols.length) % cols.length]!;
-    const rightCol = cols[(cIdx + 1) % cols.length]!;
+    // Show each clause that is false in this cell
+    terms.forEach((term, index) => {
+      const clauseIsFalse = !isCovered(term, rowCode, colCode, mode, inputVars);
+      if (!clauseIsFalse) return;
 
-    const hasTop = terms.every(term => isCovered(term, topRow, colCode, mode, inputVars));
-    const hasBottom = terms.every(term => isCovered(term, bottomRow, colCode, mode, inputVars));
-    const hasLeft = terms.every(term => isCovered(term, rowCode, leftCol, mode, inputVars));
-    const hasRight = terms.every(term => isCovered(term, rowCode, rightCol, mode, inputVars));
+      const color = getTermColor(index);
 
-    highlights.push({
-      style: {
-        backgroundColor: color,
-        top: hasTop ? '0' : pad,
-        bottom: hasBottom ? '0' : pad,
-        left: hasLeft ? '0' : pad,
-        right: hasRight ? '0' : pad,
-      }
+      const topRow = rows[(rIdx - 1 + rows.length) % rows.length]!;
+      const bottomRow = rows[(rIdx + 1) % rows.length]!;
+      const leftCol = cols[(cIdx - 1 + cols.length) % cols.length]!;
+      const rightCol = cols[(cIdx + 1) % cols.length]!;
+
+      const hasTop = !isCovered(term, topRow, colCode, mode, inputVars);
+      const hasBottom = !isCovered(term, bottomRow, colCode, mode, inputVars);
+      const hasLeft = !isCovered(term, rowCode, leftCol, mode, inputVars);
+      const hasRight = !isCovered(term, rowCode, rightCol, mode, inputVars);
+
+      highlights.push({
+        style: {
+          backgroundColor: color,
+          top: hasTop ? '0' : pad,
+          bottom: hasBottom ? '0' : pad,
+          left: hasLeft ? '0' : pad,
+          right: hasRight ? '0' : pad,
+        }
+      });
     });
   } else {
     // DNF: Show each term independently (union)

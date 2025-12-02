@@ -28,7 +28,9 @@
       <table class="col-start-2 row-start-2 border-collapse">
         <thead>
           <tr>
-            <th class="border-none bg-transparent w-10 h-10"></th>
+            <th class="border-none bg-transparent w-10 h-10 text-green-300 text-sm">
+              <vue-latex :expression="outputVars[outputIndex ?? 0] || 'f'" display-mode />
+            </th>
             <th v-for="(colCode, cIdx) in colCodes" :key="colCode"
               class="border border-b-4 border-blue-400 bg-slate-800 text-blue-300 font-normal text-sm w-14 h-14 text-center"
               :class="{ 'border-l-4': cIdx === 0 }">
@@ -81,6 +83,7 @@ import { calculateHighlights } from '@/utility/kvDiagramHighlights';
 const props = defineProps<{
   inputVars: string[];
   outputVars: string[];
+  outputIndex?: number;
   modelValue: TruthTableData;
   minifiedValues?: TruthTableData;
   formula?: Formula;
@@ -106,9 +109,10 @@ const getValue = (rowCode: string, colCode: string) => {
 
   const binaryString = getBinaryString(rowCode, colCode);
   const rowIndex = parseInt(binaryString, 2);
+  const outputIdx = props.outputIndex ?? 0;
 
   if (rowIndex >= 0 && rowIndex < props.modelValue.length) {
-    return props.modelValue[rowIndex]?.[0] ?? '-';
+    return props.modelValue[rowIndex]?.[outputIdx] ?? '-';
   }
   return '-';
 };
@@ -118,18 +122,19 @@ const toggleCell = (rowCode: string, colCode: string) => {
 
   const binaryString = getBinaryString(rowCode, colCode);
   const rowIndex = parseInt(binaryString, 2);
+  const outputIdx = props.outputIndex ?? 0;
 
   if (rowIndex >= 0 && rowIndex < props.modelValue.length) {
     const newValues = props.modelValue.map(row => [...row]);
     const row = newValues[rowIndex];
     if (row) {
-      const current = row[0];
+      const current = row[outputIdx];
       let next: TruthTableCell = 0;
       if (current === 0) next = 1;
       else if (current === 1) next = '-';
       else next = 0;
 
-      row[0] = next;
+      row[outputIdx] = next;
       emit('update:modelValue', newValues);
     }
   }

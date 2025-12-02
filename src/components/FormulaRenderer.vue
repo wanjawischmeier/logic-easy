@@ -4,11 +4,14 @@ import type { Formula } from '@/utility/truthTableInterpreter';
 
 const props = defineProps<{
   formula?: Formula;
+  outputVar?: string;
 }>();
 
 const latexExpression = computed(() => {
   const formula = props.formula;
-  if (!formula || !formula.terms.length) return '';
+  const varName = props.outputVar || 'x';
+
+  if (!formula || !formula.terms.length) return `f(${varName}) = ...`;
 
   const terms = formula.terms.map(term => {
     if (term.literals.length === 0) return '1';
@@ -27,12 +30,8 @@ const latexExpression = computed(() => {
     }
   });
 
-  if (formula.type === 'DNF') {
-    return terms.join(' + ');
-  } else {
-    // CNF: Product of sums
-    return terms.join('');
-  }
+  const result = formula.type === 'DNF' ? terms.join(' + ') : terms.join('');
+  return `f(${varName}) = ${result}`;
 });
 </script>
 

@@ -19,56 +19,63 @@ const onReady = (event: DockviewReadyEvent) => {
   console.log('dockview ready', event)
 
   const inputVars = ['a', 'b', 'c']
-  const outputVars = ['x']
+  const outputVars = ['x', 'y']
 
   const truthTableState = reactive({
     inputVars,
     outputVars,
     values: [
-      [1], [1], [1], [1],
-      [0], [0], ['-'], [1],
+      [1, 0], [1, 0], [1, 0], [1, 1],
+      [0, 1], [0, 0], ['-', 1], [1, 1],
     ] as TruthTableData,
     minifiedValues: [] as TruthTableData,
-    formulas: {} as Record<string, Formula>
+    formulas: {} as Record<string, Record<string, Formula>>
   })
 
   const updateTruthTable = async (newValues: TruthTableData) => {
     truthTableState.values = newValues
 
-    // 1. DNF: Minify ON-set (original values)
-    const minifiedDNF = await minifyTruthTable(
-      truthTableState.inputVars,
-      truthTableState.outputVars,
-      newValues
-    )
+    // Calculate formulas for each output variable
+    const formulas: Record<string, Record<string, Formula>> = {}
 
-    // 2. CNF: Minify OFF-set (invert outputs)
-    const numInputs = truthTableState.inputVars.length
-    const invertedValues = newValues.map(row => {
-      return row.map((val, idx) => {
-        if (idx < numInputs) return val // Input column
-        // Output column
-        if (val === 1) return 0
-        if (val === 0) return 1
-        return val // '-'
-      })
-    }) as TruthTableData
+    for (let outputIdx = 0; outputIdx < truthTableState.outputVars.length; outputIdx++) {
+      const outputVar = truthTableState.outputVars[outputIdx]
+      if (!outputVar) continue
 
-    const minifiedCNF = await minifyTruthTable(
-      truthTableState.inputVars,
-      truthTableState.outputVars,
-      invertedValues
-    )
+      // Extract single output column
+      const singleOutputValues = newValues.map(row => [row[outputIdx]]) as TruthTableData
 
-    const castMinifiedDNF = minifiedDNF as unknown as TruthTableData
-    const castMinifiedCNF = minifiedCNF as unknown as TruthTableData
+      // 1. DNF: Minify ON-set
+      const minifiedDNF = await minifyTruthTable(
+        truthTableState.inputVars,
+        [outputVar],
+        singleOutputValues
+      )
 
-    truthTableState.minifiedValues = castMinifiedDNF
+      // 2. CNF: Minify OFF-set (invert output)
+      const invertedValues = singleOutputValues.map(row => {
+        const val = row[0]
+        if (val === 1) return [0]
+        if (val === 0) return [1]
+        return [val]
+      }) as TruthTableData
 
-    truthTableState.formulas = {
-      DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', truthTableState.inputVars),
-      CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', truthTableState.inputVars)
+      const minifiedCNF = await minifyTruthTable(
+        truthTableState.inputVars,
+        [outputVar],
+        invertedValues
+      )
+
+      const castMinifiedDNF = minifiedDNF as unknown as TruthTableData
+      const castMinifiedCNF = minifiedCNF as unknown as TruthTableData
+
+      formulas[outputVar] = {
+        DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', truthTableState.inputVars),
+        CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', truthTableState.inputVars)
+      }
     }
+
+    truthTableState.formulas = formulas
   }
 
   // Initial calculation
