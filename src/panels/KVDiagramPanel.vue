@@ -80,8 +80,8 @@ const currentFormula = computed(() => state?.formulas?.[selectedType.value]);
     </div>
 
     <div class="flex-1 flex flex-col items-center overflow-auto">
-      <KVDiagram v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-        :minified-values="state?.minifiedValues || []" :formula="currentFormula" />
+      <KVDiagram :key="selectedType" v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
+        :minified-values="state?.minifiedValues || []" :formula="currentFormula" :mode="selectedType" />
 
       <div class="mt-4 w-full flex justify-center">
         <FormulaRenderer :formula="currentFormula" />

@@ -68,7 +68,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { TruthTableData, TruthTableCell } from './TruthTable.vue';
-import type { Formula, Term } from '@/utility/truthTableInterpreter';
+import type { Formula } from '@/utility/truthTableInterpreter';
+import {
+  getLeftVariables,
+  getTopVariables,
+  getRowCodes,
+  getColCodes,
+  getBinaryString
+} from '@/utility/kvDiagramLayout';
+import { calculateHighlights } from '@/utility/kvDiagramHighlights';
 
 const props = defineProps<{
   inputVars: string[];
@@ -76,6 +84,7 @@ const props = defineProps<{
   modelValue: TruthTableData;
   minifiedValues?: TruthTableData;
   formula?: Formula;
+  mode?: 'DNF' | 'CNF';
 }>();
 
 const emit = defineEmits<{
@@ -84,56 +93,21 @@ const emit = defineEmits<{
 
 const variables = computed(() => props.inputVars || []);
 
-const leftVariables = computed(() => {
-  const count = variables.value.length;
-  if (count === 2) return [variables.value[0]]; // A
-  if (count === 3) return [variables.value[0]]; // A
-  if (count === 4) return [variables.value[0], variables.value[1]]; // AB
-  return [];
-});
+const leftVariables = computed(() => getLeftVariables(variables.value));
 
-const topVariables = computed(() => {
-  const count = variables.value.length;
-  if (count === 2) return [variables.value[1]]; // B
-  if (count === 3) return [variables.value[1], variables.value[2]]; // BC
-  if (count === 4) return [variables.value[2], variables.value[3]]; // CD
-  return [];
-});
+const topVariables = computed(() => getTopVariables(variables.value));
 
-// Gray codes
-const grayCode2 = ['00', '01', '11', '10'];
-const grayCode1 = ['0', '1'];
+const rowCodes = computed(() => getRowCodes(variables.value.length));
 
-const rowCodes = computed(() => {
-  const count = variables.value.length;
-  if (count === 2) return grayCode1; // A: 0, 1
-  if (count === 3) return grayCode1; // A: 0, 1
-  if (count === 4) return grayCode2; // AB: 00, 01, 11, 10
-  return [];
-});
-
-const colCodes = computed(() => {
-  const count = variables.value.length;
-  if (count === 2) return grayCode1; // B: 0, 1
-  if (count === 3) return grayCode2; // BC: 00, 01, 11, 10
-  if (count === 4) return grayCode2; // CD: 00, 01, 11, 10
-  return [];
-});
+const colCodes = computed(() => getColCodes(variables.value.length));
 
 const getValue = (rowCode: string, colCode: string) => {
   if (!props.modelValue) return '-';
 
-  // Combine row and col bits to find the matching row in truth table
-  // The order depends on how we split variables.
-  // 2 vars: Row=A, Col=B -> AB
-  // 3 vars: Row=A, Col=BC -> ABC
-  // 4 vars: Row=AB, Col=CD -> ABCD
-
-  const binaryString = rowCode + colCode;
+  const binaryString = getBinaryString(rowCode, colCode);
   const rowIndex = parseInt(binaryString, 2);
 
   if (rowIndex >= 0 && rowIndex < props.modelValue.length) {
-    // Return the first result column (assuming single output for KV map for now)
     return props.modelValue[rowIndex]?.[0] ?? '-';
   }
   return '-';
@@ -142,14 +116,13 @@ const getValue = (rowCode: string, colCode: string) => {
 const toggleCell = (rowCode: string, colCode: string) => {
   if (!props.modelValue) return;
 
-  const binaryString = rowCode + colCode;
+  const binaryString = getBinaryString(rowCode, colCode);
   const rowIndex = parseInt(binaryString, 2);
 
   if (rowIndex >= 0 && rowIndex < props.modelValue.length) {
     const newValues = props.modelValue.map(row => [...row]);
     const row = newValues[rowIndex];
     if (row) {
-      // Toggle logic: 0 -> 1 -> - -> 0
       const current = row[0];
       let next: TruthTableCell = 0;
       if (current === 0) next = 1;
@@ -162,77 +135,19 @@ const toggleCell = (rowCode: string, colCode: string) => {
   }
 };
 
-const getTermColor = (index: number) => {
-  const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
-  return `hsla(${hue}, 70%, 50%, 0.3)`;
-};
-
-const isCovered = (term: Term, rowCode: string, colCode: string) => {
-  const binaryString = rowCode + colCode;
-  for (const literal of term.literals) {
-    const varIndex = props.inputVars.indexOf(literal.variable);
-    if (varIndex === -1) continue;
-
-    const bit = binaryString[varIndex];
-
-    if (props.formula?.type === 'DNF') {
-      // DNF: Term is product.
-      // literal A (negated=false) matches bit '1'
-      // literal !A (negated=true) matches bit '0'
-      if (!literal.negated && bit !== '1') return false;
-      if (literal.negated && bit !== '0') return false;
-    } else {
-      // CNF: Term is sum (clause).
-      // Clause (A) (negated=false) is FALSE if A=0. So it covers '0's where A=0.
-      // Clause (!A) (negated=true) is FALSE if A=1. So it covers '0's where A=1.
-      if (!literal.negated && bit !== '0') return false;
-      if (literal.negated && bit !== '1') return false;
-    }
-  }
-  return true;
-};
-
 const getHighlights = (rIdx: number, cIdx: number) => {
   if (!props.formula) return [];
 
-  const rows = rowCodes.value;
-  const cols = colCodes.value;
-  const rowCode = rows[rIdx];
-  const colCode = cols[cIdx];
+  const currentMode = props.mode || props.formula?.type || 'DNF';
 
-  if (!rowCode || !colCode) return [];
-
-  const highlights: { style: Record<string, string> }[] = [];
-
-  props.formula.terms.forEach((term, index) => {
-    if (!isCovered(term, rowCode, colCode)) return;
-
-    const color = getTermColor(index);
-
-    // Check neighbors (wrapping)
-    const topRow = rows[(rIdx - 1 + rows.length) % rows.length]!;
-    const bottomRow = rows[(rIdx + 1) % rows.length]!;
-    const leftCol = cols[(cIdx - 1 + cols.length) % cols.length]!;
-    const rightCol = cols[(cIdx + 1) % cols.length]!;
-
-    const hasTop = isCovered(term, topRow, colCode);
-    const hasBottom = isCovered(term, bottomRow, colCode);
-    const hasLeft = isCovered(term, rowCode, leftCol);
-    const hasRight = isCovered(term, rowCode, rightCol);
-
-    const pad = '8px';
-
-    highlights.push({
-      style: {
-        backgroundColor: color,
-        top: hasTop ? '0' : pad,
-        bottom: hasBottom ? '0' : pad,
-        left: hasLeft ? '0' : pad,
-        right: hasRight ? '0' : pad,
-      }
-    });
-  });
-
-  return highlights;
+  return calculateHighlights(
+    rIdx,
+    cIdx,
+    rowCodes.value,
+    colCodes.value,
+    props.formula.terms,
+    currentMode,
+    props.inputVars
+  );
 };
 </script>
