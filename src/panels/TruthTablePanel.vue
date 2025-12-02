@@ -2,7 +2,6 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import TruthTable, { type TruthTableCell, type TruthTableData } from '../components/TruthTable.vue'
-import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { Formula } from '@/utility/truthTableInterpreter';
 
@@ -71,10 +70,6 @@ watch(() => state?.values, (newVal) => {
 
     <div class="font-semibold mb-2">Formula</div>
     <FormulaRenderer v-if="state?.formulas" :formulas="state.formulas" />
-
-    <div class="font-semibold mb-2">KV Diagram</div>
-    <KVDiagram :input-vars="inputVars" :output-vars="outputVars" :model-value="tableValues"
-      :minified-values="state?.minifiedValues || []" />
   </div>
 </template>
 

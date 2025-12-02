@@ -44,7 +44,8 @@
               <vue-latex :expression="rowCode" display-mode />
             </th>
             <td v-for="colCode in colCodes" :key="colCode"
-              class="border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-100">
+              class="border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-100 cursor-pointer select-none"
+              @click="toggleCell(rowCode, colCode)">
               <vue-latex :expression="getValue(rowCode, colCode).toString()" display-mode />
             </td>
           </tr>
@@ -56,13 +57,17 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TruthTableData } from './TruthTable.vue';
+import type { TruthTableData, TruthTableCell } from './TruthTable.vue';
 
 const props = defineProps<{
   inputVars: string[];
   outputVars: string[];
   modelValue: TruthTableData;
   minifiedValues?: TruthTableData;
+}>();
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: TruthTableData): void
 }>();
 
 const variables = computed(() => props.inputVars || []);
@@ -120,5 +125,28 @@ const getValue = (rowCode: string, colCode: string) => {
     return props.modelValue[rowIndex]?.[0] ?? '-';
   }
   return '-';
+};
+
+const toggleCell = (rowCode: string, colCode: string) => {
+  if (!props.modelValue) return;
+
+  const binaryString = rowCode + colCode;
+  const rowIndex = parseInt(binaryString, 2);
+
+  if (rowIndex >= 0 && rowIndex < props.modelValue.length) {
+    const newValues = props.modelValue.map(row => [...row]);
+    const row = newValues[rowIndex];
+    if (row) {
+      // Toggle logic: 0 -> 1 -> - -> 0
+      const current = row[0];
+      let next: TruthTableCell = 0;
+      if (current === 0) next = 1;
+      else if (current === 1) next = '-';
+      else next = 0;
+
+      row[0] = next;
+      emit('update:modelValue', newValues);
+    }
+  }
 };
 </script>

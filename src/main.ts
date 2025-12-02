@@ -6,6 +6,7 @@ import BasicPanel from './panels/BasicPanel.vue';
 import EspressoTestingPanel from './panels/EspressoTestingPanel.vue';
 import TruthTablePanel from './panels/TruthTablePanel.vue';
 import { VueLatex } from 'vatex';
+import KVDiagramPanel from './panels/KVDiagramPanel.vue';
 
 const App = defineComponent({
   name: 'App',
@@ -18,9 +19,10 @@ app.config.errorHandler = (err) => {
 };
 
 app.component('dockview-vue', DockviewVue);
-app.component('basic-panel', BasicPanel);
-app.component('espresso-testing-panel', EspressoTestingPanel)
+app.component('test-basic', BasicPanel);
+app.component('espresso-testing', EspressoTestingPanel)
 app.component('truth-table', TruthTablePanel)
+app.component('kv-diagram', KVDiagramPanel)
 
 app.use(router);
 app.component('vue-latex', VueLatex);

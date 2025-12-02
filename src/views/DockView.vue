@@ -3,6 +3,7 @@ import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
 import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue'
 import TruthTablePanel from '@/panels/TruthTablePanel.vue'
+import KVDiagramPanel from '@/panels/KVDiagramPanel.vue'
 import { reactive } from 'vue'
 import { minifyTruthTable } from '@/utility/espresso'
 import { interpretMinifiedTable, type Formula } from '@/utility/truthTableInterpreter'
@@ -10,6 +11,7 @@ import type { TruthTableData } from '@/components/TruthTable.vue'
 
 const dockComponents = {
   'truth-table': TruthTablePanel,
+  'kv-diagram': KVDiagramPanel,
   'espresso-testing-panel': EspressoTestingPanel,
 }
 
@@ -81,11 +83,16 @@ const onReady = (event: DockviewReadyEvent) => {
       updateTruthTable
     },
   })
+
   event.api.addPanel({
-    id: 'panel_2',
-    component: 'espresso-testing-panel',
-    title: 'Espresso Panel',
+    id: 'panel_kv',
+    component: 'kv-diagram',
+    title: 'KV Diagram',
     position: { referencePanel: 'panel_1', direction: 'right' },
+    params: {
+      state: truthTableState,
+      updateTruthTable
+    },
   })
 }
 </script>
