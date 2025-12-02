@@ -8,10 +8,11 @@
 
       <div v-if="activeMenu === menu"
         class="absolute left-0 mt-1 w-48 bg-[#2b2b4a] border border-[#3c3c3c] rounded shadow-[0_4px_8px_rgba(0,0,0,0.5)] z-20">
-        <ul class="py-1">
+        <ul class="pr-1">
           <li v-for="entry in items" :key="entry.label">
-            <button class="w-full text-left px-3 py-2 hover:bg-[#1c1c2a] flex justify-between text-sm"
-              @click="runAction(entry)" type="button">
+            <button
+              class="w-full text-left m-0.5 px-3 py-2 rounded-xs hover:bg-[#1c1c2a] disabled:bg-[#1c1c2a] disabled:text-gray-400 flex justify-between text-sm"
+              :disabled="!entry.action && !entry.panelKey" @click="runAction(entry)" type="button">
               <span>{{ entry.label }}</span>
               <span v-if="entry.shortcut" class="opacity-70">{{ entry.shortcut }}</span>
             </button>
@@ -41,21 +42,21 @@ const viewMenu = computed<MenuEntry[]>(() =>
 /* Base menus */
 const menus: Record<string, MenuEntry[]> = {
   File: [
-    { label: 'New File', action: () => console.log('New File'), shortcut: 'Ctrl+N' },
-    { label: 'Open File...', action: () => console.log('Open File'), shortcut: 'Ctrl+O' },
-    { label: 'Save', action: () => console.log('Save'), shortcut: 'Ctrl+S' },
+    { label: 'New File', shortcut: 'Ctrl+N' },
+    { label: 'Open File...', shortcut: 'Ctrl+O' },
+    { label: 'Save', shortcut: 'Ctrl+S' },
   ],
   Edit: [
-    { label: 'Undo', action: () => console.log('Undo'), shortcut: 'Ctrl+Z' },
-    { label: 'Redo', action: () => console.log('Redo'), shortcut: 'Ctrl+Y' },
-    { label: 'Cut', action: () => console.log('Cut'), shortcut: 'Ctrl+X' },
-    { label: 'Copy', action: () => console.log('Copy'), shortcut: 'Ctrl+C' },
-    { label: 'Paste', action: () => console.log('Paste'), shortcut: 'Ctrl+V' },
+    { label: 'Undo', shortcut: 'Ctrl+Z' },
+    { label: 'Redo', shortcut: 'Ctrl+Y' },
+    { label: 'Cut', shortcut: 'Ctrl+X' },
+    { label: 'Copy', shortcut: 'Ctrl+C' },
+    { label: 'Paste', shortcut: 'Ctrl+V' },
   ],
   View: viewMenu.value,
   Help: [
-    { label: 'Documentation', action: () => console.log('Documentation') },
-    { label: 'About', action: () => console.log('About') },
+    { label: 'GitHub', action: () => window.open('https://github.com/wanjawischmeier/logic-easy', '_blank') },
+    { label: 'About' },
   ],
 };
 
