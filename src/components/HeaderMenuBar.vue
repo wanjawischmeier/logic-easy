@@ -1,0 +1,136 @@
+<template>
+  <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
+    <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
+      <button class="px-2 py-1 rounded-xs hover:bg-[#2b2b4a] focus:outline-none" @click.stop="toggleMenu(menu)"
+        :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
+        {{ menu }}
+      </button>
+
+      <div v-if="activeMenu === menu"
+        class="absolute left-0 mt-1 w-48 bg-[#2b2b4a] border border-[#3c3c3c] rounded shadow-[0_4px_8px_rgba(0,0,0,0.5)] z-20">
+        <ul class="py-1">
+          <li v-for="entry in items" :key="entry.label">
+            <button class="w-full text-left px-3 py-2 hover:bg-[#1c1c2a] flex justify-between text-sm"
+              @click="runAction(entry)" type="button">
+              <span>{{ entry.label }}</span>
+              <span v-if="entry.shortcut" class="opacity-70">{{ entry.shortcut }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { dockRegistry } from '@/components/dockRegistry';
+
+type MenuEntry = {
+  label: string;
+  action?: () => void;
+  shortcut?: string;
+  panelKey?: string;
+};
+
+
+const viewMenu = computed<MenuEntry[]>(() =>
+  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id }))
+);
+
+/* Base menus */
+const menus: Record<string, MenuEntry[]> = {
+  File: [
+    { label: 'New File', action: () => console.log('New File'), shortcut: 'Ctrl+N' },
+    { label: 'Open File...', action: () => console.log('Open File'), shortcut: 'Ctrl+O' },
+    { label: 'Save', action: () => console.log('Save'), shortcut: 'Ctrl+S' },
+  ],
+  Edit: [
+    { label: 'Undo', action: () => console.log('Undo'), shortcut: 'Ctrl+Z' },
+    { label: 'Redo', action: () => console.log('Redo'), shortcut: 'Ctrl+Y' },
+    { label: 'Cut', action: () => console.log('Cut'), shortcut: 'Ctrl+X' },
+    { label: 'Copy', action: () => console.log('Copy'), shortcut: 'Ctrl+C' },
+    { label: 'Paste', action: () => console.log('Paste'), shortcut: 'Ctrl+V' },
+  ],
+  View: viewMenu.value,
+  Help: [
+    { label: 'Documentation', action: () => console.log('Documentation') },
+    { label: 'About', action: () => console.log('About') },
+  ],
+};
+
+const activeMenu = ref<string>('');
+const rootRef = ref<HTMLElement | null>(null);
+
+function toggleMenu(name: string): void {
+  activeMenu.value = activeMenu.value === name ? '' : name;
+}
+
+function maybeSwitch(name: string): void {
+  if (activeMenu.value && activeMenu.value !== name) {
+    activeMenu.value = name;
+  }
+}
+
+/* Minimal typed shape for the dockview API exposed on window */
+type DockviewApiMinimal = {
+  addPanel: (opts: {
+    id: string;
+    component: string;
+    title?: string;
+    params?: Record<string, unknown>;
+    position?: unknown;
+  }) => void;
+};
+
+function runAction(entry: MenuEntry): void {
+  if (entry.action) {
+    entry.action();
+    activeMenu.value = '';
+    return;
+  }
+
+  if (entry.panelKey) {
+    const api = (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api;
+    const sharedParams = (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams;
+    if (!api) {
+      console.warn('Dockview API not ready yet');
+      activeMenu.value = '';
+      return;
+    }
+
+    const id = `panel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    try {
+      api.addPanel({
+        id,
+        component: entry.panelKey,
+        title: entry.label,
+        params: sharedParams ?? undefined,
+      });
+    } catch (err) {
+      console.error('Failed to add panel', err);
+    }
+    activeMenu.value = '';
+    return;
+  }
+
+  activeMenu.value = '';
+}
+
+function handleDocClick(e: MouseEvent): void {
+  const root = rootRef.value;
+  if (!root) return;
+  const target = e.target as Node | null;
+  if (!target || !root.contains(target)) {
+    activeMenu.value = '';
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocClick);
+});
+</script>

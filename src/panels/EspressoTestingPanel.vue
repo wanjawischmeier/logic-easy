@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
-import { EspressoRunner } from '@/lib/espresso'
+import { runEspresso } from '@/utility/espresso'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
-
-// Espresso runner
-const espresso = new EspressoRunner({ wasmPath: '/logic-easy/espresso.wasm' })
 
 // UI state
 const input = ref<string>('')
@@ -23,17 +20,13 @@ onMounted(() => {
     title.value = props.params.api.title ?? ''
   })
   title.value = props.params.api.title ?? ''
-
-  // Initialize the worker
-  espresso.initWorker()
 })
 
 onBeforeUnmount(() => {
   disposable?.dispose?.()
-  espresso.dispose()
 })
 
-async function runEspresso(args: string[] = []) {
+async function minify(args: string[] = []) {
   if (running.value) return
 
   running.value = true
@@ -42,7 +35,7 @@ async function runEspresso(args: string[] = []) {
   exitCode.value = null
 
   try {
-    const result = await espresso.execute(input.value, args)
+    const result = await runEspresso(input.value, args)
     stdout.value = result.stdout
     stderr.value = result.stderr
     exitCode.value = result.exitCode
@@ -59,15 +52,14 @@ async function runEspresso(args: string[] = []) {
   <div class="h-full text-white flex flex-col gap-2 p-2">
     <div class="font-semibold">{{ title }}</div>
 
-    <label class="text-sm">Espresso input</label>
     <textarea v-model="input" placeholder="Enter Espresso source here"
       class="w-full min-h-[140px] font-mono bg-gray-900 text-white p-2 rounded border border-gray-700"></textarea>
 
     <div class="flex items-center gap-2">
-      <button @click="runEspresso()" :disabled="running"
+      <button @click="minify()" :disabled="running"
         class="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded">Run</button>
       <!-- A bit weird cause there is no -h option, but it does show the help -->
-      <button @click="runEspresso(['-h'])" :disabled="running"
+      <button @click="minify(['-h'])" :disabled="running"
         class="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 rounded">Run --help</button>
       <span v-if="running" class="ml-2 text-sm">Running…</span>
     </div>

@@ -1,12 +1,21 @@
 <template>
-  <header class="h-full">
+  <header class="h-full text-white">
     <div class="flex items-center justify-between px-4 h-full">
-      <h2 class="text-lg font-medium">LogicEasy</h2>
-      <nav class="space-x-2">
-        <router-link to="/logic-easy/" class="hover:underline">Home</router-link>
-        <span class="text-gray-400">|</span>
-        <router-link to="/logic-easy/view" class="hover:underline">Dock View</router-link>
-      </nav>
+      <div class="flex items-center gap-4">
+        <!-- logo + title -->
+        <a href="/logic-easy/" class="mr-4">
+          <div class="flex gap-2">
+            <img src="/logo.png" alt="logo" class="h-6">
+            <p class="font-medium">LogicEasy</p>
+          </div>
+        </a>
+
+        <HeaderMenuBar />
+      </div>
     </div>
   </header>
 </template>
+
+<script setup lang="ts">
+import HeaderMenuBar from './HeaderMenuBar.vue';
+</script>

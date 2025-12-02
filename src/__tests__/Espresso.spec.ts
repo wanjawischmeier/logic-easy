@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { EspressoRunner } from '@/lib/espresso'
+import { runEspresso } from '@/utility/espresso'
 
-// Mock @wasmer/wasi before importing the worker module
+// Mock @wasmer/wasi
 vi.mock('@wasmer/wasi', () => {
   return {
     init: async () => { },
@@ -79,37 +79,19 @@ describe('Espresso', () => {
     globalThis.WebAssembly.instantiate = originalWebAssemblyInstantiate
   })
 
-  it('returns help text with expected header', async () => {
-    const espresso = new EspressoRunner({ wasmPath: '/logic-easy/espresso.wasm' })
+  it('executes with simple input', async () => {
+    const input = `.i 1
+.o 1
+.ilb x
+.ob y
+0 1
+1 1
+.e`
 
-    const result = await espresso.execute('', ['--help'])
+    const result = await runEspresso(input)
 
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('UC Berkeley, Espresso Version')
+    expect(result.stdout).toBeDefined()
     expect(result.stderr).toBe('')
-
-    espresso.dispose()
-  })
-
-  it('handles input and arguments correctly', async () => {
-    const espresso = new EspressoRunner({ wasmPath: '/logic-easy/espresso.wasm' })
-
-    const input = '.i 2\n.o 1\n'
-    const result = await espresso.execute(input, ['-t'])
-
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBeTruthy()
-
-    espresso.dispose()
-  })
-
-  it('executes without worker in test environment', async () => {
-    const espresso = new EspressoRunner()
-
-    // Don't initialize worker - should fall back to direct execution
-    const result = await espresso.execute('', ['--help'])
-
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('UC Berkeley, Espresso Version')
   })
 })

@@ -21,7 +21,9 @@
     "@wasmer/wasi": "^1.2.2",
     "buffer": "^6.0.3",
     "dockview-vue": "^4.11.0",
+    "katex": "^0.13.24",
     "tailwindcss": "^4.1.17",
+    "vatex": "^0.1.0",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3"
   },
