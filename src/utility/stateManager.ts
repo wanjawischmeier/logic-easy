@@ -32,12 +32,12 @@ function createDefaultState(): AppState {
     version: STORAGE_VERSION,
     truthTable: {
       inputVars: ['a', 'b', 'c', 'd'],
-      outputVars: ['x', 'y'],
+      outputVars: ['x', 'y', 'z'],
       values: [
-        [1, 0], [1, 0], [1, 0], [1, 1],
-        [1, 1], [1, 0], ['-', 1], [0, 1],
-        [0, 0], [1, 0], [1, 0], [1, 1],
-        ['-', 1], [0, 0], ['-', 1], [0, 1],
+        [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 1, 0],
+        [1, 1, 0], [1, 0, 0], ['-', 1, 0], [0, 1, 0],
+        [0, 0, 0], [1, 0, 0], [1, 0, 0], [1, 1, 0],
+        ['-', 1, 0], [0, 0, 0], ['-', 1, 0], [0, 1, 0],
       ] as TruthTableData,
       minifiedValues: [] as TruthTableData,
       formulas: {} as Record<string, Record<string, Formula>>

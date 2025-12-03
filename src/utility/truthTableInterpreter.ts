@@ -29,7 +29,7 @@ export function interpretMinifiedTable(
   formulaType: FormulaType,
   inputVars: string[]
 ): Formula {
-  const terms: Term[] = [];
+  let terms: Term[] = [];
   const numInputs = inputVars.length;
 
   // We assume the first column after inputs is the output we care about.
@@ -76,6 +76,10 @@ export function interpretMinifiedTable(
 
   // Sort terms to ensure consistent order (e.g. !a before b)
   terms.sort((a, b) => compareTerms(a, b, inputVars));
+
+  if (terms.length === 0 || terms[0]?.literals.length === 0) {
+    terms = [{ literals: [{ variable: '0', negated: false }] }];
+  }
 
   return { type: formulaType, terms };
 }
@@ -131,12 +135,9 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
       invertedValues
     )
 
-    const castMinifiedDNF = minifiedDNF as unknown as TruthTableData
-    const castMinifiedCNF = minifiedCNF as unknown as TruthTableData
-
     formulas[outputVar] = {
-      DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', stateManager.state.truthTable.inputVars),
-      CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', stateManager.state.truthTable.inputVars)
+      DNF: interpretMinifiedTable(minifiedDNF, 'DNF', stateManager.state.truthTable.inputVars),
+      CNF: interpretMinifiedTable(minifiedCNF, 'CNF', stateManager.state.truthTable.inputVars)
     }
   }
 
