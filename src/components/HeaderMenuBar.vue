@@ -9,13 +9,31 @@
       <div v-if="activeMenu === menu"
         class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
         <ul class="pr-1">
-          <li v-for="entry in items" :key="entry.label">
+          <li v-for="(entry, idx) in items" :key="idx" class="relative">
             <button
               class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
-              :disabled="!entry.action && !entry.panelKey" @click="runAction(entry)" type="button">
+              :disabled="!entry.action && !entry.panelKey && !entry.children"
+              @click="entry.children ? null : runAction(entry)"
+              @mouseenter="entry.children ? showSubmenu(idx) : hideSubmenu()" type="button">
               <span>{{ entry.label }}</span>
               <span v-if="entry.shortcut" class="opacity-70">{{ entry.shortcut }}</span>
+              <span v-if="entry.children" class="opacity-70">›</span>
             </button>
+
+            <!-- Submenu -->
+            <div v-if="entry.children && activeSubmenu === idx"
+              class="absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
+              <ul class="pr-1">
+                <li v-for="(child, childIdx) in entry.children" :key="childIdx">
+                  <button
+                    class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
+                    :disabled="!child.action && !child.panelKey" @click="runAction(child)" type="button">
+                    <span>{{ child.label }}</span>
+                    <span v-if="child.shortcut" class="opacity-70">{{ child.shortcut }}</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
           </li>
         </ul>
       </div>
@@ -26,23 +44,30 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { dockRegistry } from '@/components/dockRegistry';
+import { addPanel } from '@/utility/dockviewIntegration';
 
 type MenuEntry = {
   label: string;
   action?: () => void;
   shortcut?: string;
   panelKey?: string;
+  children?: MenuEntry[];
 };
-
 
 const viewMenu = computed<MenuEntry[]>(() =>
   dockRegistry.map((e) => ({ label: e.label, panelKey: e.id }))
 );
 
-/* Base menus */
+const newMenu = computed<MenuEntry[]>(() =>
+  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id }))
+);
+
 const menus: Record<string, MenuEntry[]> = {
   File: [
-    { label: 'New File', shortcut: 'Ctrl+N' },
+    {
+      label: 'New',
+      children: newMenu.value
+    },
     { label: 'Open File...', shortcut: 'Ctrl+O' },
     { label: 'Save', shortcut: 'Ctrl+S' },
   ],
@@ -61,61 +86,46 @@ const menus: Record<string, MenuEntry[]> = {
 };
 
 const activeMenu = ref<string>('');
+const activeSubmenu = ref<number | null>(null);
 const rootRef = ref<HTMLElement | null>(null);
 
 function toggleMenu(name: string): void {
   activeMenu.value = activeMenu.value === name ? '' : name;
+  activeSubmenu.value = null;
 }
 
 function maybeSwitch(name: string): void {
   if (activeMenu.value && activeMenu.value !== name) {
     activeMenu.value = name;
+    activeSubmenu.value = null;
   }
 }
 
-/* Minimal typed shape for the dockview API exposed on window */
-type DockviewApiMinimal = {
-  addPanel: (opts: {
-    id: string;
-    component: string;
-    title?: string;
-    params?: Record<string, unknown>;
-    position?: unknown;
-  }) => void;
-};
+function showSubmenu(idx: number): void {
+  activeSubmenu.value = idx;
+}
+
+function hideSubmenu(): void {
+  activeSubmenu.value = null;
+}
 
 function runAction(entry: MenuEntry): void {
   if (entry.action) {
     entry.action();
     activeMenu.value = '';
+    activeSubmenu.value = null;
     return;
   }
 
   if (entry.panelKey) {
-    const api = (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api;
-    const sharedParams = (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams;
-    if (!api) {
-      console.warn('Dockview API not ready yet');
-      activeMenu.value = '';
-      return;
-    }
-
-    const id = `panel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    try {
-      api.addPanel({
-        id,
-        component: entry.panelKey,
-        title: entry.label,
-        params: sharedParams ?? undefined,
-      });
-    } catch (err) {
-      console.error('Failed to add panel', err);
-    }
+    addPanel(entry.panelKey, entry.label);
     activeMenu.value = '';
+    activeSubmenu.value = null;
     return;
   }
 
   activeMenu.value = '';
+  activeSubmenu.value = null;
 }
 
 function handleDocClick(e: MouseEvent): void {
@@ -124,6 +134,7 @@ function handleDocClick(e: MouseEvent): void {
   const target = e.target as Node | null;
   if (!target || !root.contains(target)) {
     activeMenu.value = '';
+    activeSubmenu.value = null;
   }
 }
 

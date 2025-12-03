@@ -2,11 +2,10 @@
 import { ref, onBeforeUnmount } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi } from 'dockview-vue'
-import { minifyTruthTable } from '@/utility/espresso'
-import { interpretMinifiedTable, type Formula } from '@/utility/truthTableInterpreter'
-import type { TruthTableData } from '@/utility/types'
+import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
 import { stateManager } from '@/utility/stateManager'
+import GettingStartedView from './GettingStartedView.vue'
 
 type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -21,54 +20,10 @@ type DockviewApiMinimal = {
 const componentsForDockview = dockComponents;
 const dockviewApi = ref<DockviewApi | null>(null)
 let layoutChangeDisposable: { dispose?: () => void } | null = null
+let panelDisposable: { dispose?: () => void } | null = null
 
+const hasPanels = ref(true)
 const LAYOUT_STORAGE_KEY = 'dockview_layout'
-
-const updateTruthTable = async (newValues: TruthTableData) => {
-  stateManager.state.truthTable.values = newValues
-
-  // Calculate formulas for each output variable
-  const formulas: Record<string, Record<string, Formula>> = {}
-
-  for (let outputIdx = 0; outputIdx < stateManager.state.truthTable.outputVars.length; outputIdx++) {
-    const outputVar = stateManager.state.truthTable.outputVars[outputIdx]
-    if (!outputVar) continue
-
-    // Extract single output column
-    const singleOutputValues = newValues.map(row => [row[outputIdx]]) as TruthTableData
-
-    // 1. DNF: Minify ON-set
-    const minifiedDNF = await minifyTruthTable(
-      stateManager.state.truthTable.inputVars,
-      [outputVar],
-      singleOutputValues
-    )
-
-    // 2. CNF: Minify OFF-set (invert output)
-    const invertedValues = singleOutputValues.map(row => {
-      const val = row[0]
-      if (val === 1) return [0]
-      if (val === 0) return [1]
-      return [val]
-    }) as TruthTableData
-
-    const minifiedCNF = await minifyTruthTable(
-      stateManager.state.truthTable.inputVars,
-      [outputVar],
-      invertedValues
-    )
-
-    const castMinifiedDNF = minifiedDNF as unknown as TruthTableData
-    const castMinifiedCNF = minifiedCNF as unknown as TruthTableData
-
-    formulas[outputVar] = {
-      DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', stateManager.state.truthTable.inputVars),
-      CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', stateManager.state.truthTable.inputVars)
-    }
-  }
-
-  stateManager.state.truthTable.formulas = formulas
-}
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
@@ -130,6 +85,23 @@ const onReady = (event: DockviewReadyEvent) => {
     loadDefaultLayout(event.api)
   }
 
+  // Track panel count
+  const updatePanelCount = () => {
+    hasPanels.value = event.api.panels.length > 0
+  }
+
+  updatePanelCount()
+
+  // Listen for panel additions and removals
+  panelDisposable = event.api.onDidAddPanel(() => updatePanelCount())
+  const removeDisposable = event.api.onDidRemovePanel(() => updatePanelCount())
+
+  const originalPanelDispose = panelDisposable.dispose
+  panelDisposable.dispose = () => {
+    originalPanelDispose?.()
+    removeDisposable.dispose()
+  }
+
   // Setup auto-save on layout changes
   layoutChangeDisposable = event.api.onDidLayoutChange(() => {
     try {
@@ -144,6 +116,7 @@ const onReady = (event: DockviewReadyEvent) => {
 
 onBeforeUnmount(() => {
   layoutChangeDisposable?.dispose?.()
+  panelDisposable?.dispose?.()
 })
 </script>
 
@@ -155,9 +128,11 @@ onBeforeUnmount(() => {
 
     <div class="h-px bg-surface-2"></div>
 
-    <div class="flex-1 min-h-0">
-      <dockview-vue class="dockview-theme-abyss w-full h-[calc(100vh-36px)]" :components="componentsForDockview"
-        @ready="onReady" />
+    <div class="flex-1 min-h-0 relative">
+      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-36px)]' : 'h-0'"
+        :components="componentsForDockview" @ready="onReady" />
+
+      <GettingStartedView v-if="!hasPanels"></GettingStartedView>
     </div>
   </div>
 </template>

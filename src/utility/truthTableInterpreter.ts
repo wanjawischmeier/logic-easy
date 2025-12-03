@@ -1,4 +1,6 @@
-import type { TruthTableData } from "@/components/TruthTable.vue";
+import { stateManager } from "./stateManager";
+import { minifyTruthTable } from "./espresso";
+import type { TruthTableData } from "./types";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type FormulaType = 'DNF' | 'CNF';
@@ -93,4 +95,50 @@ function getVariableValue(term: Term, variable: string): number {
   const literal = term.literals.find(l => l.variable === variable);
   if (!literal) return 2; // Missing
   return literal.negated ? 0 : 1;
+}
+
+export const updateTruthTable = async (newValues: TruthTableData) => {
+  stateManager.state.truthTable.values = newValues
+
+  // Calculate formulas for each output variable
+  const formulas: Record<string, Record<string, Formula>> = {}
+
+  for (let outputIdx = 0; outputIdx < stateManager.state.truthTable.outputVars.length; outputIdx++) {
+    const outputVar = stateManager.state.truthTable.outputVars[outputIdx]
+    if (!outputVar) continue
+
+    // Extract single output column
+    const singleOutputValues = newValues.map(row => [row[outputIdx]]) as TruthTableData
+
+    // 1. DNF: Minify ON-set
+    const minifiedDNF = await minifyTruthTable(
+      stateManager.state.truthTable.inputVars,
+      [outputVar],
+      singleOutputValues
+    )
+
+    // 2. CNF: Minify OFF-set (invert output)
+    const invertedValues = singleOutputValues.map(row => {
+      const val = row[0]
+      if (val === 1) return [0]
+      if (val === 0) return [1]
+      return [val]
+    }) as TruthTableData
+
+    const minifiedCNF = await minifyTruthTable(
+      stateManager.state.truthTable.inputVars,
+      [outputVar],
+      invertedValues
+    )
+
+    const castMinifiedDNF = minifiedDNF as unknown as TruthTableData
+    const castMinifiedCNF = minifiedCNF as unknown as TruthTableData
+
+    formulas[outputVar] = {
+      DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', stateManager.state.truthTable.inputVars),
+      CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', stateManager.state.truthTable.inputVars)
+    }
+  }
+
+  stateManager.state.truthTable.formulas = formulas
 }

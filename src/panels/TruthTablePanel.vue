@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
-import TruthTable, { type TruthTableCell, type TruthTableData } from '../components/TruthTable.vue'
+import TruthTable from '../components/TruthTable.vue'
 import type { Formula } from '@/utility/truthTableInterpreter';
+import type { TruthTableCell, TruthTableData } from '@/utility/types';
 
 const props = defineProps<{
   params: IDockviewPanelProps & {
@@ -64,7 +65,6 @@ watch(() => state?.values, (newVal) => {
 
 <template>
   <div class="h-full text-white flex flex-col p-2 overflow-hidden">
-    <div class="font-semibold mb-2">TruthTable</div>
     <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />
   </div>
 </template>

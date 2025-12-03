@@ -42,7 +42,7 @@ function getInputValue(rowIdx: number, colIdx: number) {
       <thead>
         <tr>
           <th v-for="(input, idx) in inputVars" :key="input"
-            class="px-3 text-secondary border-b-4 border-primary bg-surface-1 w-16"
+            class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1 w-16"
             :class="{ 'border-r-4': idx === inputVars.length - 1, 'border-r': idx !== inputVars.length - 1 }">
             <vue-latex :expression="input" display-mode />
           </th>
