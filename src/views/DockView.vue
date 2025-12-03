@@ -3,7 +3,7 @@ import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
 import { minifyTruthTable } from '@/utility/espresso'
 import { interpretMinifiedTable, type Formula } from '@/utility/truthTableInterpreter'
-import type { TruthTableData } from '@/components/TruthTable.vue'
+import type { TruthTableData } from '@/utility/types'
 import { dockComponents } from '@/components/dockRegistry'
 import { stateManager } from '@/utility/stateManager'
 
@@ -104,12 +104,12 @@ const onReady = (event: DockviewReadyEvent) => {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-[#1c1c2a]">
+  <div class="flex flex-col h-screen bg-surface-1">
     <div class="h-[30px]">
       <DockViewHeader />
     </div>
 
-    <div class="h-px bg-[#2b2b4a]"></div>
+    <div class="h-px bg-surface-2"></div>
 
     <div class="flex-1 min-h-0">
       <dockview-vue class="dockview-theme-abyss w-full h-[calc(100vh-30px)]" :components="componentsForDockview"

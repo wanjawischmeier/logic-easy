@@ -6,6 +6,7 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
 import type { Formula } from '@/utility/truthTableInterpreter';
 import { FunctionType } from '@/utility/types';
+import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 
 const props = defineProps<{
   params: IDockviewPanelProps & {
@@ -83,10 +84,8 @@ const currentFormula = computed(() => {
             {{ outputVar }}
           </option>
         </select>
-        <button v-for="type in functionTypes" :key="type" @click="selectedType = type as FunctionType"
-          :class="selectedType === type ? 'selected' : ''">
-          {{ type }}
-        </button>
+        <MultiSelectSwitch :values="functionTypes" :onSelect="(v, i) => selectedType = v as FunctionType">
+        </MultiSelectSwitch>
       </div>
     </div>
 
