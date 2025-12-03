@@ -6,6 +6,7 @@ import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
 import { stateManager } from '@/utility/stateManager'
 import GettingStartedView from './GettingStartedView.vue'
+import { popupService } from '@/utility/popupService'
 
 type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -133,6 +134,10 @@ onBeforeUnmount(() => {
         :components="componentsForDockview" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels"></GettingStartedView>
+
+      <!-- Popup System -->
+      <component v-if="popupService.current.value" :is="popupService.current.value.component"
+        v-bind="popupService.current.value.props" />
     </div>
   </div>
 </template>

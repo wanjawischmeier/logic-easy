@@ -18,7 +18,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { addPanel } from '@/utility/dockviewIntegration';
+import { addPanelWithPopup } from '@/utility/dockviewIntegration';
 
 type PanelItem = {
   icon: string;
@@ -56,7 +56,7 @@ export default defineComponent({
   setup() {
     function runAction(item: PanelItem): void {
       if (!item.panelKey) return;
-      addPanel(item.panelKey, item.label);
+      addPanelWithPopup(item.panelKey, item.label);
     }
 
     return { items, runAction };

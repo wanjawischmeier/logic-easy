@@ -16,7 +16,7 @@
               @click="entry.children ? null : runAction(entry)"
               @mouseenter="entry.children ? showSubmenu(idx) : hideSubmenu()" type="button">
               <span>{{ entry.label }}</span>
-              <span v-if="entry.shortcut" class="opacity-70">{{ entry.shortcut }}</span>
+              <span v-if="entry.tooltip" class="opacity-70">{{ entry.tooltip }}</span>
               <span v-if="entry.children" class="opacity-70">›</span>
             </button>
 
@@ -29,7 +29,7 @@
                     class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
                     :disabled="!child.action && !child.panelKey" @click="runAction(child)" type="button">
                     <span>{{ child.label }}</span>
-                    <span v-if="child.shortcut" class="opacity-70">{{ child.shortcut }}</span>
+                    <span v-if="child.tooltip" class="opacity-70">{{ child.tooltip }}</span>
                   </button>
                 </li>
               </ul>
@@ -44,14 +44,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { dockRegistry } from '@/components/dockRegistry';
-import { addPanel } from '@/utility/dockviewIntegration';
+import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
+import { popupService } from '@/utility/popupService';
+import CreditPopup from './popups/CreditPopup.vue';
+import ManualPopup from './popups/ManualPopup.vue';
 
 type MenuEntry = {
   label: string;
   action?: () => void;
-  shortcut?: string;
+  tooltip?: string;
   panelKey?: string;
   children?: MenuEntry[];
+  withPopup?: boolean;
 };
 
 const viewMenu = computed<MenuEntry[]>(() =>
@@ -59,7 +63,7 @@ const viewMenu = computed<MenuEntry[]>(() =>
 );
 
 const newMenu = computed<MenuEntry[]>(() =>
-  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id }))
+  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, withPopup: true }))
 );
 
 const menus: Record<string, MenuEntry[]> = {
@@ -68,20 +72,24 @@ const menus: Record<string, MenuEntry[]> = {
       label: 'New',
       children: newMenu.value
     },
-    { label: 'Open File...', shortcut: 'Ctrl+O' },
-    { label: 'Save', shortcut: 'Ctrl+S' },
+    { label: 'Open File...', tooltip: 'Ctrl+O' },
+    { label: 'Save', tooltip: 'Ctrl+S' },
   ],
   Edit: [
-    { label: 'Undo', shortcut: 'Ctrl+Z' },
-    { label: 'Redo', shortcut: 'Ctrl+Y' },
-    { label: 'Cut', shortcut: 'Ctrl+X' },
-    { label: 'Copy', shortcut: 'Ctrl+C' },
-    { label: 'Paste', shortcut: 'Ctrl+V' },
+    { label: 'Undo', tooltip: 'Ctrl+Z' },
+    { label: 'Redo', tooltip: 'Ctrl+Y' },
+    { label: 'Cut', tooltip: 'Ctrl+X' },
+    { label: 'Copy', tooltip: 'Ctrl+C' },
+    { label: 'Paste', tooltip: 'Ctrl+V' },
   ],
   View: viewMenu.value,
+  Export: [
+    { label: 'LogicCircuits', tooltip: '.lc' },
+    { label: 'VHDL', tooltip: '.vhdl' },
+  ],
   Help: [
-    { label: 'GitHub', action: () => window.open('https://github.com/wanjawischmeier/logic-easy', '_blank') },
-    { label: 'About' },
+    { label: 'Manual', action: () => popupService.open({ component: ManualPopup }) },
+    { label: 'About', action: () => popupService.open({ component: CreditPopup }) },
   ],
 };
 
@@ -118,7 +126,12 @@ function runAction(entry: MenuEntry): void {
   }
 
   if (entry.panelKey) {
-    addPanel(entry.panelKey, entry.label);
+    if (entry.withPopup ?? false) {
+      addPanelWithPopup(entry.panelKey, entry.label);
+    } else {
+      addPanel(entry.panelKey, entry.label);
+    }
+
     activeMenu.value = '';
     activeSubmenu.value = null;
     return;
