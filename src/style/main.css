@@ -1,0 +1,6 @@
+@import 'tailwindcss';
+@import '../../node_modules/dockview-vue/dist/styles/dockview.css';
+@import '../style/base.css';
+@import '../style/components.css';
+@import '../style/utility.css';
+@import '../style/theme.css';

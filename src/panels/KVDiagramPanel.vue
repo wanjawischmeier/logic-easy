@@ -3,8 +3,9 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
-import type { TruthTableCell, TruthTableData } from '@/components/TruthTable.vue';
+import type { TruthTableCell, TruthTableData } from '@/utility/types';
 import type { Formula } from '@/utility/truthTableInterpreter';
+import { FunctionType } from '@/utility/types';
 
 const props = defineProps<{
   params: IDockviewPanelProps & {
@@ -39,6 +40,7 @@ onBeforeUnmount(() => {
 const state = props.params.params?.state
 const inputVars = state?.inputVars || []
 const outputVars = state?.outputVars || []
+const functionTypes = computed(() => Object.values(FunctionType));
 
 // Local model for the component
 const tableValues = ref<TruthTableData>(state?.values ? state.values.map((row: TruthTableCell[]) => [...row]) : [])
@@ -63,7 +65,7 @@ watch(() => state?.values, (newVal) => {
   }
 }, { deep: true })
 
-const selectedType = ref<'DNF' | 'CNF'>('DNF');
+const selectedType = ref<FunctionType>('DNF');
 const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
   const outputVar = outputVars[selectedOutputIndex.value];
@@ -72,18 +74,17 @@ const currentFormula = computed(() => {
 </script>
 
 <template>
-  <div class="h-full text-white flex flex-col p-2 overflow-hidden">
+  <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
     <div class="flex justify-between items-center mb-2">
       <div class="font-semibold">KV Diagram</div>
       <div class="flex gap-2 text-sm">
-        <select v-model="selectedOutputIndex"
-          class="px-2 py-1 rounded bg-gray-700 text-gray-300 border border-gray-600">
+        <select v-model="selectedOutputIndex" class="">
           <option v-for="(outputVar, idx) in outputVars" :key="outputVar" :value="idx">
             {{ outputVar }}
           </option>
         </select>
-        <button v-for="type in ['DNF', 'CNF']" :key="type" @click="selectedType = type as 'DNF' | 'CNF'"
-          :class="['px-2 py-1 rounded', selectedType === type ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300']">
+        <button v-for="type in functionTypes" :key="type" @click="selectedType = type as FunctionType"
+          :class="selectedType === type ? 'selected' : ''">
           {{ type }}
         </button>
       </div>

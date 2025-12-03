@@ -1,0 +1,8 @@
+@layer base {
+  button {
+    @apply px-2 py-1 rounded bg-surface-2 text-on-surface border border-surface-3;
+  }
+  select {
+    @apply px-2 py-1 rounded bg-surface-2 text-on-surface border border-surface-3;
+  }
+}

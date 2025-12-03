@@ -1,0 +1,10 @@
+@layer components {
+  .header-menu-btn {
+    @apply px-2 py-1 hover:bg-surface-2 focus:outline-none;
+
+    @variant contrast-more {
+      border-radius: 2px;
+      background-color: green;
+    }
+  }
+}

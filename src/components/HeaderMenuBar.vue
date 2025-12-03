@@ -1,17 +1,17 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
     <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
-      <button class="px-2 py-1 rounded-xs hover:bg-[#2b2b4a] focus:outline-none" @click.stop="toggleMenu(menu)"
+      <button class="bg-transparent! hover:bg-surface-2! border-0!" @click.stop="toggleMenu(menu)"
         :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
         {{ menu }}
       </button>
 
       <div v-if="activeMenu === menu"
-        class="absolute left-0 mt-1 w-48 bg-[#2b2b4a] border border-[#3c3c3c] rounded shadow-[0_4px_8px_rgba(0,0,0,0.5)] z-20">
+        class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
         <ul class="pr-1">
           <li v-for="entry in items" :key="entry.label">
             <button
-              class="w-full text-left m-0.5 px-3 py-2 rounded-xs hover:bg-[#1c1c2a] disabled:bg-[#1c1c2a] disabled:text-gray-400 flex justify-between text-sm"
+              class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
               :disabled="!entry.action && !entry.panelKey" @click="runAction(entry)" type="button">
               <span>{{ entry.label }}</span>
               <span v-if="entry.shortcut" class="opacity-70">{{ entry.shortcut }}</span>
