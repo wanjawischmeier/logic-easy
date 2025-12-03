@@ -76,20 +76,17 @@ const currentFormula = computed(() => {
 
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
-    <div class="flex justify-between items-center mb-2">
-      <div class="font-semibold">KV Diagram</div>
-      <div class="flex gap-2 text-sm">
-        <select v-model="selectedOutputIndex" class="">
-          <option v-for="(outputVar, idx) in outputVars" :key="outputVar" :value="idx">
-            {{ outputVar }}
-          </option>
-        </select>
-        <MultiSelectSwitch :values="functionTypes" :onSelect="(v, i) => selectedType = v as FunctionType">
-        </MultiSelectSwitch>
-      </div>
+
+    <div class="w-full flex gap-10 text-sm justify-end">
+      <MultiSelectSwitch :label="'Output Variable'" :values="outputVars" :onSelect="(v, i) => selectedOutputIndex = i">
+      </MultiSelectSwitch>
+
+      <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
+        :onSelect="(v, i) => selectedType = v as FunctionType">
+      </MultiSelectSwitch>
     </div>
 
-    <div class="flex-1 flex flex-col items-center overflow-auto">
+    <div class="h-full flex flex-col items-center justify-center overflow-auto">
       <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
         :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="state?.minifiedValues || []"
         :formula="currentFormula" :mode="selectedType" />
