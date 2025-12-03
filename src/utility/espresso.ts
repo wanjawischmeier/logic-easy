@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer'
 import { init, WASI } from '@wasmer/wasi'
-import type { TruthTableData } from '@/components/TruthTable.vue'
+import type { TruthTableData } from '@/utility/types'
 import type { TruthTableCell } from './truthTableInterpreter'
 
 if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {

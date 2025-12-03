@@ -1,5 +1,5 @@
 <template>
-  <header class="h-full text-white">
+  <header class="h-full text-on-surface">
     <div class="flex items-center justify-between px-4 h-full">
       <div class="flex items-center gap-4">
         <!-- logo + title -->

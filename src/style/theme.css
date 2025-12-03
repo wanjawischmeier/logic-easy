@@ -1,0 +1,12 @@
+@theme {
+  --color-elevated: #000c18;
+  --color-surface-1: #1c1c2a;
+  --color-surface-2: #2b2b4a;
+  --color-surface-3: #40406e;
+  --color-on-surface: white;
+  --color-on-surface-disabled: var(--color-gray-400);
+  --color-primary: var(--color-blue-500);
+  --color-primary-variant: var(--color-blue-300);
+  --color-secondary: var(--color-green-400);
+  --color-secondary-variant: var(--color-green-300);
+}

@@ -9,7 +9,7 @@
         <!-- Spacer for the corner cell width -->
         <div class="w-14 shrink-0"></div>
         <!-- Centered label over data columns -->
-        <div class="flex-1 flex justify-center items-end text-green-300">
+        <div class="flex-1 flex justify-center items-end text-secondary-variant">
           <vue-latex :expression="topVariables.join('')" display-mode />
         </div>
       </div>
@@ -19,7 +19,7 @@
         <!-- Spacer for the header row height -->
         <div class="h-14 shrink-0"></div>
         <!-- Centered label next to data rows -->
-        <div class="flex-1 flex items-center justify-end pr-2 text-green-300">
+        <div class="flex-1 flex items-center justify-end pr-2 text-secondary-variant">
           <vue-latex :expression="leftVariables.join('')" display-mode />
         </div>
       </div>
@@ -28,11 +28,11 @@
       <table class="col-start-2 row-start-2 border-collapse">
         <thead>
           <tr>
-            <th class="border-none bg-transparent w-10 h-10 text-green-300 text-sm">
+            <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
               <vue-latex :expression="outputVars[outputIndex ?? 0] || 'f'" display-mode />
             </th>
             <th v-for="(colCode, cIdx) in colCodes" :key="colCode"
-              class="border border-b-4 border-blue-400 bg-slate-800 text-blue-300 font-normal text-sm w-14 h-14 text-center"
+              class="border border-b-4 border-primary bg-surface-1 text-primary-variant font-normal text-sm w-14 h-14 text-center"
               :class="{ 'border-l-4': cIdx === 0 }">
               <vue-latex :expression="colCode" display-mode />
             </th>
@@ -41,12 +41,12 @@
         <tbody>
           <tr v-for="(rowCode, rIdx) in rowCodes" :key="rowCode">
             <th
-              class="border border-r-4 border-blue-400 bg-slate-800 text-blue-300 font-normal text-sm w-14 text-center"
+              class="border border-r-4 border-primary bg-surface-1 text-primary-variant font-normal text-sm w-14 text-center"
               :class="{ 'border-t-4': rIdx === 0 }">
               <vue-latex :expression="rowCode" display-mode />
             </th>
             <td v-for="(colCode, cIdx) in colCodes" :key="colCode"
-              class="relative border border-blue-400 bg-slate-800 text-center hover:bg-slate-700 transition-colors duration-100 cursor-pointer select-none w-14 h-14"
+              class="relative border border-primary bg-surface-1 text-center hover:bg-surface-3 transition-colors duration-100 cursor-pointer select-none w-14 h-14"
               @click="toggleCell(rowCode, colCode)">
 
               <!-- Highlights -->
@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TruthTableData, TruthTableCell } from './TruthTable.vue';
+import type { TruthTableData, TruthTableCell } from '../utility/types';
 import type { Formula } from '@/utility/truthTableInterpreter';
 import {
   getLeftVariables,

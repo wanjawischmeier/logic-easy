@@ -1,21 +1,39 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
     <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
-      <button class="px-2 py-1 rounded-xs hover:bg-[#2b2b4a] focus:outline-none" @click.stop="toggleMenu(menu)"
-        :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
+      <button class="hover:bg-surface-2" @click.stop="toggleMenu(menu)" :aria-expanded="activeMenu === menu"
+        :aria-haspopup="true" type="button">
         {{ menu }}
       </button>
 
       <div v-if="activeMenu === menu"
-        class="absolute left-0 mt-1 w-48 bg-[#2b2b4a] border border-[#3c3c3c] rounded shadow-[0_4px_8px_rgba(0,0,0,0.5)] z-20">
+        class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
         <ul class="pr-1">
-          <li v-for="entry in items" :key="entry.label">
+          <li v-for="(entry, idx) in items" :key="idx" class="relative">
             <button
-              class="w-full text-left m-0.5 px-3 py-2 rounded-xs hover:bg-[#1c1c2a] disabled:bg-[#1c1c2a] disabled:text-gray-400 flex justify-between text-sm"
-              :disabled="!entry.action && !entry.panelKey" @click="runAction(entry)" type="button">
+              class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
+              :disabled="!entry.action && !entry.panelKey && !entry.children"
+              @click="entry.children ? null : runAction(entry)"
+              @mouseenter="entry.children ? showSubmenu(idx) : hideSubmenu()" type="button">
               <span>{{ entry.label }}</span>
-              <span v-if="entry.shortcut" class="opacity-70">{{ entry.shortcut }}</span>
+              <span v-if="entry.tooltip" class="opacity-70">{{ entry.tooltip }}</span>
+              <span v-if="entry.children" class="opacity-70">›</span>
             </button>
+
+            <!-- Submenu -->
+            <div v-if="entry.children && activeSubmenu === idx"
+              class="absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
+              <ul class="pr-1">
+                <li v-for="(child, childIdx) in entry.children" :key="childIdx">
+                  <button
+                    class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
+                    :disabled="!child.action && !child.panelKey" @click="runAction(child)" type="button">
+                    <span>{{ child.label }}</span>
+                    <span v-if="child.tooltip" class="opacity-70">{{ child.tooltip }}</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
           </li>
         </ul>
       </div>
@@ -26,96 +44,101 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { dockRegistry } from '@/components/dockRegistry';
+import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
+import { popupService } from '@/utility/popupService';
+import CreditPopup from './popups/CreditPopup.vue';
+import ManualPopup from './popups/ManualPopup.vue';
 
 type MenuEntry = {
   label: string;
   action?: () => void;
-  shortcut?: string;
+  tooltip?: string;
   panelKey?: string;
+  children?: MenuEntry[];
+  withPopup?: boolean;
 };
-
 
 const viewMenu = computed<MenuEntry[]>(() =>
   dockRegistry.map((e) => ({ label: e.label, panelKey: e.id }))
 );
 
-/* Base menus */
+const newMenu = computed<MenuEntry[]>(() =>
+  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, withPopup: true }))
+);
+
 const menus: Record<string, MenuEntry[]> = {
   File: [
-    { label: 'New File', shortcut: 'Ctrl+N' },
-    { label: 'Open File...', shortcut: 'Ctrl+O' },
-    { label: 'Save', shortcut: 'Ctrl+S' },
+    {
+      label: 'New',
+      children: newMenu.value
+    },
+    { label: 'Open File...', tooltip: 'Ctrl+O' },
+    { label: 'Save', tooltip: 'Ctrl+S' },
   ],
   Edit: [
-    { label: 'Undo', shortcut: 'Ctrl+Z' },
-    { label: 'Redo', shortcut: 'Ctrl+Y' },
-    { label: 'Cut', shortcut: 'Ctrl+X' },
-    { label: 'Copy', shortcut: 'Ctrl+C' },
-    { label: 'Paste', shortcut: 'Ctrl+V' },
+    { label: 'Undo', tooltip: 'Ctrl+Z' },
+    { label: 'Redo', tooltip: 'Ctrl+Y' },
+    { label: 'Cut', tooltip: 'Ctrl+X' },
+    { label: 'Copy', tooltip: 'Ctrl+C' },
+    { label: 'Paste', tooltip: 'Ctrl+V' },
   ],
   View: viewMenu.value,
+  Export: [
+    { label: 'LogicCircuits', tooltip: '.lc' },
+    { label: 'VHDL', tooltip: '.vhdl' },
+  ],
   Help: [
-    { label: 'GitHub', action: () => window.open('https://github.com/wanjawischmeier/logic-easy', '_blank') },
-    { label: 'About' },
+    { label: 'Manual', action: () => popupService.open({ component: ManualPopup }) },
+    { label: 'About', action: () => popupService.open({ component: CreditPopup }) },
   ],
 };
 
 const activeMenu = ref<string>('');
+const activeSubmenu = ref<number | null>(null);
 const rootRef = ref<HTMLElement | null>(null);
 
 function toggleMenu(name: string): void {
   activeMenu.value = activeMenu.value === name ? '' : name;
+  activeSubmenu.value = null;
 }
 
 function maybeSwitch(name: string): void {
   if (activeMenu.value && activeMenu.value !== name) {
     activeMenu.value = name;
+    activeSubmenu.value = null;
   }
 }
 
-/* Minimal typed shape for the dockview API exposed on window */
-type DockviewApiMinimal = {
-  addPanel: (opts: {
-    id: string;
-    component: string;
-    title?: string;
-    params?: Record<string, unknown>;
-    position?: unknown;
-  }) => void;
-};
+function showSubmenu(idx: number): void {
+  activeSubmenu.value = idx;
+}
+
+function hideSubmenu(): void {
+  activeSubmenu.value = null;
+}
 
 function runAction(entry: MenuEntry): void {
   if (entry.action) {
     entry.action();
     activeMenu.value = '';
+    activeSubmenu.value = null;
     return;
   }
 
   if (entry.panelKey) {
-    const api = (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api;
-    const sharedParams = (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams;
-    if (!api) {
-      console.warn('Dockview API not ready yet');
-      activeMenu.value = '';
-      return;
+    if (entry.withPopup ?? false) {
+      addPanelWithPopup(entry.panelKey, entry.label);
+    } else {
+      addPanel(entry.panelKey, entry.label);
     }
 
-    const id = `panel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    try {
-      api.addPanel({
-        id,
-        component: entry.panelKey,
-        title: entry.label,
-        params: sharedParams ?? undefined,
-      });
-    } catch (err) {
-      console.error('Failed to add panel', err);
-    }
     activeMenu.value = '';
+    activeSubmenu.value = null;
     return;
   }
 
   activeMenu.value = '';
+  activeSubmenu.value = null;
 }
 
 function handleDocClick(e: MouseEvent): void {
@@ -124,6 +147,7 @@ function handleDocClick(e: MouseEvent): void {
   const target = e.target as Node | null;
   if (!target || !root.contains(target)) {
     activeMenu.value = '';
+    activeSubmenu.value = null;
   }
 }
 

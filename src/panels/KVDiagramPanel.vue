@@ -3,8 +3,10 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
-import type { TruthTableCell, TruthTableData } from '@/components/TruthTable.vue';
+import type { TruthTableCell, TruthTableData } from '@/utility/types';
 import type { Formula } from '@/utility/truthTableInterpreter';
+import { FunctionType } from '@/utility/types';
+import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 
 const props = defineProps<{
   params: IDockviewPanelProps & {
@@ -39,6 +41,7 @@ onBeforeUnmount(() => {
 const state = props.params.params?.state
 const inputVars = state?.inputVars || []
 const outputVars = state?.outputVars || []
+const functionTypes = computed(() => Object.values(FunctionType));
 
 // Local model for the component
 const tableValues = ref<TruthTableData>(state?.values ? state.values.map((row: TruthTableCell[]) => [...row]) : [])
@@ -63,7 +66,7 @@ watch(() => state?.values, (newVal) => {
   }
 }, { deep: true })
 
-const selectedType = ref<'DNF' | 'CNF'>('DNF');
+const selectedType = ref<FunctionType>('DNF');
 const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
   const outputVar = outputVars[selectedOutputIndex.value];
@@ -72,24 +75,18 @@ const currentFormula = computed(() => {
 </script>
 
 <template>
-  <div class="h-full text-white flex flex-col p-2 overflow-hidden">
-    <div class="flex justify-between items-center mb-2">
-      <div class="font-semibold">KV Diagram</div>
-      <div class="flex gap-2 text-sm">
-        <select v-model="selectedOutputIndex"
-          class="px-2 py-1 rounded bg-gray-700 text-gray-300 border border-gray-600">
-          <option v-for="(outputVar, idx) in outputVars" :key="outputVar" :value="idx">
-            {{ outputVar }}
-          </option>
-        </select>
-        <button v-for="type in ['DNF', 'CNF']" :key="type" @click="selectedType = type as 'DNF' | 'CNF'"
-          :class="['px-2 py-1 rounded', selectedType === type ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300']">
-          {{ type }}
-        </button>
-      </div>
+  <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
+
+    <div class="w-full flex gap-10 text-sm justify-end">
+      <MultiSelectSwitch :label="'Output Variable'" :values="outputVars" :onSelect="(v, i) => selectedOutputIndex = i">
+      </MultiSelectSwitch>
+
+      <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
+        :onSelect="(v, i) => selectedType = v as FunctionType">
+      </MultiSelectSwitch>
     </div>
 
-    <div class="flex-1 flex flex-col items-center overflow-auto">
+    <div class="h-full flex flex-col items-center justify-center overflow-auto">
       <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
         :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="state?.minifiedValues || []"
         :formula="currentFormula" :mode="selectedType" />

@@ -1,6 +1,6 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
-import type { TruthTableData } from '@/components/TruthTable.vue'
 import type { Formula } from '@/utility/truthTableInterpreter'
+import type { TruthTableData } from './types'
 
 const STORAGE_KEY = 'logic-easy-state'
 const STORAGE_VERSION = 1

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-export type TruthTableCell = 0 | 1 | '-';
-export type TruthTableData = TruthTableCell[][];
+import type { TruthTableData } from '@/utility/types';
+
 
 const props = defineProps<{
   inputVars: string[]
@@ -38,16 +38,16 @@ function getInputValue(rowIdx: number, colIdx: number) {
 <template>
   <div class="w-full overflow-auto flex justify-center">
     <table v-if="modelValue.length && inputVars.length && outputVars.length"
-      class="bg-slate-800 border border-blue-400 table-fixed w-auto select-none">
+      class="bg-surface-1 border border-primary table-fixed w-auto select-none">
       <thead>
         <tr>
           <th v-for="(input, idx) in inputVars" :key="input"
-            class="px-3 text-green-300 border-b-4 border-blue-400 bg-slate-800 w-16"
+            class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1 w-16"
             :class="{ 'border-r-4': idx === inputVars.length - 1, 'border-r': idx !== inputVars.length - 1 }">
             <vue-latex :expression="input" display-mode />
           </th>
           <th v-for="output in outputVars" :key="output"
-            class="px-3 text-blue-300 border-b-4 border-blue-400 bg-slate-800 border-r last:border-r-0 w-24">
+            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r last:border-r-0 w-24">
             <vue-latex :expression="output" display-mode />
           </th>
         </tr>
@@ -56,7 +56,7 @@ function getInputValue(rowIdx: number, colIdx: number) {
         <tr v-for="(row, rowIdx) in modelValue" :key="rowIdx">
           <!-- Generated Input Columns -->
           <td v-for="(input, colIdx) in inputVars" :key="'in-' + colIdx"
-            class="text-lg font-mono text-center align-middle bg-slate-800 border-b border-blue-400" :class="{
+            class="text-lg font-mono text-center align-middle bg-surface-1 border-b border-primary" :class="{
               'border-r-4': colIdx === inputVars.length - 1,
               'border-r': colIdx !== inputVars.length - 1
             }">
@@ -66,7 +66,7 @@ function getInputValue(rowIdx: number, colIdx: number) {
           </td>
           <!-- Editable Output Columns -->
           <td v-for="(cell, colIdx) in row" :key="'out-' + colIdx"
-            class="text-lg font-mono text-center align-middle cursor-pointer bg-slate-800 hover:bg-slate-700 border-b border-blue-400 transition-all duration-100"
+            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-all duration-100"
             :class="{
               'border-r': colIdx !== row.length - 1
             }" @click="toggleCell(rowIdx, colIdx)">
@@ -77,6 +77,6 @@ function getInputValue(rowIdx: number, colIdx: number) {
         </tr>
       </tbody>
     </table>
-    <div v-else class="text-red-400 p-4">No data :/</div>
+    <div v-else class="p-4">No data :/</div>
   </div>
 </template>

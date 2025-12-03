@@ -36,7 +36,7 @@ const latexExpression = computed(() => {
 </script>
 
 <template>
-  <div class="text-xl text-blue-300 p-2">
+  <div class="text-xl text-primary-variant p-2">
     <vue-latex :expression="latexExpression" display-mode />
   </div>
 </template>

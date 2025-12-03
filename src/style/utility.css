@@ -1,0 +1,8 @@
+@utility text-test {
+  color: green;
+}
+
+@utility selected {
+  background-color: var(--color-primary);
+  color: var(--color-on-surface);
+}

@@ -2,7 +2,7 @@ import type { Term } from './truthTableInterpreter';
 
 function getTermColor(index: number): string {
   const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
-  return `hsla(${hue}, 70%, 50%, 0.3)`;
+  return `hsla(${hue}, 70%, 50%, 0.4)`;
 }
 
 function isCovered(
