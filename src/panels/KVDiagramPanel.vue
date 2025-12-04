@@ -37,14 +37,14 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-// Access state from params (DockView source of truth)
-const state = props.params.params?.state
-const inputVars = state?.inputVars || []
-const outputVars = state?.outputVars || []
+// Access state from params (DockView source of truth) - make reactive
+const state = computed(() => props.params.params?.state)
+const inputVars = computed(() => state.value?.inputVars || [])
+const outputVars = computed(() => state.value?.outputVars || [])
 const functionTypes = computed(() => Object.values(FunctionType));
 
 // Local model for the component
-const tableValues = ref<TruthTableData>(state?.values ? state.values.map((row: TruthTableCell[]) => [...row]) : [])
+const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
 let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
@@ -58,19 +58,27 @@ watch(tableValues, (newVal) => {
   }
 }, { deep: true })
 
-// Watch for external changes
-watch(() => state?.values, (newVal) => {
+// Watch for external changes from state
+watch(() => state.value?.values, (newVal) => {
   if (newVal && JSON.stringify(newVal) !== JSON.stringify(tableValues.value)) {
     isUpdatingFromState = true
     tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
   }
 }, { deep: true })
 
+// Watch for params updates (when DockView updateParameters is called)
+watch(() => props.params.params?.state, (newState) => {
+  if (newState?.values && JSON.stringify(newState.values) !== JSON.stringify(tableValues.value)) {
+    isUpdatingFromState = true
+    tableValues.value = newState.values.map((row: TruthTableCell[]) => [...row])
+  }
+}, { deep: true, immediate: true })
+
 const selectedType = ref<FunctionType>('DNF');
 const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
-  const outputVar = outputVars[selectedOutputIndex.value];
-  return state?.formulas?.[outputVar]?.[selectedType.value];
+  const outputVar = outputVars.value[selectedOutputIndex.value];
+  return state.value?.formulas?.[outputVar]?.[selectedType.value];
 });
 </script>
 
