@@ -12,7 +12,7 @@
           <li v-for="(entry, idx) in items" :key="idx" class="relative">
             <button
               class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
-              :disabled="!entry.action && !entry.panelKey && !entry.children"
+              :disabled="(!entry.action && !entry.panelKey && !entry.children) || entry.disabled"
               @click="entry.children ? null : runAction(entry)"
               @mouseenter="entry.children ? showSubmenu(idx) : hideSubmenu()" type="button">
               <span>{{ entry.label }}</span>
@@ -27,7 +27,8 @@
                 <li v-for="(child, childIdx) in entry.children" :key="childIdx">
                   <button
                     class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
-                    :disabled="!child.action && !child.panelKey" @click="runAction(child)" type="button">
+                    :disabled="(!child.action && !child.panelKey) || child.disabled" @click="runAction(child)"
+                    type="button">
                     <span>{{ child.label }}</span>
                     <span v-if="child.tooltip" class="opacity-70">{{ child.tooltip }}</span>
                   </button>
@@ -43,7 +44,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
-import { dockRegistry } from '@/components/dockRegistry';
+import { checkPanelRequirement, dockRegistry } from '@/components/dockRegistry';
 import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
@@ -56,10 +57,11 @@ type MenuEntry = {
   panelKey?: string;
   children?: MenuEntry[];
   withPopup?: boolean;
+  disabled?: boolean;
 };
 
 const viewMenu = computed<MenuEntry[]>(() =>
-  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id }))
+  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, disabled: !checkPanelRequirement(e) }))
 );
 
 const newMenu = computed<MenuEntry[]>(() =>

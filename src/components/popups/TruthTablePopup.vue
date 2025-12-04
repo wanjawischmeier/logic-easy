@@ -30,7 +30,10 @@
 import PopupBase, { type PopupAction } from '@/components/PopupBase.vue';
 import { addPanel } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
+import { stateManager } from '@/utility/stateManager';
 import { ref, watch } from 'vue';
+import { type TruthTableCell, type TruthTableData } from '@/utility/types'; // added import
+import type { Formula } from '@/utility/truthTableInterpreter';
 
 const inputCount = ref<number>(2);
 const outputCount = ref<number>(1);
@@ -51,6 +54,50 @@ function onClose() {
 }
 
 function onCreate() {
+  const inCount = Math.max(1, Math.min(8, inputCount.value));
+  const outCount = Math.max(1, Math.min(8, outputCount.value));
+
+  // input names: a, b, c, ...
+  const inputVars = Array.from({ length: inCount }, (_, i) =>
+    String.fromCharCode(97 + i)
+  );
+
+  // output names: x, y, z, w, ...
+  const outputVars = Array.from({ length: outCount }, (_, i) =>
+    String.fromCharCode(120 + i)
+  );
+
+  // create formulas as a mapping per output to a mapping per row (matches expected Record<string, Record<string, Formula>>)
+  const formulas: Record<string, Record<string, Formula>> = {};
+  outputVars.forEach((name) => {
+    formulas[name] = {}; // leave per-row formulas empty for now
+  });
+
+  // number of rows = 2^n
+  const rows = 1 << inCount;
+
+  // initialize all output values to zero: rows x outCount, typed as TruthTableData
+  const values = Array.from({ length: rows }, () =>
+    Array.from({ length: outCount }, () => 0 as TruthTableCell)
+  ) as TruthTableData;
+
+  stateManager.state.truthTable = {
+    inputVars,
+    outputVars,
+    formulas, // now matches expected record shape
+    values,
+    minifiedValues: values,
+  };
+  stateManager.save()
+
+    // Update shared params with new truth table state
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ; (window as any).__dockview_sharedParams = {
+      state: stateManager.state.truthTable,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      updateTruthTable: (window as any).__dockview_sharedParams?.updateTruthTable,
+    };
+
   addPanel('truth-table', 'Truth Table');
   popupService.close();
 }
