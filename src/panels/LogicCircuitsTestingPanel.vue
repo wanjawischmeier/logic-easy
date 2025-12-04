@@ -9,14 +9,21 @@ const title = ref('')
 const containerRef = ref<HTMLDivElement | null>(null)
 let disposable: { dispose?: () => void } | null = null
 
-// Always use the single preloaded iframe
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let preloadedIframe = (window as any).__lc_preloaded_iframe as HTMLIFrameElement | undefined
+// Keep a reference to the current iframe; update it when the wrapper swaps frames.
+let preloadedIframe: HTMLIFrameElement | undefined
+
+let iframeReadyHandler: EventListener | null = null
 
 let resizeObserver: ResizeObserver | null = null
 let pollInterval: number | null = null
 
+function getGlobalIframe(): HTMLIFrameElement | undefined {
+  return (window as Window & { __lc_preloaded_iframe?: HTMLIFrameElement }).__lc_preloaded_iframe
+}
+
 function updateIframePosition() {
+  // always read current reference
+  preloadedIframe = preloadedIframe || getGlobalIframe()
   if (!preloadedIframe || !containerRef.value) return
 
   const rect = containerRef.value.getBoundingClientRect()
@@ -33,8 +40,8 @@ function updateIframePosition() {
 }
 
 function setupIframe() {
+  preloadedIframe = preloadedIframe || getGlobalIframe()
   if (!preloadedIframe) return false
-
   // Show and position the iframe
   preloadedIframe.style.display = 'block'
   updateIframePosition()
@@ -60,15 +67,13 @@ onMounted(() => {
   })
   title.value = props.params.api.title ?? ''
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  preloadedIframe = (window as any).__lc_preloaded_iframe as HTMLIFrameElement | undefined
-
+  // Try to pick up the current global iframe, otherwise poll.
+  preloadedIframe = getGlobalIframe()
   if (!preloadedIframe) {
     console.log('Preloaded iframe not yet available, waiting...')
     // Poll for iframe availability
     pollInterval = window.setInterval(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      preloadedIframe = (window as any).__lc_preloaded_iframe as HTMLIFrameElement | undefined
+      preloadedIframe = getGlobalIframe()
       if (preloadedIframe) {
         console.log('Preloaded iframe now available')
         if (pollInterval !== null) {
@@ -81,6 +86,21 @@ onMounted(() => {
   } else {
     setupIframe()
   }
+
+  // React to wrapper swaps (resetIFrame will dispatch 'lc-iframe-ready')
+  const onIframeReady = (ev: Event) => {
+    const ce = ev as CustomEvent<{ iframe?: HTMLIFrameElement }>
+    // update local ref and re-run setup to ensure the new iframe is shown & positioned
+    preloadedIframe = ce?.detail?.iframe ?? getGlobalIframe()
+    console.log('LogicCircuitsTestingPanel: detected iframe swap')
+    // tear down previous observers/listeners before re-setup
+    resizeObserver?.disconnect()
+    window.removeEventListener('scroll', updateIframePosition, true)
+    window.removeEventListener('resize', updateIframePosition)
+    setupIframe()
+  }
+  iframeReadyHandler = onIframeReady
+  window.addEventListener('lc-iframe-ready', onIframeReady as EventListener)
 })
 
 onBeforeUnmount(() => {
@@ -92,6 +112,7 @@ onBeforeUnmount(() => {
   }
 
   // Hide iframe when panel closes
+  preloadedIframe = preloadedIframe || getGlobalIframe()
   if (preloadedIframe) {
     preloadedIframe.style.display = 'none'
   }
@@ -99,12 +120,18 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   window.removeEventListener('scroll', updateIframePosition, true)
   window.removeEventListener('resize', updateIframePosition)
+  // remove the lc-iframe-ready listener
+  if (iframeReadyHandler) {
+    window.removeEventListener('lc-iframe-ready', iframeReadyHandler)
+    iframeReadyHandler = null
+  }
 
   disposable?.dispose?.()
 })
 
 // Watch for panel visibility changes
 watch(() => props.params.api.isVisible, (visible) => {
+  preloadedIframe = preloadedIframe || getGlobalIframe()
   if (preloadedIframe) {
     preloadedIframe.style.display = visible ? 'block' : 'none'
   }
@@ -128,7 +155,7 @@ async function loadFile() {
   <div class="h-full text-white flex flex-col gap-2 p-2">
     <button @click="loadFile" class="w-50 bg-surface-2 hover:bg-surface-3">Import
       Gesamtsystem.lc</button>
-    <div ref="containerRef" class="flex-1" style="position: relative;"></div>
+    <div ref="containerRef" class="flex-1 z-0" style="position: relative;"></div>
   </div>
 </template>
 
