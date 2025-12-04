@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
+import { logicCircuits } from '@/utility/logicCircuitsWrapper'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
 const title = ref('')
 const containerRef = ref<HTMLDivElement | null>(null)
 let disposable: { dispose?: () => void } | null = null
-const panelId = computed(() => props.params.api.id)
 
-// Global registry for persistent iframes
+// Always use the single preloaded iframe
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const globalIframes = (window as any).__lc_iframes || ((window as any).__lc_iframes = new Map<string, HTMLIFrameElement>())
+let preloadedIframe = (window as any).__lc_preloaded_iframe as HTMLIFrameElement | undefined
 
-let myIframe: HTMLIFrameElement | null = null
 let resizeObserver: ResizeObserver | null = null
+let pollInterval: number | null = null
 
 function updateIframePosition() {
-  if (!myIframe || !containerRef.value) return
+  if (!preloadedIframe || !containerRef.value) return
 
   const rect = containerRef.value.getBoundingClientRect()
-  myIframe.style.cssText = `
+  preloadedIframe.style.cssText = `
     position: fixed;
     left: ${rect.left}px;
     top: ${rect.top}px;
@@ -32,30 +32,11 @@ function updateIframePosition() {
   `
 }
 
-onMounted(() => {
-  console.log('LogicCircuitsTestingPanel mounted', panelId.value)
+function setupIframe() {
+  if (!preloadedIframe) return false
 
-  disposable = props.params.api.onDidTitleChange(() => {
-    title.value = props.params.api.title ?? ''
-  })
-  title.value = props.params.api.title ?? ''
-
-  // Get or create iframe
-  if (globalIframes.has(panelId.value)) {
-    myIframe = globalIframes.get(panelId.value)!
-    if (myIframe) {
-      myIframe.style.display = 'block'
-      console.log('Reusing iframe for', panelId.value)
-    }
-  } else {
-    myIframe = document.createElement('iframe')
-    myIframe.src = '/logic-easy/logic-circuits/index.html'
-    document.body.appendChild(myIframe)
-    globalIframes.set(panelId.value, myIframe)
-    console.log('Created new iframe for', panelId.value)
-  }
-
-  // Position iframe over container
+  // Show and position the iframe
+  preloadedIframe.style.display = 'block'
   updateIframePosition()
 
   // Watch for container size/position changes
@@ -67,14 +48,52 @@ onMounted(() => {
   // Also update on scroll (in case dockview moves)
   window.addEventListener('scroll', updateIframePosition, true)
   window.addEventListener('resize', updateIframePosition)
+
+  return true
+}
+
+onMounted(() => {
+  console.log('LogicCircuitsTestingPanel mounted')
+
+  disposable = props.params.api.onDidTitleChange(() => {
+    title.value = props.params.api.title ?? ''
+  })
+  title.value = props.params.api.title ?? ''
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  preloadedIframe = (window as any).__lc_preloaded_iframe as HTMLIFrameElement | undefined
+
+  if (!preloadedIframe) {
+    console.log('Preloaded iframe not yet available, waiting...')
+    // Poll for iframe availability
+    pollInterval = window.setInterval(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      preloadedIframe = (window as any).__lc_preloaded_iframe as HTMLIFrameElement | undefined
+      if (preloadedIframe) {
+        console.log('Preloaded iframe now available')
+        if (pollInterval !== null) {
+          clearInterval(pollInterval)
+          pollInterval = null
+        }
+        setupIframe()
+      }
+    }, 100)
+  } else {
+    setupIframe()
+  }
 })
 
 onBeforeUnmount(() => {
-  console.log('LogicCircuitsTestingPanel unmounted', panelId.value)
+  console.log('LogicCircuitsTestingPanel unmounted')
 
-  // Hide iframe instead of removing it
-  if (myIframe) {
-    myIframe.style.display = 'none'
+  if (pollInterval !== null) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+
+  // Hide iframe when panel closes
+  if (preloadedIframe) {
+    preloadedIframe.style.display = 'none'
   }
 
   resizeObserver?.disconnect()
@@ -86,8 +105,8 @@ onBeforeUnmount(() => {
 
 // Watch for panel visibility changes
 watch(() => props.params.api.isVisible, (visible) => {
-  if (myIframe) {
-    myIframe.style.display = visible ? 'block' : 'none'
+  if (preloadedIframe) {
+    preloadedIframe.style.display = visible ? 'block' : 'none'
   }
   if (visible) {
     updateIframePosition()
@@ -95,27 +114,12 @@ watch(() => props.params.api.isVisible, (visible) => {
 })
 
 async function loadFile() {
-  const url = 'http://localhost:5173/logic-easy/Gesamtsystem.lc'
-  try {
-    const resp = await fetch(url)
-    if (!resp.ok) throw new Error('Fetch failed: ' + resp.status)
-    const text = await resp.text()
-      // make available in console
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ; (window as any).lcText = text
-    console.log('Loaded file into window.lcText (length:', text.length, ')')
+  const success = await logicCircuits.loadFile({
+    url: 'http://localhost:5173/logic-easy/Gesamtsystem.lc'
+  })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const iframeWin = myIframe?.contentWindow as (Window & { LogicCircuits?: any }) | undefined
-    if (iframeWin && iframeWin.LogicCircuits && typeof iframeWin.LogicCircuits.loadFile === 'function') {
-      iframeWin.LogicCircuits.loadFile(text)
-      console.log('Delivered file via direct iframe.LogicCircuits.loadFile')
-      return
-    }
-
-    console.warn('Could not deliver file to iframe; file stored in window.lcText')
-  } catch (err) {
-    console.error('Error loading file:', err)
+  if (!success) {
+    console.error('Failed to load file')
   }
 }
 </script>
