@@ -1,10 +1,10 @@
 <template>
-  <PopupBase :visible="true" title="Create Truth Table" :actions="actions" @close="onClose">
+  <PopupBase :visible="true" title="Create Truth Table or KV Diagram" :actions="actions" @close="onClose">
     <div class="text-on-surface">
 
       <!-- Placeholder content area -->
       <div class="bg-surface-2 rounded-xs p-8">
-        <p class="mb-4">Configure the new truth table</p>
+        <p class="mb-4">Configure the amount of variables</p>
 
         <!-- added: input/output count controls -->
         <div class="grid gap-4 text-left">
@@ -99,6 +99,10 @@ function onCreate() {
     };
 
   addPanel('truth-table', 'Truth Table');
+  addPanel('kv-diagram', 'Truth Table', {
+    referencePanel: 'truth-table',
+    direction: 'right'
+  });
   popupService.close();
 }
 

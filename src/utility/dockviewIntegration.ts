@@ -1,5 +1,7 @@
+import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
 import TruthTablePopup from '@/components/popups/TruthTablePopup.vue';
+import { checkPanelRequirement, dockRegistry } from '@/components/dockRegistry';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -8,7 +10,7 @@ export type DockviewApiMinimal = {
     component: string;
     title?: string;
     params?: Record<string, unknown>;
-    position?: unknown;
+    position?: AddPanelPositionOptions;
   }) => void;
   panels: Array<{
     id: string;
@@ -36,10 +38,15 @@ function findPanelByComponent(component: string): { id: string; api: { setActive
   return panel ? { id: panel.id, api: panel.api } : null;
 }
 
-export function addPanel(panelKey: string, label: string): boolean {
+export function addPanel(panelKey: string, label: string, position?: AddPanelPositionOptions): boolean {
   const api = getDockviewApi();
   if (!api) {
     console.warn('Dockview API not ready yet');
+    return false;
+  }
+
+  const registryEntry = dockRegistry.find(item => item.id === panelKey);
+  if (!registryEntry || !checkPanelRequirement(registryEntry)) {
     return false;
   }
 
@@ -59,6 +66,7 @@ export function addPanel(panelKey: string, label: string): boolean {
       component: panelKey,
       title: label,
       params: sharedParams,
+      position: position
     });
     return true;
   } catch (err) {
@@ -68,14 +76,16 @@ export function addPanel(panelKey: string, label: string): boolean {
 }
 
 export function addPanelWithPopup(panelKey: string, label: string): boolean {
-  // Show popup for truth-table
-  if (panelKey === 'truth-table') {
-    popupService.open({
-      component: TruthTablePopup,
-    });
-    return true;
-  }
+  switch (panelKey) {
+    case 'truth-table':
+    case 'kv-diagram':
+      popupService.open({
+        component: TruthTablePopup,
+      });
+      return true;
 
-  // For other panels, add directly
-  return addPanel(panelKey, label);
+    default:
+      // Fallback to adding directly
+      return addPanel(panelKey, label);
+  }
 }
