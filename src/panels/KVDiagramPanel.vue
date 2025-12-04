@@ -86,7 +86,8 @@ const currentFormula = computed(() => {
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
     <div class="w-full flex gap-10 text-sm justify-end">
-      <MultiSelectSwitch :label="'Output Variable'" :values="outputVars" :onSelect="(v, i) => selectedOutputIndex = i">
+      <MultiSelectSwitch v-if="outputVars.length > 1" :label="'Output Variable'" :values="outputVars"
+        :onSelect="(v, i) => selectedOutputIndex = i">
       </MultiSelectSwitch>
 
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"

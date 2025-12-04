@@ -4,7 +4,7 @@ import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import { stateManager } from '@/utility/stateManager';
 
-export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars';
+export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars';
 
 type DockEntry = {
   id: string;
@@ -15,7 +15,7 @@ type DockEntry = {
 
 export const dockRegistry: DockEntry[] = [
   { id: 'truth-table', label: 'Truth Table', component: TruthTablePanel, requires: ['TruthTable'] },
-  { id: 'kv-diagram', label: 'KV Diagram', component: KVDiagramPanel, requires: ['TruthTable', 'Min2InputVars'] },
+  { id: 'kv-diagram', label: 'KV Diagram', component: KVDiagramPanel, requires: ['TruthTable', 'Min2InputVars', 'Max4InputVars'] },
   { id: 'espresso-testing', label: 'Espresso Testing Panel', component: EspressoTestingPanel },
   { id: 'lc-testing', label: 'Logic Circuits Panel', component: LogicCircuitsTestingPanel },
 ];
@@ -41,6 +41,12 @@ export const checkPanelRequirement = (panel: DockEntry): boolean => {
 
       case 'Min2InputVars':
         if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
+          checkPassed = false;
+        }
+        break;
+
+      case 'Max4InputVars':
+        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
           checkPassed = false;
         }
         break;
