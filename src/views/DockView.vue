@@ -67,14 +67,12 @@ const onReady = (event: DockviewReadyEvent) => {
     };
 
   // Try to load saved layout
-  let success = false
   const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY)
 
   if (savedLayout) {
     try {
       const layout = JSON.parse(savedLayout)
       event.api.fromJSON(layout)
-      success = true
       console.log('Loaded layout from localStorage')
 
       // Update all panel params to use current state reference
@@ -87,12 +85,9 @@ const onReady = (event: DockviewReadyEvent) => {
       })
     } catch (err) {
       console.error('Failed to load layout from localStorage:', err)
+      console.warn('Falling back to default layout')
+      loadDefaultLayout(event.api)
     }
-  }
-
-  // Load default layout if loading failed
-  if (!success) {
-    loadDefaultLayout(event.api)
   }
 
   // Track panel count
