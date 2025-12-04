@@ -4,7 +4,7 @@
     <div class="absolute flex justify-end items-end w-full h-full">
       <a class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 rounded-full shadow-2xl"
         href="https://github.com/wanjawischmeier/logic-easy">
-        <img src="/logic-easy/GithubLogo.png" alt="GitHub Logo" class="w-12 aspect-auto invert">
+        <img src="/GithubLogo.png" alt="GitHub Logo" class="w-12 aspect-auto invert">
       </a>
     </div>
 
