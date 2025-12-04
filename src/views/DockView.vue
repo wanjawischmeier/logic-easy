@@ -16,6 +16,13 @@ type DockviewApiMinimal = {
     params?: Record<string, unknown>;
     position?: unknown;
   }) => void;
+  panels: Array<{
+    id: string;
+    api: {
+      component: string;
+      setActive: () => void;
+    };
+  }>;
 };
 
 const componentsForDockview = dockComponents;

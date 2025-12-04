@@ -9,6 +9,13 @@ export type DockviewApiMinimal = {
     params?: Record<string, unknown>;
     position?: unknown;
   }) => void;
+  panels: Array<{
+    id: string;
+    api: {
+      component: string;
+      setActive: () => void;
+    };
+  }>;
 };
 
 export function getDockviewApi(): DockviewApiMinimal | null {
@@ -21,11 +28,27 @@ export function getSharedParams(): Record<string, unknown> | undefined {
   return params;
 }
 
+function findPanelByComponent(component: string): { id: string; api: { setActive: () => void } } | null {
+  const api = getDockviewApi();
+  if (!api || !api.panels) return null;
+
+  const panel = api.panels.find(p => p.api.component === component);
+  return panel ? { id: panel.id, api: panel.api } : null;
+}
+
 export function addPanel(panelKey: string, label: string): boolean {
   const api = getDockviewApi();
   if (!api) {
     console.warn('Dockview API not ready yet');
     return false;
+  }
+
+  // Check if panel with this component already exists
+  const existingPanel = findPanelByComponent(panelKey);
+  if (existingPanel) {
+    console.log(`Panel with component '${panelKey}' already exists, focusing it`);
+    existingPanel.api.setActive();
+    return true;
   }
 
   const sharedParams = getSharedParams();
