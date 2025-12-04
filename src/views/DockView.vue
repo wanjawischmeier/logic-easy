@@ -76,6 +76,15 @@ const onReady = (event: DockviewReadyEvent) => {
       event.api.fromJSON(layout)
       success = true
       console.log('Loaded layout from localStorage')
+
+      // Update all panel params to use current state reference
+      // This ensures restored panels don't use stale state from localStorage
+      event.api.panels.forEach(panel => {
+        panel.api.updateParameters({
+          state: stateManager.state.truthTable,
+          updateTruthTable,
+        })
+      })
     } catch (err) {
       console.error('Failed to load layout from localStorage:', err)
     }
@@ -107,6 +116,19 @@ const onReady = (event: DockviewReadyEvent) => {
   layoutChangeDisposable = event.api.onDidLayoutChange(() => {
     try {
       const layout = event.api.toJSON()
+
+      // Remove state and updateTruthTable from panel params before saving
+      // We only want to save the layout structure, not the actual state data
+      if (layout.panels && 'panels' in layout.panels) {
+        const panels = layout.panels as { panels?: Array<{ params?: Record<string, unknown> }> };
+        panels.panels?.forEach(panel => {
+          if (panel.params) {
+            delete panel.params.state
+            delete panel.params.updateTruthTable
+          }
+        })
+      }
+
       localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layout))
       console.log('Layout saved to localStorage')
     } catch (err) {

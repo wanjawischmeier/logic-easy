@@ -98,16 +98,11 @@ class LogicCircuitsWrapper {
       newIframe.style.display = oldDisplay;
 
       // Swap the global reference atomically
-
       w.__lc_preloaded_iframe = newIframe;
 
-      // Notify listeners that a new iframe is ready (includes iframe in detail)
-      try {
-        const evt = new CustomEvent('lc-iframe-ready', { detail: { iframe: newIframe } });
-        window.dispatchEvent(evt);
-      } catch {
-        // ignore if CustomEvent not allowed
-      }
+      // Notify listeners that a new iframe is ready
+      const evt = new CustomEvent('lc-iframe-ready', { detail: { iframe: newIframe } });
+      window.dispatchEvent(evt);
 
       // Remove old iframe after new one is ready
       if (old && old.parentElement && old !== newIframe) {
@@ -144,23 +139,13 @@ class LogicCircuitsWrapper {
         console.log('LogicCircuitsLoader: new iframe ready (no payload)');
       }
 
-      // signal load finished (UI should hide spinner)
-      try {
-        window.dispatchEvent(new CustomEvent('lc-iframe-ready', { detail: { iframe: newIframe } }));
-      } catch {
-        /* ignore */
-      }
-
+      // load finished
+      window.dispatchEvent(new CustomEvent('lc-iframe-ready', { detail: { iframe: newIframe } }));
       console.log('Preloading Logic Circuits iframe (async reset) complete');
       return newIframe;
     } catch (err) {
       console.error('resetIFrame error', err);
-      // ensure consumers hide spinner
-      try {
-        window.dispatchEvent(new CustomEvent('lc-iframe-ready'));
-      } catch {
-        /* ignore */
-      }
+      window.dispatchEvent(new CustomEvent('lc-iframe-ready'));
       return null;
     }
   }

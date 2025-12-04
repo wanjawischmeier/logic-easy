@@ -77,6 +77,7 @@ function saveState(state: AppState): void {
   try {
     const serialized = JSON.stringify(state)
     localStorage.setItem(STORAGE_KEY, serialized)
+    console.log('Saved app state')
   } catch (error) {
     console.error('Failed to save state to localStorage:', error)
   }
