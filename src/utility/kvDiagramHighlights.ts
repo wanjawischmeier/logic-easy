@@ -17,6 +17,10 @@ function isCovered(
   if (mode === 'DNF') {
     // DNF: Term is a product (AND of literals).
     // Covers cells where all literals are true.
+
+    if (term.literals.length === 1 && term.literals[0]?.variable === '0') {
+      return false;
+    }
     for (const literal of term.literals) {
       const varIndex = inputVars.indexOf(literal.variable);
       if (varIndex === -1) continue;
@@ -27,7 +31,7 @@ function isCovered(
       if (!literal.negated && bit !== '1') return false;
       if (literal.negated && bit !== '0') return false;
     }
-    return mode === 'DNF';
+    return true;
   } else {
     // CNF: Term is a sum (OR of literals) - a clause.
     // Covers cells where at least one literal is true.
@@ -112,6 +116,10 @@ export function calculateHighlights(
     // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
     // A clause (sum) is FALSE when ALL its literals are false
     // So we highlight cells where at least one clause is completely false
+    if (terms.length === 1 && terms[0]?.literals[0]?.variable === '0') {
+      return [];
+    }
+
     const anyClauseFalse = terms.some(term => {
       return !isCovered(term, rowCode, colCode, mode, inputVars);
     });

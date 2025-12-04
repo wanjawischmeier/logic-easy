@@ -1,6 +1,6 @@
 <template>
   <div class="inline-flex items-center gap-2 ">
-    <span v-if="label" class="text-on-surface-variant">{{ label }}</span>
+    <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
     <div class="inline-flex items-center rounded bg-surface-2 p-0.5 border border-surface-3 relative">
       <div class="slider absolute inset-y-0.5 rounded-xs transition-transform duration-100 ease-in-out"
         :style="{ width: `calc((100% - 4px) / ${values.length})`, transform: `translateX(calc(${selected} * 100%))` }">

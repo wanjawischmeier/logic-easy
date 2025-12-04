@@ -26,7 +26,12 @@ const latexExpression = computed(() => {
       const sum = term.literals.map(lit => {
         return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
       }).join(' + ');
-      return `(${sum})`;
+
+      if (term.literals.length === 1) {
+        return sum;
+      } else {
+        return `(${sum})`;
+      }
     }
   });
 
