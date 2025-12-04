@@ -16,6 +16,12 @@ type DockviewApiMinimal = {
     params?: Record<string, unknown>;
     position?: unknown;
   }) => void;
+  panels: Array<{
+    id: string;
+    api: {
+      setActive: () => void;
+    };
+  }>;
 };
 
 const componentsForDockview = dockComponents;
@@ -28,7 +34,7 @@ const LAYOUT_STORAGE_KEY = 'dockview_layout'
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
-    id: 'panel_1',
+    id: 'truth-table',
     component: 'truth-table',
     title: 'Truth Table',
     params: {
@@ -38,10 +44,10 @@ const loadDefaultLayout = (api: DockviewApi) => {
   })
 
   api.addPanel({
-    id: 'panel_kv',
+    id: 'kv-diagram',
     component: 'kv-diagram',
     title: 'KV Diagram',
-    position: { referencePanel: 'panel_1', direction: 'right' },
+    position: { referencePanel: 'truth-table', direction: 'right' },
     params: {
       state: stateManager.state.truthTable,
       updateTruthTable,
@@ -58,13 +64,15 @@ const onReady = (event: DockviewReadyEvent) => {
 
 
   // Initial calculation
-  updateTruthTable(stateManager.state.truthTable.values)
+  if (stateManager.state.truthTable) {
+    updateTruthTable(stateManager.state.truthTable.values)
+  }
 
-    // expose shared params for dynamic panels
-    ; (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams = {
-      state: stateManager.state.truthTable,
-      updateTruthTable,
-    };
+  // expose shared params for dynamic panels
+  ; (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams = {
+    state: stateManager.state.truthTable,
+    updateTruthTable,
+  };
 
   // Try to load saved layout
   const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY)

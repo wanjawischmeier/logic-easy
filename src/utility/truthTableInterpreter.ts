@@ -102,6 +102,8 @@ function getVariableValue(term: Term, variable: string): number {
 }
 
 export const updateTruthTable = async (newValues: TruthTableData) => {
+  if (!stateManager.state.truthTable) return;
+
   stateManager.state.truthTable.values = newValues
 
   // Calculate formulas for each output variable

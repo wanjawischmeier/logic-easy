@@ -21,7 +21,7 @@ export interface TruthTableState {
  */
 export interface AppState {
   version: number
-  truthTable: TruthTableState
+  truthTable?: TruthTableState
 }
 
 /**
@@ -52,7 +52,8 @@ function loadState(): AppState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (!stored) {
-      return createDefaultState()
+      // return createDefaultState()
+      return { version: STORAGE_VERSION }
     }
 
     const parsed = JSON.parse(stored) as AppState
