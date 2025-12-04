@@ -19,7 +19,6 @@ type DockviewApiMinimal = {
   panels: Array<{
     id: string;
     api: {
-      component: string;
       setActive: () => void;
     };
   }>;
@@ -35,7 +34,7 @@ const LAYOUT_STORAGE_KEY = 'dockview_layout'
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
-    id: 'panel_1',
+    id: 'truth-table',
     component: 'truth-table',
     title: 'Truth Table',
     params: {
@@ -45,10 +44,10 @@ const loadDefaultLayout = (api: DockviewApi) => {
   })
 
   api.addPanel({
-    id: 'panel_kv',
+    id: 'kv-diagram',
     component: 'kv-diagram',
     title: 'KV Diagram',
-    position: { referencePanel: 'panel_1', direction: 'right' },
+    position: { referencePanel: 'truth-table', direction: 'right' },
     params: {
       state: stateManager.state.truthTable,
       updateTruthTable,

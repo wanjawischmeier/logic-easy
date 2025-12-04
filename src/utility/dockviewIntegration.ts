@@ -3,6 +3,7 @@ import TruthTablePopup from '@/components/popups/TruthTablePopup.vue';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
+    // TODO: Resolve duplicate id/component
     id: string;
     component: string;
     title?: string;
@@ -12,7 +13,6 @@ export type DockviewApiMinimal = {
   panels: Array<{
     id: string;
     api: {
-      component: string;
       setActive: () => void;
     };
   }>;
@@ -32,7 +32,7 @@ function findPanelByComponent(component: string): { id: string; api: { setActive
   const api = getDockviewApi();
   if (!api || !api.panels) return null;
 
-  const panel = api.panels.find(p => p.api.component === component);
+  const panel = api.panels.find(p => p.id === component);
   return panel ? { id: panel.id, api: panel.api } : null;
 }
 
@@ -52,11 +52,10 @@ export function addPanel(panelKey: string, label: string): boolean {
   }
 
   const sharedParams = getSharedParams();
-  const id = `panel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   try {
     api.addPanel({
-      id,
+      id: panelKey,
       component: panelKey,
       title: label,
       params: sharedParams,
