@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css" />
+    <meta charset="utf-8" />
+    <title>LogicCircuits</title>
+    <script>
+      ;(function () {
+        try {
+          var params = new URLSearchParams(window.location.search)
+          var fileParam = params.get('file')
+
+          function injectBundle() {
+            if (window.__logicCircuitsBundleInjected) return
+            window.__logicCircuitsBundleInjected = true
+            function doInject() {
+              var s = document.createElement('script')
+              s.type = 'text/javascript'
+              s.src = 'bundle.js'
+              document.body.appendChild(s)
+            }
+            if (document.body) doInject()
+            else document.addEventListener('DOMContentLoaded', doInject)
+          }
+
+          if (fileParam && /^https?:\/\//i.test(fileParam)) {
+            // If file= is a URL, fetch it and replace the query with the file contents.
+            // After successful fetch we redirect (so the loader in the bundle gets actual content).
+            // If fetch fails, continue and inject the bundle so the page still loads.
+            fetch(fileParam)
+              .then(function (resp) {
+                if (!resp.ok) throw new Error('fetch failed: ' + resp.status)
+                return resp.text()
+              })
+              .then(function (text) {
+                try {
+                  var u = new URL(window.location.href)
+                  u.searchParams.set('file', text)
+                  // Replace location so the bundle sees the content on load
+                  window.location.replace(u.toString())
+                } catch (e) {
+                  console.error('Error preparing file param:', e)
+                  injectBundle()
+                }
+              })
+              .catch(function (err) {
+                console.error('Failed to fetch file param URL:', err)
+                injectBundle()
+              })
+          } else {
+            // No remote URL to fetch — just inject the bundle now (after body exists).
+            injectBundle()
+          }
+          // Listen for parent messages carrying large file payloads.
+          // Parent can postMessage({type:'logic-load', text: '<file contents>'}, targetOrigin)
+          window.__incomingLogicLoads = window.__incomingLogicLoads || []
+          window.addEventListener('message', function (ev) {
+            try {
+              var d = ev.data
+              if (d && d.type === 'logic-load' && typeof d.text === 'string') {
+                // If bundle exposes the API, call it immediately; otherwise queue it.
+                if (window.LogicCircuits && typeof window.LogicCircuits.loadFile === 'function') {
+                  try {
+                    window.LogicCircuits.loadFile(d.text)
+                    // acknowledge to parent that the file was loaded
+                    try {
+                      window.parent && window.parent.postMessage({ type: 'logic-loaded' }, '*')
+                    } catch (e2) {}
+                  } catch (e) {
+                    console.error('Error calling LogicCircuits.loadFile from message:', e)
+                    window.__incomingLogicLoads.push(d.text)
+                    window.lcText = d.text
+                  }
+                } else {
+                  window.__incomingLogicLoads.push(d.text)
+                  window.lcText = d.text
+                }
+              }
+            } catch (e) {
+              console.error('postMessage handler error', e)
+            }
+          })
+
+          // Periodically flush queued messages once the bundle exposes the API.
+          ;(function flushPending() {
+            try {
+              if (
+                window.__incomingLogicLoads &&
+                window.LogicCircuits &&
+                typeof window.LogicCircuits.loadFile === 'function'
+              ) {
+                while (window.__incomingLogicLoads.length) {
+                  try {
+                    window.LogicCircuits.loadFile(window.__incomingLogicLoads.shift())
+                    try {
+                      window.parent && window.parent.postMessage({ type: 'logic-loaded' }, '*')
+                    } catch (e2) {}
+                  } catch (e) {
+                    console.error('Error flushing queued logic-load:', e)
+                    break
+                  }
+                }
+              }
+            } catch (e) {
+              /* ignore */
+            }
+            setTimeout(flushPending, 500)
+          })()
+        } catch (e) {
+          console.error('file-param preloader error', e)
+          try {
+            // best-effort: inject bundle so page still loads
+            if (document.body) {
+              var s = document.createElement('script')
+              s.type = 'text/javascript'
+              s.src = 'bundle.js'
+              document.body.appendChild(s)
+            } else
+              document.addEventListener('DOMContentLoaded', function () {
+                var s = document.createElement('script')
+                s.type = 'text/javascript'
+                s.src = 'bundle.js'
+                document.body.appendChild(s)
+              })
+          } catch (e2) {
+            console.error('Failed to inject bundle after error', e2)
+          }
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="wrapper" class="composer-wrapper unselectable">
+      <div id="side-menu" class="menu"></div>
+      <div id="top-menu" class="top-menu"></div>
+      <div id="simulator">
+        <div id="circuit"></div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue';
 import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
+import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 
 type DockEntry = {
   id: string;
@@ -12,6 +13,7 @@ export const dockRegistry: DockEntry[] = [
   { id: 'truth-table', label: 'Truth Table', component: TruthTablePanel },
   { id: 'kv-diagram', label: 'KV Diagram', component: KVDiagramPanel },
   { id: 'espresso-testing', label: 'Espresso Testing Panel', component: EspressoTestingPanel },
+  { id: 'lc-testing', label: 'Logic Circuits Panel', component: LogicCircuitsTestingPanel },
 ];
 
 // mapping for :components prop consumed by dockview

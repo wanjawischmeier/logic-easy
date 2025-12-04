@@ -44,7 +44,7 @@ const loadDefaultLayout = (api: DockviewApi) => {
     position: { referencePanel: 'panel_1', direction: 'right' },
     params: {
       state: stateManager.state.truthTable,
-      updateTruthTable
+      updateTruthTable,
     },
   })
 }
@@ -131,7 +131,7 @@ onBeforeUnmount(() => {
 
     <div class="flex-1 min-h-0 relative">
       <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-36px)]' : 'h-0'"
-        :components="componentsForDockview" @ready="onReady" />
+        :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels"></GettingStartedView>
 

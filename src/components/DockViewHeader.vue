@@ -5,7 +5,7 @@
         <!-- logo + title -->
         <a href="/logic-easy/" class="mr-4">
           <div class="flex gap-2">
-            <img src="/logo.png" alt="logo" class="h-6">
+            <img src="/iti-logo.png" alt="logo" class="h-6">
             <p class="font-medium">LogicEasy</p>
           </div>
         </a>
