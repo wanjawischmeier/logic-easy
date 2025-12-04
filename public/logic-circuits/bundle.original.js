@@ -671,7 +671,7 @@
               (t.rasterSize = 10),
               (t.noFileSelectedError = 'No file was selected!'),
               (t.noNameError = 'no filename was given!'),
-              (t.version = new n.VersionNumber(0, 8, '12-patch1')),
+              (t.version = new n.VersionNumber(0, 8, 12)),
               (t.isClassicalLogic = !0),
               (t.isZoomLocked = !1),
               t
@@ -1526,7 +1526,7 @@
               var l = document.createElement('div')
               ;((l.className = 'subGateLabel'),
                 (l.style.fontSize = '30px'),
-                u.masterSlave ? (l.textContent = 'Q Â¬') : (l.textContent = 'Q'),
+                u.masterSlave ? (l.textContent = 'Q ¬') : (l.textContent = 'Q'),
                 (l.style.right = '10px'),
                 (l.style.top = '10px'),
                 u.label.appendChild(l))
@@ -1541,7 +1541,7 @@
                   (c.style.display = 'inline'))
                 var p = document.createElement('div')
                 ;((p.className = 'subGateLabel'),
-                  (p.textContent = ' Â¬'),
+                  (p.textContent = ' ¬'),
                   (p.style.fontSize = '30px'),
                   (p.style.position = 'relative'),
                   (p.style.display = 'inline'),
@@ -3249,7 +3249,7 @@
               var i = t.call(this, e, n, o) || this
               ;((i.type = r.GateType.OrGate),
                 (i.label.style.fontSize = '50px'),
-                (i.label.textContent = 'â‰¥1'),
+                (i.label.textContent = '≥1'),
                 (i.label.style.lineHeight = i.height + 'px'))
               for (var s = 0; s < i.inputs.length; s++) i.inputs[s].text = 'in' + s
               return ((i.outputs[0].text = 'out0'), i)
@@ -3719,14 +3719,14 @@
                 (s.style.border = '3px solid black'))
               var a = document.createElement('div')
               ;((a.className = 'subGateLabel'),
-                (a.textContent = 'â†’'),
+                (a.textContent = '→'),
                 (a.style.fontSize = '16px'),
                 (a.style.top = '6px'),
                 (a.style.left = '2px'),
                 s.appendChild(a))
               var u = document.createElement('div')
               ;((u.className = 'subGateLabel'),
-                (u.textContent = 'â†'),
+                (u.textContent = '←'),
                 (u.style.fontSize = '16px'),
                 (u.style.top = '26px'),
                 (u.style.left = '2px'),
@@ -4058,14 +4058,14 @@
                 (s.style.border = '3px solid black'))
               var a = document.createElement('div')
               ;((a.className = 'subGateLabel'),
-                (a.textContent = 'â†’'),
+                (a.textContent = '→'),
                 (a.style.fontSize = '16px'),
                 (a.style.top = '6px'),
                 (a.style.left = '2px'),
                 s.appendChild(a))
               var u = document.createElement('div')
               ;((u.className = 'subGateLabel'),
-                (u.textContent = 'â†'),
+                (u.textContent = '←'),
                 (u.style.fontSize = '16px'),
                 (u.style.top = '26px'),
                 (u.style.left = '2px'),
@@ -4548,7 +4548,7 @@
               var s = t.call(this, e, n, o) || this
               ;((s.thresh = i),
                 (s.label.style.fontSize = '40px'),
-                (s.label.textContent = 'â‰¥' + s.thresh),
+                (s.label.textContent = '≥' + s.thresh),
                 (s.label.style.lineHeight = s.height + 'px'),
                 (s.type = r.GateType.ThreshGate))
               for (var a = 0; a < s.inputs.length; a++) s.inputs[a].text = 'in' + a
@@ -4642,37 +4642,10 @@
               var t = new n.SimulatorController(),
                 e = new r.SideMenuController(t)
               new o.TopMenuController(t, e.customGateSelector)
-              // -- begin inserted: expose small embedding API --
-              window.LogicCircuits = window.LogicCircuits || {}
-              // store the simulator controller instance so external code can pass it to FileHandler
-              window.LogicCircuits.simulatorController = t
-              // expose the FileHandler module used in this closure (variable name i in this scope)
-              window.LogicCircuits.FileHandler = i && i.FileHandler ? i.FileHandler : null
-              // convenience helper: load a file's text into the running simulator
-              window.LogicCircuits.loadFile = function (text) {
-                try {
-                  if (
-                    !window.LogicCircuits.FileHandler ||
-                    !window.LogicCircuits.simulatorController
-                  ) {
-                    console.error(
-                      'LogicCircuits.loadFile: FileHandler or simulatorController not available yet.',
-                    )
-                    return
-                  }
-                  window.LogicCircuits.FileHandler.fileToSimulator(
-                    text,
-                    window.LogicCircuits.simulatorController,
-                  )
-                } catch (err) {
-                  console.error('LogicCircuits.loadFile error:', err)
-                }
-              }
-              // -- end inserted --
               !(function () {
                 var t = document.createElement('div')
                 ;(document.body.appendChild(t),
-                  (t.textContent = 'Â©'),
+                  (t.textContent = '©'),
                   (t.style.position = 'fixed'),
                   (t.style.fontSize = '20px'),
                   (t.style.right = '10px'),
@@ -4684,28 +4657,26 @@
                   o = e.insertRow(),
                   i = e.insertRow(),
                   a = e.insertRow(),
-                  b = e.insertRow(),
                   u = e.insertRow(),
                   l = e.insertRow()
-                ;((n.textContent = 'Institut fÃ¼r Technische Informatik'),
-                  (r.textContent = 'UniversitÃ¤t zu LÃ¼beck'),
+                ;((n.textContent = 'Institut für Technische Informatik'),
+                  (r.textContent = 'Universität zu Lübeck'),
                   (o.textContent = 'Lucas Bergmann'),
                   (i.textContent = 'Dr. habil. Jan Haase'),
                   (a.textContent = 'Raphael Klink'),
-                  (b.textContent = 'FileLoader Patch by Wanja Wischmeier'),
                   (u.textContent = 'version ' + s.Constants.version))
                 var h = document.createElement('a')
                 ;((h.textContent = 'LogicCircuits@iti.uni-luebeck.de'),
                   (h.href = 'mailto:LogicCircuits@iti.uni-luebeck.de'),
                   l.appendChild(h),
                   (t.onmouseenter = function (n) {
-                    ;((t.childNodes[0].textContent = 'Â© 2018 fÃ¼r TGI2 WS2018/19'),
+                    ;((t.childNodes[0].textContent = '© 2018 für TGI2 WS2018/19'),
                       (e.style.display = 'block'),
                       (t.style.backgroundColor = '#FFFFCC'),
                       (t.style.border = '1px solid #736D33'))
                   }),
                   (t.onmouseleave = function (n) {
-                    ;((t.childNodes[0].textContent = 'Â©'),
+                    ;((t.childNodes[0].textContent = '©'),
                       (e.style.display = 'none'),
                       (t.style.backgroundColor = 'transparent'),
                       (t.style.border = '1px solid transparent'))
@@ -9373,7 +9344,7 @@
                   o.TruthValue.low,
                   o.TruthValue.low,
                 ]))
-              for (var a = 0; a < s.outLabels.length; a++) s.outLabels[a].textContent += 'Â¬'
+              for (var a = 0; a < s.outLabels.length; a++) s.outLabels[a].textContent += '¬'
               return s
             }
             return (
@@ -9569,7 +9540,7 @@
             function e(e, n, o) {
               var i = t.call(this, e, n, o) || this
               i.type = r.GateType.MasterSlaveCounter
-              for (var s = 0; s < i.outLabels.length; s++) i.outLabels[s].textContent += 'Â¬'
+              for (var s = 0; s < i.outLabels.length; s++) i.outLabels[s].textContent += '¬'
               return i
             }
             return (
@@ -9690,7 +9661,7 @@
               void 0 === o && (o = 6)
               var i = t.call(this, e, n, o) || this
               i.type = r.GateType.MasterSlaveRegister
-              for (var s = 0; s < i.outLabels.length; s++) i.outLabels[s].textContent += 'Â¬'
+              for (var s = 0; s < i.outLabels.length; s++) i.outLabels[s].textContent += '¬'
               return i
             }
             return (
@@ -9831,7 +9802,7 @@
                 (i.intern = i.inputs.map(function (t) {
                   return t.status
                 })))
-              for (var s = 0; s < i.outLabels.length; s++) i.outLabels[s].textContent += 'Â¬'
+              for (var s = 0; s < i.outLabels.length; s++) i.outLabels[s].textContent += '¬'
               return i
             }
             return (
@@ -10694,7 +10665,7 @@
               var a = t.call(this, e, n, i, s) || this
               ;((a.thresh = s),
                 (a.active = o.TruthValue.low),
-                (a.label.textContent = '*â‰¥' + a.thresh),
+                (a.label.textContent = '*≥' + a.thresh),
                 (a.label.style.fontSize = s > 9 ? '25px' : '30px'),
                 (a.label.style.lineHeight = a.height + 'px'),
                 (a.type = r.GateType.ThreshStateGate))
@@ -14205,7 +14176,7 @@
                     ',\r\n'
                 ;((i += '\r\n'),
                   (i +=
-                    '-- Bitte geben sie im folgenden Teil Ihre Werte fÃ¼r die Signale und die Zeiten an\r\n'),
+                    '-- Bitte geben sie im folgenden Teil Ihre Werte für die Signale und die Zeiten an\r\n'),
                   (i += '\r\n'))
                 for (var d = 0; d < s; d++)
                   ((i += '    sig_in_' + d + "_test <= 'U' after 0 ns;\r\n"), (i += '\r\n'))
