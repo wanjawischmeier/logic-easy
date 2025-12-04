@@ -60,15 +60,15 @@ type MenuEntry = {
   disabled?: boolean;
 };
 
-const viewMenu = computed<MenuEntry[]>(() =>
-  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, disabled: !checkPanelRequirement(e) }))
-);
+const viewMenu = computed<MenuEntry[]>(() => {
+  return dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, disabled: !checkPanelRequirement(e) }));
+});
 
 const newMenu = computed<MenuEntry[]>(() =>
   dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, withPopup: true }))
 );
 
-const menus: Record<string, MenuEntry[]> = {
+const menus = computed<Record<string, MenuEntry[]>>(() => ({
   File: [
     {
       label: 'New',
@@ -93,7 +93,7 @@ const menus: Record<string, MenuEntry[]> = {
     { label: 'Manual', action: () => popupService.open({ component: ManualPopup }) },
     { label: 'About', action: () => popupService.open({ component: CreditPopup }) },
   ],
-};
+}));
 
 const activeMenu = ref<string>('');
 const activeSubmenu = ref<number | null>(null);
