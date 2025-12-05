@@ -68,12 +68,6 @@ const onReady = (event: DockviewReadyEvent) => {
     updateTruthTable(stateManager.state.truthTable.values)
   }
 
-  // expose shared params for dynamic panels
-  ; (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams = {
-    state: stateManager.state.truthTable,
-    updateTruthTable,
-  };
-
   // Try to load saved layout
   const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY)
 

@@ -24,11 +24,6 @@ export function getDockviewApi(): DockviewApiMinimal | null {
   return api ?? null;
 }
 
-export function getSharedParams(): Record<string, unknown> | undefined {
-  const params = (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams;
-  return params;
-}
-
 function findPanelByComponent(component: string): { id: string; api: { setActive: () => void } } | null {
   const api = getDockviewApi();
   if (!api || !api.panels) return null;
@@ -57,14 +52,11 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
     return true;
   }
 
-  const sharedParams = getSharedParams();
-
   try {
     api.addPanel({
       id: panelKey,
       component: panelKey,
       title: label,
-      params: sharedParams,
       position: position
     });
     return true;

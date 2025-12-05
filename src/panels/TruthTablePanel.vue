@@ -2,9 +2,11 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import TruthTable from '../components/TruthTable.vue'
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
-import { useTruthTableState, type TruthTableProps } from '@/utility/states/truthTableState';
+import { useTruthTableState } from '@/utility/states/truthTableState';
+import { updateTruthTable } from '@/utility/truthTableInterpreter';
+import type { IDockviewPanelProps } from 'dockview-vue';
 
-const props = defineProps<TruthTableProps>()
+const props = defineProps<IDockviewPanelProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -21,7 +23,7 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { state, inputVars, outputVars } = useTruthTableState(props)
+const { state, inputVars, outputVars } = useTruthTableState()
 
 // Local model for the table component
 const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
@@ -34,7 +36,7 @@ watch(tableValues, (newVal) => {
     return
   }
   if (props.params.params?.updateTruthTable) {
-    props.params.params.updateTruthTable(newVal)
+    updateTruthTable(newVal)
   }
 }, { deep: true })
 

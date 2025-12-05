@@ -5,9 +5,11 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
 import { FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
-import { useTruthTableState, type TruthTableProps } from '@/utility/states/truthTableState';
+import { useTruthTableState } from '@/utility/states/truthTableState';
+import { Formula, updateTruthTable } from '@/utility/truthTableInterpreter';
+import type { IDockviewPanelProps } from 'dockview-vue';
 
-const props = defineProps<TruthTableProps>()
+const props = defineProps<IDockviewPanelProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -24,7 +26,7 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { state, inputVars, outputVars, functionTypes } = useTruthTableState(props)
+const { state, inputVars, outputVars, functionTypes } = useTruthTableState()
 
 // Local model for the component
 const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
@@ -37,7 +39,7 @@ watch(tableValues, (newVal) => {
     return
   }
   if (props.params.params?.updateTruthTable) {
-    props.params.params.updateTruthTable(newVal)
+    updateTruthTable(newVal)
   }
 }, { deep: true })
 
@@ -61,6 +63,10 @@ const selectedType = ref<FunctionType>('DNF');
 const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];
+  if (!outputVar) {
+    return Formula.empty;
+  }
+
   return state.value?.formulas?.[outputVar]?.[selectedType.value];
 });
 </script>

@@ -90,14 +90,6 @@ function onCreate() {
   };
   stateManager.save()
 
-    // Update shared params with new truth table state
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ; (window as any).__dockview_sharedParams = {
-      state: stateManager.state.truthTable,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      updateTruthTable: (window as any).__dockview_sharedParams?.updateTruthTable,
-    };
-
   addPanel('truth-table', 'Truth Table');
   addPanel('kv-diagram', 'Truth Table', {
     referencePanel: 'truth-table',

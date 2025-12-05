@@ -1,7 +1,7 @@
-import type { IDockviewPanelProps } from "dockview-vue"
 import type { Formula } from "../truthTableInterpreter"
 import { FunctionType, type TruthTableData } from "../types"
 import { computed } from "vue"
+import { stateManager } from "./stateManager"
 
 /**
  * Truth table state structure
@@ -27,20 +27,11 @@ export const defaultTruthTableState = {
   formulas: {} as Record<string, Record<string, Formula>>
 }
 
-export type TruthTableProps = {
-  params: IDockviewPanelProps & {
-    params?: {
-      state?: TruthTableState,
-      updateTruthTable?: (values: TruthTableData) => void
-    }
-  }
-}
-
-export function useTruthTableState(props: TruthTableProps) {
-  const state = computed(() => props.params?.params?.state)
-  const inputVars = computed(() => state.value?.inputVars || [])
-  const outputVars = computed(() => state.value?.outputVars || [])
+export function useTruthTableState() {
+  const truthTableState = computed(() => stateManager.state.truthTable)
+  const inputVars = computed(() => truthTableState.value?.inputVars || [])
+  const outputVars = computed(() => truthTableState.value?.outputVars || [])
   const functionTypes = computed(() => Object.values(FunctionType))
 
-  return { state, inputVars, outputVars, functionTypes }
+  return { state: truthTableState, inputVars, outputVars, functionTypes }
 }

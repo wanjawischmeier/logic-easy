@@ -19,6 +19,13 @@ export interface Formula {
   terms: Term[];
 }
 
+export const Formula = {
+  empty: ({
+    type: 'DNF' as FormulaType,
+    terms: []
+  })
+};
+
 /**
  * Interprets a minified truth table into a logical function (list of terms).
  * @param data Rows of the minified truth table
