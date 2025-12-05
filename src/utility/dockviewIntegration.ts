@@ -1,6 +1,7 @@
 import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
 import { checkDockEntryRequirements, dockRegistry } from '@/components/dockRegistry';
+import { updateTruthTable } from './truthTableInterpreter';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -57,7 +58,9 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
       id: panelKey,
       component: panelKey,
       title: label,
-      position: position
+      position: position,
+      // A bit weird but eh, fixes reactivity with newly added panels
+      params: { updateTruthTable }
     });
     return true;
   } catch (err) {
