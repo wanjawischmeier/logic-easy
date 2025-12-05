@@ -1,30 +1,6 @@
 import { stateManager } from "./states/stateManager";
 import { minifyTruthTable } from "./espresso";
-import type { TruthTableData } from "./types";
-
-export type TruthTableCell = 0 | 1 | '-';
-export type FormulaType = 'DNF' | 'CNF';
-
-export interface Literal {
-  variable: string;
-  negated: boolean;
-}
-
-export interface Term {
-  literals: Literal[];
-}
-
-export interface Formula {
-  type: FormulaType;
-  terms: Term[];
-}
-
-export const Formula = {
-  empty: ({
-    type: 'DNF' as FormulaType,
-    terms: []
-  })
-};
+import { FunctionType, type Formula, type Literal, type Term, type TruthTableData } from "./types";
 
 /**
  * Interprets a minified truth table into a logical function (list of terms).
@@ -33,7 +9,7 @@ export const Formula = {
  */
 export function interpretMinifiedTable(
   data: TruthTableData,
-  formulaType: FormulaType,
+  formulaType: FunctionType,
   inputVars: string[]
 ): Formula {
   let terms: Term[] = [];
@@ -145,8 +121,8 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
     )
 
     formulas[outputVar] = {
-      DNF: interpretMinifiedTable(minifiedDNF, 'DNF', stateManager.state.truthTable.inputVars),
-      CNF: interpretMinifiedTable(minifiedCNF, 'CNF', stateManager.state.truthTable.inputVars)
+      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, stateManager.state.truthTable.inputVars),
+      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, stateManager.state.truthTable.inputVars)
     }
   }
 

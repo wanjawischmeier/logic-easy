@@ -1,5 +1,5 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
-import { defaultTruthTableState, type TruthTableState } from './truthTableState'
+import { type TruthTableState } from './truthTableState'
 
 const STORAGE_KEY = 'logic-easy-state'
 const STORAGE_VERSION = 1
@@ -17,8 +17,7 @@ export interface AppState {
  */
 function createDefaultState(): AppState {
   return {
-    version: STORAGE_VERSION,
-    truthTable: defaultTruthTableState
+    version: STORAGE_VERSION
   }
 }
 

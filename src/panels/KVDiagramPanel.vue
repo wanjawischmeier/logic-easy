@@ -3,10 +3,10 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
-import { FunctionType } from '@/utility/types';
+import { Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { useTruthTableState } from '@/utility/states/truthTableState';
-import { Formula, updateTruthTable } from '@/utility/truthTableInterpreter';
+import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 
 const props = defineProps<IDockviewPanelProps>()
@@ -59,7 +59,7 @@ watch(() => props.params.params?.state, (newState) => {
   }
 }, { deep: true, immediate: true })
 
-const selectedType = ref<FunctionType>('DNF');
+const selectedType = ref<FunctionType>(FunctionType.default);
 const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];
@@ -87,7 +87,7 @@ const currentFormula = computed(() => {
     <div class="h-full flex flex-col items-center justify-center overflow-auto">
       <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
         :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="state?.minifiedValues || []"
-        :formula="currentFormula" :mode="selectedType" />
+        :formula="currentFormula" :functionType="selectedType" />
 
       <div class="mt-4 w-full flex justify-center">
         <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />

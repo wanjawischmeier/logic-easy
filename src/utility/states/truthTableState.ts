@@ -1,5 +1,4 @@
-import type { Formula } from "../truthTableInterpreter"
-import { FunctionType, type TruthTableData } from "../types"
+import { Formula, FunctionType, type TruthTableData } from "../types"
 import { computed } from "vue"
 import { stateManager } from "./stateManager"
 
@@ -12,19 +11,6 @@ export interface TruthTableState {
   values: TruthTableData
   minifiedValues: TruthTableData
   formulas: Record<string, Record<string, Formula>>
-}
-
-export const defaultTruthTableState = {
-  inputVars: ['a', 'b', 'c', 'd'],
-  outputVars: ['x', 'y', 'z'],
-  values: [
-    [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 1, 0],
-    [1, 1, 0], [1, 0, 0], ['-', 1, 0], [0, 1, 0],
-    [0, 0, 0], [1, 0, 0], [1, 0, 0], [1, 1, 0],
-    ['-', 1, 0], [0, 0, 0], ['-', 1, 0], [0, 1, 0],
-  ] as TruthTableData,
-  minifiedValues: [] as TruthTableData,
-  formulas: {} as Record<string, Record<string, Formula>>
 }
 
 export function useTruthTableState() {

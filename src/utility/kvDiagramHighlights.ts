@@ -1,4 +1,4 @@
-import type { Term } from './truthTableInterpreter';
+import { FunctionType, type Term } from './types';
 
 function getTermColor(index: number): string {
   const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
@@ -14,7 +14,7 @@ function isCovered(
 ): boolean {
   const binaryString = rowCode + colCode;
 
-  if (mode === 'DNF') {
+  if (mode === FunctionType.DNF) {
     // DNF: Term is a product (AND of literals).
     // Covers cells where all literals are true.
 
@@ -65,7 +65,7 @@ function inferHighlightFromCoverage(
 
   terms.forEach((term, index) => {
     const covered = isCovered(term, rowCode, colCode, mode, inputVars);
-    const isCNF = mode === 'CNF';
+    const isCNF = mode === FunctionType.CNF;
     if (covered === isCNF) return
 
     const color = getTermColor(index);
@@ -112,7 +112,7 @@ export function calculateHighlights(
 
   if (!rowCode || !colCode) return [];
 
-  if (mode === 'CNF') {
+  if (mode === FunctionType.CNF) {
     // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
     // A clause (sum) is FALSE when ALL its literals are false
     // So we highlight cells where at least one clause is completely false

@@ -32,8 +32,7 @@ import { addPanel } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import { stateManager } from '@/utility/states/stateManager';
 import { ref, watch } from 'vue';
-import { type TruthTableCell, type TruthTableData } from '@/utility/types'; // added import
-import type { Formula } from '@/utility/truthTableInterpreter';
+import { Formula, type TruthTableCell, type TruthTableData } from '@/utility/types'; // added import
 
 const inputCount = ref<number>(2);
 const outputCount = ref<number>(1);
