@@ -26,4 +26,17 @@ export default defineConfig({
     include: ['buffer']
   },
   base: '/logic-easy/',
+
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            // Split by package: lodash -> lodash chunk
+            return id.toString().split('node_modules/')[1].split('/')[0].toString()
+          }
+        }
+      }
+    }
+  }
 })

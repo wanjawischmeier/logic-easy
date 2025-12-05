@@ -1,7 +1,6 @@
 import { Buffer } from 'buffer'
 import { init, WASI } from '@wasmer/wasi'
-import type { TruthTableData } from '@/utility/types'
-import type { TruthTableCell } from './truthTableInterpreter'
+import type { TruthTableCell, TruthTableData } from '@/utility/types'
 
 if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {
   (globalThis as { Buffer?: unknown }).Buffer = Buffer
