@@ -30,13 +30,7 @@ export const defaultTruthTableState = {
 export type TruthTableProps = {
   params: IDockviewPanelProps & {
     params?: {
-      state?: {
-        inputVars: string[],
-        outputVars: string[],
-        values: TruthTableData,
-        minifiedValues: TruthTableData,
-        formulas: Record<string, Formula>
-      },
+      state?: TruthTableState,
       updateTruthTable?: (values: TruthTableData) => void
     }
   }
