@@ -61,9 +61,9 @@ function onCreate() {
     String.fromCharCode(97 + i)
   );
 
-  // output names: x, y, z, w, ...
+  // output names: p, q, r, ...
   const outputVars = Array.from({ length: outCount }, (_, i) =>
-    String.fromCharCode(120 + i)
+    String.fromCharCode(112 + i)
   );
 
   // create formulas as a mapping per output to a mapping per row (matches expected Record<string, Record<string, Formula>>)
