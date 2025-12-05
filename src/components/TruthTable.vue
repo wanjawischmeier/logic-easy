@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import type { TruthTableData } from '@/utility/types';
 
 
@@ -11,6 +12,14 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: TruthTableData): void
 }>()
+
+const containerRef = ref<HTMLElement | null>(null)
+const tableRef = ref<HTMLElement | null>(null)
+const centeredHorizontally = ref(true)
+const centeredVertically = ref(true)
+
+let containerObserver: ResizeObserver | null = null
+let tableObserver: ResizeObserver | null = null
 
 // colIdx is the index within the output array (modelValue[row])
 function toggleCell(rowIdx: number, colIdx: number) {
@@ -33,11 +42,51 @@ function getInputValue(rowIdx: number, colIdx: number) {
   const shiftAmount = props.inputVars.length - 1 - colIdx;
   return (rowIdx >> shiftAmount) & 1;
 }
+
+function updateCentered() {
+  const c = containerRef.value
+  const t = tableRef.value
+  if (!c || !t) {
+    centeredHorizontally.value = true
+    centeredVertically.value = true
+    return
+  }
+  // If table height fits, center it. Otherwise align to allow scrolling
+  centeredHorizontally.value = t.scrollWidth <= c.clientWidth
+  centeredVertically.value = t.scrollHeight <= c.clientHeight
+}
+
+onMounted(() => {
+  // Wait for DOM updates then compute
+  nextTick(updateCentered)
+
+  if (containerRef.value) {
+    containerObserver = new ResizeObserver(() => nextTick(updateCentered))
+    containerObserver.observe(containerRef.value)
+  }
+  if (tableRef.value) {
+    tableObserver = new ResizeObserver(() => nextTick(updateCentered))
+    tableObserver.observe(tableRef.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  containerObserver?.disconnect()
+  tableObserver?.disconnect()
+})
+
+// Recompute whenever data changes
+watch(
+  () => [props.modelValue, props.inputVars, props.outputVars],
+  () => nextTick(updateCentered),
+  { deep: true }
+)
 </script>
 
 <template>
-  <div class="w-full h-full overflow-auto flex justify-center items-center">
-    <table v-if="modelValue.length && inputVars.length && outputVars.length"
+  <div ref="containerRef"
+    :class="['w-full h-full overflow-auto flex', centeredHorizontally ? 'justify-center' : 'justify-start', centeredVertically ? ' items-center' : 'items-start']">
+    <table v-if="modelValue.length && inputVars.length && outputVars.length" ref="tableRef"
       class="bg-surface-1 border border-primary table-fixed w-auto select-none">
       <thead>
         <tr>

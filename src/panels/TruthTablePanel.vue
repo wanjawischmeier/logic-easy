@@ -58,7 +58,7 @@ watch(() => props.params.params?.state, (newState) => {
 </script>
 
 <template>
-  <div class="h-full text-white flex flex-col p-2 overflow-hidden">
+  <div class="h-full text-white flex flex-col p-2 overflow-auto">
     <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />
   </div>
 </template>
