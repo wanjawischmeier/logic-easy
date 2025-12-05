@@ -15,14 +15,19 @@ const props = defineProps<IDockviewPanelProps>()
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
 
-// Panel state persistence
 interface KVPanelState {
   selectedType: FunctionType
   selectedOutputIndex: number
 }
 
-// Load saved panel state BEFORE initializing refs
+// Load saved panel state
 const savedState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
+
+// Auto-save panel state when values change
+stateManager.watchPanelState(props.params.api.id, () => ({
+  selectedType: selectedType.value,
+  selectedOutputIndex: selectedOutputIndex.value
+}))
 
 const selectedType = ref<FunctionType>(
   savedState?.selectedType ?? defaultFunctionType
@@ -30,6 +35,10 @@ const selectedType = ref<FunctionType>(
 const selectedOutputIndex = ref(
   savedState?.selectedOutputIndex ?? 0
 );
+
+const { state, inputVars, outputVars, functionTypes } = useTruthTableState()
+const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
+let isUpdatingFromState = false
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
@@ -41,13 +50,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
-
-// Access state from params
-const { state, inputVars, outputVars, functionTypes } = useTruthTableState()
-
-// Local model for the component
-const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
-let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
 watch(tableValues, (newVal) => {
@@ -75,12 +77,6 @@ watch(() => props.params.params?.state, (newState) => {
     tableValues.value = newState.values.map((row: TruthTableCell[]) => [...row])
   }
 }, { deep: true, immediate: true })
-
-// Auto-save panel state when values change
-stateManager.watchPanelState(props.params.api.id, () => ({
-  selectedType: selectedType.value,
-  selectedOutputIndex: selectedOutputIndex.value
-}))
 
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];
