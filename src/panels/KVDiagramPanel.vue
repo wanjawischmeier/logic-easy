@@ -8,11 +8,37 @@ import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { useTruthTableState } from '@/utility/states/truthTableState';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
+import { stateManager } from '@/utility/states/stateManager';
 
 const props = defineProps<IDockviewPanelProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
+
+interface KVPanelState {
+  selectedType: FunctionType
+  selectedOutputIndex: number
+}
+
+// Load saved panel state
+const savedState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
+
+// Auto-save panel state when values change
+stateManager.watchPanelState(props.params.api.id, () => ({
+  selectedType: selectedType.value,
+  selectedOutputIndex: selectedOutputIndex.value
+}))
+
+const selectedType = ref<FunctionType>(
+  savedState?.selectedType ?? defaultFunctionType
+);
+const selectedOutputIndex = ref(
+  savedState?.selectedOutputIndex ?? 0
+);
+
+const { state, inputVars, outputVars, functionTypes } = useTruthTableState()
+const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
+let isUpdatingFromState = false
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
@@ -24,13 +50,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
-
-// Access state from params
-const { state, inputVars, outputVars, functionTypes } = useTruthTableState()
-
-// Local model for the component
-const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
-let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
 watch(tableValues, (newVal) => {
@@ -59,8 +78,6 @@ watch(() => props.params.params?.state, (newState) => {
   }
 }, { deep: true, immediate: true })
 
-const selectedType = ref<FunctionType>(defaultFunctionType);
-const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];
   if (!outputVar) {
@@ -76,11 +93,11 @@ const currentFormula = computed(() => {
 
     <div class="w-full flex gap-10 text-sm justify-end">
       <MultiSelectSwitch v-if="outputVars.length > 1" :label="'Output Variable'" :values="outputVars"
-        :onSelect="(v, i) => selectedOutputIndex = i">
+        :initialSelected="selectedOutputIndex" :onSelect="(v, i) => selectedOutputIndex = i">
       </MultiSelectSwitch>
 
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
-        :onSelect="(v, i) => selectedType = v as FunctionType">
+        :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
       </MultiSelectSwitch>
     </div>
 
