@@ -1,20 +1,8 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
-import type { Formula } from '@/utility/truthTableInterpreter'
-import type { TruthTableData } from './types'
+import { type TruthTableState } from './truthTableState'
 
 const STORAGE_KEY = 'logic-easy-state'
 const STORAGE_VERSION = 1
-
-/**
- * Truth table state structure
- */
-export interface TruthTableState {
-  inputVars: string[]
-  outputVars: string[]
-  values: TruthTableData
-  minifiedValues: TruthTableData
-  formulas: Record<string, Record<string, Formula>>
-}
 
 /**
  * Root state structure
@@ -29,19 +17,7 @@ export interface AppState {
  */
 function createDefaultState(): AppState {
   return {
-    version: STORAGE_VERSION,
-    truthTable: {
-      inputVars: ['a', 'b', 'c', 'd'],
-      outputVars: ['x', 'y', 'z'],
-      values: [
-        [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 1, 0],
-        [1, 1, 0], [1, 0, 0], ['-', 1, 0], [0, 1, 0],
-        [0, 0, 0], [1, 0, 0], [1, 0, 0], [1, 1, 0],
-        ['-', 1, 0], [0, 0, 0], ['-', 1, 0], [0, 1, 0],
-      ] as TruthTableData,
-      minifiedValues: [] as TruthTableData,
-      formulas: {} as Record<string, Record<string, Formula>>
-    }
+    version: STORAGE_VERSION
   }
 }
 

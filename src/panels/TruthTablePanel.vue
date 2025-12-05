@@ -1,24 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import type { IDockviewPanelProps } from 'dockview-vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import TruthTable from '../components/TruthTable.vue'
-import type { Formula } from '@/utility/truthTableInterpreter';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
+import { useTruthTableState } from '@/utility/states/truthTableState';
+import { updateTruthTable } from '@/utility/truthTableInterpreter';
+import type { IDockviewPanelProps } from 'dockview-vue';
 
-const props = defineProps<{
-  params: IDockviewPanelProps & {
-    params?: {
-      state?: {
-        inputVars: string[],
-        outputVars: string[],
-        values: TruthTableData,
-        minifiedValues: TruthTableData,
-        formulas: Record<string, Formula>
-      },
-      updateTruthTable?: (values: TruthTableData) => void
-    }
-  }
-}>()
+const props = defineProps<IDockviewPanelProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -34,10 +22,8 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-// Access state from params (DockView source of truth) - make reactive
-const state = computed(() => props.params.params?.state)
-const inputVars = computed(() => state.value?.inputVars || [])
-const outputVars = computed(() => state.value?.outputVars || [])
+// Access state from params
+const { state, inputVars, outputVars } = useTruthTableState()
 
 // Local model for the table component
 const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
@@ -50,7 +36,7 @@ watch(tableValues, (newVal) => {
     return
   }
   if (props.params.params?.updateTruthTable) {
-    props.params.params.updateTruthTable(newVal)
+    updateTruthTable(newVal)
   }
 }, { deep: true })
 
@@ -72,7 +58,7 @@ watch(() => props.params.params?.state, (newState) => {
 </script>
 
 <template>
-  <div class="h-full text-white flex flex-col p-2 overflow-hidden">
+  <div class="h-full text-white flex flex-col p-2 overflow-auto">
     <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />
   </div>
 </template>

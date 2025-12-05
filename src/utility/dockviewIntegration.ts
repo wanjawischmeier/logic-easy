@@ -1,7 +1,7 @@
 import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
-import TruthTablePopup from '@/components/popups/TruthTablePopup.vue';
-import { checkPanelRequirement, dockRegistry } from '@/components/dockRegistry';
+import { checkDockEntryRequirements, dockRegistry } from '@/components/dockRegistry';
+import { updateTruthTable } from './truthTableInterpreter';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -25,11 +25,6 @@ export function getDockviewApi(): DockviewApiMinimal | null {
   return api ?? null;
 }
 
-export function getSharedParams(): Record<string, unknown> | undefined {
-  const params = (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams;
-  return params;
-}
-
 function findPanelByComponent(component: string): { id: string; api: { setActive: () => void } } | null {
   const api = getDockviewApi();
   if (!api || !api.panels) return null;
@@ -46,7 +41,7 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
   }
 
   const registryEntry = dockRegistry.find(item => item.id === panelKey);
-  if (!registryEntry || !checkPanelRequirement(registryEntry)) {
+  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
     return false;
   }
 
@@ -58,15 +53,14 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
     return true;
   }
 
-  const sharedParams = getSharedParams();
-
   try {
     api.addPanel({
       id: panelKey,
       component: panelKey,
       title: label,
-      params: sharedParams,
-      position: position
+      position: position,
+      // A bit weird but eh, fixes reactivity with newly added panels
+      params: { updateTruthTable }
     });
     return true;
   } catch (err) {
@@ -76,16 +70,16 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
 }
 
 export function addPanelWithPopup(panelKey: string, label: string): boolean {
-  switch (panelKey) {
-    case 'truth-table':
-    case 'kv-diagram':
-      popupService.open({
-        component: TruthTablePopup,
-      });
-      return true;
+  const registryEntry = dockRegistry.find(item => item.id === panelKey);
+  if (!registryEntry) return false;
 
-    default:
-      // Fallback to adding directly
-      return addPanel(panelKey, label);
+  if (!registryEntry.createPopup) {
+    // Fallback to adding directly
+    return addPanel(panelKey, label);
   }
+
+  popupService.open({
+    component: registryEntry.createPopup,
+  });
+  return true;
 }

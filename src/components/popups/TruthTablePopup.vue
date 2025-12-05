@@ -30,10 +30,9 @@
 import PopupBase, { type PopupAction } from '@/components/PopupBase.vue';
 import { addPanel } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
-import { stateManager } from '@/utility/stateManager';
+import { stateManager } from '@/utility/states/stateManager';
 import { ref, watch } from 'vue';
-import { type TruthTableCell, type TruthTableData } from '@/utility/types'; // added import
-import type { Formula } from '@/utility/truthTableInterpreter';
+import { Formula, type TruthTableCell, type TruthTableData } from '@/utility/types'; // added import
 
 const inputCount = ref<number>(2);
 const outputCount = ref<number>(1);
@@ -62,9 +61,9 @@ function onCreate() {
     String.fromCharCode(97 + i)
   );
 
-  // output names: x, y, z, w, ...
+  // output names: p, q, r, ...
   const outputVars = Array.from({ length: outCount }, (_, i) =>
-    String.fromCharCode(120 + i)
+    String.fromCharCode(112 + i)
   );
 
   // create formulas as a mapping per output to a mapping per row (matches expected Record<string, Record<string, Formula>>)
@@ -89,14 +88,6 @@ function onCreate() {
     minifiedValues: values,
   };
   stateManager.save()
-
-    // Update shared params with new truth table state
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ; (window as any).__dockview_sharedParams = {
-      state: stateManager.state.truthTable,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      updateTruthTable: (window as any).__dockview_sharedParams?.updateTruthTable,
-    };
 
   addPanel('truth-table', 'Truth Table');
   addPanel('kv-diagram', 'Truth Table', {

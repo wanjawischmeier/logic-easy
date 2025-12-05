@@ -4,7 +4,7 @@ import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
-import { stateManager } from '@/utility/stateManager'
+import { stateManager } from '@/utility/states/stateManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 
@@ -67,12 +67,6 @@ const onReady = (event: DockviewReadyEvent) => {
   if (stateManager.state.truthTable) {
     updateTruthTable(stateManager.state.truthTable.values)
   }
-
-  // expose shared params for dynamic panels
-  ; (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams = {
-    state: stateManager.state.truthTable,
-    updateTruthTable,
-  };
 
   // Try to load saved layout
   const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY)

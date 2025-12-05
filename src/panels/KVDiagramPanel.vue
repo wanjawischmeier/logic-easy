@@ -1,27 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import type { IDockviewPanelProps } from 'dockview-vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
-import type { Formula } from '@/utility/truthTableInterpreter';
-import { FunctionType } from '@/utility/types';
+import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
+import { useTruthTableState } from '@/utility/states/truthTableState';
+import { updateTruthTable } from '@/utility/truthTableInterpreter';
+import type { IDockviewPanelProps } from 'dockview-vue';
 
-const props = defineProps<{
-  params: IDockviewPanelProps & {
-    params?: {
-      state?: {
-        inputVars: string[],
-        outputVars: string[],
-        values: TruthTableData,
-        minifiedValues: TruthTableData,
-        formulas: Record<string, Formula>
-      },
-      updateTruthTable?: (values: TruthTableData) => void
-    }
-  }
-}>()
+const props = defineProps<IDockviewPanelProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -37,11 +25,8 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-// Access state from params (DockView source of truth) - make reactive
-const state = computed(() => props.params.params?.state)
-const inputVars = computed(() => state.value?.inputVars || [])
-const outputVars = computed(() => state.value?.outputVars || [])
-const functionTypes = computed(() => Object.values(FunctionType));
+// Access state from params
+const { state, inputVars, outputVars, functionTypes } = useTruthTableState()
 
 // Local model for the component
 const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
@@ -54,7 +39,7 @@ watch(tableValues, (newVal) => {
     return
   }
   if (props.params.params?.updateTruthTable) {
-    props.params.params.updateTruthTable(newVal)
+    updateTruthTable(newVal)
   }
 }, { deep: true })
 
@@ -74,10 +59,14 @@ watch(() => props.params.params?.state, (newState) => {
   }
 }, { deep: true, immediate: true })
 
-const selectedType = ref<FunctionType>('DNF');
+const selectedType = ref<FunctionType>(defaultFunctionType);
 const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];
+  if (!outputVar) {
+    return Formula.empty;
+  }
+
   return state.value?.formulas?.[outputVar]?.[selectedType.value];
 });
 </script>
@@ -98,7 +87,7 @@ const currentFormula = computed(() => {
     <div class="h-full flex flex-col items-center justify-center overflow-auto">
       <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
         :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="state?.minifiedValues || []"
-        :formula="currentFormula" :mode="selectedType" />
+        :formula="currentFormula" :functionType="selectedType" />
 
       <div class="mt-4 w-full flex justify-center">
         <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />

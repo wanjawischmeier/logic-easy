@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { FunctionType, type Formula } from '@/utility/types';
 import { computed } from 'vue';
-import type { Formula } from '@/utility/truthTableInterpreter';
 
 const props = defineProps<{
   formula?: Formula;
@@ -16,7 +16,7 @@ const latexExpression = computed(() => {
   const terms = formula.terms.map(term => {
     if (term.literals.length === 0) return '1';
 
-    if (formula.type === 'DNF') {
+    if (formula.type === FunctionType.DNF) {
       // Product of literals
       return term.literals.map(lit => {
         return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
@@ -35,7 +35,7 @@ const latexExpression = computed(() => {
     }
   });
 
-  const result = formula.type === 'DNF' ? terms.join(' + ') : terms.join('');
+  const result = formula.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
   return `f(${varName}) = ${result}`;
 });
 </script>

@@ -18,7 +18,7 @@
 
         <!-- grid: narrow left column for branches, right column for items -->
         <div class="grid grid-cols-[38px_1fr] gap-x-2">
-          <div v-for="(item, idx) in items" :key="idx" class="contents">
+          <div v-for="(menuEntry, idx) in newMenu" :key="idx" class="contents">
             <!-- left cell: branch marker aligned to row -->
             <div class="h-10 flex items-start">
               <div class="w-8 h-px bg-primary-variant ml-5 mt-5"></div>
@@ -26,10 +26,10 @@
 
             <!-- right cell: actual item button aligned to same row height -->
             <div class="h-10 flex items-center">
-              <button @click="runAction(item)" :disabled="!item.panelKey"
+              <button @click="runAction(menuEntry)" :disabled="menuEntry.disabled"
                 class="flex items-center hover:text-secondary-variant underline-offset-4 hover:underline disabled:bg-transparent disabled:no-underline disabled:text-on-surface-disabled rounded-xs cursor-pointer disabled:cursor-default w-full text-left"
-                :title="item.label">
-                <span>{{ item.label }}</span>
+                :title="menuEntry.label">
+                <span>{{ menuEntry.label }}</span>
               </button>
             </div>
           </div>
@@ -42,41 +42,17 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { addPanelWithPopup } from '@/utility/dockviewIntegration';
-
-type PanelItem = {
-  label: string;
-  panelKey?: string;
-};
-
-const items: PanelItem[] = [
-  {
-    label: 'Truth Table',
-    panelKey: 'truth-table',
-  },
-  {
-    label: 'KV Diagram',
-    panelKey: 'kv-diagram',
-  },
-  {
-    label: 'State Table',
-  },
-  {
-    label: 'Transition Table',
-  },
-  {
-    label: 'State Machine',
-  },
-];
+import { newMenu, type MenuEntry } from '@/components/dockRegistry';
 
 export default defineComponent({
   name: 'GettingStartedView',
   setup() {
-    function runAction(item: PanelItem): void {
-      if (!item.panelKey) return;
-      addPanelWithPopup(item.panelKey, item.label);
+    function runAction(menuEntry: MenuEntry): void {
+      if (!menuEntry.panelKey) return;
+      addPanelWithPopup(menuEntry.panelKey, menuEntry.label);
     }
 
-    return { items, runAction };
+    return { newMenu, runAction };
   },
 });
 </script>
