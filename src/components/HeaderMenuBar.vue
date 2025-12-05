@@ -44,29 +44,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
-import { checkPanelRequirement, dockRegistry } from '@/components/dockRegistry';
+import { newMenu, viewMenu, type MenuEntry } from '@/components/dockRegistry';
 import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
 
-type MenuEntry = {
-  label: string;
-  action?: () => void;
-  tooltip?: string;
-  panelKey?: string;
-  children?: MenuEntry[];
-  withPopup?: boolean;
-  disabled?: boolean;
-};
-
-const viewMenu = computed<MenuEntry[]>(() => {
-  return dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, disabled: !checkPanelRequirement(e) }));
-});
-
-const newMenu = computed<MenuEntry[]>(() =>
-  dockRegistry.map((e) => ({ label: e.label, panelKey: e.id, withPopup: true }))
-);
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   File: [

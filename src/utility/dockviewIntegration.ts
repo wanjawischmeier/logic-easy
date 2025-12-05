@@ -1,6 +1,5 @@
 import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
-import TruthTablePopup from '@/components/popups/TruthTablePopup.vue';
 import { checkPanelRequirement, dockRegistry } from '@/components/dockRegistry';
 
 export type DockviewApiMinimal = {
@@ -76,16 +75,16 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
 }
 
 export function addPanelWithPopup(panelKey: string, label: string): boolean {
-  switch (panelKey) {
-    case 'truth-table':
-    case 'kv-diagram':
-      popupService.open({
-        component: TruthTablePopup,
-      });
-      return true;
+  const registryEntry = dockRegistry.find(item => item.id === panelKey);
+  if (!registryEntry) return false;
 
-    default:
-      // Fallback to adding directly
-      return addPanel(panelKey, label);
+  if (!registryEntry.createPopup) {
+    // Fallback to adding directly
+    return addPanel(panelKey, label);
   }
+
+  popupService.open({
+    component: registryEntry.createPopup,
+  });
+  return true;
 }

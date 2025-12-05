@@ -36,7 +36,7 @@ function getInputValue(rowIdx: number, colIdx: number) {
 </script>
 
 <template>
-  <div class="w-full overflow-auto flex justify-center">
+  <div class="w-full h-full overflow-auto flex justify-center items-center">
     <table v-if="modelValue.length && inputVars.length && outputVars.length"
       class="bg-surface-1 border border-primary table-fixed w-auto select-none">
       <thead>
