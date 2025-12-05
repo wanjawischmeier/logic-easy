@@ -1,8 +1,9 @@
 export const FunctionType = {
   DNF: 'DNF',
   CNF: 'CNF',
-  default: 'DNF'
 } as const;
+
+export const defaultFunctionType: FunctionType = 'DNF';
 
 export type FunctionType = (typeof FunctionType)[keyof typeof FunctionType];
 

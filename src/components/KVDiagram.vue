@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { type TruthTableData, type TruthTableCell, type Formula, FunctionType } from '../utility/types';
+import { type TruthTableData, type TruthTableCell, type Formula, FunctionType, defaultFunctionType } from '../utility/types';
 
 import {
   getLeftVariables,
@@ -143,7 +143,7 @@ const toggleCell = (rowCode: string, colCode: string) => {
 const getHighlights = (rIdx: number, cIdx: number) => {
   if (!props.formula) return [];
 
-  const currentMode = props.functionType || props.formula?.type || FunctionType.default;
+  const currentMode = props.functionType || props.formula?.type || defaultFunctionType;
 
   return calculateHighlights(
     rIdx,

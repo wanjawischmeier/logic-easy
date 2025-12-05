@@ -3,7 +3,7 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
-import { Formula, FunctionType } from '@/utility/types';
+import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { useTruthTableState } from '@/utility/states/truthTableState';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
@@ -59,7 +59,7 @@ watch(() => props.params.params?.state, (newState) => {
   }
 }, { deep: true, immediate: true })
 
-const selectedType = ref<FunctionType>(FunctionType.default);
+const selectedType = ref<FunctionType>(defaultFunctionType);
 const selectedOutputIndex = ref(0);
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];

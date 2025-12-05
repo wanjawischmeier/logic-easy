@@ -1,6 +1,6 @@
 import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
-import { checkPanelRequirement, dockRegistry } from '@/components/dockRegistry';
+import { checkDockEntryRequirements, dockRegistry } from '@/components/dockRegistry';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -40,7 +40,7 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
   }
 
   const registryEntry = dockRegistry.find(item => item.id === panelKey);
-  if (!registryEntry || !checkPanelRequirement(registryEntry)) {
+  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
     return false;
   }
 
