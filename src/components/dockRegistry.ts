@@ -2,7 +2,7 @@ import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue';
 import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
-import { stateManager } from '@/utility/stateManager';
+import { stateManager } from '@/utility/states/stateManager';
 import TruthTablePopup from './popups/TruthTablePopup.vue';
 import { computed } from 'vue';
 

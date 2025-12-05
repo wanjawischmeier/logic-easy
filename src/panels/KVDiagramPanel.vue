@@ -1,27 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import type { IDockviewPanelProps } from 'dockview-vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
-import type { Formula } from '@/utility/truthTableInterpreter';
 import { FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
+import { useTruthTableState, type TruthTableProps } from '@/utility/states/truthTableState';
 
-const props = defineProps<{
-  params: IDockviewPanelProps & {
-    params?: {
-      state?: {
-        inputVars: string[],
-        outputVars: string[],
-        values: TruthTableData,
-        minifiedValues: TruthTableData,
-        formulas: Record<string, Formula>
-      },
-      updateTruthTable?: (values: TruthTableData) => void
-    }
-  }
-}>()
+const props = defineProps<TruthTableProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -37,11 +23,8 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-// Access state from params (DockView source of truth) - make reactive
-const state = computed(() => props.params.params?.state)
-const inputVars = computed(() => state.value?.inputVars || [])
-const outputVars = computed(() => state.value?.outputVars || [])
-const functionTypes = computed(() => Object.values(FunctionType));
+// Access state from params
+const { state, inputVars, outputVars, functionTypes } = useTruthTableState(props)
 
 // Local model for the component
 const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])

@@ -4,7 +4,7 @@ import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
-import { stateManager } from '@/utility/stateManager'
+import { stateManager } from '@/utility/states/stateManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 

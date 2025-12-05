@@ -1,24 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import type { IDockviewPanelProps } from 'dockview-vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import TruthTable from '../components/TruthTable.vue'
-import type { Formula } from '@/utility/truthTableInterpreter';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
+import { useTruthTableState, type TruthTableProps } from '@/utility/states/truthTableState';
 
-const props = defineProps<{
-  params: IDockviewPanelProps & {
-    params?: {
-      state?: {
-        inputVars: string[],
-        outputVars: string[],
-        values: TruthTableData,
-        minifiedValues: TruthTableData,
-        formulas: Record<string, Formula>
-      },
-      updateTruthTable?: (values: TruthTableData) => void
-    }
-  }
-}>()
+const props = defineProps<TruthTableProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -34,10 +20,8 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-// Access state from params (DockView source of truth) - make reactive
-const state = computed(() => props.params.params?.state)
-const inputVars = computed(() => state.value?.inputVars || [])
-const outputVars = computed(() => state.value?.outputVars || [])
+// Access state from params
+const { state, inputVars, outputVars } = useTruthTableState(props)
 
 // Local model for the table component
 const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
