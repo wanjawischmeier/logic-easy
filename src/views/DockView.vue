@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, watch } from 'vue'
+import { ref, onBeforeUnmount, watch, nextTick } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
@@ -56,23 +56,37 @@ const loadDefaultLayout = (api: DockviewApi) => {
   })
 }
 
-const restoreLayout = (api: DockviewApi) => {
+const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
+  console.log('=== restoreLayout called ===', {
+    isProjectChange,
+    currentPanels: api.panels.length,
+    hasLayout: !!stateManager.state.dockviewLayout,
+    hasTruthTable: !!stateManager.state.truthTable
+  })
+
   // Initial calculation
   if (stateManager.state!.truthTable) {
     updateTruthTable(stateManager.state!.truthTable.values)
   }
 
-  // Clear existing panels
-  const panelIds = api.panels.map(p => p.id)
-  panelIds.forEach(id => api.removePanel(api.panels.find(p => p.id === id)!))
+  // Clear existing panels only when switching projects
+  if (isProjectChange) {
+    const panelIds = api.panels.map(p => p.id)
+    console.log('Clearing panels:', panelIds)
+    panelIds.forEach(id => {
+      const panel = api.panels.find(p => p.id === id)
+      if (panel) api.removePanel(panel)
+    })
+  }
 
   // Try to load saved layout from project state
   const savedLayout = stateManager.state.dockviewLayout
 
-  if (savedLayout) {
+  if (savedLayout && typeof savedLayout === 'object') {
     try {
-      api.fromJSON(savedLayout)
-      console.log('Loaded layout from project state')
+      console.log('Attempting to restore layout, panels before:', api.panels.length)
+      api.fromJSON(savedLayout as any)
+      console.log('Loaded layout from project state, panels after:', api.panels.length)
 
       // Check if any panels were restored
       if (api.panels.length === 0 && stateManager.state.truthTable) {
@@ -80,6 +94,7 @@ const restoreLayout = (api: DockviewApi) => {
         loadDefaultLayout(api)
       } else {
         // Update all panel params to use current state reference
+        console.log('Updating panel params for', api.panels.length, 'panels')
         api.panels.forEach(panel => {
           panel.api.updateParameters({
             state: stateManager.state!.truthTable,
@@ -111,10 +126,12 @@ const onReady = (event: DockviewReadyEvent) => {
   // Watch for project changes and restore layout
   watch(
     () => projectManager.getCurrentProjectInfo()?.id,
-    (newProjectId, oldProjectId) => {
+    async (newProjectId, oldProjectId) => {
       if (newProjectId && newProjectId !== oldProjectId && dockviewApi.value) {
         console.log('Project changed, restoring layout for:', newProjectId)
-        restoreLayout(dockviewApi.value)
+        // Wait for state to be fully updated
+        await nextTick()
+        restoreLayout(dockviewApi.value, true)
       }
     }
   )
@@ -147,9 +164,12 @@ const onReady = (event: DockviewReadyEvent) => {
     try {
       const layout = event.api.toJSON()
 
+      // Create a deep clone to avoid mutating the layout object
+      const layoutCopy = JSON.parse(JSON.stringify(layout))
+
       // Remove state and updateTruthTable from panel params before saving
-      if (layout.panels && 'panels' in layout.panels) {
-        const panels = layout.panels as { panels?: Array<{ params?: Record<string, unknown> }> };
+      if (layoutCopy.panels && 'panels' in layoutCopy.panels) {
+        const panels = layoutCopy.panels as { panels?: Array<{ params?: Record<string, unknown> }> };
         panels.panels?.forEach(panel => {
           if (panel.params) {
             delete panel.params.state
@@ -158,8 +178,8 @@ const onReady = (event: DockviewReadyEvent) => {
         })
       }
 
-      stateManager.state.dockviewLayout = layout
-      console.log('Layout saved to project state')
+      stateManager.state.dockviewLayout = layoutCopy
+      console.log('Layout saved to project state, panels:', layoutCopy.panels)
     } catch (err) {
       console.error('Failed to save layout to project state:', err)
     }

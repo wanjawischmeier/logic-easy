@@ -3,6 +3,7 @@ import { popupService } from './popupService';
 import { checkDockEntryRequirements, dockRegistry } from '@/components/dockRegistry';
 import { updateTruthTable } from './truthTableInterpreter';
 import { createTruthTableProject } from './truthTableCreation';
+import { stateManager } from './states/stateManager';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -60,8 +61,10 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
       component: panelKey,
       title: label,
       position: position,
-      // A bit weird but eh, fixes reactivity with newly added panels
-      params: { updateTruthTable }
+      params: {
+        state: stateManager.state?.truthTable,
+        updateTruthTable
+      }
     });
     return true;
   } catch (err) {

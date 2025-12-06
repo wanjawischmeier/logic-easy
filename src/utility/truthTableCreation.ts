@@ -54,6 +54,4 @@ export function createTruthTableProject(
     minifiedValues: values,
   }
   stateManager.save()
-
-  restoreDefaultPanelLayout(inputCount)
 }
