@@ -2,6 +2,8 @@ import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
 import { checkDockEntryRequirements, dockRegistry } from '@/components/dockRegistry';
 import { updateTruthTable } from './truthTableInterpreter';
+import { createTruthTableProject } from './truthTableCreation';
+import { stateManager } from './states/stateManager';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -12,6 +14,7 @@ export type DockviewApiMinimal = {
     params?: Record<string, unknown>;
     position?: AddPanelPositionOptions;
   }) => void;
+  removePanel: (panel: { id: string }) => void;
   panels: Array<{
     id: string;
     api: {
@@ -59,8 +62,10 @@ export function addPanel(panelKey: string, label: string, position?: AddPanelPos
       component: panelKey,
       title: label,
       position: position,
-      // A bit weird but eh, fixes reactivity with newly added panels
-      params: { updateTruthTable }
+      params: {
+        state: stateManager.state?.truthTable,
+        updateTruthTable
+      }
     });
     return true;
   } catch (err) {
@@ -73,13 +78,35 @@ export function addPanelWithPopup(panelKey: string, label: string): boolean {
   const registryEntry = dockRegistry.find(item => item.id === panelKey);
   if (!registryEntry) return false;
 
-  if (!registryEntry.createPopup) {
+  if (!registryEntry.projectPropsComponent) {
     // Fallback to adding directly
     return addPanel(panelKey, label);
   }
 
+  // Define creation logic based on panel type
+  const onProjectCreate = (projectName: string, props: Record<string, unknown>) => {
+    switch (panelKey) {
+      case 'truth-table':
+      case 'kv-diagram':
+        if (props.inputCount === null || props.outputCount === null) {
+          return;
+        }
+
+        createTruthTableProject(
+          projectName,
+          props.inputCount as number,
+          props.outputCount as number
+        );
+        break;
+
+      default:
+        break;
+    }
+  };
+
   popupService.open({
-    component: registryEntry.createPopup,
+    projectPropsComponent: registryEntry.projectPropsComponent,
+    onProjectCreate,
   });
   return true;
 }
