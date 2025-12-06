@@ -8,51 +8,52 @@
       </a>
     </div>
 
-    <div class="absolute rounded-xs bg-elevated p-10 pr-[20%] shadow-2xl">
-      <p class="text-4xl mb-8 select-none text-primary-variant">Getting started</p>
+    <div class="absolute rounded-xs bg-elevated p-10 pr-[15%] shadow-2xl">
+      <p class="text-4xl mb-4 select-none text-primary-variant">Getting started</p>
 
-      <!-- grid-based terminal-style directory view -->
-      <div class="relative mt-6">
-        <!-- vertical stem spanning the whole list -->
-        <div class="absolute left-5 top-0 bottom-5 w-px bg-primary-variant"></div>
-
-        <!-- grid: narrow left column for branches, right column for items -->
-        <div class="grid grid-cols-[38px_1fr] gap-x-2">
-          <div v-for="(menuEntry, idx) in newMenu" :key="idx" class="contents">
-            <!-- left cell: branch marker aligned to row -->
-            <div class="h-10 flex items-start">
-              <div class="w-8 h-px bg-primary-variant ml-5 mt-5"></div>
-            </div>
-
-            <!-- right cell: actual item button aligned to same row height -->
-            <div class="h-10 flex items-center">
-              <button @click="runAction(menuEntry)" :disabled="menuEntry.disabled"
-                class="flex items-center hover:text-secondary-variant underline-offset-4 hover:underline disabled:bg-transparent disabled:no-underline disabled:text-on-surface-disabled rounded-xs cursor-pointer disabled:cursor-default w-full text-left"
-                :title="menuEntry.label">
-                <span>{{ menuEntry.label }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      <div class="flex gap-20">
+        <DirectoryStyleList :title="'New Project'" :entries="newProjectEntries" />
+        <DirectoryStyleList :title="'Recently opened'" :entries="recentProjectEntries" />
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, computed } from 'vue';
 import { addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { newMenu, type MenuEntry } from '@/components/dockRegistry';
+import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
+import type { ComputedRef } from 'vue';
+import type { ListEntries, ListEntry } from '@/utility/types';
 
 export default defineComponent({
   name: 'GettingStartedView',
+  components: { DirectoryStyleList },
   setup() {
     function runAction(menuEntry: MenuEntry): void {
       if (!menuEntry.panelKey) return;
       addPanelWithPopup(menuEntry.panelKey, menuEntry.label);
     }
 
-    return { newMenu, runAction };
+    const newProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
+      newMenu.value.map((m: MenuEntry) => ({
+        label: m.label,
+        disabled: !!m.disabled,
+        action: () => {
+          if (!m.panelKey) return;
+          addPanelWithPopup(m.panelKey, m.label);
+        },
+      }))
+    );
+
+    const recentProjectEntries: ListEntries = [
+      { label: 'My awesome project', action: () => alert('Just a dummy!') },
+      { label: 'Another cool project', action: () => alert('Just a dummy!') },
+      { label: 'This one sucked', action: () => alert('Just a dummy!') },
+    ];
+
+    return { newMenu, runAction, newProjectEntries, recentProjectEntries };
   },
 });
 </script>

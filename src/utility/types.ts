@@ -30,3 +30,12 @@ export const Formula = {
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
+
+export interface ListEntry {
+  label: string;
+  action: () => void;
+  disabled?: boolean;
+}
+
+export type ListEntries = ListEntry[];
+
