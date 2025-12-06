@@ -8,12 +8,14 @@
       </a>
     </div>
 
-    <div class="absolute rounded-xs bg-elevated p-10 pr-[15%] shadow-2xl">
+    <div class="absolute rounded-xs bg-elevated p-10 shadow-2xl"
+      :class="(recentProjectEntries.length > 0) ? 'pr-[15%]' : 'pr-[25%]'">
       <p class="text-4xl mb-4 select-none text-primary-variant">Getting started</p>
 
       <div class="flex gap-20">
         <DirectoryStyleList :title="'New Project'" :entries="newProjectEntries" />
-        <DirectoryStyleList :title="'Recently opened'" :entries="recentProjectEntries" />
+        <DirectoryStyleList v-if="recentProjectEntries.length > 0" :title="'Recently opened'"
+          :entries="recentProjectEntries" />
       </div>
     </div>
   </div>
