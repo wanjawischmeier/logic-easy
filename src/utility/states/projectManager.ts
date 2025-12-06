@@ -195,10 +195,20 @@ export class ProjectManager {
   /**
    * Download project as .le file
    */
-  downloadProject(projectId: string): void {
+  downloadProject(projectId?: string): void {
+    if (!projectId) {
+      const projectInfo = projectManager.getCurrentProjectInfo()
+      if (!projectInfo) {
+        console.warn(`Failed to save: No project open`)
+        return
+      }
+
+      projectId = projectInfo.id
+    }
+
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
-      console.error(`Project not found: ${projectId}`)
+      console.warn(`Failed to save: Project with id ${projectId} not found`)
       return
     }
 

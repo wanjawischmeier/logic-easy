@@ -52,12 +52,6 @@ export default defineComponent({
         label: project.name,
         action: () => {
           stateManager.loadProject(project.id);
-
-          // Restore default panel layout if truth table exists
-          const truthTable = stateManager.state.truthTable;
-          if (truthTable) {
-            restoreDefaultPanelLayout(truthTable.inputVars.length);
-          }
         },
       }))
     );

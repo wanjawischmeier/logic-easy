@@ -49,6 +49,8 @@ import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
+import { projectManager } from '@/utility/states/projectManager';
+import { stateManager } from '@/utility/states/stateManager';
 
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
@@ -57,8 +59,16 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
       label: 'New',
       children: newMenu.value
     },
-    { label: 'Open File...', tooltip: 'Ctrl+O' },
-    { label: 'Save', tooltip: 'Ctrl+S' },
+    {
+      label: 'Open File...',
+      tooltip: 'Ctrl+O',
+      action: openFile
+    },
+    {
+      label: 'Save',
+      tooltip: 'Ctrl+S',
+      action: projectManager.downloadProject,
+    },
   ],
   Edit: [
     { label: 'Undo', tooltip: 'Ctrl+Z' },
@@ -131,6 +141,45 @@ function handleDocClick(e: MouseEvent): void {
   if (!root) return;
   const target = e.target as Node | null;
   if (!target || !root.contains(target)) {
+    activeMenu.value = '';
+    activeSubmenu.value = null;
+  }
+}
+
+async function openFile() {
+  try {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.le,.lc';
+    input.multiple = false;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    const file: File | null = await new Promise((resolve) => {
+      input.addEventListener('change', () => {
+        resolve(input.files && input.files[0] ? input.files[0] : null);
+      }, { once: true });
+      input.click();
+    });
+
+    document.body.removeChild(input);
+
+    if (!file) return;
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension === 'le') {
+      await projectManager.loadProjectFromFile(file);
+
+      const projectInfo = projectManager.getCurrentProjectInfo();
+      if (projectInfo) {
+        stateManager.loadProject(projectInfo.id)
+      }
+    } else {
+      alert('Opening of LogicCircuits not supported yet');
+    }
+  } catch (err) {
+    console.error('Failed to load project from file', err);
+  } finally {
     activeMenu.value = '';
     activeSubmenu.value = null;
   }
