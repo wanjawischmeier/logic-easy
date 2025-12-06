@@ -55,7 +55,7 @@ export class ProjectManager {
    */
   createProject(name: string, initialState?: AppState): Project {
     // Enforce project limit before creating
-    this.enforceProjectLimit()
+    projectManager.enforceProjectLimit()
 
     const project: Project = {
       id: `${Date.now()}`,
@@ -65,12 +65,12 @@ export class ProjectManager {
     }
 
     ProjectStorage.saveProject(project)
-    this.updateProjectInfo({
+    projectManager.updateProjectInfo({
       id: project.id,
       name: project.name,
       lastModified: project.lastModified
     })
-    this.setCurrentProjectId(project.id)
+    projectManager.setCurrentProjectId(project.id)
 
     return project
   }
@@ -90,7 +90,7 @@ export class ProjectManager {
     project.lastModified = Date.now()
 
     ProjectStorage.saveProject(project)
-    this.updateProjectInfo({
+    projectManager.updateProjectInfo({
       id: project.id,
       name: project.name,
       lastModified: project.lastModified
@@ -104,34 +104,34 @@ export class ProjectManager {
    */
   listProjects(): ProjectInfo[] {
     // Return sorted by last modified (most recent first)
-    return [...this.metadata.projects].sort((a, b) => b.lastModified - a.lastModified)
+    return [...projectManager.metadata.projects].sort((a, b) => b.lastModified - a.lastModified)
   }
 
   /**
    * Get the currently open project info
    */
   getCurrentProjectInfo(): ProjectInfo | null {
-    if (!this.currentProjectId.value) {
+    if (!projectManager.currentProjectId.value) {
       return null
     }
-    return this.metadata.projects.find(p => p.id === this.currentProjectId.value) || null
+    return projectManager.metadata.projects.find(p => p.id === projectManager.currentProjectId.value) || null
   }
 
   /**
    * Get the currently open project (full data)
    */
   getCurrentProject(): Project | null {
-    if (!this.currentProjectId.value) {
+    if (!projectManager.currentProjectId.value) {
       return null
     }
-    return ProjectStorage.loadProject(this.currentProjectId.value)
+    return ProjectStorage.loadProject(projectManager.currentProjectId.value)
   }
 
   /**
    * Set the current project ID
    */
   private setCurrentProjectId(projectId: string): void {
-    this.currentProjectId.value = projectId
+    projectManager.currentProjectId.value = projectId
     ProjectStorage.saveCurrentProjectId(projectId)
   }
 
@@ -139,13 +139,13 @@ export class ProjectManager {
    * Set the current project
    */
   setCurrentProject(projectId: string): boolean {
-    const projectInfo = this.metadata.projects.find(p => p.id === projectId)
+    const projectInfo = projectManager.metadata.projects.find(p => p.id === projectId)
     if (!projectInfo) {
       console.error(`Project not found: ${projectId}`)
       return false
     }
 
-    this.setCurrentProjectId(projectId)
+    projectManager.setCurrentProjectId(projectId)
     return true
   }
 
@@ -153,11 +153,11 @@ export class ProjectManager {
    * Close the current project
    */
   closeCurrentProject(): void {
-    const projectInfo = this.getCurrentProjectInfo()
+    const projectInfo = projectManager.getCurrentProjectInfo()
     if (!projectInfo) return;
 
     console.log(`Closing project: ${projectInfo.name}`)
-    this.currentProjectId.value = null
+    projectManager.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
   }
 
@@ -183,7 +183,7 @@ export class ProjectManager {
     project.lastModified = Date.now()
 
     ProjectStorage.saveProject(project)
-    this.updateProjectInfo({
+    projectManager.updateProjectInfo({
       id: project.id,
       name: project.name,
       lastModified: project.lastModified
@@ -233,28 +233,28 @@ export class ProjectManager {
       existingProject.lastModified = Date.now()
 
       ProjectStorage.saveProject(existingProject)
-      this.updateProjectInfo({
+      projectManager.updateProjectInfo({
         id: existingProject.id,
         name: existingProject.name,
         lastModified: existingProject.lastModified
       })
-      this.setCurrentProjectId(existingProject.id)
+      projectManager.setCurrentProjectId(existingProject.id)
 
       return existingProject
     }
 
     // Enforce project limit before loading new project
-    this.enforceProjectLimit()
+    projectManager.enforceProjectLimit()
 
     // Save the imported project as new
     console.log(`Importing new project: ${importedProject.name} (${importedProject.id})`)
     ProjectStorage.saveProject(importedProject)
-    this.updateProjectInfo({
+    projectManager.updateProjectInfo({
       id: importedProject.id,
       name: importedProject.name,
       lastModified: importedProject.lastModified
     })
-    this.setCurrentProjectId(importedProject.id)
+    projectManager.setCurrentProjectId(importedProject.id)
 
     return importedProject
   }
@@ -263,19 +263,19 @@ export class ProjectManager {
    * Delete a project
    */
   deleteProject(projectId: string): boolean {
-    const projectInfo = this.metadata.projects.find(p => p.id === projectId)
+    const projectInfo = projectManager.metadata.projects.find(p => p.id === projectId)
     if (!projectInfo) {
       console.error(`Project not found: ${projectId}`)
       return false
     }
 
     ProjectStorage.removeProject(projectId)
-    this.metadata.projects = this.metadata.projects.filter(p => p.id !== projectId)
-    ProjectStorage.saveMetadata(this.metadata)
+    projectManager.metadata.projects = projectManager.metadata.projects.filter(p => p.id !== projectId)
+    ProjectStorage.saveMetadata(projectManager.metadata)
 
     // If this was the current project, clear it
-    if (this.currentProjectId.value === projectId) {
-      this.currentProjectId.value = null
+    if (projectManager.currentProjectId.value === projectId) {
+      projectManager.currentProjectId.value = null
       ProjectStorage.saveCurrentProjectId(null)
     }
 

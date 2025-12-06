@@ -1,7 +1,7 @@
 <template>
   <div class="flex items-center relative h-[calc(100vh-52px)] m-4 ml-12 text-on-surface">
     <!-- GitHub Logo-->
-    <div class="absolute flex justify-end items-end w-full h-full">
+    <div class="absolute flex justify-end items-end w-full h-full select-none">
       <a class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 rounded-full shadow-2xl"
         href="https://github.com/wanjawischmeier/logic-easy">
         <img src="/GithubLogo.png" alt="GitHub Logo" class="w-12 aspect-auto invert">

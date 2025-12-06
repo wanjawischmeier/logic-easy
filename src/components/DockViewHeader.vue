@@ -1,7 +1,7 @@
 <template>
   <header class="h-full text-on-surface">
     <div class="flex items-center justify-between px-1 h-full">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-4 select-none">
         <!-- logo + title -->
         <a href="/logic-easy/" class="mx-2">
           <div class="flex gap-2">

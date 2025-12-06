@@ -52,6 +52,7 @@ import ManualPopup from './popups/ManualPopup.vue';
 import { projectManager } from '@/utility/states/projectManager';
 import { stateManager } from '@/utility/states/stateManager';
 
+const hasCurrentProject = computed(() => projectManager.getCurrentProjectInfo() !== null);
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   File: [
@@ -60,14 +61,20 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
       children: newMenu.value
     },
     {
-      label: 'Open File...',
+      label: 'Open File',
       tooltip: 'Ctrl+O',
       action: openFile
     },
     {
-      label: 'Save',
+      label: 'Save Project',
       tooltip: 'Ctrl+S',
       action: projectManager.downloadProject,
+      disabled: !hasCurrentProject.value,
+    },
+    {
+      label: 'Close Project',
+      action: stateManager.closeCurrentProject,
+      disabled: !hasCurrentProject.value,
     },
   ],
   Edit: [

@@ -14,6 +14,7 @@ export type DockviewApiMinimal = {
     params?: Record<string, unknown>;
     position?: AddPanelPositionOptions;
   }) => void;
+  removePanel: (panel: { id: string }) => void;
   panels: Array<{
     id: string;
     api: {

@@ -1,6 +1,7 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { type TruthTableState } from './truthTableState'
 import { projectManager } from './projectManager'
+import { getDockviewApi } from '../dockviewIntegration'
 
 const STORAGE_VERSION = 1
 
@@ -195,6 +196,34 @@ export function createStateManager() {
       )
 
       return stopWatch
+    },
+
+    /**
+     * Close the current project by closing all open panels
+     * This will trigger the automatic project close when panels reach 0
+     */
+    closeCurrentProject: () => {
+      const api = getDockviewApi()
+      if (!api) {
+        console.warn('Dockview API not available, closing project directly')
+        projectManager.closeCurrentProject()
+        return
+      }
+
+      // Close all panels - this will automatically trigger projectManager.closeCurrentProject()
+      // through the updatePanelCount listener in DockView.vue
+      const panelIds = api.panels.map(p => p.id)
+      panelIds.forEach(id => {
+        const panel = api.panels.find(p => p.id === id)
+        if (panel) {
+          api.removePanel(panel)
+        }
+      })
+
+      // If no panels to close, close project directly
+      if (panelIds.length === 0) {
+        projectManager.closeCurrentProject()
+      }
     }
   }
 }
