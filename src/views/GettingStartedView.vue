@@ -25,7 +25,10 @@ import { addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { newMenu, type MenuEntry } from '@/components/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import type { ComputedRef } from 'vue';
-import type { ListEntries, ListEntry } from '@/utility/types';
+import type { ListEntry } from '@/utility/types';
+import { projectManager } from '@/utility/states/projectManager';
+import { stateManager } from '@/utility/states/stateManager';
+import { restoreDefaultPanelLayout } from '@/utility/truthTableCreation';
 
 export default defineComponent({
   name: 'GettingStartedView',
@@ -37,21 +40,27 @@ export default defineComponent({
     }
 
     const newProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
-      newMenu.value.map((m: MenuEntry) => ({
-        label: m.label,
-        disabled: !!m.disabled,
-        action: () => {
-          if (!m.panelKey) return;
-          addPanelWithPopup(m.panelKey, m.label);
-        },
+      newMenu.value.map((menuEntry: MenuEntry) => ({
+        label: menuEntry.label,
+        disabled: !!menuEntry.disabled,
+        action: () => runAction(menuEntry),
       }))
     );
 
-    const recentProjectEntries: ListEntries = [
-      { label: 'My awesome project', action: () => alert('Just a dummy!') },
-      { label: 'Another cool project', action: () => alert('Just a dummy!') },
-      { label: 'This one sucked', action: () => alert('Just a dummy!') },
-    ];
+    const recentProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
+      projectManager.listProjects().map((project) => ({
+        label: project.name,
+        action: () => {
+          stateManager.loadProject(project.id);
+
+          // Restore default panel layout if truth table exists
+          const truthTable = stateManager.state.truthTable;
+          if (truthTable) {
+            restoreDefaultPanelLayout(truthTable.inputVars.length);
+          }
+        },
+      }))
+    );
 
     return { newMenu, runAction, newProjectEntries, recentProjectEntries };
   },

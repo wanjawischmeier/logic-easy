@@ -14,7 +14,7 @@
         <HeaderMenuBar />
       </div>
 
-      <div class="w-50 flex items-center shrink-0 max-w-full bg-surface-2 rounded-xs
+      <div v-if="currentProjectInfo" class="w-50 flex items-center shrink-0 max-w-full bg-surface-2 rounded-xs
   border border-transparent
   hover:border-gray-300
   focus-within:border-primary
@@ -35,24 +35,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import HeaderMenuBar from './HeaderMenuBar.vue';
+import { projectManager } from '@/utility/states/projectManager';
 
 const projectInput = ref<HTMLInputElement>()
-const projectValue = ref('')
+const currentProjectInfo = computed(() => projectManager.getCurrentProjectInfo())
+const projectValue = ref(currentProjectInfo.value?.name)
+
+// Watch for external changes to project name
+watch(currentProjectInfo, (newInfo) => {
+  projectValue.value = newInfo?.name
+}, { deep: true, immediate: true })
 
 watch(projectValue, (newVal) => {
+  if (!newVal) return;
+
   // Strip out invalid chars
   projectValue.value = newVal.replace(/[^A-Za-z0-9\s_\\-\\(\\)]/g, '')
 })
 
 const handleProjectEnter = (event: KeyboardEvent) => {
   const input = event.target as HTMLInputElement
-  input.scrollLeft = 0
-  // Call your function here
-  // saveProject((event.target as HTMLInputElement).value)
 
   // Blur to defocus and reset scroll to beginning
+  input.scrollLeft = 0
   projectInput.value?.blur()
+
+  const projectInfo = projectManager.getCurrentProjectInfo()
+  if (projectInfo && projectValue.value) {
+    projectManager.renameProject(projectInfo.id, projectValue.value)
+  }
 }
 </script>

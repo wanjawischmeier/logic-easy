@@ -3,8 +3,8 @@ import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import { stateManager } from '@/utility/states/stateManager';
-import TruthTablePopup from './popups/TruthTablePopup.vue';
-import { computed } from 'vue';
+import TruthTableProjectProps from './popups/TruthTableProjectProps.vue';
+import { computed, markRaw } from 'vue';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -19,7 +19,7 @@ type DockEntry = {
   id: string;
   label: string;
   component: unknown;
-  createPopup?: unknown;
+  projectPropsComponent?: unknown;
   requires?: Requirements;
 };
 
@@ -35,7 +35,7 @@ export type MenuEntry = {
 
 export const newMenu = computed<MenuEntry[]>(() =>
   dockRegistry
-    .filter((menuEntry) => menuEntry.createPopup)
+    .filter((menuEntry) => menuEntry.projectPropsComponent)
     .map((menuEntry) => ({
       label: menuEntry.label,
       panelKey: menuEntry.id,
@@ -60,7 +60,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'truth-table',
     label: 'Truth Table',
     component: TruthTablePanel,
-    createPopup: TruthTablePopup,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
     requires: {
       view: ['TruthTable']
     }
@@ -69,7 +69,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'kv-diagram',
     label: 'KV Diagram',
     component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
     requires: {
       view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
     }
@@ -78,7 +78,6 @@ export const dockRegistry: DockEntry[] = [
     id: 'transition-table',
     label: 'Transition Table',
     component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
     requires: {
       create: ['NotSupported']
     }
@@ -87,7 +86,6 @@ export const dockRegistry: DockEntry[] = [
     id: 'state-table',
     label: 'State Table',
     component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
     requires: {
       create: ['NotSupported']
     }
@@ -96,7 +94,6 @@ export const dockRegistry: DockEntry[] = [
     id: 'state-machine',
     label: 'State Machine',
     component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
     requires: {
       create: ['NotSupported']
     }
@@ -124,7 +121,6 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   let checkPassed = true;
 
   requirements.forEach((requirement) => {
-    console.log(requirement)
     switch (requirement) {
       case 'TruthTable':
         if (stateManager.state.truthTable === undefined) {

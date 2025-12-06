@@ -6,13 +6,11 @@
 
       <!-- Popup Content -->
       <div
-        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full pt-4 pb-2 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full pt-4 pb-2 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200"
+        @keydown.enter="onEnterPress(confirmAction)">
         <!-- Header -->
-        <input v-focus ref="projectInput" type="text" placeholder="Project Name" maxlength="40" v-model="projectValue"
-          class="pl-6 outline-none truncate text-3xl text-on-surface" @keydown.enter="handleProjectEnter" />
-        <div class="w-50 flex justify-center items-center gap-2 shrink-0 max-w-full ">
-
-
+        <div class="px-6 pb-4">
+          <h2 class="text-3xl text-on-surface">{{ title }}</h2>
         </div>
 
         <!-- Content Area -->
@@ -33,9 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-
-
 export type PopupActionType = 'DEFAULT' | 'SUBMIT' | 'WARNING' | 'DISABLED';
 
 export type PopupAction = {
@@ -49,6 +44,7 @@ defineProps<{
   visible: boolean;
   title: string;
   actions: PopupAction[];
+  confirmAction?: PopupAction
 }>();
 
 const emit = defineEmits<{
@@ -63,7 +59,13 @@ function onBarrierClick() {
   close();
 }
 
-function handleAction(action: PopupAction) {
+function onEnterPress(action?: PopupAction) {
+  handleAction(action)
+}
+
+function handleAction(action?: PopupAction) {
+  if (!action) return;
+
   action.onClick();
   if (action.closesPopup !== false) {
     close();
@@ -87,21 +89,4 @@ function getActionClass(type: PopupActionType): string {
 }
 
 
-const projectInput = ref<HTMLInputElement>()
-const projectValue = ref('')
-
-watch(projectValue, (newVal) => {
-  // Strip out invalid chars
-  projectValue.value = newVal.replace(/[^A-Za-z0-9\s_\\-\\(\\)]/g, '')
-})
-
-const handleProjectEnter = (event: KeyboardEvent) => {
-  const input = event.target as HTMLInputElement
-  input.scrollLeft = 0
-  // Call your function here
-  // saveProject((event.target as HTMLInputElement).value)
-
-  // Blur to defocus and reset scroll to beginning
-  projectInput.value?.blur()
-}
 </script>

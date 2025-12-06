@@ -5,8 +5,10 @@ import type { DockviewReadyEvent, DockviewApi } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
 import { stateManager } from '@/utility/states/stateManager'
+import { projectManager } from '@/utility/states/projectManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
+import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
 
 type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -38,7 +40,7 @@ const loadDefaultLayout = (api: DockviewApi) => {
     component: 'truth-table',
     title: 'Truth Table',
     params: {
-      state: stateManager.state.truthTable,
+      state: stateManager.state!.truthTable,
       updateTruthTable
     },
   })
@@ -49,23 +51,21 @@ const loadDefaultLayout = (api: DockviewApi) => {
     title: 'KV Diagram',
     position: { referencePanel: 'truth-table', direction: 'right' },
     params: {
-      state: stateManager.state.truthTable,
+      state: stateManager.state!.truthTable,
       updateTruthTable,
     },
   })
 }
 
 const onReady = (event: DockviewReadyEvent) => {
-  console.log('dockview ready', event)
   dockviewApi.value = event.api
 
     // Expose dockview API and shared panel params so HeaderMenuBar can add panels
     ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
 
-
   // Initial calculation
-  if (stateManager.state.truthTable) {
-    updateTruthTable(stateManager.state.truthTable.values)
+  if (stateManager.state!.truthTable) {
+    updateTruthTable(stateManager.state!.truthTable.values)
   }
 
   // Try to load saved layout
@@ -77,14 +77,19 @@ const onReady = (event: DockviewReadyEvent) => {
       event.api.fromJSON(layout)
       console.log('Loaded layout from localStorage')
 
-      // Update all panel params to use current state reference
-      // This ensures restored panels don't use stale state from localStorage
-      event.api.panels.forEach(panel => {
-        panel.api.updateParameters({
-          state: stateManager.state.truthTable,
-          updateTruthTable,
+      // Check if any panels were restored
+      if (event.api.panels.length === 0 && stateManager.state.truthTable) {
+        console.log('No panels in saved layout, restoring default layout')
+        loadDefaultLayout(event.api)
+      } else {
+        // Update all panel params to use current state reference
+        event.api.panels.forEach(panel => {
+          panel.api.updateParameters({
+            state: stateManager.state!.truthTable,
+            updateTruthTable,
+          })
         })
-      })
+      }
     } catch (err) {
       console.error('Failed to load layout from localStorage:', err)
       console.warn('Falling back to default layout')
@@ -94,7 +99,13 @@ const onReady = (event: DockviewReadyEvent) => {
 
   // Track panel count
   const updatePanelCount = () => {
-    hasPanels.value = event.api.panels.length > 0
+    const panelCount = event.api.panels.length
+    hasPanels.value = panelCount > 0
+
+    // Close project when all panels are closed
+    if (panelCount === 0) {
+      projectManager.closeCurrentProject()
+    }
   }
 
   updatePanelCount()
@@ -115,7 +126,6 @@ const onReady = (event: DockviewReadyEvent) => {
       const layout = event.api.toJSON()
 
       // Remove state and updateTruthTable from panel params before saving
-      // We only want to save the layout structure, not the actual state data
       if (layout.panels && 'panels' in layout.panels) {
         const panels = layout.panels as { panels?: Array<{ params?: Record<string, unknown> }> };
         panels.panels?.forEach(panel => {
@@ -132,6 +142,18 @@ const onReady = (event: DockviewReadyEvent) => {
       console.error('Failed to save layout to localStorage:', err)
     }
   })
+}
+
+const popupProps = ref<Record<string, unknown>>({})
+
+const handleProjectCreate = (projectName: string) => {
+  const popup = popupService.current.value
+  if (!popup || !popupService.isProjectCreation) return
+
+  if ('onProjectCreate' in popup) {
+    popup.onProjectCreate(projectName, popupProps.value)
+  }
+  popupService.close()
 }
 
 onBeforeUnmount(() => {
@@ -155,8 +177,19 @@ onBeforeUnmount(() => {
       <GettingStartedView v-if="!hasPanels"></GettingStartedView>
 
       <!-- Popup System -->
-      <component v-if="popupService.current.value" :is="popupService.current.value.component"
-        v-bind="popupService.current.value.props" />
+      <template v-if="popupService.current.value">
+        <!-- Generic Popup -->
+        <component v-if="!popupService.isProjectCreation && 'component' in popupService.current.value"
+          :is="popupService.current.value.component" v-bind="popupService.current.value.props" />
+
+        <!-- Project Creation Popup -->
+        <ProjectCreationPopup
+          v-if="popupService.isProjectCreation && 'projectPropsComponent' in popupService.current.value" :visible="true"
+          @close="popupService.close" @create="handleProjectCreate">
+          <component :is="popupService.current.value.projectPropsComponent" v-model:input-count="popupProps.inputCount"
+            v-model:output-count="popupProps.outputCount" />
+        </ProjectCreationPopup>
+      </template>
     </div>
   </div>
 </template>

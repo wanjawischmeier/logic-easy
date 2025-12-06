@@ -1,7 +1,7 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { type TruthTableState } from './truthTableState'
+import { projectManager } from './projectManager'
 
-const STORAGE_KEY = 'logic-easy-state'
 const STORAGE_VERSION = 1
 
 /**
@@ -24,41 +24,45 @@ function createDefaultState(): AppState {
 }
 
 /**
- * Load state from localStorage
+ * Load state from project manager
  */
-function loadState(): AppState {
+function loadState(): AppState | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (!stored) {
-      // return createDefaultState()
-      return { version: STORAGE_VERSION }
+    // Try to get current project from project manager
+    const currentProject = projectManager.getCurrentProject()
+
+    if (currentProject) {
+      // Version migration logic
+      if (currentProject.state.version !== STORAGE_VERSION) {
+        console.warn('State version mismatch, resetting to defaults')
+        return createDefaultState()
+      }
+      return currentProject.state
     }
 
-    const parsed = JSON.parse(stored) as AppState
-
-    // Version migration logic
-    if (parsed.version !== STORAGE_VERSION) {
-      console.warn('State version mismatch, resetting to defaults')
-      return createDefaultState()
-    }
-
-    return parsed
+    // No current project
+    console.log('No current project found')
+    return null
   } catch (error) {
-    console.error('Failed to load state from localStorage:', error)
-    return createDefaultState()
+    console.error('Failed to load state from project manager:', error)
+    return null
   }
 }
 
 /**
- * Save state to localStorage
+ * Save state to project manager
  */
 function saveState(state: AppState): void {
   try {
-    const serialized = JSON.stringify(state)
-    localStorage.setItem(STORAGE_KEY, serialized)
-    console.log('Saved app state')
+    const currentProjectInfo = projectManager.getCurrentProjectInfo()
+    if (currentProjectInfo) {
+      projectManager.updateProjectState(currentProjectInfo.id, state)
+      console.log('Saved app state to project:', currentProjectInfo.name)
+    } else {
+      console.warn('No current project to save state to')
+    }
   } catch (error) {
-    console.error('Failed to save state to localStorage:', error)
+    console.error('Failed to save state to project manager:', error)
   }
 }
 
@@ -66,9 +70,9 @@ function saveState(state: AppState): void {
  * Create a reactive state manager with auto-persistence
  */
 export function createStateManager() {
-  const state = reactive(loadState()) as UnwrapNestedRefs<AppState>
+  const state = reactive(loadState() || createDefaultState()) as UnwrapNestedRefs<AppState>
 
-  // Ensure panelStates exists
+  // Ensure panelStates exists if state is loaded
   if (!state.panelStates) {
     state.panelStates = {}
   }
@@ -78,10 +82,10 @@ export function createStateManager() {
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   watch(
     () => state,
-    () => {
+    (newState) => {
       if (saveTimer) clearTimeout(saveTimer)
       saveTimer = setTimeout(() => {
-        saveState(state as AppState)
+        saveState(newState as AppState)
       }, 300)
     },
     { deep: true }
@@ -89,6 +93,42 @@ export function createStateManager() {
 
   return {
     state,
+
+    /**
+     * Load a project by ID
+     */
+    loadProject: (projectId: string) => {
+      if (projectManager.setCurrentProject(projectId)) {
+        const newState = loadState() || createDefaultState()
+
+        // Clear existing state
+        Object.keys(state).forEach(key => delete (state as Record<string, unknown>)[key])
+
+        // Assign new project state
+        Object.assign(state, newState)
+
+        if (!state.panelStates) {
+          state.panelStates = {}
+        }
+      }
+    },
+
+    /**
+     * Create and load a new project
+     */
+    createProject: (name: string) => {
+      const newProject = projectManager.createProject(name, createDefaultState())
+
+      // Clear existing state
+      Object.keys(state).forEach(key => delete (state as Record<string, unknown>)[key])
+
+      // Assign new project state
+      Object.assign(state, newProject.state)
+
+      if (!state.panelStates) {
+        state.panelStates = {}
+      }
+    },
 
     /**
      * Reset state to defaults
@@ -130,7 +170,7 @@ export function createStateManager() {
      * Clear panel state by panel ID
      */
     clearPanelState: (panelId: string) => {
-      if (state.panelStates) {
+      if (state?.panelStates) {
         delete state.panelStates[panelId]
       }
     },
