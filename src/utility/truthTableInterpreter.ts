@@ -1,23 +1,6 @@
-import { stateManager } from "./stateManager";
+import { stateManager } from "./states/stateManager";
 import { minifyTruthTable } from "./espresso";
-import type { TruthTableData } from "./types";
-
-export type TruthTableCell = 0 | 1 | '-';
-export type FormulaType = 'DNF' | 'CNF';
-
-export interface Literal {
-  variable: string;
-  negated: boolean;
-}
-
-export interface Term {
-  literals: Literal[];
-}
-
-export interface Formula {
-  type: FormulaType;
-  terms: Term[];
-}
+import { FunctionType, type Formula, type Literal, type Term, type TruthTableData } from "./types";
 
 /**
  * Interprets a minified truth table into a logical function (list of terms).
@@ -26,10 +9,10 @@ export interface Formula {
  */
 export function interpretMinifiedTable(
   data: TruthTableData,
-  formulaType: FormulaType,
+  formulaType: FunctionType,
   inputVars: string[]
 ): Formula {
-  const terms: Term[] = [];
+  let terms: Term[] = [];
   const numInputs = inputVars.length;
 
   // We assume the first column after inputs is the output we care about.
@@ -77,6 +60,10 @@ export function interpretMinifiedTable(
   // Sort terms to ensure consistent order (e.g. !a before b)
   terms.sort((a, b) => compareTerms(a, b, inputVars));
 
+  if (terms.length === 0 || terms[0]?.literals.length === 0) {
+    terms = [{ literals: [{ variable: '0', negated: false }] }];
+  }
+
   return { type: formulaType, terms };
 }
 
@@ -98,6 +85,8 @@ function getVariableValue(term: Term, variable: string): number {
 }
 
 export const updateTruthTable = async (newValues: TruthTableData) => {
+  if (!stateManager.state.truthTable) return;
+
   stateManager.state.truthTable.values = newValues
 
   // Calculate formulas for each output variable
@@ -131,12 +120,9 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
       invertedValues
     )
 
-    const castMinifiedDNF = minifiedDNF as unknown as TruthTableData
-    const castMinifiedCNF = minifiedCNF as unknown as TruthTableData
-
     formulas[outputVar] = {
-      DNF: interpretMinifiedTable(castMinifiedDNF, 'DNF', stateManager.state.truthTable.inputVars),
-      CNF: interpretMinifiedTable(castMinifiedCNF, 'CNF', stateManager.state.truthTable.inputVars)
+      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, stateManager.state.truthTable.inputVars),
+      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, stateManager.state.truthTable.inputVars)
     }
   }
 

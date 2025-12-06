@@ -69,8 +69,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TruthTableData, TruthTableCell } from '../utility/types';
-import type { Formula } from '@/utility/truthTableInterpreter';
+import { type TruthTableData, type TruthTableCell, type Formula, FunctionType, defaultFunctionType } from '../utility/types';
+
 import {
   getLeftVariables,
   getTopVariables,
@@ -87,7 +87,7 @@ const props = defineProps<{
   modelValue: TruthTableData;
   minifiedValues?: TruthTableData;
   formula?: Formula;
-  mode?: 'DNF' | 'CNF';
+  functionType?: FunctionType;
 }>();
 
 const emit = defineEmits<{
@@ -143,7 +143,7 @@ const toggleCell = (rowCode: string, colCode: string) => {
 const getHighlights = (rIdx: number, cIdx: number) => {
   if (!props.formula) return [];
 
-  const currentMode = props.mode || props.formula?.type || 'DNF';
+  const currentMode = props.functionType || props.formula?.type || defaultFunctionType;
 
   return calculateHighlights(
     rIdx,

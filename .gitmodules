@@ -1,0 +1,3 @@
+[submodule "public/logic-circuits"]
+	path = public/logic-circuits
+	url = https://github.com/wanjawischmeier/logic-circuits

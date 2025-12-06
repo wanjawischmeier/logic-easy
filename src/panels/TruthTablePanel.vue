@@ -1,24 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import type { IDockviewPanelProps } from 'dockview-vue'
 import TruthTable from '../components/TruthTable.vue'
-import type { Formula } from '@/utility/truthTableInterpreter';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
+import { useTruthTableState } from '@/utility/states/truthTableState';
+import { updateTruthTable } from '@/utility/truthTableInterpreter';
+import type { IDockviewPanelProps } from 'dockview-vue';
 
-const props = defineProps<{
-  params: IDockviewPanelProps & {
-    params?: {
-      state?: {
-        inputVars: string[],
-        outputVars: string[],
-        values: TruthTableData,
-        minifiedValues: TruthTableData,
-        formulas: Record<string, Formula>
-      },
-      updateTruthTable?: (values: TruthTableData) => void
-    }
-  }
-}>()
+const props = defineProps<IDockviewPanelProps>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -34,13 +22,11 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-// Access state from params (DockView source of truth)
-const state = props.params.params?.state
-const inputVars = state?.inputVars || []
-const outputVars = state?.outputVars || []
+// Access state from params
+const { state, inputVars, outputVars } = useTruthTableState()
 
 // Local model for the table component
-const tableValues = ref<TruthTableData>(state?.values ? state.values.map((row: TruthTableCell[]) => [...row]) : [])
+const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
 let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
@@ -50,21 +36,29 @@ watch(tableValues, (newVal) => {
     return
   }
   if (props.params.params?.updateTruthTable) {
-    props.params.params.updateTruthTable(newVal)
+    updateTruthTable(newVal)
   }
 }, { deep: true })
 
-// Watch for external changes
-watch(() => state?.values, (newVal) => {
+// Watch for external changes from state
+watch(() => state.value?.values, (newVal) => {
   if (newVal && JSON.stringify(newVal) !== JSON.stringify(tableValues.value)) {
     isUpdatingFromState = true
     tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
   }
 }, { deep: true })
+
+// Watch for params updates (when DockView updateParameters is called)
+watch(() => props.params.params?.state, (newState) => {
+  if (newState?.values && JSON.stringify(newState.values) !== JSON.stringify(tableValues.value)) {
+    isUpdatingFromState = true
+    tableValues.value = newState.values.map((row: TruthTableCell[]) => [...row])
+  }
+}, { deep: true, immediate: true })
 </script>
 
 <template>
-  <div class="h-full text-white flex flex-col p-2 overflow-hidden">
+  <div class="h-full text-white flex flex-col p-2 overflow-auto">
     <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />
   </div>
 </template>

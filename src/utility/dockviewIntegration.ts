@@ -1,14 +1,23 @@
+import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
-import TruthTablePopup from '@/components/popups/TruthTablePopup.vue';
+import { checkDockEntryRequirements, dockRegistry } from '@/components/dockRegistry';
+import { updateTruthTable } from './truthTableInterpreter';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {
+    // TODO: Resolve duplicate id/component
     id: string;
     component: string;
     title?: string;
     params?: Record<string, unknown>;
-    position?: unknown;
+    position?: AddPanelPositionOptions;
   }) => void;
+  panels: Array<{
+    id: string;
+    api: {
+      setActive: () => void;
+    };
+  }>;
 };
 
 export function getDockviewApi(): DockviewApiMinimal | null {
@@ -16,27 +25,42 @@ export function getDockviewApi(): DockviewApiMinimal | null {
   return api ?? null;
 }
 
-export function getSharedParams(): Record<string, unknown> | undefined {
-  const params = (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams;
-  return params;
+function findPanelByComponent(component: string): { id: string; api: { setActive: () => void } } | null {
+  const api = getDockviewApi();
+  if (!api || !api.panels) return null;
+
+  const panel = api.panels.find(p => p.id === component);
+  return panel ? { id: panel.id, api: panel.api } : null;
 }
 
-export function addPanel(panelKey: string, label: string): boolean {
+export function addPanel(panelKey: string, label: string, position?: AddPanelPositionOptions): boolean {
   const api = getDockviewApi();
   if (!api) {
     console.warn('Dockview API not ready yet');
     return false;
   }
 
-  const sharedParams = getSharedParams();
-  const id = `panel_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const registryEntry = dockRegistry.find(item => item.id === panelKey);
+  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
+    return false;
+  }
+
+  // Check if panel with this component already exists
+  const existingPanel = findPanelByComponent(panelKey);
+  if (existingPanel) {
+    console.log(`Panel with component '${panelKey}' already exists, focusing it`);
+    existingPanel.api.setActive();
+    return true;
+  }
 
   try {
     api.addPanel({
-      id,
+      id: panelKey,
       component: panelKey,
       title: label,
-      params: sharedParams,
+      position: position,
+      // A bit weird but eh, fixes reactivity with newly added panels
+      params: { updateTruthTable }
     });
     return true;
   } catch (err) {
@@ -46,14 +70,16 @@ export function addPanel(panelKey: string, label: string): boolean {
 }
 
 export function addPanelWithPopup(panelKey: string, label: string): boolean {
-  // Show popup for truth-table
-  if (panelKey === 'truth-table') {
-    popupService.open({
-      component: TruthTablePopup,
-    });
-    return true;
+  const registryEntry = dockRegistry.find(item => item.id === panelKey);
+  if (!registryEntry) return false;
+
+  if (!registryEntry.createPopup) {
+    // Fallback to adding directly
+    return addPanel(panelKey, label);
   }
 
-  // For other panels, add directly
-  return addPanel(panelKey, label);
+  popupService.open({
+    component: registryEntry.createPopup,
+  });
+  return true;
 }

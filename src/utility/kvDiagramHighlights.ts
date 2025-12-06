@@ -1,4 +1,4 @@
-import type { Term } from './truthTableInterpreter';
+import { FunctionType, type Term } from './types';
 
 function getTermColor(index: number): string {
   const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
@@ -14,9 +14,13 @@ function isCovered(
 ): boolean {
   const binaryString = rowCode + colCode;
 
-  if (mode === 'DNF') {
+  if (mode === FunctionType.DNF) {
     // DNF: Term is a product (AND of literals).
     // Covers cells where all literals are true.
+
+    if (term.literals.length === 1 && term.literals[0]?.variable === '0') {
+      return false;
+    }
     for (const literal of term.literals) {
       const varIndex = inputVars.indexOf(literal.variable);
       if (varIndex === -1) continue;
@@ -27,7 +31,7 @@ function isCovered(
       if (!literal.negated && bit !== '1') return false;
       if (literal.negated && bit !== '0') return false;
     }
-    return mode === 'DNF';
+    return true;
   } else {
     // CNF: Term is a sum (OR of literals) - a clause.
     // Covers cells where at least one literal is true.
@@ -61,7 +65,7 @@ function inferHighlightFromCoverage(
 
   terms.forEach((term, index) => {
     const covered = isCovered(term, rowCode, colCode, mode, inputVars);
-    const isCNF = mode === 'CNF';
+    const isCNF = mode === FunctionType.CNF;
     if (covered === isCNF) return
 
     const color = getTermColor(index);
@@ -108,10 +112,14 @@ export function calculateHighlights(
 
   if (!rowCode || !colCode) return [];
 
-  if (mode === 'CNF') {
+  if (mode === FunctionType.CNF) {
     // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
     // A clause (sum) is FALSE when ALL its literals are false
     // So we highlight cells where at least one clause is completely false
+    if (terms.length === 1 && terms[0]?.literals[0]?.variable === '0') {
+      return [];
+    }
+
     const anyClauseFalse = terms.some(term => {
       return !isCovered(term, rowCode, colCode, mode, inputVars);
     });

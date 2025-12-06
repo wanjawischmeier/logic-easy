@@ -4,7 +4,7 @@ import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
-import { stateManager } from '@/utility/stateManager'
+import { stateManager } from '@/utility/states/stateManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 
@@ -16,6 +16,12 @@ type DockviewApiMinimal = {
     params?: Record<string, unknown>;
     position?: unknown;
   }) => void;
+  panels: Array<{
+    id: string;
+    api: {
+      setActive: () => void;
+    };
+  }>;
 };
 
 const componentsForDockview = dockComponents;
@@ -28,7 +34,7 @@ const LAYOUT_STORAGE_KEY = 'dockview_layout'
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
-    id: 'panel_1',
+    id: 'truth-table',
     component: 'truth-table',
     title: 'Truth Table',
     params: {
@@ -38,13 +44,13 @@ const loadDefaultLayout = (api: DockviewApi) => {
   })
 
   api.addPanel({
-    id: 'panel_kv',
+    id: 'kv-diagram',
     component: 'kv-diagram',
     title: 'KV Diagram',
-    position: { referencePanel: 'panel_1', direction: 'right' },
+    position: { referencePanel: 'truth-table', direction: 'right' },
     params: {
       state: stateManager.state.truthTable,
-      updateTruthTable
+      updateTruthTable,
     },
   })
 }
@@ -58,32 +64,32 @@ const onReady = (event: DockviewReadyEvent) => {
 
 
   // Initial calculation
-  updateTruthTable(stateManager.state.truthTable.values)
-
-    // expose shared params for dynamic panels
-    ; (window as unknown as { __dockview_sharedParams?: Record<string, unknown> }).__dockview_sharedParams = {
-      state: stateManager.state.truthTable,
-      updateTruthTable,
-    };
+  if (stateManager.state.truthTable) {
+    updateTruthTable(stateManager.state.truthTable.values)
+  }
 
   // Try to load saved layout
-  let success = false
   const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY)
 
   if (savedLayout) {
     try {
       const layout = JSON.parse(savedLayout)
       event.api.fromJSON(layout)
-      success = true
       console.log('Loaded layout from localStorage')
+
+      // Update all panel params to use current state reference
+      // This ensures restored panels don't use stale state from localStorage
+      event.api.panels.forEach(panel => {
+        panel.api.updateParameters({
+          state: stateManager.state.truthTable,
+          updateTruthTable,
+        })
+      })
     } catch (err) {
       console.error('Failed to load layout from localStorage:', err)
+      console.warn('Falling back to default layout')
+      loadDefaultLayout(event.api)
     }
-  }
-
-  // Load default layout if loading failed
-  if (!success) {
-    loadDefaultLayout(event.api)
   }
 
   // Track panel count
@@ -107,6 +113,19 @@ const onReady = (event: DockviewReadyEvent) => {
   layoutChangeDisposable = event.api.onDidLayoutChange(() => {
     try {
       const layout = event.api.toJSON()
+
+      // Remove state and updateTruthTable from panel params before saving
+      // We only want to save the layout structure, not the actual state data
+      if (layout.panels && 'panels' in layout.panels) {
+        const panels = layout.panels as { panels?: Array<{ params?: Record<string, unknown> }> };
+        panels.panels?.forEach(panel => {
+          if (panel.params) {
+            delete panel.params.state
+            delete panel.params.updateTruthTable
+          }
+        })
+      }
+
       localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layout))
       console.log('Layout saved to localStorage')
     } catch (err) {
@@ -131,7 +150,7 @@ onBeforeUnmount(() => {
 
     <div class="flex-1 min-h-0 relative">
       <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-36px)]' : 'h-0'"
-        :components="componentsForDockview" @ready="onReady" />
+        :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels"></GettingStartedView>
 
