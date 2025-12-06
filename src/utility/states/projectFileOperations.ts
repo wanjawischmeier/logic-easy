@@ -39,10 +39,9 @@ export class ProjectFileOperations {
             throw new Error('Invalid project file format')
           }
 
-          // Generate new ID and update timestamp for imported project
+          // Update timestamp for imported project (keep original ID)
           const importedProject: Project = {
             ...project,
-            id: `project-${Date.now()}`,
             lastModified: Date.now()
           }
 

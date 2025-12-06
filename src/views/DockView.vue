@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, onBeforeUnmount, watch } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
@@ -32,7 +32,6 @@ let layoutChangeDisposable: { dispose?: () => void } | null = null
 let panelDisposable: { dispose?: () => void } | null = null
 
 const hasPanels = ref(true)
-const LAYOUT_STORAGE_KEY = 'dockview_layout'
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
@@ -57,33 +56,31 @@ const loadDefaultLayout = (api: DockviewApi) => {
   })
 }
 
-const onReady = (event: DockviewReadyEvent) => {
-  dockviewApi.value = event.api
-
-    // Expose dockview API and shared panel params so HeaderMenuBar can add panels
-    ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
-
+const restoreLayout = (api: DockviewApi) => {
   // Initial calculation
   if (stateManager.state!.truthTable) {
     updateTruthTable(stateManager.state!.truthTable.values)
   }
 
-  // Try to load saved layout
-  const savedLayout = localStorage.getItem(LAYOUT_STORAGE_KEY)
+  // Clear existing panels
+  const panelIds = api.panels.map(p => p.id)
+  panelIds.forEach(id => api.removePanel(api.panels.find(p => p.id === id)!))
+
+  // Try to load saved layout from project state
+  const savedLayout = stateManager.state.dockviewLayout
 
   if (savedLayout) {
     try {
-      const layout = JSON.parse(savedLayout)
-      event.api.fromJSON(layout)
-      console.log('Loaded layout from localStorage')
+      api.fromJSON(savedLayout)
+      console.log('Loaded layout from project state')
 
       // Check if any panels were restored
-      if (event.api.panels.length === 0 && stateManager.state.truthTable) {
+      if (api.panels.length === 0 && stateManager.state.truthTable) {
         console.log('No panels in saved layout, restoring default layout')
-        loadDefaultLayout(event.api)
+        loadDefaultLayout(api)
       } else {
         // Update all panel params to use current state reference
-        event.api.panels.forEach(panel => {
+        api.panels.forEach(panel => {
           panel.api.updateParameters({
             state: stateManager.state!.truthTable,
             updateTruthTable,
@@ -91,11 +88,36 @@ const onReady = (event: DockviewReadyEvent) => {
         })
       }
     } catch (err) {
-      console.error('Failed to load layout from localStorage:', err)
+      console.error('Failed to load layout from project state:', err)
       console.warn('Falling back to default layout')
-      loadDefaultLayout(event.api)
+      loadDefaultLayout(api)
     }
+  } else if (stateManager.state.truthTable) {
+    // No saved layout, load default
+    console.log('No saved layout, loading default')
+    loadDefaultLayout(api)
   }
+}
+
+const onReady = (event: DockviewReadyEvent) => {
+  dockviewApi.value = event.api
+
+    // Expose dockview API and shared panel params so HeaderMenuBar can add panels
+    ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
+
+  // Restore layout for current project
+  restoreLayout(event.api)
+
+  // Watch for project changes and restore layout
+  watch(
+    () => projectManager.getCurrentProjectInfo()?.id,
+    (newProjectId, oldProjectId) => {
+      if (newProjectId && newProjectId !== oldProjectId && dockviewApi.value) {
+        console.log('Project changed, restoring layout for:', newProjectId)
+        restoreLayout(dockviewApi.value)
+      }
+    }
+  )
 
   // Track panel count
   const updatePanelCount = () => {
@@ -136,10 +158,10 @@ const onReady = (event: DockviewReadyEvent) => {
         })
       }
 
-      localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layout))
-      console.log('Layout saved to localStorage')
+      stateManager.state.dockviewLayout = layout
+      console.log('Layout saved to project state')
     } catch (err) {
-      console.error('Failed to save layout to localStorage:', err)
+      console.error('Failed to save layout to project state:', err)
     }
   })
 }

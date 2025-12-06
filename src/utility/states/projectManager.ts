@@ -58,7 +58,7 @@ export class ProjectManager {
     this.enforceProjectLimit()
 
     const project: Project = {
-      id: `project-${Date.now()}`,
+      id: `${Date.now()}`,
       name,
       lastModified: Date.now(),
       state: initialState || { version: 1 }
@@ -222,10 +222,32 @@ export class ProjectManager {
     // Parse the file
     const importedProject = await ProjectFileOperations.loadProjectFromFile(file)
 
-    // Enforce project limit before loading
+    // Check if a project with this ID already exists
+    const existingProject = ProjectStorage.loadProject(importedProject.id)
+
+    if (existingProject) {
+      // Update existing project
+      console.log(`Updating existing project: ${importedProject.name} (${importedProject.id})`)
+      existingProject.state = importedProject.state
+      existingProject.name = importedProject.name
+      existingProject.lastModified = Date.now()
+
+      ProjectStorage.saveProject(existingProject)
+      this.updateProjectInfo({
+        id: existingProject.id,
+        name: existingProject.name,
+        lastModified: existingProject.lastModified
+      })
+      this.setCurrentProjectId(existingProject.id)
+
+      return existingProject
+    }
+
+    // Enforce project limit before loading new project
     this.enforceProjectLimit()
 
-    // Save the imported project
+    // Save the imported project as new
+    console.log(`Importing new project: ${importedProject.name} (${importedProject.id})`)
     ProjectStorage.saveProject(importedProject)
     this.updateProjectInfo({
       id: importedProject.id,

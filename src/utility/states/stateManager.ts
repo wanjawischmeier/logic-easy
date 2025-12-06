@@ -1,7 +1,6 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { type TruthTableState } from './truthTableState'
 import { projectManager } from './projectManager'
-import { restoreDefaultPanelLayout } from '../truthTableCreation'
 
 const STORAGE_VERSION = 1
 
@@ -12,6 +11,7 @@ export interface AppState {
   version: number
   truthTable?: TruthTableState
   panelStates?: Record<string, Record<string, unknown>>
+  dockviewLayout?: unknown // Stores the dockview panel layout
 }
 
 /**
@@ -110,14 +110,6 @@ export function createStateManager() {
 
         if (!state.panelStates) {
           state.panelStates = {}
-        }
-
-        if (Object.keys(state.panelStates).length === 0) {
-          // Restore default panel layout if truth table exists
-          const truthTable = stateManager.state.truthTable;
-          if (truthTable) {
-            restoreDefaultPanelLayout(truthTable.inputVars.length);
-          }
         }
       }
     },

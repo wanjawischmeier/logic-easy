@@ -28,7 +28,6 @@ import type { ComputedRef } from 'vue';
 import type { ListEntry } from '@/utility/types';
 import { projectManager } from '@/utility/states/projectManager';
 import { stateManager } from '@/utility/states/stateManager';
-import { restoreDefaultPanelLayout } from '@/utility/truthTableCreation';
 
 export default defineComponent({
   name: 'GettingStartedView',
