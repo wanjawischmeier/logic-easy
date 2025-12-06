@@ -16,6 +16,15 @@ app.config.errorHandler = (err) => {
   console.log(err);
 };
 
+// Register a global custom directive called `v-focus`
+// Taken from https://stackoverflow.com/a/67576157
+app.directive('focus', {
+  // Autofocus an element
+  mounted(el) {
+    el.focus()
+  }
+})
+
 app.component('dockview-vue', DockviewVue);
 
 // Register dock components from the central registry

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="mt-6 mb-2 ml-5 text-xl text-secondary-variant">{{ title }}</div>
+    <div class="mt-6 mb-2 ml-5 text-xl text-secondary-variant select-none">{{ title }}</div>
 
     <!-- grid-based terminal-style directory view -->
     <div class="relative">

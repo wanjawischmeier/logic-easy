@@ -6,13 +6,13 @@
 
       <!-- Popup Content -->
       <div
-        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full pt-4 pb-2 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 select-none">
-          <h2 class="text-xl font-semibold text-on-surface">{{ title }}</h2>
-          <button @click="close" class="text-on-surface-disabled hover:text-on-surface" type="button">
-            <span class="text-2xl leading-none">&times;</span>
-          </button>
+        <input v-focus ref="projectInput" type="text" placeholder="Project Name" maxlength="40" v-model="projectValue"
+          class="pl-6 outline-none truncate text-3xl text-on-surface" @keydown.enter="handleProjectEnter" />
+        <div class="w-50 flex justify-center items-center gap-2 shrink-0 max-w-full ">
+
+
         </div>
 
         <!-- Content Area -->
@@ -33,6 +33,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue';
+
 
 export type PopupActionType = 'DEFAULT' | 'SUBMIT' | 'WARNING' | 'DISABLED';
 
@@ -82,5 +84,24 @@ function getActionClass(type: PopupActionType): string {
     default:
       return `${baseClass} bg-surface-2`;
   }
+}
+
+
+const projectInput = ref<HTMLInputElement>()
+const projectValue = ref('')
+
+watch(projectValue, (newVal) => {
+  // Strip out invalid chars
+  projectValue.value = newVal.replace(/[^A-Za-z0-9\s_\\-\\(\\)]/g, '')
+})
+
+const handleProjectEnter = (event: KeyboardEvent) => {
+  const input = event.target as HTMLInputElement
+  input.scrollLeft = 0
+  // Call your function here
+  // saveProject((event.target as HTMLInputElement).value)
+
+  // Blur to defocus and reset scroll to beginning
+  projectInput.value?.blur()
 }
 </script>

@@ -27,7 +27,8 @@
         </svg>
 
         <input ref="projectInput" type="text" placeholder="Project Name" maxlength="40" v-model="projectValue"
-          class="flex-1 bg-transparent outline-none min-w-0 p-0.5 truncate" @keydown.enter="handleProjectEnter" />
+          class="flex-1 bg-transparent outline-none min-w-0 p-0.5 truncate text-primary-variant focus-within:text-on-surface"
+          @keydown.enter="handleProjectEnter" />
       </div>
     </div>
   </header>
