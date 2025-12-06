@@ -42,7 +42,7 @@ export default defineComponent({
     const newProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
       newMenu.value.map((menuEntry: MenuEntry) => ({
         label: menuEntry.label,
-        disabled: !!menuEntry.disabled,
+        disabled: menuEntry.disabled,
         action: () => runAction(menuEntry),
       }))
     );

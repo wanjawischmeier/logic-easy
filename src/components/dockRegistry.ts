@@ -33,28 +33,6 @@ export type MenuEntry = {
   disabled?: boolean;
 };
 
-export const newMenu = computed<MenuEntry[]>(() =>
-  dockRegistry
-    .filter((menuEntry) => menuEntry.projectPropsComponent)
-    .map((menuEntry) => ({
-      label: menuEntry.label,
-      panelKey: menuEntry.id,
-      withPopup: true,
-      disabled: !checkDockEntryRequirements(menuEntry, 'CREATE')
-    }))
-    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
-);
-
-export const viewMenu = computed<MenuEntry[]>(() => {
-  return dockRegistry
-    .map((menuEntry) => ({
-      label: menuEntry.label,
-      panelKey: menuEntry.id,
-      disabled: !checkDockEntryRequirements(menuEntry, 'VIEW')
-    }))
-    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
-});
-
 export const dockRegistry: DockEntry[] = [
   {
     id: 'truth-table',
@@ -78,6 +56,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'transition-table',
     label: 'Transition Table',
     component: KVDiagramPanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
     requires: {
       create: ['NotSupported']
     }
@@ -86,6 +65,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'state-table',
     label: 'State Table',
     component: KVDiagramPanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
     requires: {
       create: ['NotSupported']
     }
@@ -94,6 +74,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'state-machine',
     label: 'State Machine',
     component: KVDiagramPanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
     requires: {
       create: ['NotSupported']
     }
@@ -109,6 +90,28 @@ export const dockRegistry: DockEntry[] = [
     component: LogicCircuitsTestingPanel
   },
 ];
+
+export const newMenu = computed<MenuEntry[]>(() =>
+  dockRegistry
+    .filter((menuEntry) => menuEntry.projectPropsComponent)
+    .map((menuEntry) => ({
+      label: menuEntry.label,
+      panelKey: menuEntry.id,
+      withPopup: true,
+      disabled: !checkDockEntryRequirements(menuEntry, 'CREATE')
+    }))
+    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
+);
+
+export const viewMenu = computed<MenuEntry[]>(() => {
+  return dockRegistry
+    .map((menuEntry) => ({
+      label: menuEntry.label,
+      panelKey: menuEntry.id,
+      disabled: !checkDockEntryRequirements(menuEntry, 'VIEW')
+    }))
+    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
+});
 
 // mapping for :components prop consumed by dockview
 export const dockComponents: Record<string, unknown> = Object.fromEntries(
