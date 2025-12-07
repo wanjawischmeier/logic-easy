@@ -50,14 +50,36 @@ export class ProjectManager {
     ProjectStorage.saveMetadata(this.metadata)
   }
 
+  openProject(projectId: string): Project | null {
+    const project = ProjectStorage.loadProject(projectId)
+    if (!project) return null
+
+    projectManager.setCurrentProjectId(projectId)
+
+    // Clear existing state
+    Object.keys(stateManager.state).forEach(
+      key => delete (
+        stateManager.state as Record<string, unknown>
+      )[key]
+    )
+
+    // Assign new project state
+    Object.assign(stateManager.state, project.state)
+    if (!stateManager.state.panelStates) {
+      stateManager.state.panelStates = {}
+    }
+
+    return project
+  }
+
   /**
    * Create a new project
    */
-  createProject(name: string): Project {
+  createProject(name: string): Project | null {
     // Enforce project limit before creating
     projectManager.enforceProjectLimit()
 
-    const project: Project = {
+    let project: Project | null = {
       id: `${Date.now()}`,
       name,
       lastModified: Date.now(),
@@ -70,23 +92,14 @@ export class ProjectManager {
       name: project.name,
       lastModified: project.lastModified
     })
-    projectManager.setCurrentProjectId(project.id)
 
-    // Clear existing state
-    Object.keys(stateManager.state).forEach(
-      key => delete (
-        stateManager.state as Record<string, unknown>
-      )[key]
-    )
-
-    // Assign new project state
-    Object.assign(stateManager.state, project.state)
-
-    if (!stateManager.state.panelStates) {
-      stateManager.state.panelStates = {}
+    project = projectManager.openProject(project.id)
+    if (project) {
+      return project
+    } else {
+      console.error(`Failed to create project: ${name}`)
+      return null
     }
-
-    return project
   }
 
   /**
