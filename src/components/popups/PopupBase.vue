@@ -6,13 +6,11 @@
 
       <!-- Popup Content -->
       <div
-        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full pt-4 pb-2 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200"
+        @keydown.enter="onEnterPress(confirmAction)">
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 select-none">
-          <h2 class="text-xl font-semibold text-on-surface">{{ title }}</h2>
-          <button @click="close" class="text-on-surface-disabled hover:text-on-surface" type="button">
-            <span class="text-2xl leading-none">&times;</span>
-          </button>
+        <div class="px-6 pb-4">
+          <h2 class="text-3xl text-on-surface">{{ title }}</h2>
         </div>
 
         <!-- Content Area -->
@@ -33,7 +31,6 @@
 </template>
 
 <script setup lang="ts">
-
 export type PopupActionType = 'DEFAULT' | 'SUBMIT' | 'WARNING' | 'DISABLED';
 
 export type PopupAction = {
@@ -47,6 +44,7 @@ defineProps<{
   visible: boolean;
   title: string;
   actions: PopupAction[];
+  confirmAction?: PopupAction
 }>();
 
 const emit = defineEmits<{
@@ -61,7 +59,13 @@ function onBarrierClick() {
   close();
 }
 
-function handleAction(action: PopupAction) {
+function onEnterPress(action?: PopupAction) {
+  handleAction(action)
+}
+
+function handleAction(action?: PopupAction) {
+  if (!action) return;
+
   action.onClick();
   if (action.closesPopup !== false) {
     close();
@@ -83,4 +87,6 @@ function getActionClass(type: PopupActionType): string {
       return `${baseClass} bg-surface-2`;
   }
 }
+
+
 </script>

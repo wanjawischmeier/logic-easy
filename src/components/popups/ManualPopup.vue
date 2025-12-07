@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import PopupBase, { type PopupAction } from '@/components/PopupBase.vue';
+import PopupBase, { type PopupAction } from '@/components/popups/PopupBase.vue';
 import { popupService } from '@/utility/popupService';
 
 function onClose() {

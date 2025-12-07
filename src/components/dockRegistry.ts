@@ -3,8 +3,8 @@ import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import { stateManager } from '@/utility/states/stateManager';
-import TruthTablePopup from './popups/TruthTablePopup.vue';
-import { computed } from 'vue';
+import TruthTableProjectProps from './popups/TruthTableProjectProps.vue';
+import { computed, markRaw } from 'vue';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -19,7 +19,7 @@ type DockEntry = {
   id: string;
   label: string;
   component: unknown;
-  createPopup?: unknown;
+  projectPropsComponent?: unknown;
   requires?: Requirements;
 };
 
@@ -33,9 +33,67 @@ export type MenuEntry = {
   disabled?: boolean;
 };
 
+export const dockRegistry: DockEntry[] = [
+  {
+    id: 'truth-table',
+    label: 'Truth Table',
+    component: TruthTablePanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
+    requires: {
+      view: ['TruthTable']
+    }
+  },
+  {
+    id: 'kv-diagram',
+    label: 'KV Diagram',
+    component: KVDiagramPanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
+    requires: {
+      view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+    }
+  },
+  {
+    id: 'transition-table',
+    label: 'Transition Table',
+    component: KVDiagramPanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
+    requires: {
+      create: ['NotSupported']
+    }
+  },
+  {
+    id: 'state-table',
+    label: 'State Table',
+    component: KVDiagramPanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
+    requires: {
+      create: ['NotSupported']
+    }
+  },
+  {
+    id: 'state-machine',
+    label: 'State Machine',
+    component: KVDiagramPanel,
+    projectPropsComponent: markRaw(TruthTableProjectProps),
+    requires: {
+      create: ['NotSupported']
+    }
+  },
+  {
+    id: 'espresso-testing',
+    label: 'Espresso Testing Panel',
+    component: EspressoTestingPanel
+  },
+  {
+    id: 'lc-testing',
+    label: 'Logic Circuits Panel',
+    component: LogicCircuitsTestingPanel
+  },
+];
+
 export const newMenu = computed<MenuEntry[]>(() =>
   dockRegistry
-    .filter((menuEntry) => menuEntry.createPopup)
+    .filter((menuEntry) => menuEntry.projectPropsComponent)
     .map((menuEntry) => ({
       label: menuEntry.label,
       panelKey: menuEntry.id,
@@ -55,64 +113,6 @@ export const viewMenu = computed<MenuEntry[]>(() => {
     .sort((a, b) => Number(a.disabled) - Number(b.disabled))
 });
 
-export const dockRegistry: DockEntry[] = [
-  {
-    id: 'truth-table',
-    label: 'Truth Table',
-    component: TruthTablePanel,
-    createPopup: TruthTablePopup,
-    requires: {
-      view: ['TruthTable']
-    }
-  },
-  {
-    id: 'kv-diagram',
-    label: 'KV Diagram',
-    component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
-    requires: {
-      view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
-    }
-  },
-  {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
-    requires: {
-      create: ['NotSupported']
-    }
-  },
-  {
-    id: 'state-table',
-    label: 'State Table',
-    component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
-    requires: {
-      create: ['NotSupported']
-    }
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    createPopup: TruthTablePopup,
-    requires: {
-      create: ['NotSupported']
-    }
-  },
-  {
-    id: 'espresso-testing',
-    label: 'Espresso Testing Panel',
-    component: EspressoTestingPanel
-  },
-  {
-    id: 'lc-testing',
-    label: 'Logic Circuits Panel',
-    component: LogicCircuitsTestingPanel
-  },
-];
-
 // mapping for :components prop consumed by dockview
 export const dockComponents: Record<string, unknown> = Object.fromEntries(
   dockRegistry.map((e) => [e.id, e.component])
@@ -124,7 +124,6 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   let checkPassed = true;
 
   requirements.forEach((requirement) => {
-    console.log(requirement)
     switch (requirement) {
       case 'TruthTable':
         if (stateManager.state.truthTable === undefined) {

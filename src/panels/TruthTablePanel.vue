@@ -6,7 +6,7 @@ import { useTruthTableState } from '@/utility/states/truthTableState';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 
-const props = defineProps<IDockviewPanelProps>()
+const props = defineProps<Partial<IDockviewPanelProps>>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
