@@ -15,8 +15,8 @@
       </div>
 
       <div v-if="currentProjectInfo" class="flex bg-surface-2 rounded-t-xs">
-        <div class="w-45 flex items-center shrink-0 max-w-full
-  border border-transparent
+        <div title="Rename Project" class="w-45 flex items-center shrink-0 max-w-full
+  border border-transparent rounded-xs
   hover:border-gray-300
   focus-within:border-primary
   focus-within:hover:border-primary">
@@ -32,8 +32,8 @@
             @keydown.enter="handleProjectEnter" />
         </div>
 
-        <button type="button" @click="stateManager.closeCurrentProject" aria-label="Close project" title="Close project"
-          class="h-full px-3 text-xl rounded-xs hover:bg-primary-variant">
+        <button type="button" @click="stateManager.closeCurrentProject" title="Close project"
+          class="h-full px-3 text-xl rounded-xs border border-transparent hover:bg-red-900 hover:border-on-surface">
           <span aria-hidden="true">×</span>
         </button>
       </div>
