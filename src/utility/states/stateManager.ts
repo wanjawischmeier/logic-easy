@@ -168,10 +168,6 @@ export class StateManager {
     return stopWatch
   }
 
-  /**
-     * Close the current project by closing all open panels
-     * This will trigger the automatic project close when panels reach 0
-     */
   closeCurrentProject() {
     const api = getDockviewApi()
     if (!api) {
@@ -180,8 +176,7 @@ export class StateManager {
       return
     }
 
-    // Close all panels - this will automatically trigger projectManager.closeCurrentProject()
-    // through the updatePanelCount listener in DockView.vue
+    // Close all panels - will automatically trigger projectManager.closeCurrentProject()
     const panelIds = api.panels.map(p => p.id)
     panelIds.forEach(id => {
       const panel = api.panels.find(p => p.id === id)

@@ -19,7 +19,7 @@ export class ProjectManager {
   }
 
   public projectString(project: Project | ProjectInfo): string {
-    return `${project.name} (${project.id})`
+    return `${project.name} (id=${project.id})`
   }
 
   /**
