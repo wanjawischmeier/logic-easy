@@ -5,6 +5,7 @@ import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import { stateManager } from '@/utility/states/stateManager';
 import TruthTableProjectProps from './popups/TruthTableProjectProps.vue';
 import { computed, markRaw } from 'vue';
+import StateMachine from './StateMachine.vue';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -73,11 +74,7 @@ export const dockRegistry: DockEntry[] = [
   {
     id: 'state-machine',
     label: 'State Machine',
-    component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
-    requires: {
-      create: ['NotSupported']
-    }
+    component: StateMachine,
   },
   {
     id: 'espresso-testing',

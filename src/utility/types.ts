@@ -41,6 +41,25 @@ export interface ListEntry {
 
 export type ListEntries = ListEntry[];
 
+export interface FsmState {
+  id: string;
+  name: string;
+  initial: boolean;
+  final: boolean;
+}
+
+export interface Fsmtransition {
+  id: string;
+  from: string;
+  to: string;
+  label: string;
+}
+
+export interface FsmExport {
+  states: FsmState[];
+  transitions: Fsmtransition[];
+}
+
 
 /**
  * Project information (without the full state)
