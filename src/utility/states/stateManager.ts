@@ -117,11 +117,6 @@ export class StateManager {
       const extension = file.name.split('.').pop()?.toLowerCase();
       if (extension === 'le') {
         await projectManager.loadProjectFromFile(file);
-
-        const projectInfo = projectManager.currentProjectInfo;
-        if (projectInfo) {
-          projectManager.openProject(projectInfo.id)
-        }
       } else {
         alert('Opening of LogicCircuits projects not supported yet');
       }

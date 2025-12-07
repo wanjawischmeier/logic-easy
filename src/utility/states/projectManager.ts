@@ -261,7 +261,9 @@ export class ProjectManager {
         name: existingProject.name,
         lastModified: existingProject.lastModified
       })
-      projectManager.setCurrentProjectId(existingProject.id)
+
+      // Open the project to trigger state loading and watch
+      projectManager.openProject(existingProject.id)
 
       return existingProject
     }
@@ -277,7 +279,9 @@ export class ProjectManager {
       name: importedProject.name,
       lastModified: importedProject.lastModified
     })
-    projectManager.setCurrentProjectId(importedProject.id)
+
+    // Open the project to trigger state loading and watch
+    projectManager.openProject(importedProject.id)
 
     return importedProject
   }
