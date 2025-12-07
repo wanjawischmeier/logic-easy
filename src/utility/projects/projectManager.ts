@@ -21,13 +21,11 @@ export class ProjectManager {
     this.importExport = new ProjectImportExport(this.metadata)
   }
 
-  // === Formatting ===
-
   public projectString(project: Project | ProjectInfo): string {
     return this.metadata.projectString(project)
   }
 
-  // === Current Project (Lifecycle) ===
+  // === Current Project ===
 
   openProject(projectId: string): Project | null {
     return this.lifecycle.open(projectId)
@@ -49,7 +47,7 @@ export class ProjectManager {
     return this.lifecycle.currentInfo
   }
 
-  // === Project CRUD (Operations) ===
+  // === Project CRUD ===
 
   createProject(name: string): Project | null {
     const project = this.operations.create(name)
