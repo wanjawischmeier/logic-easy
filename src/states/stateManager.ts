@@ -1,6 +1,6 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '../projects/projectManager'
-import { getDockviewApi } from '../dockviewIntegration'
+import { getDockviewApi } from '../utility/dockviewIntegration'
 import { StateFileOperations } from './stateFileOperations'
 import type { TruthTableState } from './truthTableState'
 

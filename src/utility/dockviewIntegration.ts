@@ -1,9 +1,9 @@
 import type { AddPanelPositionOptions } from 'dockview-vue';
 import { popupService } from './popupService';
-import { checkDockEntryRequirements, dockRegistry } from '@/components/dockRegistry';
+import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry';
 import { updateTruthTable } from './truthTableInterpreter';
-import { createTruthTableProject } from './projects/create/truthTableProjectCreation';
-import { stateManager } from './states/stateManager';
+import { createTruthTableProject } from '../projects/create/truthTableProjectCreation';
+import { stateManager } from '../states/stateManager';
 
 export type DockviewApiMinimal = {
   addPanel: (opts: {

@@ -3,7 +3,7 @@ import { createApp, defineComponent, type Component } from 'vue';
 import { DockviewVue } from 'dockview-vue';
 import router from './router';
 import { VueLatex } from 'vatex';
-import { dockComponents } from './components/dockRegistry';
+import { dockComponents } from './router/dockRegistry';
 import { logicCircuits } from './utility/logicCircuitsWrapper';
 
 const App = defineComponent({

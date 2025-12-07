@@ -7,8 +7,8 @@ import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
-import { stateManager } from '@/utility/states/stateManager';
-import { useTruthTableState } from '@/utility/states/truthTableState';
+import { stateManager } from '@/states/stateManager';
+import { useTruthTableState } from '@/states/truthTableState';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

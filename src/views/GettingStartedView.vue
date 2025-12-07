@@ -24,11 +24,11 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
 import { addPanelWithPopup } from '@/utility/dockviewIntegration';
-import { newMenu, type MenuEntry } from '@/components/dockRegistry';
+import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import type { ComputedRef } from 'vue';
 import type { ListEntry } from '@/utility/types';
-import { projectManager } from '@/utility/projects/projectManager';
+import { projectManager } from '@/projects/projectManager';
 
 export default defineComponent({
   name: 'GettingStartedView',

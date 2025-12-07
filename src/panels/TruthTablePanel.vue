@@ -4,7 +4,7 @@ import TruthTable from '../components/TruthTable.vue'
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
-import { useTruthTableState } from '@/utility/states/truthTableState';
+import { useTruthTableState } from '@/states/truthTableState';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

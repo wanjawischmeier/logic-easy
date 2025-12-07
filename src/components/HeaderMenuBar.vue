@@ -44,13 +44,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
-import { newMenu, viewMenu, type MenuEntry } from '@/components/dockRegistry';
+import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry';
 import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
-import { projectManager } from '@/utility/projects/projectManager';
-import { stateManager } from '@/utility/states/stateManager';
+import { projectManager } from '@/projects/projectManager';
+import { stateManager } from '@/states/stateManager';
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 

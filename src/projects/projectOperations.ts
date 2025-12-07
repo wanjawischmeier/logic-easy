@@ -1,7 +1,7 @@
 import { ProjectStorage } from './projectStorage'
 import { ProjectMetadataManager } from './projectMetadata'
 import { createDefaultAppState, type AppState } from '../states/stateManager'
-import type { Project } from '../types'
+import type { Project } from '../utility/types'
 
 /**
  * Handles CRUD operations on projects (create, rename, update, delete)
