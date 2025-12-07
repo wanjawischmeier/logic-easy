@@ -1,6 +1,7 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from './projectManager'
 import { getDockviewApi } from '../dockviewIntegration'
+import { StateFileOperations } from './stateFileOperations'
 import type { TruthTableState } from './truth-table/truthTableState'
 
 const STORAGE_VERSION = 1
@@ -25,11 +26,16 @@ export function createDefaultAppState(): AppState {
   }
 }
 
+/**
+ * Manages application state and syncs with project storage
+ */
 export class StateManager {
   public state: UnwrapNestedRefs<AppState>
   private saveTimer: ReturnType<typeof setTimeout> | null = null
+  private fileOps: StateFileOperations
 
   constructor() {
+    this.fileOps = new StateFileOperations()
     this.state = reactive(this.loadState() || createDefaultAppState()) as UnwrapNestedRefs<AppState>
 
     // Ensure panelStates exists if state is loaded
@@ -52,8 +58,8 @@ export class StateManager {
   }
 
   /**
- * Load state from project manager
- */
+   * Load state from project manager
+   */
   private loadState(): AppState | null {
     try {
       // Try to get current project from project manager
@@ -78,8 +84,8 @@ export class StateManager {
   }
 
   /**
- * Save state to project manager
- */
+   * Save state to project manager
+   */
   private saveState(state: AppState): void {
     try {
       const currentProjectInfo = projectManager.currentProjectInfo
@@ -94,48 +100,24 @@ export class StateManager {
     }
   }
 
-  async openFile() {
-    try {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.le,.lc';
-      input.multiple = false;
-      input.style.display = 'none';
-      document.body.appendChild(input);
-
-      const file: File | null = await new Promise((resolve) => {
-        input.addEventListener('change', () => {
-          resolve(input.files && input.files[0] ? input.files[0] : null);
-        }, { once: true });
-        input.click();
-      });
-
-      document.body.removeChild(input);
-
-      if (!file) return;
-
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      if (extension === 'le') {
-        await projectManager.loadProjectFromFile(file);
-      } else {
-        alert('Opening of LogicCircuits projects not supported yet');
-      }
-    } catch (error) {
-      console.error(`Failed to load project from file: ${error}`);
-    }
+  /**
+   * Open file picker and load a project
+   */
+  async openFile(): Promise<void> {
+    return this.fileOps.openFile()
   }
 
   /**
-     * Manually trigger a save
-     */
-  save() {
+   * Manually trigger a save
+   */
+  save(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer)
     this.saveState(this.state as AppState)
   }
 
   /**
-     * Get panel state by panel ID
-     */
+   * Get panel state by panel ID
+   */
   getPanelState<T = Record<string, unknown>>(panelId: string): T | undefined {
     const panelState = this.state.panelStates?.[panelId]
     // Return a plain object copy to avoid reactivity issues
@@ -143,11 +125,11 @@ export class StateManager {
   }
 
   /**
-     * Watch and auto-save panel state changes
-     * @param panelId The panel ID to save state for
-     * @param stateGetter Function that returns the current state object
-     * @returns Cleanup function to stop watching
-     */
+   * Watch and auto-save panel state changes
+   * @param panelId The panel ID to save state for
+   * @param stateGetter Function that returns the current state object
+   * @returns Cleanup function to stop watching
+   */
   watchPanelState(panelId: string, stateGetter: () => Record<string, unknown>) {
     const stopWatch = watch(
       stateGetter,
@@ -163,7 +145,10 @@ export class StateManager {
     return stopWatch
   }
 
-  closeCurrentProject() {
+  /**
+   * Close the current project
+   */
+  closeCurrentProject(): void {
     const api = getDockviewApi()
     if (!api) {
       console.warn('Dockview API not available, closing project directly')
