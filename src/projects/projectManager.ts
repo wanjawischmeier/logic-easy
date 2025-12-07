@@ -1,5 +1,5 @@
 import type { AppState } from '../states/stateManager'
-import type { ProjectInfo, Project } from '../types'
+import type { ProjectInfo, Project } from '../utility/types'
 import { ProjectMetadataManager } from './projectMetadata'
 import { ProjectLifecycleManager } from './projectLifecycle'
 import { ProjectOperations } from './projectOperations'

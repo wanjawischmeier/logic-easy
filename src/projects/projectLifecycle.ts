@@ -2,7 +2,7 @@ import { ref, type Ref } from 'vue'
 import { stateManager } from '../states/stateManager'
 import { ProjectStorage } from './projectStorage'
 import { ProjectMetadataManager } from './projectMetadata'
-import type { Project } from '../types'
+import type { Project } from '../utility/types'
 
 /**
  * Manages current project state (opening, closing, tracking current project)

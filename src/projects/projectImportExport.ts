@@ -1,7 +1,7 @@
 import { ProjectStorage } from './projectStorage'
 import { ProjectFileOperations } from './projectFileOperations'
 import { ProjectMetadataManager } from './projectMetadata'
-import type { Project } from '../types'
+import type { Project } from '../utility/types'
 
 /**
  * Handles import/export operations for projects
