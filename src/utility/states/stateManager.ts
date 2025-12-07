@@ -85,12 +85,12 @@ export class StateManager {
       const currentProjectInfo = projectManager.currentProjectInfo
       if (currentProjectInfo) {
         projectManager.updateProjectState(currentProjectInfo.id, state)
-        console.log('Saved app state to project:', currentProjectInfo.name)
+        console.log(`Saved app state to project: ${projectManager.projectString(currentProjectInfo)}`)
       } else {
         console.warn('No current project to save state to')
       }
     } catch (error) {
-      console.error('Failed to save state to project manager:', error)
+      console.error(`Failed to save state to project manager: ${error}`)
     }
   }
 
@@ -123,10 +123,10 @@ export class StateManager {
           projectManager.openProject(projectInfo.id)
         }
       } else {
-        alert('Opening of LogicCircuits not supported yet');
+        alert('Opening of LogicCircuits projects not supported yet');
       }
-    } catch (err) {
-      console.error('Failed to load project from file', err);
+    } catch (error) {
+      console.error(`Failed to load project from file: ${error}`);
     }
   }
 

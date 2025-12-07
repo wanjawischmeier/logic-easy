@@ -18,6 +18,10 @@ export class ProjectManager {
     this.currentProjectId = ref(ProjectStorage.loadCurrentProjectId())
   }
 
+  public projectString(project: Project | ProjectInfo): string {
+    return `${project.name} (${project.id})`
+  }
+
   /**
    * Enforce the 5-project limit by removing the oldest project
    */
@@ -32,7 +36,7 @@ export class ProjectManager {
         ProjectStorage.removeProject(oldestProject.id)
         this.metadata.projects = this.metadata.projects.filter(p => p.id !== oldestProject.id)
 
-        console.log(`Removed oldest project: ${oldestProject.name} (${oldestProject.id})`)
+        console.log(`Removed oldest project: ${this.projectString(oldestProject)}`)
       }
     }
   }
@@ -79,25 +83,25 @@ export class ProjectManager {
     // Enforce project limit before creating
     projectManager.enforceProjectLimit()
 
-    let project: Project | null = {
+    const projectBase: Project | null = {
       id: `${Date.now()}`,
       name,
       lastModified: Date.now(),
       state: createDefaultAppState()
     }
 
-    ProjectStorage.saveProject(project)
+    ProjectStorage.saveProject(projectBase)
     projectManager.updateProjectInfo({
-      id: project.id,
-      name: project.name,
-      lastModified: project.lastModified
+      id: projectBase.id,
+      name: projectBase.name,
+      lastModified: projectBase.lastModified
     })
 
-    project = projectManager.openProject(project.id)
+    const project = projectManager.openProject(projectBase.id)
     if (project) {
       return project
     } else {
-      console.error(`Failed to create project: ${name}`)
+      console.error(`Failed to create project: ${this.projectString(projectBase)}`)
       return null
     }
   }
@@ -108,11 +112,11 @@ export class ProjectManager {
   renameProject(projectId: string, newName: string): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
-      console.error(`Project not found: ${projectId}`)
+      console.error(`Project not found with id: ${projectId}`)
       return false
     }
 
-    console.log(`Renaming project: ${project.name} => ${newName}`)
+    console.log(`Renaming project: ${project.name} => ${newName} (${project.id})`)
     project.name = newName
     project.lastModified = Date.now()
 
@@ -168,7 +172,7 @@ export class ProjectManager {
   setCurrentProject(projectId: string): boolean {
     const projectInfo = projectManager.metadata.projects.find(p => p.id === projectId)
     if (!projectInfo) {
-      console.error(`Project not found: ${projectId}`)
+      console.error(`Project not found with id: ${projectId}`)
       return false
     }
 
@@ -183,7 +187,7 @@ export class ProjectManager {
     const projectInfo = projectManager.currentProjectInfo
     if (!projectInfo) return;
 
-    console.log(`Closing project: ${projectInfo.name}`)
+    console.log(`Closing project: ${this.projectString(projectInfo)}`)
     projectManager.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
   }
@@ -194,7 +198,7 @@ export class ProjectManager {
   updateProjectState(projectId: string, state: AppState): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
-      console.error(`Project not found: ${projectId}`)
+      console.error(`Project not found with id: ${projectId}`)
       return false
     }
 
@@ -246,7 +250,7 @@ export class ProjectManager {
 
     if (existingProject) {
       // Update existing project
-      console.log(`Updating existing project: ${importedProject.name} (${importedProject.id})`)
+      console.log(`Updating existing project: ${this.projectString(importedProject)}`)
       existingProject.state = importedProject.state
       existingProject.name = importedProject.name
       existingProject.lastModified = Date.now()
@@ -266,7 +270,7 @@ export class ProjectManager {
     projectManager.enforceProjectLimit()
 
     // Save the imported project as new
-    console.log(`Importing new project: ${importedProject.name} (${importedProject.id})`)
+    console.log(`Importing new project: ${this.projectString(importedProject)}`)
     ProjectStorage.saveProject(importedProject)
     projectManager.updateProjectInfo({
       id: importedProject.id,
