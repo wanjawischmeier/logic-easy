@@ -1,6 +1,6 @@
-import { Formula, FunctionType, type TruthTableData } from "../types"
+import { type TruthTableData, Formula, FunctionType } from "@/utility/types"
 import { computed } from "vue"
-import { stateManager } from "./stateManager"
+import { stateManager } from "../stateManager"
 
 /**
  * Truth table state structure

@@ -1,7 +1,7 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
-import { type TruthTableState } from './truthTableState'
 import { projectManager } from './projectManager'
 import { getDockviewApi } from '../dockviewIntegration'
+import type { TruthTableState } from './truth-table/truthTableState'
 
 const STORAGE_VERSION = 1
 
