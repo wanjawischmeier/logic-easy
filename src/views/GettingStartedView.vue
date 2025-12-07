@@ -28,8 +28,7 @@ import { newMenu, type MenuEntry } from '@/components/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import type { ComputedRef } from 'vue';
 import type { ListEntry } from '@/utility/types';
-import { projectManager } from '@/utility/states/projectManager';
-import { stateManager } from '@/utility/states/stateManager';
+import { projectManager } from '@/utility/projects/projectManager';
 
 export default defineComponent({
   name: 'GettingStartedView',
@@ -52,7 +51,7 @@ export default defineComponent({
       projectManager.listProjects().map((project) => ({
         label: project.name,
         action: () => {
-          stateManager.loadProject(project.id);
+          projectManager.openProject(project.id);
         },
       }))
     );

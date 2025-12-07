@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
 import { stateManager } from '@/utility/states/stateManager'
-import { projectManager } from '@/utility/states/projectManager'
+import { projectManager } from '@/utility/projects/projectManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
@@ -115,7 +115,7 @@ const onReady = (event: DockviewReadyEvent) => {
 
   // Watch for project changes and restore layout
   watch(
-    () => projectManager.getCurrentProjectInfo()?.id,
+    () => projectManager.currentProjectInfo?.id,
     (newProjectId, oldProjectId) => {
       if (newProjectId && newProjectId !== oldProjectId && event.api) {
         console.log('Project changed, restoring layout for:', newProjectId)
@@ -183,7 +183,26 @@ const handleProjectCreate = (projectName: string) => {
   popupService.close()
 }
 
+const onKeydown = (e: KeyboardEvent) => {
+  const isCtrlOrCmd = e.ctrlKey || e.metaKey  // Windows/Linux ctrl, macOS cmd
+
+  if (isCtrlOrCmd && e.key.toLowerCase() === 's') {
+    e.preventDefault()
+    projectManager.downloadProject()
+  }
+
+  if (isCtrlOrCmd && e.key.toLowerCase() === 'o') {
+    e.preventDefault()
+    stateManager.openFile()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+})
+
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
   layoutChangeDisposable?.dispose?.()
   panelDisposable?.dispose?.()
 })

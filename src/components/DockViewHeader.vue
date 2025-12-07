@@ -14,9 +14,9 @@
         <HeaderMenuBar />
       </div>
 
-      <div v-if="currentProjectInfo" class="flex">
-        <div class="w-45 flex items-center shrink-0 max-w-full bg-surface-2 rounded-l-xs
-  border border-transparent
+      <div v-if="currentProjectInfo" class="flex bg-surface-2 rounded-t-xs">
+        <div title="Rename Project" class="w-45 flex items-center shrink-0 max-w-full
+  border border-transparent rounded-xs
   hover:border-gray-300
   focus-within:border-primary
   focus-within:hover:border-primary">
@@ -32,8 +32,8 @@
             @keydown.enter="handleProjectEnter" />
         </div>
 
-        <button type="button" @click="stateManager.closeCurrentProject" aria-label="Close project" title="Close project"
-          class="h-full px-3 text-xl bg-surface-2 rounded-l-none rounded-r-xs hover:bg-primary-variant">
+        <button type="button" @click="stateManager.closeCurrentProject" title="Close project"
+          class="h-full px-3 text-xl rounded-xs border border-transparent hover:bg-red-900 hover:border-on-surface">
           <span aria-hidden="true">×</span>
         </button>
       </div>
@@ -44,11 +44,11 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import HeaderMenuBar from './HeaderMenuBar.vue';
-import { projectManager } from '@/utility/states/projectManager';
+import { projectManager } from '@/utility/projects/projectManager';
 import { stateManager } from '@/utility/states/stateManager';
 
 const projectInput = ref<HTMLInputElement>()
-const currentProjectInfo = computed(() => projectManager.getCurrentProjectInfo())
+const currentProjectInfo = computed(() => projectManager.currentProjectInfo)
 const projectValue = ref(currentProjectInfo.value?.name)
 
 // Watch for external changes to project name
@@ -70,7 +70,7 @@ const handleProjectEnter = (event: KeyboardEvent) => {
   input.scrollLeft = 0
   projectInput.value?.blur()
 
-  const projectInfo = projectManager.getCurrentProjectInfo()
+  const projectInfo = projectManager.currentProjectInfo
   if (projectInfo && projectValue.value) {
     projectManager.renameProject(projectInfo.id, projectValue.value)
   }
