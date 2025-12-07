@@ -14,8 +14,8 @@
         <HeaderMenuBar />
       </div>
 
-      <div v-if="currentProjectInfo" class="flex">
-        <div class="w-45 flex items-center shrink-0 max-w-full bg-surface-2 rounded-l-xs
+      <div v-if="currentProjectInfo" class="flex bg-surface-2 rounded-t-xs">
+        <div class="w-45 flex items-center shrink-0 max-w-full
   border border-transparent
   hover:border-gray-300
   focus-within:border-primary
@@ -33,7 +33,7 @@
         </div>
 
         <button type="button" @click="stateManager.closeCurrentProject" aria-label="Close project" title="Close project"
-          class="h-full px-3 text-xl bg-surface-2 rounded-l-none rounded-r-xs hover:bg-primary-variant">
+          class="h-full px-3 text-xl rounded-xs hover:bg-primary-variant">
           <span aria-hidden="true">×</span>
         </button>
       </div>

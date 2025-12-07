@@ -115,6 +115,42 @@ export function createStateManager() {
       }
     },
 
+    async openFile() {
+      try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.le,.lc';
+        input.multiple = false;
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        const file: File | null = await new Promise((resolve) => {
+          input.addEventListener('change', () => {
+            resolve(input.files && input.files[0] ? input.files[0] : null);
+          }, { once: true });
+          input.click();
+        });
+
+        document.body.removeChild(input);
+
+        if (!file) return;
+
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        if (extension === 'le') {
+          await projectManager.loadProjectFromFile(file);
+
+          const projectInfo = projectManager.getCurrentProjectInfo();
+          if (projectInfo) {
+            stateManager.loadProject(projectInfo.id)
+          }
+        } else {
+          alert('Opening of LogicCircuits not supported yet');
+        }
+      } catch (err) {
+        console.error('Failed to load project from file', err);
+      }
+    },
+
     /**
      * Create and load a new project
      */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
@@ -183,7 +183,26 @@ const handleProjectCreate = (projectName: string) => {
   popupService.close()
 }
 
+const onKeydown = (e: KeyboardEvent) => {
+  const isCtrlOrCmd = e.ctrlKey || e.metaKey  // Windows/Linux ctrl, macOS cmd
+
+  if (isCtrlOrCmd && e.key.toLowerCase() === 's') {
+    e.preventDefault()
+    projectManager.downloadProject()
+  }
+
+  if (isCtrlOrCmd && e.key.toLowerCase() === 'o') {
+    e.preventDefault()
+    stateManager.openFile()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+})
+
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
   layoutChangeDisposable?.dispose?.()
   panelDisposable?.dispose?.()
 })
