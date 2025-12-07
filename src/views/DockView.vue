@@ -115,7 +115,7 @@ const onReady = (event: DockviewReadyEvent) => {
 
   // Watch for project changes and restore layout
   watch(
-    () => projectManager.getCurrentProjectInfo()?.id,
+    () => projectManager.currentProjectInfo?.id,
     (newProjectId, oldProjectId) => {
       if (newProjectId && newProjectId !== oldProjectId && event.api) {
         console.log('Project changed, restoring layout for:', newProjectId)

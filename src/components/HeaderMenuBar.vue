@@ -52,7 +52,7 @@ import ManualPopup from './popups/ManualPopup.vue';
 import { projectManager } from '@/utility/states/projectManager';
 import { stateManager } from '@/utility/states/stateManager';
 
-const hasCurrentProject = computed(() => projectManager.getCurrentProjectInfo() !== null);
+const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   File: [

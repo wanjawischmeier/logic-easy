@@ -48,7 +48,7 @@ import { projectManager } from '@/utility/states/projectManager';
 import { stateManager } from '@/utility/states/stateManager';
 
 const projectInput = ref<HTMLInputElement>()
-const currentProjectInfo = computed(() => projectManager.getCurrentProjectInfo())
+const currentProjectInfo = computed(() => projectManager.currentProjectInfo)
 const projectValue = ref(currentProjectInfo.value?.name)
 
 // Watch for external changes to project name
@@ -70,7 +70,7 @@ const handleProjectEnter = (event: KeyboardEvent) => {
   input.scrollLeft = 0
   projectInput.value?.blur()
 
-  const projectInfo = projectManager.getCurrentProjectInfo()
+  const projectInfo = projectManager.currentProjectInfo
   if (projectInfo && projectValue.value) {
     projectManager.renameProject(projectInfo.id, projectValue.value)
   }

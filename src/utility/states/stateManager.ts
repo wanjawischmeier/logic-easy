@@ -18,7 +18,7 @@ export interface AppState {
 /**
  * Default state factory
  */
-function createDefaultState(): AppState {
+export function createDefaultAppState(): AppState {
   return {
     version: STORAGE_VERSION,
     panelStates: {}
@@ -37,7 +37,7 @@ function loadState(): AppState | null {
       // Version migration logic
       if (currentProject.state.version !== STORAGE_VERSION) {
         console.warn('State version mismatch, resetting to defaults')
-        return createDefaultState()
+        return createDefaultAppState()
       }
       return currentProject.state
     }
@@ -56,7 +56,7 @@ function loadState(): AppState | null {
  */
 function saveState(state: AppState): void {
   try {
-    const currentProjectInfo = projectManager.getCurrentProjectInfo()
+    const currentProjectInfo = projectManager.currentProjectInfo
     if (currentProjectInfo) {
       projectManager.updateProjectState(currentProjectInfo.id, state)
       console.log('Saved app state to project:', currentProjectInfo.name)
@@ -72,7 +72,7 @@ function saveState(state: AppState): void {
  * Create a reactive state manager with auto-persistence
  */
 export function createStateManager() {
-  const state = reactive(loadState() || createDefaultState()) as UnwrapNestedRefs<AppState>
+  const state = reactive(loadState() || createDefaultAppState()) as UnwrapNestedRefs<AppState>
 
   // Ensure panelStates exists if state is loaded
   if (!state.panelStates) {
@@ -101,7 +101,7 @@ export function createStateManager() {
      */
     loadProject: (projectId: string) => {
       if (projectManager.setCurrentProject(projectId)) {
-        const newState = loadState() || createDefaultState()
+        const newState = loadState() || createDefaultAppState()
 
         // Clear existing state
         Object.keys(state).forEach(key => delete (state as Record<string, unknown>)[key])
@@ -139,7 +139,7 @@ export function createStateManager() {
         if (extension === 'le') {
           await projectManager.loadProjectFromFile(file);
 
-          const projectInfo = projectManager.getCurrentProjectInfo();
+          const projectInfo = projectManager.currentProjectInfo;
           if (projectInfo) {
             stateManager.loadProject(projectInfo.id)
           }
@@ -149,32 +149,6 @@ export function createStateManager() {
       } catch (err) {
         console.error('Failed to load project from file', err);
       }
-    },
-
-    /**
-     * Create and load a new project
-     */
-    createProject: (name: string) => {
-      const newProject = projectManager.createProject(name, createDefaultState())
-
-      // Clear existing state
-      Object.keys(state).forEach(key => delete (state as Record<string, unknown>)[key])
-
-      // Assign new project state
-      Object.assign(state, newProject.state)
-
-      if (!state.panelStates) {
-        state.panelStates = {}
-      }
-    },
-
-    /**
-     * Reset state to defaults
-     */
-    reset: () => {
-      const defaults = createDefaultState()
-      Object.assign(state, defaults)
-      saveState(state as AppState)
     },
 
     /**
@@ -192,25 +166,6 @@ export function createStateManager() {
       const panelState = state.panelStates?.[panelId]
       // Return a plain object copy to avoid reactivity issues
       return panelState ? JSON.parse(JSON.stringify(panelState)) as T : undefined
-    },
-
-    /**
-     * Update panel state by panel ID
-     */
-    updatePanelState: (panelId: string, panelState: Record<string, unknown>) => {
-      if (!state.panelStates) {
-        state.panelStates = {}
-      }
-      state.panelStates[panelId] = panelState
-    },
-
-    /**
-     * Clear panel state by panel ID
-     */
-    clearPanelState: (panelId: string) => {
-      if (state?.panelStates) {
-        delete state.panelStates[panelId]
-      }
     },
 
     /**

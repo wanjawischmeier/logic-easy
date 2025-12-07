@@ -1,6 +1,7 @@
 import { stateManager } from './states/stateManager'
 import { addPanel } from './dockviewIntegration'
 import { Formula, type TruthTableCell, type TruthTableData } from './types'
+import { projectManager } from './states/projectManager'
 
 export function restoreDefaultPanelLayout(inputCount: number) {
   addPanel('truth-table', 'Truth Table')
@@ -20,7 +21,7 @@ export function createTruthTableProject(
   outputCount: number
 ) {
   // Create project
-  stateManager.createProject(projectName)
+  projectManager.createProject(projectName)
 
   // input names: a, b, c, ...
   const inputVars = Array.from({ length: inputCount }, (_, i) =>

@@ -1,4 +1,4 @@
-import type { AppState } from './stateManager'
+import { createDefaultAppState, stateManager, type AppState } from './stateManager'
 import { ProjectStorage } from './projectStorage'
 import { ProjectFileOperations } from './projectFileOperations'
 import type { ProjectMetadata, ProjectInfo, Project } from '../types'
@@ -53,7 +53,7 @@ export class ProjectManager {
   /**
    * Create a new project
    */
-  createProject(name: string, initialState?: AppState): Project {
+  createProject(name: string): Project {
     // Enforce project limit before creating
     projectManager.enforceProjectLimit()
 
@@ -61,7 +61,7 @@ export class ProjectManager {
       id: `${Date.now()}`,
       name,
       lastModified: Date.now(),
-      state: initialState || { version: 1 }
+      state: createDefaultAppState()
     }
 
     ProjectStorage.saveProject(project)
@@ -71,6 +71,20 @@ export class ProjectManager {
       lastModified: project.lastModified
     })
     projectManager.setCurrentProjectId(project.id)
+
+    // Clear existing state
+    Object.keys(stateManager.state).forEach(
+      key => delete (
+        stateManager.state as Record<string, unknown>
+      )[key]
+    )
+
+    // Assign new project state
+    Object.assign(stateManager.state, project.state)
+
+    if (!stateManager.state.panelStates) {
+      stateManager.state.panelStates = {}
+    }
 
     return project
   }
@@ -110,7 +124,7 @@ export class ProjectManager {
   /**
    * Get the currently open project info
    */
-  getCurrentProjectInfo(): ProjectInfo | null {
+  get currentProjectInfo(): ProjectInfo | null {
     if (!projectManager.currentProjectId.value) {
       return null
     }
@@ -153,20 +167,12 @@ export class ProjectManager {
    * Close the current project
    */
   closeCurrentProject(): void {
-    const projectInfo = projectManager.getCurrentProjectInfo()
+    const projectInfo = projectManager.currentProjectInfo
     if (!projectInfo) return;
 
     console.log(`Closing project: ${projectInfo.name}`)
     projectManager.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
-  }
-
-  /**
-   * Get project state by ID
-   */
-  getProjectState(projectId: string): AppState | null {
-    const project = ProjectStorage.loadProject(projectId)
-    return project ? project.state : null
   }
 
   /**
@@ -197,7 +203,7 @@ export class ProjectManager {
    */
   downloadProject(projectId?: string): void {
     if (!projectId) {
-      const projectInfo = projectManager.getCurrentProjectInfo()
+      const projectInfo = projectManager.currentProjectInfo
       if (!projectInfo) {
         console.warn(`Failed to save: No project open`)
         return
@@ -258,32 +264,6 @@ export class ProjectManager {
 
     return importedProject
   }
-
-  /**
-   * Delete a project
-   */
-  deleteProject(projectId: string): boolean {
-    const projectInfo = projectManager.metadata.projects.find(p => p.id === projectId)
-    if (!projectInfo) {
-      console.error(`Project not found: ${projectId}`)
-      return false
-    }
-
-    ProjectStorage.removeProject(projectId)
-    projectManager.metadata.projects = projectManager.metadata.projects.filter(p => p.id !== projectId)
-    ProjectStorage.saveMetadata(projectManager.metadata)
-
-    // If this was the current project, clear it
-    if (projectManager.currentProjectId.value === projectId) {
-      projectManager.currentProjectId.value = null
-      ProjectStorage.saveCurrentProjectId(null)
-    }
-
-    return true
-  }
 }
 
-/**
- * Singleton instance
- */
 export const projectManager = new ProjectManager()
