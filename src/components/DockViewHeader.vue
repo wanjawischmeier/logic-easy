@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import HeaderMenuBar from './HeaderMenuBar.vue';
-import { projectManager } from '@/utility/states/projectManager';
+import { projectManager } from '@/utility/projects/projectManager';
 import { stateManager } from '@/utility/states/stateManager';
 
 const projectInput = ref<HTMLInputElement>()

@@ -1,4 +1,4 @@
-import { projectManager } from './projectManager'
+import { projectManager } from '../projects/projectManager'
 
 /**
  * Handles file picker and project loading operations

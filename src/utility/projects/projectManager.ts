@@ -1,4 +1,4 @@
-import type { AppState } from './stateManager'
+import type { AppState } from '../states/stateManager'
 import type { ProjectInfo, Project } from '../types'
 import { ProjectMetadataManager } from './projectMetadata'
 import { ProjectLifecycleManager } from './projectLifecycle'

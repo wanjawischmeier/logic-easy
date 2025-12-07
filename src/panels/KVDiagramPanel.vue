@@ -8,7 +8,7 @@ import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/utility/states/stateManager';
-import { useTruthTableState } from '@/utility/states/truth-table/truthTableState';
+import { useTruthTableState } from '@/utility/states/truthTableState';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

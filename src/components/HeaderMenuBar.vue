@@ -49,7 +49,7 @@ import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
-import { projectManager } from '@/utility/states/projectManager';
+import { projectManager } from '@/utility/projects/projectManager';
 import { stateManager } from '@/utility/states/stateManager';
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);

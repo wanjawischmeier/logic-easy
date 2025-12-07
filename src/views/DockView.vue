@@ -5,7 +5,7 @@ import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockvi
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
 import { dockComponents } from '@/components/dockRegistry'
 import { stateManager } from '@/utility/states/stateManager'
-import { projectManager } from '@/utility/states/projectManager'
+import { projectManager } from '@/utility/projects/projectManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'

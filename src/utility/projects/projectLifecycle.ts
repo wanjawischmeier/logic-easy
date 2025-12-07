@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue'
-import { stateManager } from './stateManager'
+import { stateManager } from '../states/stateManager'
 import { ProjectStorage } from './projectStorage'
 import { ProjectMetadataManager } from './projectMetadata'
 import type { Project } from '../types'

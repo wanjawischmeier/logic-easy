@@ -1,4 +1,4 @@
-import { stateManager } from '../stateManager'
+import { stateManager } from '../../states/stateManager'
 import { addPanel } from '../../dockviewIntegration'
 import { Formula, type TruthTableCell, type TruthTableData } from '../../types'
 import { projectManager } from '../projectManager'
