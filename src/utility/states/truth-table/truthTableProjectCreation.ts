@@ -1,7 +1,7 @@
-import { stateManager } from './states/stateManager'
-import { addPanel } from './dockviewIntegration'
-import { Formula, type TruthTableCell, type TruthTableData } from './types'
-import { projectManager } from './states/projectManager'
+import { stateManager } from '../stateManager'
+import { addPanel } from '../../dockviewIntegration'
+import { Formula, type TruthTableCell, type TruthTableData } from '../../types'
+import { projectManager } from '../projectManager'
 
 export function restoreDefaultPanelLayout(inputCount: number) {
   addPanel('truth-table', 'Truth Table')
