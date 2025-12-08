@@ -8,8 +8,9 @@ const props = defineProps<{
   onExport: (data: FsmExport) => void
   onClear?: () => void
 }>()
+
 const container = ref<HTMLDivElement>()
-let reactRoot: Root | null = null;
+let reactRoot: Root | null = null
 
 // handler for exports fsm -> state machine
 const handleExport = (event: Event) => {
@@ -22,29 +23,34 @@ onMounted(async () => {
   if (!container.value) return
   await nextTick()
 
-  const { createRoot } = await import('react-dom/client')
-  const { default: Main } = await import('../../fsm-submodule/src/main.jsx')
-
   const rootElement = container.value.querySelector('#root') as HTMLElement
-  if (!rootElement) throw new Error('Root element not found')
+  if (!rootElement) throw Error('Root element not found')
+
+  const { createRoot } = await import('react-dom/client')
+
+  // @ts-expect-error Dynamic React import
+  const { AppRoot } = await import('../../fsm-submodule/src/AppRoot.jsx')
 
   const key = '_reactRoot'
-  const existingRoot = (rootElement as HTMLElement & { [key]?: Root })[key]
+  const existingRoot = (rootElement as HTMLElement & Record<string, Root>)[key]
 
   // check if root already exists
   if (existingRoot) {
     reactRoot = existingRoot
   } else {
     const newRoot = createRoot(rootElement)
-    ;(rootElement as HTMLElement & { [key]?: Root })[key] = newRoot
+    ;(rootElement as HTMLElement & Record<string, Root>)[key] = newRoot
     reactRoot = newRoot
   }
-  // rendering
-  reactRoot.render(Main as React.ReactNode)
 
-  console.log('FSM Editor mounted')
+  // rendering
+  const { createElement } = await import('react')
+  reactRoot!.render(createElement(AppRoot))
+
   window.addEventListener('fsm-export', handleExport)
+  console.log('FSM Editor mounted!')
 })
+
 
 // unmounted -> stop
 onUnmounted(() => {
