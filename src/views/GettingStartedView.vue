@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center relative h-[calc(100vh-52px)] m-4 ml-12 text-on-surface">
+  <div class="flex items-center relative h-[calc(100vh-40px-16px)] m-4 ml-12 text-on-surface">
     <!-- GitHub Logo-->
     <div class="absolute flex justify-end items-end w-full h-full select-none">
       <a class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 rounded-full shadow-2xl"

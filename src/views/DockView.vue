@@ -217,14 +217,14 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex flex-col h-screen bg-surface-1">
-    <div class="h-[35px]">
+    <div class="h-[39px]">
       <DockViewHeader />
     </div>
 
     <div class="h-px bg-surface-2"></div>
 
     <div class="flex-1 min-h-0 relative">
-      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-36px)]' : 'h-0'"
+      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
         :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels"></GettingStartedView>

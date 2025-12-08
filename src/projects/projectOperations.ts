@@ -4,7 +4,7 @@ import { createDefaultAppState, type AppState } from '../states/stateManager'
 import type { Project } from '../utility/types'
 
 /**
- * Handles CRUD operations on projects (create, rename, update, delete)
+ * Handles CRUD operations on projects
  */
 export class ProjectOperations {
   constructor(private metadataManager: ProjectMetadataManager) { }
@@ -58,7 +58,7 @@ export class ProjectOperations {
   }
 
   /**
-   * Update project state by ID
+   * Apply new state to project
    */
   updateState(projectId: string, state: AppState): boolean {
     const project = ProjectStorage.loadProject(projectId)

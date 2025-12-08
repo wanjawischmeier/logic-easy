@@ -57,7 +57,7 @@ export class ProjectMetadataManager {
   }
 
   /**
-   * Enforce the 5-project limit by removing the oldest project
+   * Enforce project limit by removing the oldest project (if necessary)
    */
   enforceLimit(): void {
     if (this.metadata.projects.length >= MAX_PROJECTS) {
