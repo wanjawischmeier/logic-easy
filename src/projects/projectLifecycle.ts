@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue'
-import { stateManager } from '../states/stateManager'
+import { createDefaultAppState, stateManager } from '../states/stateManager'
 import { ProjectStorage } from './projectStorage'
 import { ProjectMetadataManager } from './projectMetadata'
 import type { Project } from '../utility/types'
@@ -51,6 +51,14 @@ export class ProjectLifecycleManager {
     ProjectStorage.saveCurrentProjectId(projectId)
   }
 
+  private clearState(): void {
+    Object.keys(stateManager.state).forEach(
+      key => delete (
+        stateManager.state as Record<string, unknown>
+      )[key]
+    )
+  }
+
   /**
    * Set the current project (without opening)
    */
@@ -73,13 +81,7 @@ export class ProjectLifecycleManager {
     if (!project) return null
 
     this.setCurrentId(projectId)
-
-    // Clear existing state
-    Object.keys(stateManager.state).forEach(
-      key => delete (
-        stateManager.state as Record<string, unknown>
-      )[key]
-    )
+    this.clearState()
 
     // Assign new project state
     Object.assign(stateManager.state, project.state)
@@ -100,5 +102,11 @@ export class ProjectLifecycleManager {
     console.log(`Closing project: ${this.metadataManager.projectString(projectInfo)}`)
     this.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
+
+    // Clear the state to trigger reactivity updates
+    this.clearState()
+
+    // Reset to default empty state structure
+    stateManager.state = createDefaultAppState()
   }
 }
