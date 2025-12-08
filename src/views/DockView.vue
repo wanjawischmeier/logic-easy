@@ -32,6 +32,7 @@ let layoutChangeDisposable: { dispose?: () => void } | null = null
 let panelDisposable: { dispose?: () => void } | null = null
 
 const hasPanels = ref(true)
+let isRestoringLayout = false
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
@@ -57,6 +58,9 @@ const loadDefaultLayout = (api: DockviewApi) => {
 }
 
 const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
+  // Set flag to prevent premature project close during restoration
+  isRestoringLayout = true
+
   // Initial calculation
   if (stateManager.state!.truthTable) {
     updateTruthTable(stateManager.state!.truthTable.values)
@@ -102,6 +106,9 @@ const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
     console.log('No saved layout, loading default')
     loadDefaultLayout(api)
   }
+
+  // Clear flag after restoration is complete
+  isRestoringLayout = false
 }
 
 const onReady = (event: DockviewReadyEvent) => {
@@ -129,8 +136,8 @@ const onReady = (event: DockviewReadyEvent) => {
     const panelCount = event.api.panels.length
     hasPanels.value = panelCount > 0
 
-    // Close project when all panels are closed
-    if (panelCount === 0) {
+    // Close project when all panels are closed and we are not restoring a layout
+    if (panelCount === 0 && !isRestoringLayout) {
       projectManager.closeCurrentProject()
     }
   }
