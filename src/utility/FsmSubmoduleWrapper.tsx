@@ -1,3 +1,10 @@
+/* hier hatte ich mich vergoogelt und dachte, ich muss eine ts / tsx datei
+zum Einbinden des Submodules verwenden. Außerdem hatte ich die app.jsx eingebunden,
+statt main.jsx, da dies vorher in meiner allerersten (nicht mehr vorhandenen)
+Version unter anderen Bedingungen funktioniert hatte (und dann hab ich´s verpeilt).
+Aus Inspirationsgründen ist sie erstmal geblieben, falls der Rest klappt, muss sie aber wohl
+das Zeitliche segnen */
+
 import React, { useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 import { App as FsmApp } from '../../fsm-submodule/src/app.jsx';

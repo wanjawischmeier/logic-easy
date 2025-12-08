@@ -1,3 +1,8 @@
+<!-- diese Datei diente nur einem temporären Versuch, doch evtl einen
+ iframe zu nutzen. sie ist weder sauber, noch hab ich fehler gefixed, da
+ ich sie nur kurz zum Testen hab generieren lassen - dann hab ich sie eh wieder verworfen.
+ aus inspirationsgründen ist sie noch vorhanden. -->
+
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';

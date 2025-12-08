@@ -1,4 +1,14 @@
-<script setup lang="ts">
+<!-- Das ist mein tatsächlicher Versuch, das FSM Submodule einzubinden.
+ Per URL & iFrame hatte es bereits funktioniert, so wie hier nicht.
+ Wanja meinte, wir wollen keinen iFrame dafür, ich krieg nur gerade ohne
+ das React-JS-Submodule nicht mit unserem Vue Project zusammen.
+ Ich glaub, ich werde aber gerade auch nur betriebsblind und sehe
+ ganz offensichtliche Dinge nicht mehr, weil ich zu lange auf den Code gestarrt habe.
+ Das Problem kann auch sehr wahrscheinlich im Submodule liegen,
+ vermutlich schon in der AppRoot.jsx beispielsweise. Ich weiß auch nicht, ob
+ so wie es ist nicht 2 einzelne package.json files ein Problem sind?
+ -->
+ <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import type { FsmExport } from '@/utility/types'
 import type { Root } from 'react-dom/client'
