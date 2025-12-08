@@ -5,10 +5,10 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import type { TruthTableCell, TruthTableData } from '@/utility/types';
 import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
-import { useTruthTableState } from '@/utility/states/truthTableState';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
-import { stateManager } from '@/utility/states/stateManager';
+import { stateManager } from '@/states/stateManager';
+import { useTruthTableState } from '@/states/truthTableState';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

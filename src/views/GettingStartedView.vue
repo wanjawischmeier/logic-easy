@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center relative h-[calc(100vh-52px)] m-4 ml-12 text-on-surface">
+  <div class="flex items-center relative h-[calc(100vh-40px-16px)] m-4 ml-12 text-on-surface">
     <!-- GitHub Logo-->
     <div class="absolute flex justify-end items-end w-full h-full select-none">
       <a class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 rounded-full shadow-2xl"
@@ -24,12 +24,11 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
 import { addPanelWithPopup } from '@/utility/dockviewIntegration';
-import { newMenu, type MenuEntry } from '@/components/dockRegistry';
+import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import type { ComputedRef } from 'vue';
 import type { ListEntry } from '@/utility/types';
-import { projectManager } from '@/utility/states/projectManager';
-import { stateManager } from '@/utility/states/stateManager';
+import { projectManager } from '@/projects/projectManager';
 
 export default defineComponent({
   name: 'GettingStartedView',
@@ -52,7 +51,7 @@ export default defineComponent({
       projectManager.listProjects().map((project) => ({
         label: project.name,
         action: () => {
-          stateManager.loadProject(project.id);
+          projectManager.openProject(project.id);
         },
       }))
     );

@@ -1,8 +1,8 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
     <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
-      <button class="hover:bg-surface-2" @click.stop="toggleMenu(menu)" :aria-expanded="activeMenu === menu"
-        :aria-haspopup="true" type="button">
+      <button class="border border-transparent  hover:border-surface-3 hover:bg-surface-2"
+        @click.stop="toggleMenu(menu)" :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
         {{ menu }}
       </button>
 
@@ -44,15 +44,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
-import { newMenu, viewMenu, type MenuEntry } from '@/components/dockRegistry';
+import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry';
 import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
-import { projectManager } from '@/utility/states/projectManager';
-import { stateManager } from '@/utility/states/stateManager';
+import { projectManager } from '@/projects/projectManager';
+import { stateManager } from '@/states/stateManager';
 
-const hasCurrentProject = computed(() => projectManager.getCurrentProjectInfo() !== null);
+const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   File: [
@@ -76,13 +76,6 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
       action: stateManager.closeCurrentProject,
       disabled: !hasCurrentProject.value,
     },
-  ],
-  Edit: [
-    { label: 'Undo', tooltip: 'Ctrl+Z' },
-    { label: 'Redo', tooltip: 'Ctrl+Y' },
-    { label: 'Cut', tooltip: 'Ctrl+X' },
-    { label: 'Copy', tooltip: 'Ctrl+C' },
-    { label: 'Paste', tooltip: 'Ctrl+V' },
   ],
   View: viewMenu.value,
   Export: [
@@ -154,42 +147,10 @@ function handleDocClick(e: MouseEvent): void {
 }
 
 async function openFile() {
-  try {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.le,.lc';
-    input.multiple = false;
-    input.style.display = 'none';
-    document.body.appendChild(input);
+  await stateManager.openFile();
 
-    const file: File | null = await new Promise((resolve) => {
-      input.addEventListener('change', () => {
-        resolve(input.files && input.files[0] ? input.files[0] : null);
-      }, { once: true });
-      input.click();
-    });
-
-    document.body.removeChild(input);
-
-    if (!file) return;
-
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (extension === 'le') {
-      await projectManager.loadProjectFromFile(file);
-
-      const projectInfo = projectManager.getCurrentProjectInfo();
-      if (projectInfo) {
-        stateManager.loadProject(projectInfo.id)
-      }
-    } else {
-      alert('Opening of LogicCircuits not supported yet');
-    }
-  } catch (err) {
-    console.error('Failed to load project from file', err);
-  } finally {
-    activeMenu.value = '';
-    activeSubmenu.value = null;
-  }
+  activeMenu.value = '';
+  activeSubmenu.value = null;
 }
 
 onMounted(() => {

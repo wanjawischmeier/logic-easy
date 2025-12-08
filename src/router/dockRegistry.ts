@@ -2,8 +2,8 @@ import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue';
 import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
-import { stateManager } from '@/utility/states/stateManager';
-import TruthTableProjectProps from './popups/TruthTableProjectProps.vue';
+import { stateManager } from '@/states/stateManager';
+import TruthTableProjectProps from '@/components/popups/TruthTableProjectProps.vue';
 import { computed, markRaw } from 'vue';
 import StateMachine from './StateMachine.vue';
 

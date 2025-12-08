@@ -1,0 +1,66 @@
+import { ProjectStorage } from './projectStorage'
+import { ProjectFileOperations } from './projectFileOperations'
+import { ProjectMetadataManager } from './projectMetadata'
+import type { Project } from '../utility/types'
+
+/**
+ * Handles import/export operations for projects
+ */
+export class ProjectImportExport {
+  constructor(private metadataManager: ProjectMetadataManager) { }
+
+  /**
+   * Download project as .le file
+   */
+  download(projectId: string): void {
+    const project = ProjectStorage.loadProject(projectId)
+    if (!project) {
+      console.warn(`Failed to save: Project with id ${projectId} not found`)
+      return
+    }
+
+    ProjectFileOperations.downloadProject(project)
+  }
+
+  /**
+   * Load and save project from .le file (without opening it)
+   */
+  async importFromFile(file: File): Promise<Project> {
+    // Parse the file
+    const importedProject = await ProjectFileOperations.loadProjectFromFile(file)
+
+    // Check if a project with this ID already exists
+    const existingProject = ProjectStorage.loadProject(importedProject.id)
+
+    if (existingProject) {
+      // Update existing project
+      console.log(`Updating existing project: ${this.metadataManager.projectString(importedProject)}`)
+      existingProject.state = importedProject.state
+      existingProject.name = importedProject.name
+      existingProject.lastModified = Date.now()
+
+      ProjectStorage.saveProject(existingProject)
+      this.metadataManager.update({
+        id: existingProject.id,
+        name: existingProject.name,
+        lastModified: existingProject.lastModified
+      })
+
+      return existingProject
+    }
+
+    // Enforce project limit before loading new project
+    this.metadataManager.enforceLimit()
+
+    // Save the imported project as new
+    console.log(`Importing new project: ${this.metadataManager.projectString(importedProject)}`)
+    ProjectStorage.saveProject(importedProject)
+    this.metadataManager.update({
+      id: importedProject.id,
+      name: importedProject.name,
+      lastModified: importedProject.lastModified
+    })
+
+    return importedProject
+  }
+}

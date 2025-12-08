@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
-import { dockComponents } from '@/components/dockRegistry'
-import { stateManager } from '@/utility/states/stateManager'
-import { projectManager } from '@/utility/states/projectManager'
+import { dockComponents } from '@/router/dockRegistry'
+import { stateManager } from '@/states/stateManager'
+import { projectManager } from '@/projects/projectManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
@@ -32,6 +32,7 @@ let layoutChangeDisposable: { dispose?: () => void } | null = null
 let panelDisposable: { dispose?: () => void } | null = null
 
 const hasPanels = ref(true)
+let isRestoringLayout = false
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
@@ -57,6 +58,9 @@ const loadDefaultLayout = (api: DockviewApi) => {
 }
 
 const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
+  // Set flag to prevent premature project close during restoration
+  isRestoringLayout = true
+
   // Initial calculation
   if (stateManager.state!.truthTable) {
     updateTruthTable(stateManager.state!.truthTable.values)
@@ -102,6 +106,9 @@ const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
     console.log('No saved layout, loading default')
     loadDefaultLayout(api)
   }
+
+  // Clear flag after restoration is complete
+  isRestoringLayout = false
 }
 
 const onReady = (event: DockviewReadyEvent) => {
@@ -115,7 +122,7 @@ const onReady = (event: DockviewReadyEvent) => {
 
   // Watch for project changes and restore layout
   watch(
-    () => projectManager.getCurrentProjectInfo()?.id,
+    () => projectManager.currentProjectInfo?.id,
     (newProjectId, oldProjectId) => {
       if (newProjectId && newProjectId !== oldProjectId && event.api) {
         console.log('Project changed, restoring layout for:', newProjectId)
@@ -129,8 +136,8 @@ const onReady = (event: DockviewReadyEvent) => {
     const panelCount = event.api.panels.length
     hasPanels.value = panelCount > 0
 
-    // Close project when all panels are closed
-    if (panelCount === 0) {
+    // Close project when all panels are closed and we are not restoring a layout
+    if (panelCount === 0 && !isRestoringLayout) {
       projectManager.closeCurrentProject()
     }
   }
@@ -183,7 +190,26 @@ const handleProjectCreate = (projectName: string) => {
   popupService.close()
 }
 
+const onKeydown = (e: KeyboardEvent) => {
+  const isCtrlOrCmd = e.ctrlKey || e.metaKey  // Windows/Linux ctrl, macOS cmd
+
+  if (isCtrlOrCmd && e.key.toLowerCase() === 's') {
+    e.preventDefault()
+    projectManager.downloadProject()
+  }
+
+  if (isCtrlOrCmd && e.key.toLowerCase() === 'o') {
+    e.preventDefault()
+    stateManager.openFile()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+})
+
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
   layoutChangeDisposable?.dispose?.()
   panelDisposable?.dispose?.()
 })
@@ -191,14 +217,14 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex flex-col h-screen bg-surface-1">
-    <div class="h-[35px]">
+    <div class="h-[39px]">
       <DockViewHeader />
     </div>
 
     <div class="h-px bg-surface-2"></div>
 
     <div class="flex-1 min-h-0 relative">
-      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-36px)]' : 'h-0'"
+      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
         :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels"></GettingStartedView>

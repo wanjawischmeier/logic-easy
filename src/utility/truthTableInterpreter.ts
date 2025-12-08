@@ -1,4 +1,4 @@
-import { stateManager } from "./states/stateManager";
+import { stateManager } from "../states/stateManager";
 import { minifyTruthTable } from "./espresso";
 import { FunctionType, type Formula, type Literal, type Term, type TruthTableData } from "./types";
 
