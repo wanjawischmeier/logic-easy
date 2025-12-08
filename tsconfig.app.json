@@ -1,12 +1,21 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "public/logic-circuits"],
+  "include": [
+    "env.d.ts", 
+    "src/**/*", 
+    "src/**/*.vue", 
+    "public/logic-circuits",
+    "fsm-submodule/**/*.{ts,tsx,jsx,js}"
+  ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "fsm-submodule/*": ["./fsm-submodule/src/*"]
     }
   }
 }
