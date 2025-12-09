@@ -4,7 +4,7 @@ import { DockviewVue } from 'dockview-vue';
 import router from './router';
 import { VueLatex } from 'vatex';
 import { dockComponents } from './router/dockRegistry';
-import { logicCircuits } from './utility/logicCircuitsWrapper';
+import { iframeManager } from './utility/iframeManager';
 
 const App = defineComponent({
   name: 'App',
@@ -37,7 +37,7 @@ app.component('vue-latex', VueLatex);
 
 app.mount(document.getElementById('app')!);
 
-// Preload logic circuits iframe after app has mounted
+// Preload all registered iframes after app has mounted
 setTimeout(() => {
-  logicCircuits.preloadIFrame();
+  iframeManager.preloadAll();
 }, 0);
