@@ -5,7 +5,7 @@ import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import { stateManager } from '@/states/stateManager';
 import TruthTableProjectProps from '@/components/popups/TruthTableProjectProps.vue';
 import { computed, markRaw } from 'vue';
-import StateMachine from './StateMachine.vue';
+import StateMachine from '@/components/StateMachine.vue';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'

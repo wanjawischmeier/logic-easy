@@ -7,7 +7,7 @@ das Zeitliche segnen */
 
 import React, { useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
-import { App as FsmApp } from '../../fsm-submodule/src/app.jsx';
+import { App as FsmApp } from '@/fsm-engine/src/app.jsx'
 import type { FsmExport } from '@/utility/types'
 
 // bridge props for communication
@@ -18,36 +18,36 @@ interface FsmWrapperProps {
 
 // wrapper
 export const FsmSubmoduleWrapper: React.FC<FsmWrapperProps> = ({ onExport, onClear }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const reactRootRef = useRef<ReactDOM.Root | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null)
+  const reactRootRef = useRef<ReactDOM.Root | null>(null)
 
   useEffect(() => {
     if (containerRef.current && !reactRootRef.current) {
-      reactRootRef.current = ReactDOM.createRoot(containerRef.current);
-      reactRootRef.current.render(<FsmApp />);
+      reactRootRef.current = ReactDOM.createRoot(containerRef.current)
+      reactRootRef.current.render(<FsmApp />)
     }
 
-  const handleExport = (event: Event) => {
-      const customEvent = event as CustomEvent<FsmExport>;
-      onExport(customEvent.detail);
-    };
+    const handleExport = (event: Event) => {
+      const customEvent = event as CustomEvent<FsmExport>
+      onExport(customEvent.detail)
+    }
 
-    window.addEventListener('fsm-export', handleExport);
+    window.addEventListener('fsm-export', handleExport)
     return () => {
-      window.removeEventListener('fsm-export', handleExport);
+      window.removeEventListener('fsm-export', handleExport)
       if (reactRootRef.current) {
-        reactRootRef.current.unmount();
-        reactRootRef.current = null;
+        reactRootRef.current.unmount()
+        reactRootRef.current = null
       }
-    };
-  }, [onExport]);
+    }
+  }, [onExport])
 
- const handleClear = () => {
-    onClear?.();
-    window.dispatchEvent(new CustomEvent('fsm-clear'));
-  };
+  const handleClear = () => {
+    onClear?.()
+    window.dispatchEvent(new CustomEvent('fsm-clear'))
+  }
 
- return (
+  return (
     <div className="h-screen w-screen relative">
       <div ref={containerRef} className="h-full w-full absolute inset-0" />
       <button
@@ -57,5 +57,5 @@ export const FsmSubmoduleWrapper: React.FC<FsmWrapperProps> = ({ onExport, onCle
         Clear
       </button>
     </div>
-  );
-};
+  )
+}

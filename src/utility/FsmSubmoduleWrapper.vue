@@ -8,7 +8,7 @@
  vermutlich schon in der AppRoot.jsx beispielsweise. Ich weiß auch nicht, ob
  so wie es ist nicht 2 einzelne package.json files ein Problem sind?
  -->
- <script setup lang="ts">
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import type { FsmExport } from '@/utility/types'
 import type { Root } from 'react-dom/client'
@@ -39,7 +39,7 @@ onMounted(async () => {
   const { createRoot } = await import('react-dom/client')
 
   // @ts-expect-error Dynamic React import
-  const { AppRoot } = await import('../../fsm-submodule/src/AppRoot.jsx')
+  const { AppRoot } = await import('@/fsm-engine/src/AppRoot.jsx')
 
   const key = '_reactRoot'
   const existingRoot = (rootElement as HTMLElement & Record<string, Root>)[key]
@@ -49,7 +49,7 @@ onMounted(async () => {
     reactRoot = existingRoot
   } else {
     const newRoot = createRoot(rootElement)
-    ;(rootElement as HTMLElement & Record<string, Root>)[key] = newRoot
+      ; (rootElement as HTMLElement & Record<string, Root>)[key] = newRoot
     reactRoot = newRoot
   }
 
@@ -81,10 +81,7 @@ const handleClear = () => {
     <div ref="container" class="h-full w-full">
       <div id="root"></div>
     </div>
-    <button
-      @click="handleClear"
-      class="absolute top-2 right-2 z-50 bg-red-500 text-white px-3 py-1 rounded"
-    >
+    <button @click="handleClear" class="absolute top-2 right-2 z-50 bg-red-500 text-white px-3 py-1 rounded">
       Clear FSM
     </button>
   </div>

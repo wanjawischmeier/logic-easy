@@ -2,5 +2,5 @@
 	path = public/logic-circuits
 	url = https://github.com/wanjawischmeier/logic-circuits
 [submodule "fsm-submodule"]
-	path = fsm-submodule
+	path = src/fsm-submodule
 	url = git@github.com:aylinjosephine/fsm-engine.git
