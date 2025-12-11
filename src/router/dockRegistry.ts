@@ -3,6 +3,7 @@ import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
+import StateTablePanel from '@/panels/StateTablePanel.vue';
 import { stateManager } from '@/states/stateManager';
 import TruthTableProjectProps from '@/components/popups/TruthTableProjectProps.vue';
 import { computed, markRaw } from 'vue';
@@ -53,32 +54,10 @@ export const dockRegistry: DockEntry[] = [
       view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
     }
   },
-  {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
-    requires: {
-      create: ['NotSupported']
-    }
-  },
-  {
+    {
     id: 'state-table',
     label: 'State Table',
-    component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
-    requires: {
-      create: ['NotSupported']
-    }
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
-    requires: {
-      create: ['NotSupported']
-    }
+    component: StateTablePanel
   },
   {
     id: 'espresso-testing',
