@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, reactive } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
-import { logicCircuits } from '@/utility/logicCircuitsWrapper'
+import { useTruthTableState } from '@/states/truthTableState.ts'
+import { Formula, FunctionType, defaultFunctionType } from '@/utility/types.ts'
+import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
+import { formularToANDORLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 
-const props = defineProps<{ params: IDockviewPanelProps }>()
+const props = defineProps<Partial<IDockviewPanelProps>>()
+
+// Access state from params
+const { state, inputVars, outputVars } = useTruthTableState()
+
 
 const title = ref('')
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -140,22 +147,43 @@ watch(() => props.params.api.isVisible, (visible) => {
   }
 })
 
-async function loadFile() {
-  const success = await logicCircuits.loadFile({
-    content: '[0.8.12-patch1,0,0,1,1]\r\n[{2,115,194,0,,1n};\r\n{8,233,188,0,n,}]\r\n[{0o0};\r\n{1i0}]\r\n[{0,1}]\r\n[{68,-54,12,0,yay,0}]\r\n[]'
+// Selected function type (DNF / CNF)
+const selectedType = ref<FunctionType>(defaultFunctionType)
+
+// formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
+const formulas = reactive<Record<string, Formula>>({})
+
+function updateFormulas() {
+  const formulasMap = state.value?.formulas || {}
+  // clear previous keys
+  for (const k of Object.keys(formulas)) delete formulas[k]
+
+  for (const out of outputVars.value) {
+    if (!out) continue
+    formulas[out] = formulasMap?.[out]?.[selectedType.value] ?? Formula.empty
+  }
+
+  const success = logicCircuits.loadFile({
+    content: formularToANDORLC(inputVars.value, outputVars.value, formulas).toString(),
   })
 
   if (!success) {
     console.error('Failed to load file')
   }
 }
+
+// Keep the plain object in sync with state and selection
+watch([
+  () => state.value?.formulas,
+  outputVars,
+  selectedType
+], updateFormulas, { immediate: true })
+
 </script>
 
 <template>
   <div class="h-full text-white flex flex-col gap-2 p-2">
-    <button @click="loadFile" class="w-50 bg-surface-2 hover:bg-surface-3">Import
-      BasicTest.lc</button>
-    <div ref="containerRef" class="flex-1 z-0" style="position: relative;"></div>
+    <div ref="containerRef" class="flex-1 z-0" style="position: relative"></div>
   </div>
 </template>
 
