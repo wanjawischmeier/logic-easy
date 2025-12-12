@@ -1,16 +1,20 @@
 <script setup lang="ts">
+  import type { FsmExport } from '@/utility/FsmExport.ts'
 
-// API standard to receive data
 const props = defineProps<{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stateTableData?: any[]
+  data: FsmExport['states']
 }>()
 </script>
 
-<!-- state table (now only template)-->
 <template>
-  <div>Heyho</div>
-  <div v-if="props.stateTableData?.length">
-    <table class="table table-sm"></table>
-  </div>
+  <table class="w-full text-sm border border-gray-600 rounded overflow-hidden">
+    <tbody>
+      <tr v-for="s in props.data" :key="s.id">
+        <td>{{ s.id }}</td>
+        <td>{{ s.name }}</td>
+        <td>{{ s.initial }}</td>
+        <td>{{ s.final }}</td>
+      </tr>
+    </tbody>
+  </table>
 </template>
