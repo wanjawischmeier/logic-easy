@@ -1,0 +1,110 @@
+import { LCFile } from './LCFile.ts'
+import type { Element } from './Elements.ts'
+import type { Formula } from '@/utility/types.ts'
+
+/**
+ * @param inputVars - list of input variable names
+ * @param outputVars - list of output variable names
+ * @param formulas - mapping of output variable names to their formulas
+ * @returns LCFile representing the logic circuit in AND-OR form
+ */
+export function formularToANDORLC(
+  inputVars: string[],
+  outputVars: string[],
+  formulas: Record<string, Formula>
+): LCFile {
+
+  //create new lc File instance
+  const lcFile = new LCFile()
+
+  //set spacing constants
+  const termSpacing = 20
+  const outputSpacing = 30 //min space between lamps
+  let yOffset = 30 + LCFile.AND_SIZE //start all the logic below the lamps
+
+  //create buttons + labels for each input variable
+  const buttonsByVar = new Map<string, Element>() //button map input variablename -> button element
+  inputVars.forEach((v, i) => {
+    const button = lcFile.createButton(i * (termSpacing + LCFile.BUTTON_SIZE), 30, 1) // create button, rotated by 90°
+    buttonsByVar.set(v, button) //add button to map by input variable name
+    button.addText(v, 0) //add text label above button
+  })
+
+  //build logic for each output variable
+  const lampsByOutput = new Map<string, Element>() //lamp map output variablename -> lamp element
+  outputVars.forEach((outputVar) => {
+    const allTerms = formulas[outputVar]?.terms ?? [] //get all terms for current output var
+    const terms = allTerms.filter((t) => t.literals[0] && t.literals[0].variable !== '0') //filter out 0 values, keep just normal vars
+    const termCount = Math.max(terms.length, 1)
+
+    const rowY = (idx: number) => yOffset + idx * (LCFile.AND_SIZE + termSpacing) // calculate Y offset for this term
+
+    // calculate position for OR gate of this output
+    // should be centered relative to terms
+    let orY: number
+    if (terms.length === 0) {
+      orY = yOffset
+    } else if (terms.length % 2 === 1) {
+      const mid = Math.floor(terms.length / 2)
+      orY = rowY(mid)
+    } else {
+      const upperMid = terms.length / 2 - 1
+      orY = rowY(upperMid) + LCFile.AND_SIZE / 2 + termSpacing / 2
+    }
+
+    // create lamp for this output, aligned with OR gate
+    const lamp = lcFile.createLamp(
+      600,
+      orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2,
+      0
+    )
+    lamp.addText(outputVar, 1) //add text label right to the lamp
+    lampsByOutput.set(outputVar, lamp) //add lamp to map by output variable name
+
+    //create or gate only if there are multiple terms, otherwise there is no "aggregation" via or needed
+    let termCollector: Element = lamp  //holds either the OR gate or the lamp directly if only one term
+    if (terms.length > 1) {
+      const orGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'n')
+      orGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
+      termCollector = orGate
+    }
+
+    //build logic for each term
+    terms.forEach((term, termIndex) => {
+      const currentRowY = rowY(termIndex)
+      const termInputs = term.literals.map((lit) => (lit.negated ? 'i' : 'n')).join('')
+
+      let nextGate: Element = termCollector
+      if (termInputs.length > 1) { //just create AND gate if there are multiple inputs
+        nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'n')
+        nextGate.getOutConnectors()[0]!.addTarget(termCollector.getInConnectors()[termIndex]!) //connect AND output to OR input or directly to lamp
+      } else if (termInputs.length === 1 ){ //if we land here, this is gonna be connected to the OR or LAMP directly, so we have to check if it needs to be negated
+        nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'i' : 'n')
+      }
+
+      //build connections from buttons to term inputs
+      term.literals.forEach((literal, i) => {
+        const button = buttonsByVar.get(literal.variable)
+        if (!button) return //check for button
+
+        //create connector node between button and input of AND/OR/lamp
+        const connectorNode = lcFile.createNode(
+          -5 + button.xPOS + LCFile.BUTTON_SIZE / 2,
+          nextGate.yPOS + LCFile.AND_SIZE / term.literals.length + i * 20
+        )
+
+        //if no AND was created and the collector is an OR, target the OR input for this termIndex
+        const targetIdx =
+          !(termInputs.length > 1) && termCollector !== lamp ? termIndex : i
+
+        connectorNode.addTarget(nextGate.getInConnectors()[targetIdx]!)
+        button.getOutConnectors()[0]!.addTarget(connectorNode)
+      })
+    })
+
+    //calculate y offset for next output
+    yOffset += termCount * (LCFile.AND_SIZE + termSpacing) - termSpacing + outputSpacing
+  })
+
+  return lcFile
+}
