@@ -157,6 +157,32 @@ export class Element{
   }
 
   /**
+   *
+   * @param index
+   * @param type
+   */
+  setInPortAt(index:number, type:'n'|'i'){
+    const inPortsArray = this.inPorts.replace(/[^ni]/g, '').split('');
+    if(index >=0 && index < inPortsArray.length){
+      inPortsArray[index] = type;
+      this.inPorts = inPortsArray.join('');
+    }
+  }
+
+  /**
+   * setOutPortAt sets the type of the output port at the given index
+   * @param index
+   * @param type
+   */
+  setOutPortAt(index:number, type:'n'|'i'){
+    const outPortsArray = this.outPorts.replace(/[^ni]/g, '').split('');
+    if(index >=0 && index < outPortsArray.length){
+      outPortsArray[index] = type;
+      this.outPorts = outPortsArray.join('');
+    }
+  }
+
+  /**
    * get outConnector nodes of the element as an array of Nodes
    * @returns {Node[]}
    */
