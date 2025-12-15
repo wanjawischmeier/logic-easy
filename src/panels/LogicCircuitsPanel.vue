@@ -4,13 +4,14 @@ import type { IDockviewPanelProps } from 'dockview-vue'
 import { useTruthTableState } from '@/states/truthTableState.ts'
 import { Formula, FunctionType, defaultFunctionType } from '@/utility/types.ts'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
-import { formularToANDORLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
+import {
+  formularToLC,
+} from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
 // Access state from params
 const { state, inputVars, outputVars } = useTruthTableState()
-
 
 const title = ref('')
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -153,6 +154,8 @@ const selectedType = ref<FunctionType>(defaultFunctionType)
 // formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
 const formulas = reactive<Record<string, Formula>>({})
 
+let selectedMethod: 'AND/OR' | 'NAND' | 'NOR' = 'NAND'
+
 function updateFormulas() {
   const formulasMap = state.value?.formulas || {}
   // clear previous keys
@@ -163,8 +166,22 @@ function updateFormulas() {
     formulas[out] = formulasMap?.[out]?.[selectedType.value] ?? Formula.empty
   }
 
+  let fileContent: string = ''
+
+  switch (selectedMethod) {
+    case 'AND/OR':
+      fileContent = formularToLC(inputVars.value, outputVars.value, formulas).toString()
+      break
+    case 'NAND':
+      fileContent = formularToLC(inputVars.value, outputVars.value, formulas, 'nand').toString()
+      break
+    case 'NOR':
+      fileContent = ''
+      break
+  }
+
   const success = logicCircuits.loadFile({
-    content: formularToANDORLC(inputVars.value, outputVars.value, formulas).toString(),
+    content: fileContent,
   })
 
   if (!success) {
