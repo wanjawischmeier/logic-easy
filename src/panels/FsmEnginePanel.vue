@@ -22,7 +22,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-full text-white flex flex-col gap-2 p-2">
-    <div class="font-semibold">{{ title }}</div>
     <IframePanel
       iframe-key="__fsm_preloaded_iframe"
       src="/logic-easy/fsm-engine/dist/index.html"

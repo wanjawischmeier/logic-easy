@@ -1,4 +1,4 @@
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { onMounted, onBeforeUnmount, reactive } from 'vue'
 
 // export interface for data in fsm editor (same scheme as in stores / export)
 export interface FsmExport {
@@ -15,22 +15,32 @@ export interface FsmExport {
   }>
 }
 
-// element placeholder for data from fsm editor
-export const fsmData = ref<FsmExport | null>(null)
+// data from fsm engine as reactive export object
+export const fsmData = reactive<FsmExport>({
+  states: [],
+  transitions: [],
+})
 
 // listener for export fsm -> statetable
-export function fsmListener() {
-  const fsmListenerHandler = (event: MessageEvent) => {
+export function useFsmListener() {
+  const handler = (event: MessageEvent) => {
     if (event.data?.action === 'export') {
-      fsmData.value = event.data.fsm as FsmExport
+console.log('raw data:', event.data.fsm)
+
+    fsmData.states = event.data.fsm.states || []
+    fsmData.transitions = event.data.fsm.transitions || []
+
+    console.log('fsmData:', fsmData)
+    console.log('amount of states:', fsmData.states.length)
       console.log('fsmlistener works')
     }
   }
 
   onMounted(() => {
-    window.addEventListener('message', fsmListenerHandler)
+    window.addEventListener('message', handler)
+    console.log('fsm event listener added')
   })
   onBeforeUnmount(() => {
-    window.removeEventListener('message', fsmListenerHandler)
+    window.removeEventListener('message', handler)
   })
 }
