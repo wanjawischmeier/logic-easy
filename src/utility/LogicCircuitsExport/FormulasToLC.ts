@@ -6,12 +6,14 @@ import type { Formula } from '@/utility/types.ts'
  * @param inputVars - list of input variable names
  * @param outputVars - list of output variable names
  * @param formulas - mapping of output variable names to their formulas
+ * @param outType
  * @returns LCFile representing the logic circuit in AND-OR form
  */
-export function formularToANDORLC(
+export function formularToLC(
   inputVars: string[],
   outputVars: string[],
-  formulas: Record<string, Formula>
+  formulas: Record<string, Formula>,
+  outType: 'and-or' | 'nand' = 'and-or'
 ): LCFile {
 
   //create new lc File instance
@@ -64,9 +66,20 @@ export function formularToANDORLC(
     //create or gate only if there are multiple terms, otherwise there is no "aggregation" via or needed
     let termCollector: Element = lamp  //holds either the OR gate or the lamp directly if only one term
     if (terms.length > 1) {
-      const orGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'n')
-      orGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
-      termCollector = orGate
+
+      let collectorGate:Element
+      if (outType === 'and-or') {
+        collectorGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'n')
+      }else {
+        collectorGate = lcFile.createAndGate(450, orY, 0, 'n'.repeat(terms.length), 'i') //NAND gate
+      }
+      collectorGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
+      termCollector = collectorGate
+    }
+
+    if(terms.length === 1 && outType === 'nand'){
+      //special case: single term with NAND output needs to be inverted
+      termCollector.setInPortAt(0, 'i') //invert input
     }
 
     //build logic for each term
@@ -76,10 +89,14 @@ export function formularToANDORLC(
 
       let nextGate: Element = termCollector
       if (termInputs.length > 1) { //just create AND gate if there are multiple inputs
-        nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'n')
+        nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, outType === 'and-or' ? 'n' : 'i') //inverted if NAND
         nextGate.getOutConnectors()[0]!.addTarget(termCollector.getInConnectors()[termIndex]!) //connect AND output to OR input or directly to lamp
       } else if (termInputs.length === 1 ){ //if we land here, this is gonna be connected to the OR or LAMP directly, so we have to check if it needs to be negated
-        nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'i' : 'n')
+        if (outType === 'and-or') {
+          nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'i' : 'n')
+        } else {
+          nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'n' : 'i') //inverted if NAND
+        }
       }
 
       //build connections from buttons to term inputs

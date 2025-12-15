@@ -67,6 +67,7 @@ export class LCFile{
    * @param outputs (same format as inputs)
    */
   createAndGate(xPOS:number, yPOS:number, rotation:number, inputs:string = 'nn', outputs:string = 'n'):Element{
+    if (outputs === 'i') outputs = '1i';
       return new Element(0, xPOS, yPOS, rotation, inputs, outputs, this.elements, this.nodes, this.connections, this.texts);
   }
 
@@ -79,7 +80,8 @@ export class LCFile{
    * @param outputs (same format as inputs)
    */
   createORGate(xPOS:number, yPOS:number, rotation:number, inputs:string = 'nn', outputs:string = 'n'):Element{
-      return new Element(1, xPOS, yPOS, rotation, inputs, outputs, this.elements, this.nodes, this.connections, this.texts);
+    if (outputs === 'i') outputs = '1i';
+    return new Element(1, xPOS, yPOS, rotation, inputs, outputs, this.elements, this.nodes, this.connections, this.texts);
   }
 
   /**
@@ -118,6 +120,7 @@ export class LCFile{
     const sixthhLine:string = '[]'
 
     // \r\n (Windows format) is required for Logic Circuits to properly read the file
+    console.log('LCFile toString generated:\n', this.firstLine + '\r\n' + secondLine + '\r\n' + thirdLine + '\r\n' + fourthLine + '\r\n' + fifthLine + '\r\n' + sixthhLine);
     return this.firstLine + '\r\n' + secondLine + '\r\n' + thirdLine + '\r\n' + fourthLine + '\r\n' + fifthLine + '\r\n' + sixthhLine;
   }
 
