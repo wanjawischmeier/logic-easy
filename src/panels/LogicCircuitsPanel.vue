@@ -154,7 +154,7 @@ const selectedType = ref<FunctionType>(defaultFunctionType)
 // formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
 const formulas = reactive<Record<string, Formula>>({})
 
-let selectedMethod: 'AND/OR' | 'NAND' | 'NOR' = 'NAND'
+let selectedMethod: 'AND/OR' | 'NAND' | 'NOR' = 'NOR'
 
 function updateFormulas() {
   const formulasMap = state.value?.formulas || {}
@@ -176,7 +176,7 @@ function updateFormulas() {
       fileContent = formularToLC(inputVars.value, outputVars.value, formulas, 'nand').toString()
       break
     case 'NOR':
-      fileContent = ''
+      fileContent = formularToLC(inputVars.value, outputVars.value, formulas, 'nor').toString()
       break
   }
 

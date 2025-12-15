@@ -13,7 +13,7 @@ export function formularToLC(
   inputVars: string[],
   outputVars: string[],
   formulas: Record<string, Formula>,
-  outType: 'and-or' | 'nand' = 'and-or'
+  outType: 'and-or' | 'nand' | 'nor' = 'and-or'
 ): LCFile {
 
   //create new lc File instance
@@ -56,7 +56,7 @@ export function formularToLC(
 
     // create lamp for this output, aligned with OR gate
     const lamp = lcFile.createLamp(
-      600,
+      650,
       orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2,
       0
     )
@@ -70,10 +70,21 @@ export function formularToLC(
       let collectorGate:Element
       if (outType === 'and-or') {
         collectorGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'n')
-      }else {
+      }else if (outType === 'nand'){
         collectorGate = lcFile.createAndGate(450, orY, 0, 'n'.repeat(terms.length), 'i') //NAND gate
+      } else {//nor
+        collectorGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'i') //NOR gate
+        //negate again
+        const negateNorGate = lcFile.createORGate(550, orY, 0, 'nn', 'i')
+
+        collectorGate.getOutConnectors()[0]!.addTarget(negateNorGate.getInConnectors()[0]!)
+        collectorGate.getOutConnectors()[0]!.addTarget(negateNorGate.getInConnectors()[1]!)
+
+        //directly connect negateNorGate to lamp
+        negateNorGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
       }
-      collectorGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
+
+      if (outType !== 'nor') collectorGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
       termCollector = collectorGate
     }
 
@@ -86,17 +97,30 @@ export function formularToLC(
     terms.forEach((term, termIndex) => {
       const currentRowY = rowY(termIndex)
       const termInputs = term.literals.map((lit) => (lit.negated ? 'i' : 'n')).join('')
+      const termInputsNegated = term.literals.map((lit) => (lit.negated ? 'n' : 'i')).join('')
 
       let nextGate: Element = termCollector
       if (termInputs.length > 1) { //just create AND gate if there are multiple inputs
-        nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, outType === 'and-or' ? 'n' : 'i') //inverted if NAND
+        if (outType === 'and-or'){
+            //normal AND gate
+          nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'n')
+        }else if(outType === 'nand'){
+          //NAND gate
+          nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'i')
+        } else { //NOR
+          nextGate = lcFile.createORGate(300, currentRowY, 0, termInputsNegated, 'i')
+        }
+
         nextGate.getOutConnectors()[0]!.addTarget(termCollector.getInConnectors()[termIndex]!) //connect AND output to OR input or directly to lamp
       } else if (termInputs.length === 1 ){ //if we land here, this is gonna be connected to the OR or LAMP directly, so we have to check if it needs to be negated
         if (outType === 'and-or') {
           nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'i' : 'n')
-        } else {
+        } else if(outType === 'nand'){
           nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'n' : 'i') //inverted if NAND
+        } else {
+          nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'i' : 'n')
         }
+
       }
 
       //build connections from buttons to term inputs
