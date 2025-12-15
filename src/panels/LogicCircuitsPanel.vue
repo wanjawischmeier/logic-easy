@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, reactive } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, reactive, computed } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import { useTruthTableState } from '@/states/truthTableState.ts'
 import { Formula, FunctionType, defaultFunctionType } from '@/utility/types.ts'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
-import {
-  formularToLC,
-} from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
+import { formularToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -154,7 +152,16 @@ const selectedType = ref<FunctionType>(defaultFunctionType)
 // formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
 const formulas = reactive<Record<string, Formula>>({})
 
-let selectedMethod: 'AND/OR' | 'NAND' | 'NOR' = 'NOR'
+type LCMethodType = 'AND/OR' | 'NAND' | 'NOR' | undefined
+const lcMethodTypes: Array<LCMethodType> = ['AND/OR', 'NAND', 'NOR']
+const selectedMethod = ref<LCMethodType>('NOR')
+
+function handleMethodSelect(idx: number | null) {
+  if (idx === null) return
+  const val = lcMethodTypes[idx]
+  selectedMethod.value = val
+  updateFormulas()
+}
 
 function updateFormulas() {
   const formulasMap = state.value?.formulas || {}
@@ -166,9 +173,9 @@ function updateFormulas() {
     formulas[out] = formulasMap?.[out]?.[selectedType.value] ?? Formula.empty
   }
 
-  let fileContent: string = ''
+  let fileContent = ''
 
-  switch (selectedMethod) {
+  switch (selectedMethod.value) {
     case 'AND/OR':
       fileContent = formularToLC(inputVars.value, outputVars.value, formulas).toString()
       break
@@ -190,18 +197,45 @@ function updateFormulas() {
 }
 
 // Keep the plain object in sync with state and selection
-watch([
-  () => state.value?.formulas,
-  outputVars,
-  selectedType
-], updateFormulas, { immediate: true })
+watch([() => state.value?.formulas, outputVars, selectedType], updateFormulas, { immediate: true })
 
+// UI for floating round selector
+const showMethodPicker = ref(false)
+const methodOptions = [
+  { label: 'AND/OR', value: 'AND/OR' as LCMethodType },
+  { label: 'NAND', value: 'NAND' as LCMethodType },
+  { label: 'NOR', value: 'NOR' as LCMethodType },
+]
+
+function togglePicker() {
+  showMethodPicker.value = !showMethodPicker.value
+}
+
+function selectMethod(option: LCMethodType) {
+  const idx = lcMethodTypes.indexOf(option)
+  handleMethodSelect(idx === -1 ? null : idx)
+  showMethodPicker.value = false
+}
 </script>
 
 <template>
   <div class="h-full text-white flex flex-col gap-2 p-2">
-    <div ref="containerRef" class="flex-1 z-0" style="position: relative"></div>
+    <div ref="containerRef" class="flex-1 z-0 relative"></div>
+
+    <!-- TODO make this nicer -->
+    <teleport to="body">
+      <div class="fixed z-50 bottom-3 left-3 flex flex-col items-start">
+        <transition enter-active-class="transition-opacity duration-150" leave-active-class="transition-opacity duration-150" enter-from-class="opacity-0" leave-to-class="opacity-0">
+          <div v-if="showMethodPicker" class="mb-2 w-44 rounded-xl border border-white/10 bg-slate-900/95 shadow-2xl backdrop-blur-sm p-1.5" role="menu">
+            <button v-for="option in methodOptions" :key="option.value" type="button" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-100 hover:bg-white/10 transition" :class="{ 'bg-white/15 text-white': selectedMethod === option.value }" role="menuitemradio" :aria-checked="selectedMethod === option.value" @click="selectMethod(option.value)">
+              {{ option.label }}
+            </button>
+          </div>
+        </transition>
+
+        <button type="button" :aria-expanded="showMethodPicker" aria-label="Select logic circuit method" @click="togglePicker" class="w-7 h-7 rounded-full border border-white/20 bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 text-xs font-semibold shadow-lg hover:shadow-xl hover:border-white/35 transition transform ">
+        </button>
+      </div>
+    </teleport>
   </div>
 </template>
-
-<style scoped></style>
