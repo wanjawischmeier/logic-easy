@@ -9,7 +9,7 @@ import type { Formula } from '@/utility/types.ts'
  * @param outType
  * @returns LCFile representing the logic circuit in AND-OR form
  */
-export function formularToLC(
+export function formulaToLC(
   inputVars: string[],
   outputVars: string[],
   formulas: Record<string, Formula>,

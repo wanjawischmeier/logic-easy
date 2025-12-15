@@ -4,7 +4,7 @@ import type { IDockviewPanelProps } from 'dockview-vue'
 import { useTruthTableState } from '@/states/truthTableState.ts'
 import { Formula, FunctionType, defaultFunctionType } from '@/utility/types.ts'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
-import { formularToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
+import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -177,13 +177,13 @@ function updateFormulas() {
 
   switch (selectedMethod.value) {
     case 'AND/OR':
-      fileContent = formularToLC(inputVars.value, outputVars.value, formulas).toString()
+      fileContent = formulaToLC(inputVars.value, outputVars.value, formulas).toString()
       break
     case 'NAND':
-      fileContent = formularToLC(inputVars.value, outputVars.value, formulas, 'nand').toString()
+      fileContent = formulaToLC(inputVars.value, outputVars.value, formulas, 'nand').toString()
       break
     case 'NOR':
-      fileContent = formularToLC(inputVars.value, outputVars.value, formulas, 'nor').toString()
+      fileContent = formulaToLC(inputVars.value, outputVars.value, formulas, 'nor').toString()
       break
   }
 
