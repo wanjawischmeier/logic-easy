@@ -3,7 +3,6 @@ import { projectManager } from '../projects/projectManager'
 import { getDockviewApi } from '../utility/dockviewIntegration'
 import { StateFileOperations } from './stateFileOperations'
 import type { TruthTableState } from './truthTableState'
-import { ProjectStorage } from '../projects/projectStorage'
 
 const STORAGE_VERSION = 1
 

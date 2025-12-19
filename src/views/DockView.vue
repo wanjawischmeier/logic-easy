@@ -40,6 +40,10 @@ const hasPanels = ref(pendingInitialProjectId !== null)
 
 if (pendingInitialProjectId !== null) {
   console.log('Pending project to load on page load:', pendingInitialProjectId)
+  loadingService.show('Loading page...')
+} else {
+  // No project to load, ensure loading screen is hidden
+  loadingService.hide()
 }
 
 const loadDefaultLayout = (api: DockviewApi) => {
@@ -120,7 +124,6 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
 }
 
 const onReady = (event: DockviewReadyEvent) => {
-  console.log('onReady called, pendingInitialProjectId:', pendingInitialProjectId)
   dockviewApi.value = event.api
 
     // Expose dockview API and shared panel params so HeaderMenuBar can add panels
@@ -149,12 +152,12 @@ const onReady = (event: DockviewReadyEvent) => {
   // Watch for project changes and restore layout
   // This handles both initial load and subsequent project opens
   watch(
-    () => projectManager.currentProjectInfo?.id,
-    (newProjectId, oldProjectId) => {
+    () => projectManager.currentProjectInfo,
+    (newProjectInfo, oldProjectInfo) => {
       // Trigger when project changes or opens (null -> ID)
-      if (newProjectId && newProjectId !== oldProjectId && event.api) {
-        const isProjectChange = oldProjectId !== null && oldProjectId !== undefined
-        console.log(isProjectChange ? `Project changed to: ${newProjectId}` : `Initial project loaded: ${newProjectId}`)
+      if (newProjectInfo?.id && newProjectInfo?.id !== oldProjectInfo?.id && event.api) {
+        const isProjectChange = oldProjectInfo?.id !== null && oldProjectInfo?.id !== undefined
+        console.log(isProjectChange ? `Project changed to: ${projectManager.projectString(newProjectInfo)}` : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`)
 
         restoreLayout(event.api, isProjectChange).then(() => {
           // Hide loading screen after layout is fully restored
