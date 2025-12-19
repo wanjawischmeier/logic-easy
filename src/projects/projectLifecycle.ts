@@ -8,7 +8,7 @@ import type { Project } from '../utility/types'
  * Manages current project state (opening, closing, tracking current project)
  */
 export class ProjectLifecycleManager {
-  private currentProjectId: Ref<string | null>
+  private currentProjectId: Ref<number | null>
   private metadataManager: ProjectMetadataManager
 
   constructor(metadataManager: ProjectMetadataManager) {
@@ -19,7 +19,7 @@ export class ProjectLifecycleManager {
   /**
    * Get current project ID
    */
-  get currentId(): string | null {
+  get currentId(): number | null {
     return this.currentProjectId.value
   }
 
@@ -46,7 +46,7 @@ export class ProjectLifecycleManager {
   /**
    * Set the current project ID
    */
-  private setCurrentId(projectId: string): void {
+  private setCurrentId(projectId: number): void {
     this.currentProjectId.value = projectId
     ProjectStorage.saveCurrentProjectId(projectId)
   }
@@ -62,7 +62,7 @@ export class ProjectLifecycleManager {
   /**
    * Set the current project (without opening)
    */
-  setCurrent(projectId: string): boolean {
+  setCurrent(projectId: number): boolean {
     const projectInfo = this.metadataManager.findById(projectId)
     if (!projectInfo) {
       console.error(`Project not found with id: ${projectId}`)
@@ -76,7 +76,7 @@ export class ProjectLifecycleManager {
   /**
    * Open a project by ID (loads state into stateManager)
    */
-  open(projectId: string): Project | null {
+  open(projectId: number): Project | null {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) return null
 

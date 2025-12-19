@@ -12,7 +12,7 @@ export class ProjectImportExport {
   /**
    * Download project as .le file
    */
-  download(projectId: string): void {
+  download(projectId: number): void {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.warn(`Failed to save: Project with id ${projectId} not found`)

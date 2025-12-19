@@ -27,7 +27,7 @@ export class ProjectManager {
 
   // === Current Project ===
 
-  openProject(projectId: string): Project | null {
+  openProject(projectId: number): Project | null {
     return this.lifecycle.open(projectId)
   }
 
@@ -35,7 +35,7 @@ export class ProjectManager {
     this.lifecycle.close()
   }
 
-  setCurrentProject(projectId: string): boolean {
+  setCurrentProject(projectId: number): boolean {
     return this.lifecycle.setCurrent(projectId)
   }
 
@@ -59,15 +59,15 @@ export class ProjectManager {
     return project
   }
 
-  renameProject(projectId: string, newName: string): boolean {
+  renameProject(projectId: number, newName: string): boolean {
     return this.operations.rename(projectId, newName)
   }
 
-  updateProjectState(projectId: string, state: AppState): boolean {
+  updateProjectState(projectId: number, state: AppState): boolean {
     return this.operations.updateState(projectId, state)
   }
 
-  deleteProject(projectId: string): boolean {
+  deleteProject(projectId: number): boolean {
     return this.operations.delete(projectId)
   }
 
@@ -77,7 +77,7 @@ export class ProjectManager {
 
   // === Import/Export ===
 
-  downloadProject(projectId?: string): void {
+  downloadProject(projectId?: number): void {
     if (!projectId) {
       const projectInfo = this.lifecycle.currentInfo
       if (!projectInfo) {

@@ -37,6 +37,7 @@ export interface ListEntry {
   label: string;
   action: () => void;
   disabled?: boolean;
+  subtitle?: string;
 }
 
 export type ListEntries = ListEntry[];
@@ -46,7 +47,7 @@ export type ListEntries = ListEntry[];
  * Project information (without the full state)
  */
 export interface ProjectInfo {
-  id: string
+  id: number
   name: string
   lastModified: number
 }
