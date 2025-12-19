@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
@@ -31,6 +31,7 @@ type DockviewApiMinimal = {
 const componentsForDockview = dockComponents;
 const dockviewApi = ref<DockviewApi | null>(null)
 let panelDisposable: { dispose?: () => void } | null = null
+let layoutChangeDisposable: { dispose?: () => void } | null = null
 
 // Initialize pending project ID immediately
 let pendingInitialProjectId: number | null = projectManager.getPendingInitialProjectId()
@@ -196,6 +197,22 @@ const onReady = (event: DockviewReadyEvent) => {
     originalPanelDispose?.()
     removeDisposable.dispose()
   }
+
+  // Setup auto-save on layout changes (resize, move, add/remove panels)
+  layoutChangeDisposable = event.api.onDidLayoutChange(() => {
+    // Skip saving during layout restoration to avoid overwriting with partial state
+    if (isRestoringLayout || isInitializingProject) {
+      return
+    }
+
+    try {
+      const layout = event.api.toJSON()
+      stateManager.state.dockviewLayout = layout
+      console.log('Layout saved to project state')
+    } catch (err) {
+      console.error('Failed to save layout:', err)
+    }
+  })
 }
 
 const popupProps = ref<Record<string, unknown>>({})
@@ -226,6 +243,11 @@ const onKeydown = (e: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  layoutChangeDisposable?.dispose?.()
+  panelDisposable?.dispose?.()
 })
 </script>
 
