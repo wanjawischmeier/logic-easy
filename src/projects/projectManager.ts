@@ -124,10 +124,21 @@ export class ProjectManager {
   }
 
   async loadProjectFromFile(file: File): Promise<Project> {
-    const project = await this.importExport.importFromFile(file)
-    // Open the imported project to trigger state loading and watch
-    this.lifecycle.open(project.id)
-    return project
+    loadingService.show('Loading project from file...')
+    // Add a small delay to ensure spinner is visible
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    try {
+      const project = await this.importExport.importFromFile(file)
+      // Open the imported project to trigger state loading and watch
+      this.lifecycle.open(project.id)
+      // Don't hide loading screen here - let the layout restoration handle it
+      return project
+    } catch (error) {
+      console.error('Failed to load project from file:', error)
+      loadingService.hide()
+      throw error
+    }
   }
 }
 
