@@ -107,6 +107,6 @@ export class ProjectLifecycleManager {
     this.clearState()
 
     // Reset to default empty state structure
-    stateManager.state = createDefaultAppState()
+    Object.assign(stateManager.state, createDefaultAppState())
   }
 }
