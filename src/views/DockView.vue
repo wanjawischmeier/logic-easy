@@ -57,13 +57,13 @@ const loadDefaultLayout = (api: DockviewApi) => {
   })
 }
 
-const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
+const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
   // Set flag to prevent premature project close during restoration
   isRestoringLayout = true
 
-  // Initial calculation
+  // Await to ensure state is ready before panels mount
   if (stateManager.state!.truthTable) {
-    updateTruthTable(stateManager.state!.truthTable.values)
+    await updateTruthTable(stateManager.state!.truthTable.values)
   }
 
   // Clear existing panels only when switching projects
@@ -118,7 +118,9 @@ const onReady = (event: DockviewReadyEvent) => {
     ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
 
   // Restore layout for current project
-  restoreLayout(event.api)
+  restoreLayout(event.api).catch(err => {
+    console.error('Failed to restore layout on ready:', err)
+  })
 
   // Watch for project changes and restore layout
   watch(
@@ -126,7 +128,9 @@ const onReady = (event: DockviewReadyEvent) => {
     (newProjectId, oldProjectId) => {
       if (newProjectId && newProjectId !== oldProjectId && event.api) {
         console.log('Project changed, restoring layout for:', newProjectId)
-        restoreLayout(event.api, true)
+        restoreLayout(event.api, true).catch(err => {
+          console.error('Failed to restore layout on project change:', err)
+        })
       }
     }
   )
