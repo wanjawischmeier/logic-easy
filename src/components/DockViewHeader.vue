@@ -28,7 +28,7 @@
 
           <input ref="projectInput" type="text" placeholder="Project Name" maxlength="40" v-model="projectValue"
             class="flex-1 bg-transparent outline-none min-w-0 p-0.5 truncate text-primary-variant focus-within:text-on-surface"
-            @keydown.enter="handleProjectEnter" />
+            @keydown.enter="handleProjectEnter" @focusout="handleRenameProject" />
         </div>
 
         <button type="button" @click="stateManager.closeCurrentProject" title="Close project"
@@ -68,9 +68,11 @@ const handleProjectEnter = (event: KeyboardEvent) => {
   // Blur to defocus and reset scroll to beginning
   input.scrollLeft = 0
   projectInput.value?.blur()
+}
 
+const handleRenameProject = () => {
   const projectInfo = projectManager.currentProjectInfo
-  if (projectInfo && projectValue.value) {
+  if (projectInfo && projectValue.value && projectInfo.name !== projectValue.value) {
     projectManager.renameProject(projectInfo.id, projectValue.value)
   }
 }
