@@ -4,13 +4,14 @@ import { ProjectMetadataManager } from './projectMetadata'
 import { ProjectLifecycleManager } from './projectLifecycle'
 import { ProjectOperations } from './projectOperations'
 import { ProjectImportExport } from './projectImportExport'
+import { loadingService } from '../utility/loadingService'
 
 /**
  * Orchestrates all project-related operations
  */
 export class ProjectManager {
   private metadata: ProjectMetadataManager
-  private lifecycle: ProjectLifecycleManager
+  public lifecycle: ProjectLifecycleManager
   private operations: ProjectOperations
   private importExport: ProjectImportExport
 
@@ -27,8 +28,26 @@ export class ProjectManager {
 
   // === Current Project ===
 
-  openProject(projectId: number): Project | null {
-    return this.lifecycle.open(projectId)
+  /**
+   * Get the project ID that should be initialized on page load
+   * Returns null if no project is saved
+   */
+  getPendingInitialProjectId(): number | null {
+    return this.lifecycle.getSavedProjectId()
+  }
+
+  openProject(projectId: number): void {
+    loadingService.show('Opening project...')
+    // Add a small delay to ensure spinner is visible
+    setTimeout(() => {
+      try {
+        this.lifecycle.open(projectId)
+        // Don't hide loading screen here - let the layout restoration handle it
+      } catch (error) {
+        console.error('Failed to open project:', error)
+        loadingService.hide()
+      }
+    }, 100)
   }
 
   closeCurrentProject(): void {
@@ -49,14 +68,28 @@ export class ProjectManager {
 
   // === Project CRUD ===
 
-  createProject(name: string): Project | null {
-    const project = this.operations.create(name)
-    const opened = this.lifecycle.open(project.id)
-    if (!opened) {
-      console.error(`Failed to open created project: ${this.projectString(project)}`)
-      return null
-    }
-    return project
+  createProject(name: string, onCreated?: (project: Project) => void): void {
+    loadingService.show('Creating project...')
+
+    setTimeout(() => {
+      try {
+        const project = this.operations.create(name)
+        const opened = this.lifecycle.open(project.id)
+        if (!opened) {
+          console.error(`Failed to open created project: ${this.projectString(project)}`)
+          loadingService.hide()
+          return
+        }
+        // Call the callback after project is opened
+        if (onCreated) {
+          onCreated(project)
+        }
+        // Don't hide loading screen here - let the layout restoration handle it
+      } catch (error) {
+        console.error('Failed to create project:', error)
+        loadingService.hide()
+      }
+    }, 100)
   }
 
   renameProject(projectId: number, newName: string): boolean {

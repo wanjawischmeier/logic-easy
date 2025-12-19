@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import DockViewHeader from '../components/DockViewHeader.vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
 import { updateTruthTable } from '@/utility/truthTableInterpreter'
@@ -9,6 +9,8 @@ import { projectManager } from '@/projects/projectManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
+import LoadingScreen from '@/components/LoadingScreen.vue'
+import { loadingService } from '@/utility/loadingService'
 
 type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -28,11 +30,17 @@ type DockviewApiMinimal = {
 
 const componentsForDockview = dockComponents;
 const dockviewApi = ref<DockviewApi | null>(null)
-let layoutChangeDisposable: { dispose?: () => void } | null = null
 let panelDisposable: { dispose?: () => void } | null = null
 
-const hasPanels = ref(true)
+// Initialize pending project ID immediately
+let pendingInitialProjectId: number | null = projectManager.getPendingInitialProjectId()
+let isInitializingProject = pendingInitialProjectId !== null
 let isRestoringLayout = false
+const hasPanels = ref(pendingInitialProjectId !== null)
+
+if (pendingInitialProjectId !== null) {
+  console.log('Pending project to load on page load:', pendingInitialProjectId)
+}
 
 const loadDefaultLayout = (api: DockviewApi) => {
   api.addPanel({
@@ -112,24 +120,52 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
 }
 
 const onReady = (event: DockviewReadyEvent) => {
+  console.log('onReady called, pendingInitialProjectId:', pendingInitialProjectId)
   dockviewApi.value = event.api
 
     // Expose dockview API and shared panel params so HeaderMenuBar can add panels
     ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
 
-  // Restore layout for current project
-  restoreLayout(event.api).catch(err => {
-    console.error('Failed to restore layout on ready:', err)
-  })
+  // Check if there's a pending project to initialize
+  if (pendingInitialProjectId !== null) {
+    const projectIdToLoad = pendingInitialProjectId
+    pendingInitialProjectId = null
+
+    console.log('Dockview ready, loading pending project:', projectIdToLoad)
+    loadingService.show('Opening project...')
+
+    setTimeout(() => {
+      try {
+        projectManager.lifecycle.open(projectIdToLoad)
+        // Layout restoration will be handled by the watch below
+      } catch (error) {
+        console.error('Failed to open project on page load:', error)
+        loadingService.hide()
+        isInitializingProject = false
+      }
+    }, 100)
+  }
 
   // Watch for project changes and restore layout
+  // This handles both initial load and subsequent project opens
   watch(
     () => projectManager.currentProjectInfo?.id,
     (newProjectId, oldProjectId) => {
+      // Trigger when project changes or opens (null -> ID)
       if (newProjectId && newProjectId !== oldProjectId && event.api) {
-        console.log('Project changed, restoring layout for:', newProjectId)
-        restoreLayout(event.api, true).catch(err => {
-          console.error('Failed to restore layout on project change:', err)
+        const isProjectChange = oldProjectId !== null && oldProjectId !== undefined
+        console.log(isProjectChange ? `Project changed to: ${newProjectId}` : `Initial project loaded: ${newProjectId}`)
+
+        restoreLayout(event.api, isProjectChange).then(() => {
+          // Hide loading screen after layout is fully restored
+          setTimeout(() => {
+            loadingService.hide()
+            isInitializingProject = false
+          }, 100)
+        }).catch(err => {
+          console.error('Failed to restore layout:', err)
+          loadingService.hide()
+          isInitializingProject = false
         })
       }
     }
@@ -140,8 +176,8 @@ const onReady = (event: DockviewReadyEvent) => {
     const panelCount = event.api.panels.length
     hasPanels.value = panelCount > 0
 
-    // Close project when all panels are closed and we are not restoring a layout
-    if (panelCount === 0 && !isRestoringLayout) {
+    // Close project when all panels are closed and we are not restoring a layout or initializing
+    if (panelCount === 0 && !isRestoringLayout && !isInitializingProject) {
       projectManager.closeCurrentProject()
     }
   }
@@ -157,29 +193,6 @@ const onReady = (event: DockviewReadyEvent) => {
     originalPanelDispose?.()
     removeDisposable.dispose()
   }
-
-  // Setup auto-save on layout changes
-  layoutChangeDisposable = event.api.onDidLayoutChange(() => {
-    try {
-      const layout = event.api.toJSON()
-
-      // Remove state and updateTruthTable from panel params before saving
-      if (layout.panels && 'panels' in layout.panels) {
-        const panels = layout.panels as { panels?: Array<{ params?: Record<string, unknown> }> };
-        panels.panels?.forEach(panel => {
-          if (panel.params) {
-            delete panel.params.state
-            delete panel.params.updateTruthTable
-          }
-        })
-      }
-
-      stateManager.state.dockviewLayout = layout
-      console.log('Layout saved to project state')
-    } catch (err) {
-      console.error('Failed to save layout to project state:', err)
-    }
-  })
 }
 
 const popupProps = ref<Record<string, unknown>>({})
@@ -211,12 +224,6 @@ const onKeydown = (e: KeyboardEvent) => {
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
 })
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onKeydown)
-  layoutChangeDisposable?.dispose?.()
-  panelDisposable?.dispose?.()
-})
 </script>
 
 <template>
@@ -232,6 +239,9 @@ onBeforeUnmount(() => {
         :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels"></GettingStartedView>
+
+      <!-- Loading Screen -->
+      <LoadingScreen />
 
       <!-- Popup System -->
       <template v-if="popupService.current.value">

@@ -13,7 +13,15 @@ export class ProjectLifecycleManager {
 
   constructor(metadataManager: ProjectMetadataManager) {
     this.metadataManager = metadataManager
-    this.currentProjectId = ref(ProjectStorage.loadCurrentProjectId())
+    // Start with null - the app will explicitly load the saved project
+    this.currentProjectId = ref(null)
+  }
+
+  /**
+   * Get the saved project ID from storage (if any)
+   */
+  getSavedProjectId(): number | null {
+    return ProjectStorage.loadCurrentProjectId()
   }
 
   /**
@@ -51,6 +59,13 @@ export class ProjectLifecycleManager {
     ProjectStorage.saveCurrentProjectId(projectId)
   }
 
+  /**
+   * Clear the current project ID (for forcing reactivity)
+   */
+  clearCurrentId(): void {
+    this.currentProjectId.value = null
+  }
+
   private clearState(): void {
     Object.keys(stateManager.state).forEach(
       key => delete (
@@ -80,8 +95,12 @@ export class ProjectLifecycleManager {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) return null
 
-    this.setCurrentId(projectId)
+    // Clear the state first
     this.clearState()
+
+    // Clear the ID first to force reactivity, then set it
+    this.currentProjectId.value = null
+    this.setCurrentId(projectId)
 
     // Assign new project state
     Object.assign(stateManager.state, project.state)

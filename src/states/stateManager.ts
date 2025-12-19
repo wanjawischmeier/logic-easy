@@ -3,6 +3,7 @@ import { projectManager } from '../projects/projectManager'
 import { getDockviewApi } from '../utility/dockviewIntegration'
 import { StateFileOperations } from './stateFileOperations'
 import type { TruthTableState } from './truthTableState'
+import { ProjectStorage } from '../projects/projectStorage'
 
 const STORAGE_VERSION = 1
 
@@ -62,23 +63,11 @@ export class StateManager {
    */
   private loadState(): AppState | null {
     try {
-      // Try to get current project from project manager
-      const currentProject = projectManager.getCurrentProject()
-
-      if (currentProject) {
-        // Version migration logic
-        if (currentProject.state.version !== STORAGE_VERSION) {
-          console.warn('State version mismatch, resetting to defaults')
-          return createDefaultAppState()
-        }
-        return currentProject.state
-      }
-
-      // No current project
-      console.log('No current project found')
-      return null
+      // Don't load project here - projectManager.initializeCurrentProject() will handle it
+      // This avoids issues with reactive updates and ensures loading screen shows
+      return createDefaultAppState()
     } catch (error) {
-      console.error('Failed to load state from project manager:', error)
+      console.error('Failed to initialize state:', error)
       return null
     }
   }
