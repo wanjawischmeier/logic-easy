@@ -1,33 +1,19 @@
-import { ProjectStorage } from './projectStorage'
-import { ProjectFileOperations } from './projectFileOperations'
-import { ProjectMetadataManager } from './projectMetadata'
-import type { Project } from '../utility/types'
+import { ProjectStorage } from '@/projects/projectStorage'
+import { ProjectFileOperations } from '@/projects/projectFileOperations'
+import { ProjectMetadataManager } from '@/projects/projectMetadata'
+import type { Project } from '@/utility/types'
 
 /**
  * Handles import/export operations for projects
  */
 export class ProjectImportExport {
   constructor(private metadataManager: ProjectMetadataManager) { }
-
-  /**
-   * Download project as .le file
-   */
-  download(projectId: string): void {
-    const project = ProjectStorage.loadProject(projectId)
-    if (!project) {
-      console.warn(`Failed to save: Project with id ${projectId} not found`)
-      return
-    }
-
-    ProjectFileOperations.downloadProject(project)
-  }
-
   /**
    * Load and save project from .le file (without opening it)
    */
   async importFromFile(file: File): Promise<Project> {
     // Parse the file
-    const importedProject = await ProjectFileOperations.loadProjectFromFile(file)
+    const importedProject = await ProjectFileOperations.loadFromFile(file)
 
     // Check if a project with this ID already exists
     const existingProject = ProjectStorage.loadProject(importedProject.id)

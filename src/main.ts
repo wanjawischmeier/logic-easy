@@ -1,10 +1,10 @@
 import 'dockview-vue/dist/styles/dockview.css';
 import { createApp, defineComponent, type Component } from 'vue';
 import { DockviewVue } from 'dockview-vue';
-import router from './router';
 import { VueLatex } from 'vatex';
-import { dockComponents } from './router/dockRegistry';
-import { iframeManager } from './utility/iframeManager';
+import router from '@/router';
+import { dockComponents } from '@/router/dockRegistry';
+import { iframeManager } from '@/utility/iframeManager';
 
 const App = defineComponent({
   name: 'App',

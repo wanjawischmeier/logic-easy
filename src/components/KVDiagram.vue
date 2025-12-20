@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { type TruthTableData, type TruthTableCell, type Formula, FunctionType, defaultFunctionType } from '../utility/types';
+import { type Formula, FunctionType, defaultFunctionType } from '../utility/types';
 
 import {
   getLeftVariables,
@@ -77,8 +77,9 @@ import {
   getRowCodes,
   getColCodes,
   getBinaryString
-} from '@/utility/kvDiagramLayout';
-import { calculateHighlights } from '@/utility/kvDiagramHighlights';
+} from '@/utility/truthtable/kvDiagramLayout';
+import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights';
+import type { TruthTableData, TruthTableCell } from '@/states/truthTableState';
 
 const props = defineProps<{
   inputVars: string[];
@@ -95,13 +96,9 @@ const emit = defineEmits<{
 }>();
 
 const variables = computed(() => props.inputVars || []);
-
 const leftVariables = computed(() => getLeftVariables(variables.value));
-
 const topVariables = computed(() => getTopVariables(variables.value));
-
 const rowCodes = computed(() => getRowCodes(variables.value.length));
-
 const colCodes = computed(() => getColCodes(variables.value.length));
 
 const getValue = (rowCode: string, colCode: string) => {
@@ -143,7 +140,7 @@ const toggleCell = (rowCode: string, colCode: string) => {
 const getHighlights = (rIdx: number, cIdx: number) => {
   if (!props.formula) return [];
 
-  const currentMode = props.functionType || props.formula?.type || defaultFunctionType;
+  const functionType = props.functionType || props.formula?.type || defaultFunctionType;
 
   return calculateHighlights(
     rIdx,
@@ -151,7 +148,7 @@ const getHighlights = (rIdx: number, cIdx: number) => {
     rowCodes.value,
     colCodes.value,
     props.formula.terms,
-    currentMode,
+    functionType,
     props.inputVars
   );
 };

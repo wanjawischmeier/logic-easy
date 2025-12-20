@@ -1,6 +1,7 @@
-import { stateManager } from "../states/stateManager";
-import { minifyTruthTable } from "./espresso";
-import { FunctionType, type Formula, type Literal, type Term, type TruthTableData } from "./types";
+import type { TruthTableData } from "@/states/truthTableState";
+import { stateManager } from "@/states/stateManager";
+import { minifyTruthTable } from "@/utility/truthtable/espresso";
+import { FunctionType, type Formula, type Literal, type Term } from "@/utility/types";
 
 /**
  * Interprets a minified truth table into a logical function (list of terms).
@@ -60,8 +61,25 @@ export function interpretMinifiedTable(
   // Sort terms to ensure consistent order (e.g. !a before b)
   terms.sort((a, b) => compareTerms(a, b, inputVars));
 
-  if (terms.length === 0 || terms[0]?.literals.length === 0) {
-    terms = [{ literals: [{ variable: '0', negated: false }] }];
+  // Handle edge cases: tautology and contradiction
+  if (terms.length === 0) {
+    // No terms at all
+    if (formulaType === 'DNF') {
+      // DNF with no terms = always false (contradiction)
+      terms = [{ literals: [{ variable: '0', negated: false }] }];
+    } else {
+      // CNF with no clauses = always true (tautology)
+      terms = [{ literals: [{ variable: '1', negated: false }] }];
+    }
+  } else if (terms.some(t => t.literals.length === 0)) {
+    // At least one term has no literals (from all don't-cares)
+    if (formulaType === 'DNF') {
+      // DNF with term that has no literals = always true (tautology)
+      terms = [{ literals: [{ variable: '1', negated: false }] }];
+    } else {
+      // CNF with clause that has no literals = always false (contradiction)
+      terms = [{ literals: [{ variable: '0', negated: false }] }];
+    }
   }
 
   return { type: formulaType, terms };

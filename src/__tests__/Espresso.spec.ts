@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { runEspresso } from '@/utility/espresso'
+import { runEspresso } from '@/utility/truthtable/espresso'
 
 // Mock @wasmer/wasi
 vi.mock('@wasmer/wasi', () => {

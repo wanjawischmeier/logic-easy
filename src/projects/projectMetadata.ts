@@ -1,6 +1,6 @@
 import { reactive, type UnwrapNestedRefs } from 'vue'
-import { ProjectStorage } from './projectStorage'
-import type { ProjectMetadata, ProjectInfo, Project } from '../utility/types'
+import { ProjectStorage } from '@/projects/projectStorage'
+import type { ProjectMetadata, ProjectInfo, Project } from '@/utility/types'
 
 const MAX_PROJECTS = 5
 
@@ -31,7 +31,7 @@ export class ProjectMetadataManager {
   /**
    * Find project info by ID
    */
-  findById(projectId: string): ProjectInfo | null {
+  findById(projectId: number): ProjectInfo | null {
     return this.metadata.projects.find(p => p.id === projectId) || null
   }
 
@@ -51,7 +51,7 @@ export class ProjectMetadataManager {
   /**
    * Remove project from metadata
    */
-  remove(projectId: string): void {
+  remove(projectId: number): void {
     this.metadata.projects = this.metadata.projects.filter(p => p.id !== projectId)
     ProjectStorage.saveMetadata(this.metadata)
   }

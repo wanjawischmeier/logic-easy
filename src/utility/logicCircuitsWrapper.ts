@@ -1,4 +1,4 @@
-import { iframeManager } from './iframeManager'
+import { iframeManager } from '@/utility/iframeManager'
 
 type LoadOptions = {
   url?: string;

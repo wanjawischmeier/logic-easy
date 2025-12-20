@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import TruthTable from '../components/TruthTable.vue'
-import type { TruthTableCell, TruthTableData } from '@/utility/types';
-import { updateTruthTable } from '@/utility/truthTableInterpreter';
+import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
-import { useTruthTableState } from '@/states/truthTableState';
+import { useTruthTableState, type TruthTableCell, type TruthTableData } from '@/states/truthTableState';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

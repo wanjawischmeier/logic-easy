@@ -1,4 +1,4 @@
-import type { AppState } from "../states/stateManager";
+import type { AppState } from "@/states/stateManager";
 
 export const FunctionType = {
   DNF: 'DNF',
@@ -30,13 +30,11 @@ export const Formula = {
   })
 };
 
-export type TruthTableCell = 0 | 1 | '-';
-export type TruthTableData = TruthTableCell[][];
-
 export interface ListEntry {
   label: string;
   action: () => void;
   disabled?: boolean;
+  subtitle?: string;
 }
 
 export type ListEntries = ListEntry[];
@@ -46,7 +44,7 @@ export type ListEntries = ListEntry[];
  * Project information (without the full state)
  */
 export interface ProjectInfo {
-  id: string
+  id: number
   name: string
   lastModified: number
 }

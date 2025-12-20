@@ -1,4 +1,5 @@
-import type { Project } from "../utility/types"
+import type { Project } from "@/utility/types"
+import { ProjectStorage } from "@/projects/projectStorage";
 
 /**
  * File import/export operations for projects
@@ -7,7 +8,21 @@ export class ProjectFileOperations {
   /**
    * Download project as .le file
    */
-  static downloadProject(project: Project): void {
+  static download(projectId: number): boolean;
+  static download(project: Project): boolean;
+  static download(projectOrId: number | Project): boolean {
+    let project: Project | null;
+    if (typeof projectOrId === 'number') {
+      project = ProjectStorage.loadProject(projectOrId)
+    } else {
+      project = projectOrId
+    }
+
+    if (!project) {
+      console.warn(`Failed to save: Project with id ${projectOrId} not found`)
+      return false
+    }
+
     const dataStr = JSON.stringify(project, null, 2)
     const dataBlob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(dataBlob)
@@ -20,12 +35,13 @@ export class ProjectFileOperations {
     document.body.removeChild(link)
 
     URL.revokeObjectURL(url)
+    return true
   }
 
   /**
    * Load project from .le file
    */
-  static loadProjectFromFile(file: File): Promise<Project> {
+  static loadFromFile(file: File): Promise<Project> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
 

@@ -1,25 +1,33 @@
 import { ref, type Ref } from 'vue'
-import { createDefaultAppState, stateManager } from '../states/stateManager'
-import { ProjectStorage } from './projectStorage'
-import { ProjectMetadataManager } from './projectMetadata'
-import type { Project } from '../utility/types'
+import { createDefaultAppState, stateManager } from '@/states/stateManager'
+import { ProjectStorage } from '@/projects/projectStorage'
+import { ProjectMetadataManager } from '@/projects/projectMetadata'
+import type { Project } from '@/utility/types'
 
 /**
  * Manages current project state (opening, closing, tracking current project)
  */
 export class ProjectLifecycleManager {
-  private currentProjectId: Ref<string | null>
+  private currentProjectId: Ref<number | null>
   private metadataManager: ProjectMetadataManager
 
   constructor(metadataManager: ProjectMetadataManager) {
     this.metadataManager = metadataManager
-    this.currentProjectId = ref(ProjectStorage.loadCurrentProjectId())
+    // Start with null - the app will explicitly load the saved project
+    this.currentProjectId = ref(null)
+  }
+
+  /**
+   * Get the saved project ID from storage (if any)
+   */
+  getSavedProjectId(): number | null {
+    return ProjectStorage.loadCurrentProjectId()
   }
 
   /**
    * Get current project ID
    */
-  get currentId(): string | null {
+  get currentId(): number | null {
     return this.currentProjectId.value
   }
 
@@ -46,9 +54,16 @@ export class ProjectLifecycleManager {
   /**
    * Set the current project ID
    */
-  private setCurrentId(projectId: string): void {
+  private setCurrentId(projectId: number): void {
     this.currentProjectId.value = projectId
     ProjectStorage.saveCurrentProjectId(projectId)
+  }
+
+  /**
+   * Clear the current project ID (for forcing reactivity)
+   */
+  clearCurrentId(): void {
+    this.currentProjectId.value = null
   }
 
   private clearState(): void {
@@ -62,7 +77,7 @@ export class ProjectLifecycleManager {
   /**
    * Set the current project (without opening)
    */
-  setCurrent(projectId: string): boolean {
+  setCurrent(projectId: number): boolean {
     const projectInfo = this.metadataManager.findById(projectId)
     if (!projectInfo) {
       console.error(`Project not found with id: ${projectId}`)
@@ -76,12 +91,16 @@ export class ProjectLifecycleManager {
   /**
    * Open a project by ID (loads state into stateManager)
    */
-  open(projectId: string): Project | null {
+  open(projectId: number): Project | null {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) return null
 
-    this.setCurrentId(projectId)
+    // Clear the state first
     this.clearState()
+
+    // Clear the ID first to force reactivity, then set it
+    this.currentProjectId.value = null
+    this.setCurrentId(projectId)
 
     // Assign new project state
     Object.assign(stateManager.state, project.state)
@@ -107,6 +126,6 @@ export class ProjectLifecycleManager {
     this.clearState()
 
     // Reset to default empty state structure
-    stateManager.state = createDefaultAppState()
+    Object.assign(stateManager.state, createDefaultAppState())
   }
 }
