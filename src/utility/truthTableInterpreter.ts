@@ -1,6 +1,7 @@
+import type { TruthTableData } from "@/states/truthTableState";
 import { stateManager } from "../states/stateManager";
 import { minifyTruthTable } from "./espresso";
-import { FunctionType, type Formula, type Literal, type Term, type TruthTableData } from "./types";
+import { FunctionType, type Formula, type Literal, type Term } from "./types";
 
 /**
  * Interprets a minified truth table into a logical function (list of terms).
