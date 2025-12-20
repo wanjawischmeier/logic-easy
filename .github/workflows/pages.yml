@@ -33,6 +33,12 @@ jobs:
         with:
           submodules: 'recursive'
           fetch-depth: 0
+      - name: Build submodule fsm-engine
+        run: |
+          cd public/fsm-engine
+          npm ci
+          npm run build
+          cd ../..
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
