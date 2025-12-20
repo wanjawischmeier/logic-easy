@@ -1,31 +1,13 @@
-import type { AddPanelPositionOptions } from 'dockview-vue';
+import type { AddPanelPositionOptions, DockviewApi } from 'dockview-vue';
 import { popupService } from './popupService';
 import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry';
 import { updateTruthTable } from './truthTableInterpreter';
 import { createTruthTableProject } from '../projects/create/truthTableProjectCreation';
 import { stateManager } from '../states/stateManager';
+import { dockviewService } from './dockviewService';
 
-export type DockviewApiMinimal = {
-  addPanel: (opts: {
-    // TODO: Resolve duplicate id/component
-    id: string;
-    component: string;
-    title?: string;
-    params?: Record<string, unknown>;
-    position?: AddPanelPositionOptions;
-  }) => void;
-  removePanel: (panel: { id: string }) => void;
-  panels: Array<{
-    id: string;
-    api: {
-      setActive: () => void;
-    };
-  }>;
-};
-
-export function getDockviewApi(): DockviewApiMinimal | null {
-  const api = (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api;
-  return api ?? null;
+export function getDockviewApi(): DockviewApi | null {
+  return dockviewService.getApi();
 }
 
 function findPanelByComponent(component: string): { id: string; api: { setActive: () => void } } | null {

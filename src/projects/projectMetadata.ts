@@ -31,7 +31,7 @@ export class ProjectMetadataManager {
   /**
    * Find project info by ID
    */
-  findById(projectId: string): ProjectInfo | null {
+  findById(projectId: number): ProjectInfo | null {
     return this.metadata.projects.find(p => p.id === projectId) || null
   }
 
@@ -51,7 +51,7 @@ export class ProjectMetadataManager {
   /**
    * Remove project from metadata
    */
-  remove(projectId: string): void {
+  remove(projectId: number): void {
     this.metadata.projects = this.metadata.projects.filter(p => p.id !== projectId)
     ProjectStorage.saveMetadata(this.metadata)
   }

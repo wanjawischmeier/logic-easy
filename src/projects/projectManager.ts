@@ -4,13 +4,14 @@ import { ProjectMetadataManager } from './projectMetadata'
 import { ProjectLifecycleManager } from './projectLifecycle'
 import { ProjectOperations } from './projectOperations'
 import { ProjectImportExport } from './projectImportExport'
+import { loadingService } from '../utility/loadingService'
 
 /**
  * Orchestrates all project-related operations
  */
 export class ProjectManager {
   private metadata: ProjectMetadataManager
-  private lifecycle: ProjectLifecycleManager
+  public lifecycle: ProjectLifecycleManager
   private operations: ProjectOperations
   private importExport: ProjectImportExport
 
@@ -27,15 +28,33 @@ export class ProjectManager {
 
   // === Current Project ===
 
-  openProject(projectId: string): Project | null {
-    return this.lifecycle.open(projectId)
+  /**
+   * Get the project ID that should be initialized on page load
+   * Returns null if no project is saved
+   */
+  getPendingInitialProjectId(): number | null {
+    return this.lifecycle.getSavedProjectId()
+  }
+
+  openProject(projectId: number): void {
+    loadingService.show('Opening project...')
+    // Add a small delay to ensure spinner is visible
+    setTimeout(() => {
+      try {
+        this.lifecycle.open(projectId)
+        // Don't hide loading screen here - let the layout restoration handle it
+      } catch (error) {
+        console.error('Failed to open project:', error)
+        loadingService.hide()
+      }
+    }, 100)
   }
 
   closeCurrentProject(): void {
     this.lifecycle.close()
   }
 
-  setCurrentProject(projectId: string): boolean {
+  setCurrentProject(projectId: number): boolean {
     return this.lifecycle.setCurrent(projectId)
   }
 
@@ -49,25 +68,39 @@ export class ProjectManager {
 
   // === Project CRUD ===
 
-  createProject(name: string): Project | null {
-    const project = this.operations.create(name)
-    const opened = this.lifecycle.open(project.id)
-    if (!opened) {
-      console.error(`Failed to open created project: ${this.projectString(project)}`)
-      return null
-    }
-    return project
+  createProject(name: string, onCreated?: (project: Project) => void): void {
+    loadingService.show('Creating project...')
+
+    setTimeout(() => {
+      try {
+        const project = this.operations.create(name)
+        const opened = this.lifecycle.open(project.id)
+        if (!opened) {
+          console.error(`Failed to open created project: ${this.projectString(project)}`)
+          loadingService.hide()
+          return
+        }
+        // Call the callback after project is opened
+        if (onCreated) {
+          onCreated(project)
+        }
+        // Don't hide loading screen here - let the layout restoration handle it
+      } catch (error) {
+        console.error('Failed to create project:', error)
+        loadingService.hide()
+      }
+    }, 100)
   }
 
-  renameProject(projectId: string, newName: string): boolean {
+  renameProject(projectId: number, newName: string): boolean {
     return this.operations.rename(projectId, newName)
   }
 
-  updateProjectState(projectId: string, state: AppState): boolean {
+  updateProjectState(projectId: number, state: AppState): boolean {
     return this.operations.updateState(projectId, state)
   }
 
-  deleteProject(projectId: string): boolean {
+  deleteProject(projectId: number): boolean {
     return this.operations.delete(projectId)
   }
 
@@ -77,7 +110,7 @@ export class ProjectManager {
 
   // === Import/Export ===
 
-  downloadProject(projectId?: string): void {
+  downloadProject(projectId?: number): void {
     if (!projectId) {
       const projectInfo = this.lifecycle.currentInfo
       if (!projectInfo) {
@@ -91,10 +124,21 @@ export class ProjectManager {
   }
 
   async loadProjectFromFile(file: File): Promise<Project> {
-    const project = await this.importExport.importFromFile(file)
-    // Open the imported project to trigger state loading and watch
-    this.lifecycle.open(project.id)
-    return project
+    loadingService.show('Loading project from file...')
+    // Add a small delay to ensure spinner is visible
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    try {
+      const project = await this.importExport.importFromFile(file)
+      // Open the imported project to trigger state loading and watch
+      this.lifecycle.open(project.id)
+      // Don't hide loading screen here - let the layout restoration handle it
+      return project
+    } catch (error) {
+      console.error('Failed to load project from file:', error)
+      loadingService.hide()
+      throw error
+    }
   }
 }
 

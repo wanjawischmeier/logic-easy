@@ -11,7 +11,7 @@ export class ProjectStorage {
   /**
    * Generate a project storage key
    */
-  static getProjectKey(projectId: string): string {
+  static getProjectKey(projectId: number): string {
     return `${PROJECT_KEY_PREFIX}${projectId}`
   }
 
@@ -45,9 +45,10 @@ export class ProjectStorage {
   /**
    * Load the current project ID from localStorage
    */
-  static loadCurrentProjectId(): string | null {
+  static loadCurrentProjectId(): number | null {
     try {
-      return localStorage.getItem(CURRENT_PROJECT_KEY)
+      const stored = localStorage.getItem(CURRENT_PROJECT_KEY)
+      return stored ? parseInt(stored, 10) : null
     } catch (error) {
       console.error('Failed to load current project ID:', error)
       return null
@@ -57,10 +58,10 @@ export class ProjectStorage {
   /**
    * Save the current project ID to localStorage
    */
-  static saveCurrentProjectId(projectId: string | null): void {
+  static saveCurrentProjectId(projectId: number | null): void {
     try {
-      if (projectId) {
-        localStorage.setItem(CURRENT_PROJECT_KEY, projectId)
+      if (projectId !== null) {
+        localStorage.setItem(CURRENT_PROJECT_KEY, projectId.toString())
       } else {
         localStorage.removeItem(CURRENT_PROJECT_KEY)
       }
@@ -72,7 +73,7 @@ export class ProjectStorage {
   /**
    * Load a project's full data from localStorage
    */
-  static loadProject(projectId: string): Project | null {
+  static loadProject(projectId: number): Project | null {
     try {
       const key = this.getProjectKey(projectId)
       const stored = localStorage.getItem(key)
@@ -101,7 +102,7 @@ export class ProjectStorage {
   /**
    * Remove a project from localStorage
    */
-  static removeProject(projectId: string): void {
+  static removeProject(projectId: number): void {
     try {
       const key = this.getProjectKey(projectId)
       localStorage.removeItem(key)

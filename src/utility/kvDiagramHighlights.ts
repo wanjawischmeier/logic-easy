@@ -112,20 +112,54 @@ export function calculateHighlights(
 
   if (!rowCode || !colCode) return [];
 
-  if (mode === FunctionType.CNF) {
-    // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
-    // A clause (sum) is FALSE when ALL its literals are false
-    // So we highlight cells where at least one clause is completely false
-    if (terms.length === 1 && terms[0]?.literals[0]?.variable === '0') {
+  // Check for constant formulas
+  const isConstant1 = terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '1';
+  const isConstant0 = terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '0';
+
+  if (mode === FunctionType.DNF) {
+    // DNF constant 1 (tautology): highlight all cells
+    if (isConstant1) {
+      return [{
+        style: {
+          backgroundColor: getTermColor(0),
+          top: '0',
+          bottom: '0',
+          left: '0',
+          right: '0',
+        }
+      }];
+    }
+    // DNF constant 0 (contradiction): highlight no cells
+    if (isConstant0) {
+      return [];
+    }
+  } else {
+    // CNF mode
+    // CNF constant 0 (contradiction): highlight all cells
+    if (isConstant0) {
+      return [{
+        style: {
+          backgroundColor: getTermColor(0),
+          top: '0',
+          bottom: '0',
+          left: '0',
+          right: '0',
+        }
+      }];
+    }
+    // CNF constant 1 (tautology): highlight no cells
+    if (isConstant1) {
       return [];
     }
 
+    // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
+    // A clause (sum) is FALSE when ALL its literals are false
+    // So we highlight cells where at least one clause is completely false
     const anyClauseFalse = terms.some(term => {
       return !isCovered(term, rowCode, colCode, mode, inputVars);
     });
 
     if (!anyClauseFalse) return []; // Cell doesn't contribute to making formula false
-
   }
 
   return inferHighlightFromCoverage(
