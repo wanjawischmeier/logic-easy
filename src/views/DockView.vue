@@ -13,22 +13,6 @@ import LoadingScreen from '@/components/LoadingScreen.vue'
 import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockviewService'
 
-type DockviewApiMinimal = {
-  addPanel: (opts: {
-    id: string;
-    component: string;
-    title?: string;
-    params?: Record<string, unknown>;
-    position?: unknown;
-  }) => void;
-  panels: Array<{
-    id: string;
-    api: {
-      setActive: () => void;
-    };
-  }>;
-};
-
 const componentsForDockview = dockComponents;
 const dockviewApi = ref<DockviewApi | null>(null)
 let panelDisposable: { dispose?: () => void } | null = null
@@ -128,10 +112,8 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
 const onReady = (event: DockviewReadyEvent) => {
   dockviewApi.value = event.api;
 
-  // Expose dockview API and shared panel params so HeaderMenuBar can add panels
-  (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
-
-  // Register minimize function with dockview service
+  // Register dockview API and minimize function with service
+  dockviewService.registerApi(event.api);
   dockviewService.registerMinimize(() => {
     hasPanels.value = false
   })
