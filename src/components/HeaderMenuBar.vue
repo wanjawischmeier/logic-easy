@@ -12,7 +12,7 @@
           <li v-for="(entry, idx) in items" :key="idx" class="relative">
             <button
               class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
-              :disabled="(!entry.action && !entry.panelKey && !entry.children) || entry.disabled"
+              :disabled="(!entry.action && !entry.panelId && !entry.children) || entry.disabled"
               @click="entry.children ? null : runAction(entry)"
               @mouseenter="entry.children ? showSubmenu(idx) : hideSubmenu()" type="button">
               <span>{{ entry.label }}</span>
@@ -27,7 +27,7 @@
                 <li v-for="(child, childIdx) in entry.children" :key="childIdx">
                   <button
                     class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
-                    :disabled="(!child.action && !child.panelKey) || child.disabled" @click="runAction(child)"
+                    :disabled="(!child.action && !child.panelId) || child.disabled" @click="runAction(child)"
                     type="button">
                     <span>{{ child.label }}</span>
                     <span v-if="child.tooltip" class="opacity-70">{{ child.tooltip }}</span>
@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry';
-import { addPanel, addPanelWithPopup } from '@/utility/dockviewIntegration';
+import { createPanel, createPanelAfterPopup } from '@/utility/dockviewIntegration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
@@ -120,11 +120,11 @@ function runAction(entry: MenuEntry): void {
     return;
   }
 
-  if (entry.panelKey) {
+  if (entry.panelId) {
     if (entry.withPopup ?? false) {
-      addPanelWithPopup(entry.panelKey, entry.label);
+      createPanelAfterPopup(entry.panelId);
     } else {
-      addPanel(entry.panelKey, entry.label);
+      createPanel(entry.panelId, entry.label);
     }
 
     activeMenu.value = '';

@@ -27,7 +27,7 @@ export type MenuEntry = {
   label: string;
   action?: () => void;
   tooltip?: string;
-  panelKey?: string;
+  panelId?: string;
   children?: MenuEntry[];
   withPopup?: boolean;
   disabled?: boolean;
@@ -96,7 +96,7 @@ export const newMenu = computed<MenuEntry[]>(() =>
     .filter((menuEntry) => menuEntry.projectPropsComponent)
     .map((menuEntry) => ({
       label: menuEntry.label,
-      panelKey: menuEntry.id,
+      panelId: menuEntry.id,
       withPopup: true,
       disabled: !checkDockEntryRequirements(menuEntry, 'CREATE')
     }))
@@ -107,7 +107,7 @@ export const viewMenu = computed<MenuEntry[]>(() => {
   return dockRegistry
     .map((menuEntry) => ({
       label: menuEntry.label,
-      panelKey: menuEntry.id,
+      panelId: menuEntry.id,
       disabled: !checkDockEntryRequirements(menuEntry, 'VIEW')
     }))
     .sort((a, b) => Number(a.disabled) - Number(b.disabled))

@@ -9,7 +9,7 @@
         <div class="w-12 h-12 border-4 border-surface-3 border-t-primary rounded-full animate-spin"></div>
 
         <!-- Message -->
-        <p class="text-on-surface text-lg">{{ loadingState.message }}</p>
+        <p class="text-on-surface text-lg select-none">{{ loadingState.message }}</p>
       </div>
     </div>
   </Transition>

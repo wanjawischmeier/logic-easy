@@ -58,6 +58,7 @@ export class StateManager {
     )
   }
 
+  // TODO: fix this
   /**
    * Load state from project manager
    */

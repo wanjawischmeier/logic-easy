@@ -33,11 +33,14 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import type { ValidationFunction } from './ProjectCreationPopup.vue';
 
-const props = defineProps<{
+// TODO use this type alongside a generalized `ProjectCreationProps` instead of `props: Record<string, unknown>`
+export type TruthTableProjectCreationProps = {
   inputCount?: number;
   outputCount?: number;
   registerValidation?: (fn: ValidationFunction) => void;
-}>();
+};
+
+const props = defineProps<TruthTableProjectCreationProps>();
 
 const emit = defineEmits<{
   'update:inputCount': [value: number];

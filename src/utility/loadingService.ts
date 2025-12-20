@@ -39,4 +39,5 @@ class LoadingService {
     }
 }
 
+// Singleton export
 export const loadingService = new LoadingService()

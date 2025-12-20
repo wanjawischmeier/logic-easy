@@ -1,20 +1,31 @@
+import type { TruthTableCell, TruthTableData } from '@/states/truthTableState'
 import { stateManager } from '../../states/stateManager'
-import { addPanel } from '../../utility/dockviewIntegration'
-import { Formula, type TruthTableCell, type TruthTableData } from '../../utility/types'
+import { createPanel } from '../../utility/dockviewIntegration'
+import { Formula } from '../../utility/types'
 import { projectManager } from '../projectManager'
 
+/**
+ * Adds the truth table panel and a KV panel to the right if the variable count matches
+ * @param inputCount Number of input variables
+ */
 export function restoreDefaultPanelLayout(inputCount: number) {
-  addPanel('truth-table', 'Truth Table')
+  createPanel('truth-table', 'Truth Table')
 
   // Add KV diagram if input count is between 2 and 4
   if (inputCount >= 2 && inputCount <= 4) {
-    addPanel('kv-diagram', 'KV Diagram', {
+    createPanel('kv-diagram', 'KV Diagram', {
       referencePanel: 'truth-table',
       direction: 'right'
     })
   }
 }
 
+/**
+ * Creates the truth table state for a truth table project and registers it with the project manager.
+ * @param projectName The name of the project.
+ * @param inputCount The number of input variables.
+ * @param outputCount The number of output variables.
+ */
 export function createTruthTableProject(
   projectName: string,
   inputCount: number,
