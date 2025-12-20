@@ -1,10 +1,10 @@
 import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
-import { popupService } from './popupService';
+import { popupService } from '@/utility/popupService';
 import { checkDockEntryRequirements, dockRegistry, type MenuEntry } from '@/router/dockRegistry';
-import { updateTruthTable } from './truthTableInterpreter';
-import { createTruthTableProject } from '../projects/create/truthTableProjectCreation';
-import { stateManager } from '../states/stateManager';
-import { dockviewService } from './dockviewService';
+import { updateTruthTable } from '@/utility/truthtable/interpreter';
+import { createTruthTableProject } from '@/projects/create/truthTableProjectCreation';
+import { stateManager } from '@/states/stateManager';
+import { dockviewService } from '@/utility/dockview/service';
 
 /**
  * Retrieves the Dockview API instance from the dockview service.

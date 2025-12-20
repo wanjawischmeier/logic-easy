@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
-import { runEspresso } from '@/utility/espresso'
+import { runEspresso } from '@/utility/truthtable/espresso'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 

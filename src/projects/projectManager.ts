@@ -1,11 +1,11 @@
-import type { AppState } from '../states/stateManager'
-import type { ProjectInfo, Project } from '../utility/types'
-import { ProjectMetadataManager } from './projectMetadata'
-import { ProjectLifecycleManager } from './projectLifecycle'
-import { ProjectOperations } from './projectOperations'
-import { ProjectImportExport } from './projectImportExport'
-import { loadingService } from '../utility/loadingService'
-import { ProjectFileOperations } from './projectFileOperations'
+import type { AppState } from '@/states/stateManager'
+import type { ProjectInfo, Project } from '@/utility/types'
+import { ProjectMetadataManager } from '@/projects/projectMetadata'
+import { ProjectLifecycleManager } from '@/projects/projectLifecycle'
+import { ProjectOperations } from '@/projects/projectOperations'
+import { ProjectImportExport } from '@/projects/projectImportExport'
+import { loadingService } from '@/utility/loadingService'
+import { ProjectFileOperations } from '@/projects/projectFileOperations'
 
 /**
  * Orchestrates all project-related operations

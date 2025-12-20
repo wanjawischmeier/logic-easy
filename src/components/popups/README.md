@@ -5,17 +5,13 @@ Popup components used across the application.
 Modal and popup UIs for user flows (credits, manual, project creation, property editing).
 
 # Usage
-Use `PopupBase.vue` for consistent styling and accessibility. For project creation popups, add a props file (like `TruthTableProjectProps.vue`) for each popup type that defines its props and their layout. Those will then be embedded into the content area of `ProjectCreationPopup.vue`. Open/close a popup via `popupService` or parent state.
+## Basic popups
+Use `PopupBase.vue` for consistent styling and accessibility.
 
-# Key files
-
-- `PopupBase.vue`: base modal wrapper — use to create consistent general popups.
-- `ProjectCreationPopup.vue`: More specialized, use to create project creation popups specifically.
-# Project Props Validation
-
+## Project creation popups
 Parent (`ProjectCreationPopup`) validates the project name and provides a `registerValidation` function via slot props. Child props components call `registerValidation(fn)` to register a function that returns `{ valid: boolean, error?: string }`.
 
-## Example:
+### Example:
 
 ```vue
 <!-- Parent usage (slot provides registerValidation) -->

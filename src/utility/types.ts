@@ -1,4 +1,4 @@
-import type { AppState } from "../states/stateManager";
+import type { AppState } from "@/states/stateManager";
 
 export const FunctionType = {
   DNF: 'DNF',

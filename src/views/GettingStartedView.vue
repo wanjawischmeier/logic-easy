@@ -22,11 +22,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue';
-import { createPanelAfterPopup } from '@/utility/dockviewIntegration';
+import { defineComponent, computed, type ComputedRef } from 'vue';
+import { createPanelAfterPopup } from '@/utility/dockview/integration';
 import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
-import type { ComputedRef } from 'vue';
 import type { ListEntry } from '@/utility/types';
 import { projectManager } from '@/projects/projectManager';
 

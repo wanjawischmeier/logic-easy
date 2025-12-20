@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import TruthTable from '../components/TruthTable.vue'
-import { updateTruthTable } from '@/utility/truthTableInterpreter';
+import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { useTruthTableState, type TruthTableCell, type TruthTableData } from '@/states/truthTableState';
 

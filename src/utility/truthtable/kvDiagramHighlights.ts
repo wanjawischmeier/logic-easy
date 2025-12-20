@@ -1,4 +1,4 @@
-import { type Term, FunctionType } from "./types";
+import { type Term, FunctionType } from "@/utility/types";
 
 /**
  * Generate a semi-transparent HSLA color string for a term index.
