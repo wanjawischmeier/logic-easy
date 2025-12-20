@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DockView from '../views/DockView.vue'
+import DockView from '@/views/DockView.vue'
 
 const router = createRouter({
   history: createWebHistory(),

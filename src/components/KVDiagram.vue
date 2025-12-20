@@ -77,8 +77,8 @@ import {
   getRowCodes,
   getColCodes,
   getBinaryString
-} from '@/utility/kvDiagramLayout';
-import { calculateHighlights } from '@/utility/kvDiagramHighlights';
+} from '@/utility/truthtable/kvDiagramLayout';
+import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights';
 import type { TruthTableData, TruthTableCell } from '@/states/truthTableState';
 
 const props = defineProps<{

@@ -1,8 +1,8 @@
 import { ref, type Ref } from 'vue'
-import { createDefaultAppState, stateManager } from '../states/stateManager'
-import { ProjectStorage } from './projectStorage'
-import { ProjectMetadataManager } from './projectMetadata'
-import type { Project } from '../utility/types'
+import { createDefaultAppState, stateManager } from '@/states/stateManager'
+import { ProjectStorage } from '@/projects/projectStorage'
+import { ProjectMetadataManager } from '@/projects/projectMetadata'
+import type { Project } from '@/utility/types'
 
 /**
  * Manages current project state (opening, closing, tracking current project)

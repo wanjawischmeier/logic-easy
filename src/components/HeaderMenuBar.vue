@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry';
-import { createPanel, createPanelAfterPopup } from '@/utility/dockviewIntegration';
+import { createPanel, createPanelAfterPopup } from '@/utility/dockview/integration';
 import { popupService } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';

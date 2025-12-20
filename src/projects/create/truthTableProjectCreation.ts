@@ -1,8 +1,8 @@
 import type { TruthTableCell, TruthTableData } from '@/states/truthTableState'
-import { stateManager } from '../../states/stateManager'
-import { createPanel } from '../../utility/dockviewIntegration'
-import { Formula } from '../../utility/types'
-import { projectManager } from '../projectManager'
+import { stateManager } from '@/states/stateManager'
+import { createPanel } from '@/utility/dockview/integration'
+import { Formula } from '@/utility/types'
+import { projectManager } from '@/projects/projectManager'
 
 /**
  * Adds the truth table panel and a KV panel to the right if the variable count matches

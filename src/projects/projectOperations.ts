@@ -1,7 +1,7 @@
-import { ProjectStorage } from './projectStorage'
-import { ProjectMetadataManager } from './projectMetadata'
-import { createDefaultAppState, type AppState } from '../states/stateManager'
-import type { Project } from '../utility/types'
+import { ProjectStorage } from '@/projects/projectStorage'
+import { ProjectMetadataManager } from '@/projects/projectMetadata'
+import { createDefaultAppState, type AppState } from '@/states/stateManager'
+import type { Project } from '@/utility/types'
 
 /**
  * Handles CRUD operations on projects

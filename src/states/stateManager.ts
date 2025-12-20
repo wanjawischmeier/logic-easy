@@ -1,9 +1,9 @@
 import { reactive, watch, type UnwrapNestedRefs } from 'vue'
-import { projectManager } from '../projects/projectManager'
-import { getDockviewApi } from '../utility/dockviewIntegration'
-import { StateFileOperations } from './stateFileOperations'
-import { dockviewService } from '../utility/dockviewService'
-import type { TruthTableState } from './truthTableState'
+import { projectManager } from '@/projects/projectManager'
+import { getDockviewApi } from '@/utility/dockview/integration'
+import { StateFileOperations } from '@/states/stateFileOperations'
+import { dockviewService } from '@/utility/dockview/service'
+import type { TruthTableState } from '@/states/truthTableState'
 
 const STORAGE_VERSION = 1
 

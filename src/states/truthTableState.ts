@@ -1,6 +1,6 @@
-import { Formula, FunctionType } from "@/utility/types"
 import { computed } from "vue"
-import { stateManager } from "./stateManager"
+import { Formula, FunctionType } from "@/utility/types"
+import { stateManager } from "@/states/stateManager"
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
