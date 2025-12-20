@@ -1,3 +1,8 @@
 [submodule "public/logic-circuits"]
 	path = public/logic-circuits
 	url = https://github.com/wanjawischmeier/logic-circuits
+
+[submodule "public/fsm-engine"]
+	path = public/fsm-engine
+	url = https://github.com/aylinjosephine/fsm-engine.git
+	branch = main
