@@ -2,6 +2,7 @@ import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '../projects/projectManager'
 import { getDockviewApi } from '../utility/dockviewIntegration'
 import { StateFileOperations } from './stateFileOperations'
+import { dockviewService } from '../utility/dockviewService'
 import type { TruthTableState } from './truthTableState'
 
 const STORAGE_VERSION = 1
@@ -137,26 +138,32 @@ export class StateManager {
    * Close the current project
    */
   closeCurrentProject(): void {
-    const api = getDockviewApi()
-    if (!api) {
-      console.warn('Dockview API not available, closing project directly')
-      projectManager.closeCurrentProject()
-      return
-    }
+    // Immediately minimize the dock view to avoid flash
+    dockviewService.minimize()
 
-    // Close all panels - will automatically trigger projectManager.closeCurrentProject()
-    const panelIds = api.panels.map(p => p.id)
-    panelIds.forEach(id => {
-      const panel = api.panels.find(p => p.id === id)
-      if (panel) {
-        api.removePanel(panel)
+    // A bit odd, but this ensures a smooth animation and avoids a flickering of the empty dock view
+    setTimeout(() => {
+      const api = getDockviewApi()
+      if (!api) {
+        console.warn('Dockview API not available, closing project directly')
+        projectManager.closeCurrentProject()
+        return
       }
-    })
 
-    // If no panels to close, close project directly
-    if (panelIds.length === 0) {
-      projectManager.closeCurrentProject()
-    }
+      // Close all panels - will automatically trigger projectManager.closeCurrentProject()
+      const panelIds = api.panels.map(p => p.id)
+      panelIds.forEach(id => {
+        const panel = api.panels.find(p => p.id === id)
+        if (panel) {
+          api.removePanel(panel)
+        }
+      })
+
+      // If no panels to close, close project directly
+      if (panelIds.length === 0) {
+        projectManager.closeCurrentProject()
+      }
+    }, 100)
   }
 }
 

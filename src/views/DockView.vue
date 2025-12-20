@@ -11,6 +11,7 @@ import { popupService } from '@/utility/popupService'
 import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
 import LoadingScreen from '@/components/LoadingScreen.vue'
 import { loadingService } from '@/utility/loadingService'
+import { dockviewService } from '@/utility/dockviewService'
 
 type DockviewApiMinimal = {
   addPanel: (opts: {
@@ -125,10 +126,15 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
 }
 
 const onReady = (event: DockviewReadyEvent) => {
-  dockviewApi.value = event.api
+  dockviewApi.value = event.api;
 
-    // Expose dockview API and shared panel params so HeaderMenuBar can add panels
-    ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
+  // Expose dockview API and shared panel params so HeaderMenuBar can add panels
+  (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
+
+  // Register minimize function with dockview service
+  dockviewService.registerMinimize(() => {
+    hasPanels.value = false
+  })
 
   // Check if there's a pending project to initialize
   if (pendingInitialProjectId !== null) {
@@ -248,6 +254,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   layoutChangeDisposable?.dispose?.()
   panelDisposable?.dispose?.()
+  dockviewService.unregister()
 })
 </script>
 
