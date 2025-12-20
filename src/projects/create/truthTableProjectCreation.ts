@@ -4,6 +4,10 @@ import { createPanel } from '../../utility/dockviewIntegration'
 import { Formula } from '../../utility/types'
 import { projectManager } from '../projectManager'
 
+/**
+ * Adds the truth table panel and a KV panel to the right if the variable count matches
+ * @param inputCount Number of input variables
+ */
 export function restoreDefaultPanelLayout(inputCount: number) {
   createPanel('truth-table', 'Truth Table')
 
@@ -16,6 +20,12 @@ export function restoreDefaultPanelLayout(inputCount: number) {
   }
 }
 
+/**
+ * Creates the truth table state for a truth table project and registers it with the project manager.
+ * @param projectName The name of the project.
+ * @param inputCount The number of input variables.
+ * @param outputCount The number of output variables.
+ */
 export function createTruthTableProject(
   projectName: string,
   inputCount: number,

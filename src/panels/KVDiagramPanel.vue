@@ -2,13 +2,12 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
-import type { TruthTableCell, TruthTableData } from '@/utility/types';
 import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthTableInterpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/states/stateManager';
-import { useTruthTableState } from '@/states/truthTableState';
+import { useTruthTableState, type TruthTableCell, type TruthTableData } from '@/states/truthTableState';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

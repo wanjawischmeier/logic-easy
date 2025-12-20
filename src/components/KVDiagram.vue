@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { type TruthTableData, type TruthTableCell, type Formula, FunctionType, defaultFunctionType } from '../utility/types';
+import { type Formula, FunctionType, defaultFunctionType } from '../utility/types';
 
 import {
   getLeftVariables,
@@ -79,6 +79,7 @@ import {
   getBinaryString
 } from '@/utility/kvDiagramLayout';
 import { calculateHighlights } from '@/utility/kvDiagramHighlights';
+import type { TruthTableData, TruthTableCell } from '@/states/truthTableState';
 
 const props = defineProps<{
   inputVars: string[];
@@ -95,13 +96,9 @@ const emit = defineEmits<{
 }>();
 
 const variables = computed(() => props.inputVars || []);
-
 const leftVariables = computed(() => getLeftVariables(variables.value));
-
 const topVariables = computed(() => getTopVariables(variables.value));
-
 const rowCodes = computed(() => getRowCodes(variables.value.length));
-
 const colCodes = computed(() => getColCodes(variables.value.length));
 
 const getValue = (rowCode: string, colCode: string) => {

@@ -5,6 +5,7 @@ import { ProjectLifecycleManager } from './projectLifecycle'
 import { ProjectOperations } from './projectOperations'
 import { ProjectImportExport } from './projectImportExport'
 import { loadingService } from '../utility/loadingService'
+import { ProjectFileOperations } from './projectFileOperations'
 
 /**
  * Orchestrates all project-related operations
@@ -120,7 +121,7 @@ export class ProjectManager {
       projectId = projectInfo.id
     }
 
-    this.importExport.download(projectId)
+    ProjectFileOperations.download(projectId)
   }
 
   async loadProjectFromFile(file: File): Promise<Project> {

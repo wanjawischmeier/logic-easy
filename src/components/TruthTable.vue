@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { TruthTableData } from '@/states/truthTableState';
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import type { TruthTableData } from '@/utility/types';
 
 
 const props = defineProps<{

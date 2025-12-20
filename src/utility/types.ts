@@ -1,4 +1,3 @@
-import type { TruthTableProjectCreationProps } from "@/components/popups/TruthTableProjectProps.vue";
 import type { AppState } from "../states/stateManager";
 
 export const FunctionType = {
