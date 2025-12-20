@@ -17,7 +17,7 @@ export class ProjectOperations {
     this.metadataManager.enforceLimit()
 
     const project: Project = {
-      id: `${Date.now()}`,
+      id: Date.now(),
       name,
       lastModified: Date.now(),
       state: createDefaultAppState()
@@ -36,7 +36,7 @@ export class ProjectOperations {
   /**
    * Rename a project
    */
-  rename(projectId: string, newName: string): boolean {
+  rename(projectId: number, newName: string): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)
@@ -60,7 +60,7 @@ export class ProjectOperations {
   /**
    * Apply new state to project
    */
-  updateState(projectId: string, state: AppState): boolean {
+  updateState(projectId: number, state: AppState): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)
@@ -83,7 +83,7 @@ export class ProjectOperations {
   /**
    * Delete a project
    */
-  delete(projectId: string): boolean {
+  delete(projectId: number): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)

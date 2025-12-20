@@ -1,11 +1,18 @@
 import { Buffer } from 'buffer'
 import { init, WASI } from '@wasmer/wasi'
-import type { TruthTableCell, TruthTableData } from '@/utility/types'
+import type { TruthTableData, TruthTableCell } from '@/states/truthTableState'
 
+// Check if Buffer already exists on globalThis
 if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {
+  // If not, provide the one from the 'buffer' package to the Browser
+  // cause '@wasmer/wasi' expects globalThis.Buffer to be set
   (globalThis as { Buffer?: unknown }).Buffer = Buffer
 }
 
+/**
+ * Result of running the Espresso WASM binary.
+ * exitCode: process exit code; stdout/stderr: captured output.
+ */
 export interface EspressoResult {
   exitCode: number
   stdout: string
@@ -17,6 +24,9 @@ const WASM_PATH = '/logic-easy/espresso.wasm'
 let isWasiInitialized = false
 const moduleCache: Record<string, WebAssembly.Module> = {}
 
+/**
+ * Load and cache a compiled WebAssembly.Module from the given URL.
+ */
 async function getModule(url: string): Promise<WebAssembly.Module> {
   if (moduleCache[url]) {
     return moduleCache[url]
@@ -28,6 +38,9 @@ async function getModule(url: string): Promise<WebAssembly.Module> {
   return wasm
 }
 
+/**
+ * Instantiate a compiled WebAssembly module with the provided WASI instance.
+ */
 async function instantiateModule(wasi: WASI, url: string): Promise<void> {
   const module = await getModule(url)
   const instance = await WebAssembly.instantiate(module, wasi.getImports(module) as WebAssembly.Imports)
@@ -52,7 +65,7 @@ export async function runEspresso(
   })
 
   const file = wasi.fs.open('/input.esp', { read: true, write: true, create: true })
-  file.writeString(input)
+  file.writeString(input) // WASI calls globalThis.Buffer.from(input) internally
 
   await instantiateModule(wasi, WASM_PATH)
 
@@ -65,6 +78,9 @@ export async function runEspresso(
   }
 }
 
+/**
+ * Convert a truth table into PLA, run Espresso to minimize, and parse the minimized PLA back.
+ */
 export async function minifyTruthTable(
   inputVars: string[],
   outputVars: string[],
