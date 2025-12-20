@@ -140,7 +140,7 @@ const toggleCell = (rowCode: string, colCode: string) => {
 const getHighlights = (rIdx: number, cIdx: number) => {
   if (!props.formula) return [];
 
-  const currentMode = props.functionType || props.formula?.type || defaultFunctionType;
+  const functionType = props.functionType || props.formula?.type || defaultFunctionType;
 
   return calculateHighlights(
     rIdx,
@@ -148,7 +148,7 @@ const getHighlights = (rIdx: number, cIdx: number) => {
     rowCodes.value,
     colCodes.value,
     props.formula.terms,
-    currentMode,
+    functionType,
     props.inputVars
   );
 };
