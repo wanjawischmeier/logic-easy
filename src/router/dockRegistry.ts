@@ -1,7 +1,7 @@
 import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue';
 import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
-import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
+import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue';
 import { stateManager } from '@/states/stateManager';
 import TruthTableProjectProps from '@/components/popups/TruthTableProjectProps.vue';
 import { computed, markRaw } from 'vue';
@@ -87,7 +87,7 @@ export const dockRegistry: DockEntry[] = [
   {
     id: 'lc-testing',
     label: 'Logic Circuits Panel',
-    component: LogicCircuitsTestingPanel
+    component: LogicCircuitsPanel
   },
 ];
 
