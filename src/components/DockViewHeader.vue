@@ -18,7 +18,7 @@
         enter-to-class="opacity-100" leave-active-class="transition-opacity duration-100" leave-from-class="opacity-100"
         leave-to-class="opacity-0">
         <div v-if="currentProjectInfo" class="flex bg-surface-2 rounded-t-xs mt-1">
-          <div title="Rename Project" class="w-45 flex items-center shrink-0 max-w-full
+          <div title="Rename Project" class="w-45 mb-px flex items-center shrink-0 max-w-full
   border border-transparent rounded-xs
   hover:border-gray-300
   focus-within:border-primary
@@ -35,7 +35,7 @@
           </div>
 
           <button type="button" @click="stateManager.closeCurrentProject" title="Close project"
-            class="h-full px-3 text-xl rounded-xs border border-transparent hover:bg-red-900 hover:border-on-surface">
+            class="h-full px-3 mb-px text-xl rounded-xs border border-transparent hover:bg-red-900 hover:border-on-surface">
             <span aria-hidden="true">×</span>
           </button>
         </div>
