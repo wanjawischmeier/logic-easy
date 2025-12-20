@@ -23,7 +23,7 @@
 
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
-import { addPanelWithPopup } from '@/utility/dockviewIntegration';
+import { createPanelAfterPopup } from '@/utility/dockviewIntegration';
 import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import type { ComputedRef } from 'vue';
@@ -34,11 +34,6 @@ export default defineComponent({
   name: 'GettingStartedView',
   components: { DirectoryStyleList },
   setup() {
-    function runAction(menuEntry: MenuEntry): void {
-      if (!menuEntry.panelKey) return;
-      addPanelWithPopup(menuEntry.panelKey, menuEntry.label);
-    }
-
     function formatDate(timestamp: number): string {
       const now = Date.now();
       const diff = now - timestamp;
@@ -61,7 +56,7 @@ export default defineComponent({
       newMenu.value.map((menuEntry: MenuEntry) => ({
         label: menuEntry.label,
         disabled: menuEntry.disabled,
-        action: () => runAction(menuEntry),
+        action: () => createPanelAfterPopup(menuEntry),
       }))
     );
 
@@ -103,7 +98,7 @@ export default defineComponent({
       });
     });
 
-    return { newMenu, runAction, newProjectEntries, recentProjectEntries };
+    return { newMenu, runAction: createPanelAfterPopup, newProjectEntries, recentProjectEntries };
   },
 });
 </script>

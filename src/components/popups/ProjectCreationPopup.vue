@@ -54,7 +54,6 @@ const emit = defineEmits<{
   create: [projectName: string];
 }>();
 
-const projectInput = ref<HTMLInputElement>();
 const projectName = ref('');
 const childValidation = ref<ValidationFunction | null>(null);
 
