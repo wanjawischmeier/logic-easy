@@ -12,6 +12,7 @@ import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
 import LoadingScreen from '@/components/LoadingScreen.vue'
 import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockview/service'
+import type { BaseProjectProps } from '@/projects/projectRegistry'
 
 const componentsForDockview = dockComponents;
 const dockviewApi = ref<DockviewApi | null>(null)
@@ -203,14 +204,12 @@ const onReady = (event: DockviewReadyEvent) => {
   })
 }
 
-const popupProps = ref<Record<string, unknown>>({})
-
-const handleProjectCreate = (projectName: string) => {
+const handleProjectCreate = (props: Record<string, unknown>) => {
   const popup = popupService.current.value
   if (!popup || !popupService.isProjectCreation) return
 
   if ('onProjectCreate' in popup) {
-    popup.onProjectCreate(projectName, popupProps.value)
+    popup.onProjectCreate(props as BaseProjectProps)
   }
   popupService.close()
 }
@@ -266,9 +265,10 @@ onBeforeUnmount(() => {
         <!-- Project Creation Popup -->
         <ProjectCreationPopup
           v-if="popupService.isProjectCreation && 'projectPropsComponent' in popupService.current.value" :visible="true"
-          @close="popupService.close" @create="handleProjectCreate">
-          <component :is="popupService.current.value.projectPropsComponent" v-model:input-count="popupProps.inputCount"
-            v-model:output-count="popupProps.outputCount" />
+          :initial-props="popupService.current.value.initialProps" @close="popupService.close"
+          @create="handleProjectCreate" v-slot="{ registerValidation, modelValue }">
+          <component :is="popupService.current.value.projectPropsComponent" :model-value="modelValue"
+            @update:model-value="$emit('update:model-value', $event)" :register-validation="registerValidation" />
         </ProjectCreationPopup>
       </template>
     </div>

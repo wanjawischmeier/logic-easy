@@ -2,9 +2,9 @@ import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockv
 import { popupService } from '@/utility/popupService';
 import { checkDockEntryRequirements, dockRegistry, type MenuEntry } from '@/router/dockRegistry';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
-import { createTruthTableProject } from '@/projects/create/truthTableProjectCreation';
 import { stateManager } from '@/states/stateManager';
 import { dockviewService } from '@/utility/dockview/service';
+import { getProjectType } from '@/projects/projectRegistry';
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -91,7 +91,7 @@ export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): b
   let panelId: string;
   let menuEntry: MenuEntry | undefined;
 
-  // Type guard to determine which overload was called
+  // Determine which overload was called
   if (typeof panelIdOrMenuEntry === 'string') {
     panelId = panelIdOrMenuEntry;
   } else {
@@ -101,36 +101,18 @@ export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): b
   }
 
   const registryEntry = dockRegistry.find(item => item.id === panelId);
-  if (!registryEntry?.projectPropsComponent) return false;
+  if (!registryEntry?.projectType) return false;
 
-  /**
-   * Defines project creation logic based on panel type.
-   * @param projectName The name of the project to be created
-   * @param props The custom project props
-   */
-  function createProject(projectName: string, props: Record<string, unknown>): undefined {
-    switch (panelId) {
-      case 'truth-table':
-      case 'kv-diagram':
-        if (props.inputCount === null || props.outputCount === null) {
-          return;
-        }
+  const projectType = getProjectType(registryEntry.projectType);
+  type FactoryProps = Parameters<typeof projectType.factory>[0];
 
-        createTruthTableProject(
-          projectName,
-          props.inputCount as number,
-          props.outputCount as number
-        );
-        break;
-
-      default:
-        break;
-    }
-  };
-
-  popupService.open({
-    projectPropsComponent: registryEntry.projectPropsComponent,
-    onProjectCreate: createProject,
+  popupService.open<FactoryProps>({
+    projectPropsComponent: projectType.propsComponent,
+    initialProps: projectType.defaultPropsFactory(),
+    onProjectCreate: (props: FactoryProps) => {
+      const project = projectType.factory(props);
+      project.create(props);
+    },
   });
   return true;
 }

@@ -30,25 +30,21 @@
 </template>
 
 <script setup lang="ts">
+import type { ValidationFunction } from '@/projects/projectRegistry';
 import { ref, computed, onMounted, watch } from 'vue';
-import type { ValidationFunction } from './ProjectCreationPopup.vue';
+import type { TruthTableProps } from './TruthTableProject';
 
-// TODO use this type alongside a generalized `ProjectCreationProps` instead of `props: Record<string, unknown>`
-export type TruthTableProjectCreationProps = {
-  inputCount?: number;
-  outputCount?: number;
+const props = defineProps<{
+  modelValue: TruthTableProps;
   registerValidation?: (fn: ValidationFunction) => void;
-};
-
-const props = defineProps<TruthTableProjectCreationProps>();
+}>()
 
 const emit = defineEmits<{
-  'update:inputCount': [value: number];
-  'update:outputCount': [value: number];
+  'update:modelValue': [value: TruthTableProps]
 }>();
 
-const localInputCount = ref(props.inputCount ?? 2);
-const localOutputCount = ref(props.outputCount ?? 1);
+const localInputCount = ref(props.modelValue.inputVars.length);
+const localOutputCount = ref(props.modelValue.outputVars.length);
 
 // Validation
 const inputCountError = computed(() => {
@@ -71,6 +67,18 @@ const outputCountError = computed(() => {
   return undefined;
 });
 
+// Convert counts to full props on emit
+const fullProps = computed((): TruthTableProps => ({
+  name: props.modelValue.name,
+  inputVars: Array.from({ length: localInputCount.value }, (_, i) => String.fromCharCode(97 + i)),
+  outputVars: Array.from({ length: localOutputCount.value }, (_, i) => String.fromCharCode(112 + i))
+}))
+
+// Emit changes to parent
+watch([localInputCount, localOutputCount], () => {
+  emit('update:modelValue', fullProps.value)
+}, { immediate: true })
+
 // Register validation with parent
 onMounted(() => {
   if (props.registerValidation) {
@@ -83,15 +91,6 @@ onMounted(() => {
     });
   }
 });
-
-// Emit changes to parent
-watch(localInputCount, (val) => {
-  emit('update:inputCount', val);
-}, { immediate: true });
-
-watch(localOutputCount, (val) => {
-  emit('update:outputCount', val);
-}, { immediate: true });
 
 // Only allow numeric input
 const onlyNumbers = (event: KeyboardEvent) => {

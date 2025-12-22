@@ -4,8 +4,8 @@ import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
 import { stateManager } from '@/states/stateManager';
-import TruthTableProjectProps from '@/components/popups/TruthTableProjectProps.vue';
-import { computed, markRaw } from 'vue';
+import { computed } from 'vue';
+import type { ProjectType } from '@/projects/projectRegistry';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -20,7 +20,7 @@ type DockEntry = {
   id: string;
   label: string;
   component: unknown;
-  projectPropsComponent?: unknown;
+  projectType?: ProjectType;
   requires?: Requirements;
 };
 
@@ -39,7 +39,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'truth-table',
     label: 'Truth Table',
     component: TruthTablePanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
+    projectType: 'truth-table',
     requires: {
       view: ['TruthTable']
     }
@@ -48,7 +48,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'kv-diagram',
     label: 'KV Diagram',
     component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
+    projectType: 'truth-table',
     requires: {
       view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
     }
@@ -57,7 +57,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'transition-table',
     label: 'Transition Table',
     component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
+    projectType: 'truth-table',
     requires: {
       create: ['NotSupported']
     }
@@ -66,7 +66,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'state-table',
     label: 'State Table',
     component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
+    projectType: 'truth-table',
     requires: {
       create: ['NotSupported']
     }
@@ -75,7 +75,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'state-machine',
     label: 'State Machine',
     component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
+    projectType: 'truth-table',
     requires: {
       create: ['NotSupported']
     }
@@ -99,7 +99,7 @@ export const dockRegistry: DockEntry[] = [
 
 export const newMenu = computed<MenuEntry[]>(() =>
   dockRegistry
-    .filter((menuEntry) => menuEntry.projectPropsComponent)
+    .filter((menuEntry) => menuEntry.projectType !== undefined)
     .map((menuEntry) => ({
       label: menuEntry.label,
       panelId: menuEntry.id,

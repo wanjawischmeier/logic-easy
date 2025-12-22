@@ -1,13 +1,15 @@
 import { shallowRef, type Component } from 'vue';
+import type { BaseProjectProps } from '@/projects/projectRegistry';
 
 export type GenericPopupConfig = {
   component: Component;
   props?: Record<string, unknown>;
 };
 
-export type ProjectCreationPopupConfig = {
+export type ProjectCreationPopupConfig<TProps extends BaseProjectProps = BaseProjectProps> = {
   projectPropsComponent: Component;
-  onProjectCreate: (projectName: string, props: Record<string, unknown>) => void;
+  initialProps: TProps;
+  onProjectCreate: (props: TProps) => void;
 };
 
 export type PopupConfig = GenericPopupConfig | ProjectCreationPopupConfig;
@@ -27,8 +29,8 @@ export const popupService = {
     return currentPopup.value ? isProjectCreationPopup(currentPopup.value) : false;
   },
 
-  open(config: PopupConfig) {
-    currentPopup.value = config;
+  open<TProps extends BaseProjectProps = BaseProjectProps>(config: PopupConfig | ProjectCreationPopupConfig<TProps>) {
+    currentPopup.value = config as PopupConfig;
   },
 
   close() {

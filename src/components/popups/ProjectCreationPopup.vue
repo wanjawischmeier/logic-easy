@@ -18,7 +18,8 @@
 
         <!-- Project-Specific Configuration -->
         <div class="flex-1 overflow-auto px-6 py-4">
-          <slot :project-name="projectName" :register-validation="registerValidation"></slot>
+          <slot :project-name="projectName" :register-validation="registerValidation" :model-value="projectProps"
+            @update:model-value="projectProps = $event"></slot>
         </div>
 
         <!-- Actions -->
@@ -36,29 +37,27 @@
 </template>
 
 <script setup lang="ts">
+import type { ValidationFunction } from '@/projects/projectRegistry';
 import { ref, watch, computed } from 'vue';
 
-export type ValidationResult = {
-  valid: boolean;
-  error?: string;
-};
-
-export type ValidationFunction = () => ValidationResult;
-
-defineProps<{
+const props = defineProps<{
   visible: boolean;
+  initialProps: Record<string, unknown>;
 }>();
 
 const emit = defineEmits<{
   close: [];
-  create: [projectName: string];
+  create: [props: Record<string, unknown>];
 }>();
 
-const projectName = ref('');
+const projectName = ref((props.initialProps.name as string) || '');
+const projectProps = ref<Record<string, unknown>>({ ...props.initialProps });
 const childValidation = ref<ValidationFunction | null>(null);
 
+// Keep name in projectProps synchronized with projectName
 watch(projectName, (newVal) => {
   projectName.value = newVal.replace(/[^A-Za-z0-9\s_\-()]/g, '');
+  projectProps.value = { ...projectProps.value, name: projectName.value };
 });
 
 // Allow child components to register their validation function
@@ -107,7 +106,7 @@ function onCancel() {
 
 function onCreate() {
   if (isValid.value) {
-    emit('create', projectName.value);
+    emit('create', projectProps.value);
   }
 }
 
