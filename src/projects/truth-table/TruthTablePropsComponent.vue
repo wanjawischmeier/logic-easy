@@ -43,8 +43,8 @@ const emit = defineEmits<{
   'update:modelValue': [value: TruthTableProps]
 }>();
 
-const localInputCount = ref(props.modelValue.inputVars.length);
-const localOutputCount = ref(props.modelValue.outputVars.length);
+const localInputCount = ref(props.modelValue.inputVariableCount);
+const localOutputCount = ref(props.modelValue.outputVariableCount);
 
 // Validation
 const inputCountError = computed(() => {
@@ -70,8 +70,8 @@ const outputCountError = computed(() => {
 // Convert counts to full props on emit
 const fullProps = computed((): TruthTableProps => ({
   name: props.modelValue.name,
-  inputVars: Array.from({ length: localInputCount.value }, (_, i) => String.fromCharCode(97 + i)),
-  outputVars: Array.from({ length: localOutputCount.value }, (_, i) => String.fromCharCode(112 + i))
+  inputVariableCount: localInputCount.value,
+  outputVariableCount: localOutputCount.value
 }))
 
 // Emit changes to parent

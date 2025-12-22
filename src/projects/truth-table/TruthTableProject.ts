@@ -6,16 +6,16 @@ import type { Formula } from "@/utility/types";
 import { projectManager } from "@/projects/projectManager";
 
 export interface TruthTableProps extends BaseProjectProps {
-  inputVars: string[];
-  outputVars: string[];
+  inputVariableCount: number;
+  outputVariableCount: number;
 }
 
 export class TruthTableProject implements Project<TruthTableProps> {
   static defaultProps(): TruthTableProps {
     return {
       name: '',
-      inputVars: Array.from({ length: 2 }, (_, i) => String.fromCharCode(97 + i)),
-      outputVars: Array.from({ length: 1 }, (_, i) => String.fromCharCode(112 + i)),
+      inputVariableCount: 2,
+      outputVariableCount: 1,
     };
   }
   type = 'truth-table' as const;
@@ -30,7 +30,7 @@ export class TruthTableProject implements Project<TruthTableProps> {
     createPanel('truth-table', 'Truth Table')
 
     // Add KV diagram if input count is between 2 and 4
-    if (props.inputVars.length >= 2 && props.inputVars.length <= 4) {
+    if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
       createPanel('kv-diagram', 'KV Diagram', {
         referencePanel: 'truth-table',
         direction: 'right'
@@ -41,27 +41,27 @@ export class TruthTableProject implements Project<TruthTableProps> {
   create(props: TruthTableProps) {
     // Create project with callback to initialize state after it's opened
     projectManager.createProject(props.name, () => {
-      // Use the input and output variable names from props
-      const inputVars = props.inputVars;
-      const outputVars = props.outputVars;
+      // Generate variable names
+      const inputVariables = Array.from({ length: props.inputVariableCount }, (_, i) => String.fromCharCode(97 + i))
+      const outputVariables = Array.from({ length: props.outputVariableCount }, (_, i) => String.fromCharCode(112 + i))
 
       // create formulas
       const formulas: Record<string, Record<string, Formula>> = {}
-      outputVars.forEach((name) => {
+      outputVariables.forEach((name) => {
         formulas[name] = {}
       })
 
       // number of rows = 2^n
-      const rows = 1 << props.inputVars.length
+      const rows = 1 << props.inputVariableCount
 
       // initialize all output values to zero
       const values = Array.from({ length: rows }, () =>
-        Array.from({ length: props.outputVars.length }, () => 0 as TruthTableCell)
+        Array.from({ length: props.outputVariableCount }, () => 0 as TruthTableCell)
       ) as TruthTableData
 
       stateManager.state.truthTable = {
-        inputVars,
-        outputVars,
+        inputVars: inputVariables,
+        outputVars: outputVariables,
         formulas,
         values,
         minifiedValues: values,
