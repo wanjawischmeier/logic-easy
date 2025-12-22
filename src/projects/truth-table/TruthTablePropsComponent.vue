@@ -1,31 +1,29 @@
 <template>
   <div class="text-on-surface">
-    <div class="bg-surface-2 rounded-xs p-8">
-      <p class="mb-4">Configure the amount of variables</p>
+    <p class="mb-4">Configure the amount of variables</p>
 
-      <div class="grid gap-4 text-left">
-        <div class="flex flex-col">
-          <div class="flex items-center justify-between">
-            <label class="text-sm">Input variables</label>
-            <input type="number" v-model.number="localInputCount" min="1" max="8" class="w-20 p-2 rounded border"
-              @keypress="onlyNumbers" />
-          </div>
-          <p v-if="inputCountError" class="text-xs text-red-400 mt-1">{{ inputCountError }}</p>
+    <div class="grid gap-4 text-left">
+      <div class="flex flex-col">
+        <div class="flex items-center justify-between">
+          <label class="text-sm">Input variables</label>
+          <input type="number" v-model.number="localInputCount" min="1" max="8" class="w-20 p-2 rounded border"
+            @keypress="onlyNumbers" />
         </div>
-        <div class="flex flex-col">
-          <div class="flex items-center justify-between">
-            <label class="text-sm">Output variables</label>
-            <input type="number" v-model.number="localOutputCount" min="1" max="8" class="w-20 p-2 rounded border"
-              @keypress="onlyNumbers" />
-          </div>
-          <p v-if="outputCountError" class="text-xs text-red-400 mt-1">{{ outputCountError }}</p>
-        </div>
+        <p v-if="inputCountError" class="text-xs text-red-400 mt-1">{{ inputCountError }}</p>
       </div>
-
-      <p class="mt-4 text-xs text-on-surface-disabled text-center">
-        Adjust number of input and output variables for the new truth table.
-      </p>
+      <div class="flex flex-col">
+        <div class="flex items-center justify-between">
+          <label class="text-sm">Output variables</label>
+          <input type="number" v-model.number="localOutputCount" min="1" max="8" class="w-20 p-2 rounded border"
+            @keypress="onlyNumbers" />
+        </div>
+        <p v-if="outputCountError" class="text-xs text-red-400 mt-1">{{ outputCountError }}</p>
+      </div>
     </div>
+
+    <p class="mt-4 text-xs text-on-surface-disabled text-center">
+      Adjust number of input and output variables for the new truth table.
+    </p>
   </div>
 </template>
 
