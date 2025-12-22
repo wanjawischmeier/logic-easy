@@ -13,8 +13,8 @@
           class="w-full outline-none truncate text-3xl text-on-surface mb-1" />
         <p v-if="projectNameError" class="text-xs text-red-400 mb-4">{{ projectNameError }}</p>
         <div v-else class="mb-4"></div>
-        <hr class="text-surface-3">
 
+        <hr class="text-surface-3">
 
         <!-- Project-Specific Configuration -->
         <div class="flex-1 overflow-auto py-4">

@@ -34,8 +34,9 @@
               @keydown.enter="handleProjectEnter" @focusout="handleRenameProject" />
           </div>
 
-          <button type="button" @click="stateManager.closeCurrentProject" title="Close project"
-            class="h-full px-3 mb-px text-xl rounded-xs border border-transparent hover:bg-red-900 hover:border-on-surface">
+          <button type="button" @click="stateManager.closeCurrentProject" title="Close project" class="h-full px-3 mb-px text-xl rounded-xs border border-transparent
+            text-primary-variant hover:text-on-surface
+            hover:bg-red-900 hover:border-on-surface ">
             <span aria-hidden="true">×</span>
           </button>
         </div>
