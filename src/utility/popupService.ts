@@ -1,5 +1,5 @@
+import type { BaseProjectProps } from '@/projects/Project';
 import { shallowRef, type Component } from 'vue';
-import type { BaseProjectProps } from '@/projects/projectRegistry';
 
 export type GenericPopupConfig = {
   component: Component;

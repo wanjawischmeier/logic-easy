@@ -1,5 +1,5 @@
 import { createPanel } from "@/utility/dockview/integration";
-import type { BaseProjectProps, Project } from "../projectRegistry";
+import { Project, type BaseProjectProps } from "../Project";
 import { stateManager } from "@/states/stateManager";
 import type { TruthTableCell, TruthTableData } from "@/states/truthTableState";
 import type { Formula } from "@/utility/types";
@@ -10,27 +10,20 @@ export interface TruthTableProps extends BaseProjectProps {
   outputVariableCount: number;
 }
 
-export class TruthTableProject implements Project<TruthTableProps> {
-  static defaultProps(): TruthTableProps {
+export class TruthTableProject extends Project<TruthTableProps> {
+  static override get defaultProps(): TruthTableProps {
     return {
-      name: '',
+      ...super.defaultProps,
       inputVariableCount: 2,
       outputVariableCount: 1,
     };
   }
-  type = 'truth-table' as const;
 
-  props: TruthTableProps;
-
-  constructor(props: TruthTableProps) {
-    this.props = props;
-  }
-
-  restoreDefaultPanelLayout(props: TruthTableProps) {
+  restoreDefaultPanelLayout() {
     createPanel('truth-table', 'Truth Table')
 
     // Add KV diagram if input count is between 2 and 4
-    if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
+    if (this.props.inputVariableCount >= 2 && this.props.inputVariableCount <= 4) {
       createPanel('kv-diagram', 'KV Diagram', {
         referencePanel: 'truth-table',
         direction: 'right'
@@ -38,12 +31,16 @@ export class TruthTableProject implements Project<TruthTableProps> {
     }
   }
 
-  create(props: TruthTableProps) {
+  private generateVariableNames(count: number, startCharCode: number): string[] {
+    return Array.from({ length: count }, (_, i) => String.fromCharCode(startCharCode + i))
+  }
+
+  create() {
     // Create project with callback to initialize state after it's opened
-    projectManager.createProject(props.name, () => {
+    projectManager.createProject(this.props.name, () => {
       // Generate variable names
-      const inputVariables = Array.from({ length: props.inputVariableCount }, (_, i) => String.fromCharCode(97 + i))
-      const outputVariables = Array.from({ length: props.outputVariableCount }, (_, i) => String.fromCharCode(112 + i))
+      const inputVariables = this.generateVariableNames(this.props.inputVariableCount, 97)
+      const outputVariables = this.generateVariableNames(this.props.outputVariableCount, 112)
 
       // create formulas
       const formulas: Record<string, Record<string, Formula>> = {}
@@ -52,11 +49,11 @@ export class TruthTableProject implements Project<TruthTableProps> {
       })
 
       // number of rows = 2^n
-      const rows = 1 << props.inputVariableCount
+      const rows = 1 << this.props.inputVariableCount
 
       // initialize all output values to zero
       const values = Array.from({ length: rows }, () =>
-        Array.from({ length: props.outputVariableCount }, () => 0 as TruthTableCell)
+        Array.from({ length: this.props.outputVariableCount }, () => 0 as TruthTableCell)
       ) as TruthTableData
 
       stateManager.state.truthTable = {

@@ -91,7 +91,7 @@ export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): b
   let panelId: string;
   let menuEntry: MenuEntry | undefined;
 
-  // Determine which overload was called
+  // Type guard to determine which overload was called
   if (typeof panelIdOrMenuEntry === 'string') {
     panelId = panelIdOrMenuEntry;
   } else {
@@ -104,14 +104,15 @@ export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): b
   if (!registryEntry?.projectType) return false;
 
   const projectType = getProjectType(registryEntry.projectType);
-  type FactoryProps = Parameters<typeof projectType.factory>[0];
+  const ProjectClass = projectType.projectClass;
+  type ProjectProps = typeof ProjectClass.defaultProps;
 
-  popupService.open<FactoryProps>({
+  popupService.open<ProjectProps>({
     projectPropsComponent: projectType.propsComponent,
-    initialProps: projectType.defaultPropsFactory(),
-    onProjectCreate: (props: FactoryProps) => {
-      const project = projectType.factory(props);
-      project.create(props);
+    initialProps: ProjectClass.defaultProps,
+    onProjectCreate: (props: ProjectProps) => {
+      const project = new ProjectClass(props);
+      project.create();
     },
   });
   return true;

@@ -117,12 +117,23 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
     // Extract single output column
     const singleOutputValues = newValues.map(row => [row[outputIdx]]) as TruthTableData
 
+    // Check if output is all zeros or all ones (trivial cases)
+    const hasOne = singleOutputValues.some(row => row[0] === 1)
+    const hasZero = singleOutputValues.some(row => row[0] === 0)
+    const hasDontCare = singleOutputValues.some(row => row[0] === '-')
+
     // 1. DNF: Minify ON-set
-    const minifiedDNF = await minifyTruthTable(
-      stateManager.state.truthTable.inputVars,
-      [outputVar],
-      singleOutputValues
-    )
+    let minifiedDNF: TruthTableData
+    if (!hasOne && !hasDontCare) {
+      // All zeros - empty ON-set, no need to run Espresso
+      minifiedDNF = []
+    } else {
+      minifiedDNF = await minifyTruthTable(
+        stateManager.state.truthTable.inputVars,
+        [outputVar],
+        singleOutputValues
+      )
+    }
 
     // 2. CNF: Minify OFF-set (invert output)
     const invertedValues = singleOutputValues.map(row => {
@@ -132,11 +143,17 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
       return [val]
     }) as TruthTableData
 
-    const minifiedCNF = await minifyTruthTable(
-      stateManager.state.truthTable.inputVars,
-      [outputVar],
-      invertedValues
-    )
+    let minifiedCNF: TruthTableData
+    if (!hasZero && !hasDontCare) {
+      // All ones - empty OFF-set, no need to run Espresso
+      minifiedCNF = []
+    } else {
+      minifiedCNF = await minifyTruthTable(
+        stateManager.state.truthTable.inputVars,
+        [outputVar],
+        invertedValues
+      )
+    }
 
     formulas[outputVar] = {
       DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, stateManager.state.truthTable.inputVars),

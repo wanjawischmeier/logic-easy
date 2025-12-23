@@ -19,7 +19,7 @@
         <!-- Project-Specific Configuration -->
         <div class="flex-1 overflow-auto py-4">
           <slot :project-name="projectName" :register-validation="registerValidation" :model-value="projectProps"
-            @update:model-value="projectProps = $event"></slot>
+            :onUpdate:model-value="(newValue: Record<string, unknown>) => projectProps = newValue"></slot>
         </div>
 
         <!-- Actions -->
