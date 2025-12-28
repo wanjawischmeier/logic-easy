@@ -1,22 +1,49 @@
 import { createPanel } from "@/utility/dockview/integration";
-import { Project, type BaseProjectProps } from "../Project";
-import { stateManager } from "@/states/stateManager";
-import type { TruthTableCell, TruthTableData } from "@/states/truthTableState";
-import type { Formula } from "@/utility/types";
-import { projectManager } from "@/projects/projectManager";
+import { Project, type BaseProjectProps, type BaseProjectState, type TruthTableData, type TruthTableCell } from "../Project";
+import type { Formula, FunctionType } from "@/utility/types";
+import { computed } from "vue";
 
 export interface TruthTableProps extends BaseProjectProps {
   inputVariableCount: number;
   outputVariableCount: number;
 }
 
-export class TruthTableProject extends Project<TruthTableProps> {
+export interface TruthTableState extends BaseProjectState {
+  inputVars: string[];
+  outputVars: string[];
+  values: TruthTableData;
+  minifiedValues: TruthTableData;
+  formulas: Record<string, Record<string, Formula>>;
+}
+
+export class TruthTableProject extends Project<TruthTableProps, TruthTableState> {
   static override get defaultProps(): TruthTableProps {
     return {
       ...super.defaultProps,
       inputVariableCount: 2,
       outputVariableCount: 1,
     };
+  }
+
+  static override useState() {
+    const state = computed(() => this.useProjectState<TruthTableProject>())
+    const inputVars = computed(() => state.value?.inputVars || [])
+    const outputVars = computed(() => state.value?.outputVars || [])
+    const functionTypes = computed(() => Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>))
+
+    console.log('[TruthTableProject.useState] Computed state:', {
+      hasCurrentProject: !!TruthTableProject.currentProject,
+      currentProjectState: TruthTableProject.currentProject?.state,
+      stateValue: state.value,
+      inputVarsValue: inputVars.value,
+      outputVarsValue: outputVars.value
+    })
+
+    return { state, inputVars, outputVars, functionTypes }
+  }
+
+  constructor(props: TruthTableProps, state?: TruthTableState) {
+    super(props, state);
   }
 
   restoreDefaultPanelLayout() {
@@ -35,35 +62,61 @@ export class TruthTableProject extends Project<TruthTableProps> {
     return Array.from({ length: count }, (_, i) => String.fromCharCode(startCharCode + i))
   }
 
-  create() {
-    // Create project with callback to initialize state after it's opened
-    projectManager.createProject(this.props.name, () => {
-      // Generate variable names
-      const inputVariables = this.generateVariableNames(this.props.inputVariableCount, 97)
-      const outputVariables = this.generateVariableNames(this.props.outputVariableCount, 112)
+  async create() {
+    console.log('[TruthTableProject.create] Initializing project state')
 
-      // create formulas
-      const formulas: Record<string, Record<string, Formula>> = {}
-      outputVariables.forEach((name) => {
-        formulas[name] = {}
-      })
+    // Generate variable names
+    const inputVariables = this.generateVariableNames(this.props.inputVariableCount, 97)
+    const outputVariables = this.generateVariableNames(this.props.outputVariableCount, 112)
 
-      // number of rows = 2^n
-      const rows = 1 << this.props.inputVariableCount
+    // create formulas
+    const formulas: Record<string, Record<string, Formula>> = {}
+    outputVariables.forEach((name) => {
+      formulas[name] = {}
+    })
 
-      // initialize all output values to zero
-      const values = Array.from({ length: rows }, () =>
-        Array.from({ length: this.props.outputVariableCount }, () => 0 as TruthTableCell)
-      ) as TruthTableData
+    // number of rows = 2^n
+    const rows = 1 << this.props.inputVariableCount
 
-      stateManager.state.truthTable = {
+    // initialize all output values to zero
+    const values = Array.from({ length: rows }, () =>
+      Array.from({ length: this.props.outputVariableCount }, () => 0 as TruthTableCell)
+    ) as TruthTableData
+
+    // Initialize state
+    if (!this.state) {
+      this.state = {
         inputVars: inputVariables,
         outputVars: outputVariables,
         formulas,
         values,
         minifiedValues: values,
-      }
-      stateManager.save()
+      } as any; // Type assertion needed due to reactive wrapping
+    } else {
+      Object.assign(this.state, {
+        inputVars: inputVariables,
+        outputVars: outputVariables,
+        formulas,
+        values,
+        minifiedValues: values,
+      });
+    }
+
+    console.log('[TruthTableProject.create] State initialized:', {
+      inputVars: inputVariables,
+      outputVars: outputVariables,
+      hasValues: !!values
     })
+
+    // Save to persist the state
+    const { projectManager } = await import('@/projects/projectManager');
+    projectManager.saveCurrentProject();
   }
 }
+
+// Register factory with project lifecycle
+import('@/projects/projectManager').then(({ projectManager }) => {
+  projectManager.lifecycle.registerFactory('truth-table', (props, state) =>
+    new TruthTableProject(props as TruthTableProps, state as TruthTableState)
+  );
+});

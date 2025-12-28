@@ -7,7 +7,8 @@ import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/states/stateManager';
-import { useTruthTableState, type TruthTableCell, type TruthTableData } from '@/states/truthTableState';
+import { type TruthTableData, type TruthTableCell } from '@/projects/Project';
+import { TruthTableProject } from '@/projects/truth-table/TruthTableProject';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -41,7 +42,7 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { state, inputVars, outputVars, functionTypes } = useTruthTableState()
+const { state, inputVars, outputVars, functionTypes } = TruthTableProject.useState()
 
 // Local model for the component
 const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
@@ -49,30 +50,25 @@ let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
 watch(tableValues, (newVal) => {
+  console.log('[KVDiagramPanel] Local tableValues changed:', newVal);
   if (isUpdatingFromState) {
     isUpdatingFromState = false
+    console.log('[KVDiagramPanel] Skipping update (isUpdatingFromState)');
     return
   }
-  if (props.params.params?.updateTruthTable) {
-    updateTruthTable(newVal)
-  }
+  console.log('[KVDiagramPanel] Calling updateTruthTable');
+  updateTruthTable(newVal)
 }, { deep: true })
 
 // Watch for external changes from state
 watch(() => state.value?.values, (newVal) => {
+  console.log('[KVDiagramPanel] state.value.values changed:', newVal);
   if (newVal && JSON.stringify(newVal) !== JSON.stringify(tableValues.value)) {
+    console.log('[KVDiagramPanel] Updating tableValues from state');
     isUpdatingFromState = true
     tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
   }
 }, { deep: true })
-
-// Watch for params updates (when DockView updateParameters is called)
-watch(() => props.params.params?.state, (newState) => {
-  if (newState?.values && JSON.stringify(newState.values) !== JSON.stringify(tableValues.value)) {
-    isUpdatingFromState = true
-    tableValues.value = newState.values.map((row: TruthTableCell[]) => [...row])
-  }
-}, { deep: true, immediate: true })
 
 // Auto-save panel state when values change
 stateManager.watchPanelState(props.params.api.id, () => ({

@@ -43,6 +43,7 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
 
   const registryEntry = dockRegistry.find(item => item.id === panelId);
   if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
+    console.log(`Panel with id '${registryEntry}' :(`);
     return false;
   }
 
@@ -104,15 +105,13 @@ export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): b
   if (!registryEntry?.projectType) return false;
 
   const projectType = getProjectType(registryEntry.projectType);
-  const ProjectClass = projectType.projectClass;
-  type ProjectProps = typeof ProjectClass.defaultProps;
 
-  popupService.open<ProjectProps>({
+  popupService.open({
     projectPropsComponent: projectType.propsComponent,
-    initialProps: ProjectClass.defaultProps,
-    onProjectCreate: (props: ProjectProps) => {
-      const project = new ProjectClass(props);
-      project.create();
+    initialProps: projectType.defaultProps,
+    onProjectCreate: async (props: any) => {
+      const { projectManager } = await import('@/projects/projectManager');
+      projectManager.createProject(props.name, registryEntry.projectType, props);
     },
   });
   return true;

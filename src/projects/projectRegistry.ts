@@ -1,7 +1,6 @@
 import { markRaw } from "vue";
-import { type TruthTableProps, TruthTableProject } from "./truth-table/TruthTableProject";
+import type { TruthTableProps } from "./truth-table/TruthTableProject";
 import TruthTablePropsComponent from "@/projects/truth-table/TruthTablePropsComponent.vue";
-import type { ProjectTypeDefinition } from "./Project";
 
 export type ValidationResult = {
   valid: boolean;
@@ -10,17 +9,28 @@ export type ValidationResult = {
 
 export type ValidationFunction = () => ValidationResult;
 
+export interface ProjectTypeInfo {
+  propsComponent: any;
+  defaultProps: Record<string, unknown>;
+}
+
 // Registry of all project types
-export const projectTypes = {
+export const projectTypes: Record<string, ProjectTypeInfo> = {
   'truth-table': {
     propsComponent: markRaw(TruthTablePropsComponent),
-    projectClass: TruthTableProject
-  } satisfies ProjectTypeDefinition<TruthTableProps>,
+    defaultProps: {
+      name: '',
+      inputVariableCount: 2,
+      outputVariableCount: 1,
+    } as TruthTableProps,
+  },
 } as const;
 
 export type ProjectType = keyof typeof projectTypes;
 
 // Helper to get project type
-export function getProjectType<K extends ProjectType>(key: K): typeof projectTypes[K] {
-  return projectTypes[key];
+export function getProjectType(key: ProjectType): ProjectTypeInfo {
+  const type = projectTypes[key];
+  if (!type) throw new Error(`Unknown project type: ${key}`);
+  return type;
 }

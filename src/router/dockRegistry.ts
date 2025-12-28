@@ -3,9 +3,10 @@ import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
-import { stateManager } from '@/states/stateManager';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
+import { Project } from '@/projects/Project';
+import type { TruthTableProject, TruthTableState } from '@/projects/truth-table/TruthTableProject';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -127,24 +128,32 @@ export const dockComponents: Record<string, unknown> = Object.fromEntries(
 const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true;
 
+  const currentProject = Project.currentProject;
+  if (!currentProject) return false;
+
   let checkPassed = true;
 
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
-        if (stateManager.state.truthTable === undefined) {
+        // Check if current project is a truth table project with state
+        if (!currentProject.state || !(currentProject instanceof Object)) {
           checkPassed = false;
         }
         break;
 
       case 'Min2InputVars':
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
+        // Check if truth table has at least 2 input variables
+        const minState = currentProject.state as TruthTableState;
+        if ((minState?.inputVars?.length ?? 0) < 2) {
           checkPassed = false;
         }
         break;
 
       case 'Max4InputVars':
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
+        // Check if truth table has at most 4 input variables
+        const maxState = currentProject.state as TruthTableState;
+        if ((maxState?.inputVars?.length ?? 0) > 4) {
           checkPassed = false;
         }
         break;

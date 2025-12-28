@@ -13,6 +13,8 @@ import LoadingScreen from '@/components/LoadingScreen.vue'
 import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockview/service'
 import type { BaseProjectProps } from '@/projects/Project'
+import { Project } from '@/projects/Project'
+import type { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const componentsForDockview = dockComponents;
 const dockviewApi = ref<DockviewApi | null>(null)
@@ -33,36 +35,14 @@ if (pendingInitialProjectId !== null) {
   loadingService.hide()
 }
 
-const loadDefaultLayout = (api: DockviewApi) => {
-  api.addPanel({
-    id: 'truth-table',
-    component: 'truth-table',
-    title: 'Truth Table',
-    params: {
-      state: stateManager.state!.truthTable,
-      updateTruthTable
-    },
-  })
-
-  api.addPanel({
-    id: 'kv-diagram',
-    component: 'kv-diagram',
-    title: 'KV Diagram',
-    position: { referencePanel: 'truth-table', direction: 'right' },
-    params: {
-      state: stateManager.state!.truthTable,
-      updateTruthTable,
-    },
-  })
-}
-
 const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
   // Set flag to prevent premature project close during restoration
   isRestoringLayout = true
 
   // Await to ensure state is ready before panels mount
-  if (stateManager.state!.truthTable) {
-    await updateTruthTable(stateManager.state!.truthTable.values)
+  const currentState = Project.useProjectState<TruthTableProject>()
+  if (currentState?.values) {
+    await updateTruthTable(currentState.values)
   }
 
   // Clear existing panels only when switching projects
@@ -83,27 +63,28 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
       console.log('Loaded layout from project state')
 
       // Check if any panels were restored
-      if (api.panels.length === 0 && stateManager.state.truthTable) {
+      if (api.panels.length === 0) {
         console.log('No panels in saved layout, restoring default layout')
-        loadDefaultLayout(api)
-      } else {
-        // Update all panel params to use current state reference
-        api.panels.forEach(panel => {
-          panel.api.updateParameters({
-            state: stateManager.state!.truthTable,
-            updateTruthTable,
-          })
-        })
+        const currentProject = Project.currentProject
+        if (currentProject) {
+          currentProject.restoreDefaultPanelLayout()
+        }
       }
     } catch (err) {
       console.error('Failed to load layout from project state:', err)
       console.warn('Falling back to default layout')
-      loadDefaultLayout(api)
+      const currentProject = Project.currentProject
+      if (currentProject) {
+        currentProject.restoreDefaultPanelLayout()
+      }
     }
-  } else if (stateManager.state.truthTable) {
+  } else {
     // No saved layout, load default
     console.log('No saved layout, loading default')
-    loadDefaultLayout(api)
+    const currentProject = Project.currentProject
+    if (currentProject) {
+      currentProject.restoreDefaultPanelLayout()
+    }
   }
 
   // Clear flag after restoration is complete

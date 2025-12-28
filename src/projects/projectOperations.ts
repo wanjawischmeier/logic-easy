@@ -1,7 +1,7 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import { createDefaultAppState, type AppState } from '@/states/stateManager'
 import type { Project } from '@/utility/types'
+import type { BaseProjectProps } from '@/projects/Project'
 
 /**
  * Handles CRUD operations on projects
@@ -12,7 +12,7 @@ export class ProjectOperations {
   /**
    * Create a new project
    */
-  create(name: string): Project {
+  create(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>): Project {
     // Enforce project limit before creating
     this.metadataManager.enforceLimit()
 
@@ -20,7 +20,9 @@ export class ProjectOperations {
       id: Date.now(),
       name,
       lastModified: Date.now(),
-      state: createDefaultAppState()
+      projectType,
+      props: props || { name },
+      state: {}
     }
 
     ProjectStorage.saveProject(project)
@@ -60,7 +62,7 @@ export class ProjectOperations {
   /**
    * Apply new state to project
    */
-  updateState(projectId: number, state: AppState): boolean {
+  updateState(projectId: number, state: Record<string, unknown>): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)

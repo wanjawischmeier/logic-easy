@@ -1,5 +1,3 @@
-import type { AppState } from "@/states/stateManager";
-
 export const FunctionType = {
   DNF: 'DNF',
   CNF: 'CNF',
@@ -50,10 +48,12 @@ export interface ProjectInfo {
 }
 
 /**
- * Full project data including state
+ * Full project data as stored in localStorage
  */
 export interface Project extends ProjectInfo {
-  state: AppState
+  projectType: string
+  props: Record<string, unknown>
+  state: Record<string, unknown>
 }
 
 /**
