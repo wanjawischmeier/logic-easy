@@ -52,9 +52,9 @@ export class ProjectManager {
     if (projectId !== undefined) {
       // Open by ID
       loadingService.show('Opening project...')
-      setTimeout(async () => {
+      setTimeout(() => {
         try {
-          await this.lifecycle.open(projectId)
+          this.lifecycle.open(projectId)
         } catch (error) {
           console.error('Failed to open project:', error)
           loadingService.hide()
@@ -178,7 +178,7 @@ export class ProjectManager {
     setTimeout(async () => {
       try {
         const project = this.operations.create(name, projectType, props)
-        const opened = await this.lifecycle.open(project.id)
+        const opened = this.lifecycle.open(project.id)
         if (!opened) {
           console.error(`Failed to open created project: ${this.projectString(project)}`)
           loadingService.hide()

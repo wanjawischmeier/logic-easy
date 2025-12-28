@@ -1,7 +1,7 @@
 import { markRaw } from "vue";
-import type { TruthTableProps } from "./truth-table/TruthTableProject";
+import { TruthTableProject, type TruthTableProps, type TruthTableState } from "./truth-table/TruthTableProject";
 import TruthTablePropsComponent from "@/projects/truth-table/TruthTablePropsComponent.vue";
-import type { Project as ProjectClass, BaseProjectProps, BaseProjectState } from "./Project";
+import { Project, type BaseProjectProps, type BaseProjectState } from "./Project";
 
 export type ValidationResult = {
   valid: boolean;
@@ -10,14 +10,14 @@ export type ValidationResult = {
 
 export type ValidationFunction = () => ValidationResult;
 
-export interface ProjectTypeInfo<TProps extends BaseProjectProps = BaseProjectProps, TState extends BaseProjectState = BaseProjectState> {
+export interface ProjectTypeInfo {
   propsComponent: any;
-  defaultProps: TProps;
-  createInstance: (props: TProps, state?: TState) => Promise<ProjectClass<TProps, TState>>;
+  defaultProps: any;
+  createInstance: (props: any, state?: any) => Project<any, any>;
 }
 
 // Registry of all project types
-export const projectTypes = {
+export const projectTypes: Record<string, ProjectTypeInfo> = {
   'truth-table': {
     propsComponent: markRaw(TruthTablePropsComponent),
     defaultProps: {
@@ -25,17 +25,16 @@ export const projectTypes = {
       inputVariableCount: 2,
       outputVariableCount: 1,
     } as TruthTableProps,
-    createInstance: async (props: TruthTableProps, state?: any) => {
-      const { TruthTableProject } = await import('./truth-table/TruthTableProject');
-      return new TruthTableProject(props, state);
+    createInstance: (props, state) => {
+      return new TruthTableProject(props as TruthTableProps, state as TruthTableState);
     }
   },
-} as const satisfies Record<string, ProjectTypeInfo<any, any>>;
+};
 
 export type ProjectType = keyof typeof projectTypes;
 
 // Helper to get project type
-export function getProjectType(key: ProjectType): (typeof projectTypes)[typeof key] {
+export function getProjectType(key: ProjectType): ProjectTypeInfo {
   const type = projectTypes[key];
   if (!type) throw new Error(`Unknown project type: ${key}`);
   return type;

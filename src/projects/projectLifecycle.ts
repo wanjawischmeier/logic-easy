@@ -94,7 +94,7 @@ export class ProjectLifecycleManager {
   /**
    * Open a project by ID (loads state into stateManager)
    */
-  async open(projectId: number): Promise<Project | null> {
+  open(projectId: number): Project | null {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) return null
 
@@ -107,7 +107,7 @@ export class ProjectLifecycleManager {
     })
 
     // Validate that project type exists in registry
-    const projectTypeInfo = projectTypes[project.projectType as keyof typeof projectTypes]
+    const projectTypeInfo = projectTypes[project.projectType]
     if (!projectTypeInfo) {
       console.error(`No project type registered: ${project.projectType}`)
       loadingService.hide()
@@ -136,7 +136,7 @@ export class ProjectLifecycleManager {
 
     // Create the Project instance using the factory from registry
     // Pass stateManager.state so the instance uses the same reactive object
-    const projectInstance = await projectTypeInfo.createInstance(project.props as any, stateManager.state as any)
+    const projectInstance = projectTypeInfo.createInstance(project.props, stateManager.state)
     ProjectClass.currentProject = projectInstance
     console.log('[ProjectLifecycle.open] Created project instance:', {
       hasInstance: !!projectInstance,
