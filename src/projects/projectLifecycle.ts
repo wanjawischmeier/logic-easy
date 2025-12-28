@@ -5,11 +5,7 @@ import type { Project } from '@/utility/types'
 import { Project as ProjectClass, type BaseProjectState } from '@/projects/Project'
 import { loadingService } from '@/utility/loadingService'
 import { stateManager } from '@/states/stateManager'
-
-/**
- * Factory function type for creating project instances
- */
-type ProjectFactory = (props: any, state: any) => ProjectClass
+import { projectTypes } from '@/projects/projectRegistry'
 
 /**
  * Manages current project state (opening, closing, tracking current project)
@@ -17,19 +13,11 @@ type ProjectFactory = (props: any, state: any) => ProjectClass
 export class ProjectLifecycleManager {
   private currentProjectId: Ref<number | null>
   private metadataManager: ProjectMetadataManager
-  private projectFactories: Map<string, ProjectFactory> = new Map()
 
   constructor(metadataManager: ProjectMetadataManager) {
     this.metadataManager = metadataManager
     // Start with null - the app will explicitly load the saved project
     this.currentProjectId = ref(null)
-  }
-
-  /**
-   * Register a factory for creating project instances
-   */
-  registerFactory(projectType: string, factory: ProjectFactory): void {
-    this.projectFactories.set(projectType, factory)
   }
 
   /**
@@ -106,7 +94,7 @@ export class ProjectLifecycleManager {
   /**
    * Open a project by ID (loads state into stateManager)
    */
-  open(projectId: number): Project | null {
+  async open(projectId: number): Promise<Project | null> {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) return null
 
@@ -118,10 +106,10 @@ export class ProjectLifecycleManager {
       sampleState: project.state
     })
 
-    // Validate that project has required state for its type
-    const factory = this.projectFactories.get(project.projectType)
-    if (!factory) {
-      console.error(`No factory registered for project type: ${project.projectType}`)
+    // Validate that project type exists in registry
+    const projectTypeInfo = projectTypes[project.projectType as keyof typeof projectTypes]
+    if (!projectTypeInfo) {
+      console.error(`No project type registered: ${project.projectType}`)
       loadingService.hide()
       return null
     }
@@ -146,9 +134,9 @@ export class ProjectLifecycleManager {
       stateManagerState: stateManager.state
     })
 
-    // Create the Project instance using the registered factory
+    // Create the Project instance using the factory from registry
     // Pass stateManager.state so the instance uses the same reactive object
-    const projectInstance = factory(project.props, stateManager.state as BaseProjectState)
+    const projectInstance = await projectTypeInfo.createInstance(project.props as any, stateManager.state as any)
     ProjectClass.currentProject = projectInstance
     console.log('[ProjectLifecycle.open] Created project instance:', {
       hasInstance: !!projectInstance,

@@ -107,16 +107,5 @@ export class TruthTableProject extends Project<TruthTableProps, TruthTableState>
       outputVars: outputVariables,
       hasValues: !!values
     })
-
-    // Save to persist the state
-    const { projectManager } = await import('@/projects/projectManager');
-    projectManager.saveCurrentProject();
   }
 }
-
-// Register factory with project lifecycle
-import('@/projects/projectManager').then(({ projectManager }) => {
-  projectManager.lifecycle.registerFactory('truth-table', (props, state) =>
-    new TruthTableProject(props as TruthTableProps, state as TruthTableState)
-  );
-});
