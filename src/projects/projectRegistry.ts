@@ -1,7 +1,7 @@
 import { markRaw } from "vue";
-import { TruthTableProject, type TruthTableProps, type TruthTableState } from "./truth-table/TruthTableProject";
+import { TruthTableProject, type TruthTableProps } from "./truth-table/TruthTableProject";
 import TruthTablePropsComponent from "@/projects/truth-table/TruthTablePropsComponent.vue";
-import { Project, type BaseProjectProps, type BaseProjectState } from "./Project";
+import type { Project } from "./Project";
 
 export type ValidationResult = {
   valid: boolean;
@@ -12,8 +12,8 @@ export type ValidationFunction = () => ValidationResult;
 
 export interface ProjectTypeInfo {
   propsComponent: any;
-  defaultProps: any;
-  createInstance: (props: any, state?: any) => Project<any, any>;
+  defaultProps: Record<string, unknown>;
+  createInstance: (props: any, state?: any) => Project;
 }
 
 // Registry of all project types
@@ -26,10 +26,10 @@ export const projectTypes: Record<string, ProjectTypeInfo> = {
       outputVariableCount: 1,
     } as TruthTableProps,
     createInstance: (props, state) => {
-      return new TruthTableProject(props as TruthTableProps, state as TruthTableState);
+      return new TruthTableProject(props as TruthTableProps, state);
     }
   },
-};
+} as const;
 
 export type ProjectType = keyof typeof projectTypes;
 
