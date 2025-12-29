@@ -62,7 +62,7 @@ export class TruthTableProject extends Project<TruthTableProps, TruthTableState>
     return Array.from({ length: count }, (_, i) => String.fromCharCode(startCharCode + i))
   }
 
-  async create() {
+  async createState() {
     console.log('[TruthTableProject.create] Initializing project state')
 
     // Generate variable names

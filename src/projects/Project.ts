@@ -63,7 +63,7 @@ export abstract class Project<
     }
 
     abstract restoreDefaultPanelLayout(): void;
-    abstract create(): void;
+    abstract createState(): void;
 }
 
 // Type for the Project constructor

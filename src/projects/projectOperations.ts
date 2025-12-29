@@ -1,18 +1,19 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { Project } from '@/utility/types'
-import type { BaseProjectProps } from '@/projects/Project'
+import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
+import { Project as ProjectClass } from '@/projects/Project'
 
 /**
  * Handles CRUD operations on projects
  */
 export class ProjectOperations {
-  constructor(private metadataManager: ProjectMetadataManager) { }
+  constructor(private metadataManager: ProjectMetadataManager, private lifecycle: ProjectLifecycleManager) { }
 
   /**
    * Create a new project
    */
-  create(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>): Project {
+  async create(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>, onCreated?: (project: Project) => void): Promise<Project> {
     // Enforce project limit before creating
     this.metadataManager.enforceLimit()
 
@@ -31,6 +32,25 @@ export class ProjectOperations {
       name: project.name,
       lastModified: project.lastModified
     })
+
+    // Open the created project (will set current project instance)
+    const opened = this.lifecycle.open(project.id)
+    if (!opened) {
+      throw new Error(`Failed to open created project: ${this.metadataManager.projectString(project)}`)
+    }
+
+    // Initialize project state on the project instance if available
+    if (ProjectClass.currentProject) {
+      await ProjectClass.currentProject.createState()
+      // Save the initialized state
+      const state = ProjectClass.currentProject.state || {}
+      this.updateState(project.id, state)
+    }
+
+    // Call callback after everything is set up
+    if (onCreated) {
+      onCreated(project)
+    }
 
     return project
   }

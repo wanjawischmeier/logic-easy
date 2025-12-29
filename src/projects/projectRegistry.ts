@@ -1,4 +1,4 @@
-import { markRaw } from "vue";
+import { type Component } from "vue";
 import { TruthTableProject, type TruthTableProps } from "./truth-table/TruthTableProject";
 import TruthTablePropsComponent from "@/projects/truth-table/TruthTablePropsComponent.vue";
 import type { Project } from "./Project";
@@ -11,22 +11,23 @@ export type ValidationResult = {
 export type ValidationFunction = () => ValidationResult;
 
 export interface ProjectTypeInfo {
-  propsComponent: any;
+  propsComponent: Component;
   defaultProps: Record<string, unknown>;
+  // Kinda ugly, but a direct project class reference would lead to a circular import
   createInstance: (props: any, state?: any) => Project;
 }
 
 // Registry of all project types
 export const projectTypes: Record<string, ProjectTypeInfo> = {
   'truth-table': {
-    propsComponent: markRaw(TruthTablePropsComponent),
+    propsComponent: TruthTablePropsComponent,
     defaultProps: {
       name: '',
       inputVariableCount: 2,
       outputVariableCount: 1,
     } as TruthTableProps,
     createInstance: (props, state) => {
-      return new TruthTableProject(props as TruthTableProps, state);
+      return new TruthTableProject(props, state);
     }
   },
 } as const;

@@ -1,5 +1,4 @@
 import type { ProjectInfo, Project } from '@/utility/types'
-import type { BaseProjectProps } from '@/projects/Project'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import { ProjectLifecycleManager } from '@/projects/projectLifecycle'
 import { ProjectOperations } from '@/projects/projectOperations'
@@ -22,7 +21,7 @@ export class ProjectManager {
   constructor() {
     this.metadata = new ProjectMetadataManager()
     this.lifecycle = new ProjectLifecycleManager(this.metadata)
-    this.operations = new ProjectOperations(this.metadata)
+    this.operations = new ProjectOperations(this.metadata, this.lifecycle)
     this.importExport = new ProjectImportExport(this.metadata)
   }
 
@@ -177,27 +176,7 @@ export class ProjectManager {
 
     setTimeout(async () => {
       try {
-        const project = this.operations.create(name, projectType, props)
-        const opened = this.lifecycle.open(project.id)
-        if (!opened) {
-          console.error(`Failed to open created project: ${this.projectString(project)}`)
-          loadingService.hide()
-          return
-        }
-
-        // Call create() on the project instance to initialize state
-        const projectInstance = ProjectClass.currentProject
-        if (projectInstance && typeof projectInstance.create === 'function') {
-          await projectInstance.create()
-          console.log('[ProjectManager.createProject] Called create() on project instance')
-          // Save the project after initialization
-          this.saveCurrentProject()
-        }
-
-        // Call the callback after project is created and initialized
-        if (onCreated) {
-          onCreated(project)
-        }
+        await this.operations.create(name, projectType, props, onCreated)
         // Don't hide loading screen here - let the layout restoration handle it
       } catch (error) {
         console.error('Failed to create project:', error)
