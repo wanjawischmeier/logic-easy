@@ -1,55 +1,37 @@
 <script setup lang="ts">
-import type { AutomatonState } from '@/states/automatonState.ts'
-import { computed } from 'vue'
+import { useAutomatonState } from '@/states/automatonState.ts'
 
-const props = defineProps<{
-  data: AutomatonState
-}>()
+const {
+  states,
+  transitions,
+  binaryIDs
+} = useAutomatonState()
 
-// compute necessary amount of bits for state IDs
-const bitNumber = computed(() => {
-  const n = props.data.states.length
-  return n === 0 ? 1 : Math.ceil(Math.log2(Math.max(n, 1)))
-})
-
-// Array for binary IDs
-const binaryIDs = computed(() =>
-  props.data.states.map((state) => Number(state.id).toString(2).padStart(bitNumber.value, '0')),
-)
 </script>
 
 <template>
   <div class="w-full h-full overflow-auto flex flex-col justify-center gap-10 items-center">
     <!-- STATES Table -->
     <table
-      v-if="props.data.states.length"
+      v-if="states.length"
       class="flex-auto bg-gray-800 border border-primary table-fixed w-auto select-none mb-8"
     >
       <thead>
         <tr>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono"
-            :class="{ 'border-r-4': true }"
-          >
+          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4">
             ID
           </th>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-24 font-mono border-r-4"
-          >
+          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-24 font-mono border-r-4">
             Name
           </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(state, index) in props.data.states" :key="state.id">
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
-          >
+        <tr v-for="(state, index) in states" :key="state.id">
+          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4">
             {{ binaryIDs[index] }}
           </td>
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
-          >
+          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4">
             {{ state.name }}
           </td>
         </tr>
@@ -58,20 +40,15 @@ const binaryIDs = computed(() =>
 
     <!-- TRANSITIONS Table -->
     <table
-      v-if="props.data.transitions?.length"
+      v-if="transitions?.length"
       class="flex-auto bg-gray-800 border border-primary table-fixed w-auto select-none"
     >
       <thead>
         <tr>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono"
-            :class="{ 'border-r-4': true }"
-          >
+          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4">
             ID
           </th>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-24 font-mono border-r-4"
-          >
+          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-24 font-mono border-r-4">
             From
           </th>
           <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-28 font-mono">
@@ -80,15 +57,11 @@ const binaryIDs = computed(() =>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="transition in props.data.transitions" :key="transition.id">
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
-          >
+        <tr v-for="transition in transitions" :key="transition.id">
+          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4">
             {{ transition.id }}
           </td>
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
-          >
+          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4">
             {{ transition.from }}
           </td>
           <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary px-3 py-4">
