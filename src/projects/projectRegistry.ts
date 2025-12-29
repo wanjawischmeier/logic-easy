@@ -1,7 +1,5 @@
 import { type Component } from "vue";
-import { TruthTableProject, type TruthTableProps } from "./truth-table/TruthTableProject";
-import TruthTablePropsComponent from "@/projects/truth-table/TruthTablePropsComponent.vue";
-import type { Project } from "./Project";
+import type { BaseProjectProps, BaseProjectState, Project } from "./Project";
 
 export type ValidationResult = {
   valid: boolean;
@@ -12,26 +10,12 @@ export type ValidationFunction = () => ValidationResult;
 
 export interface ProjectTypeInfo {
   propsComponent: Component;
-  defaultProps: Record<string, unknown>;
-  // Kinda ugly, but a direct project class reference would lead to a circular import
-  createInstance: (props: any, state?: any) => Project;
+  // Optional runtime class reference (set via registerProjectClass)
+  projectClass?: any;
 }
 
 // Registry of all project types
-export const projectTypes: Record<string, ProjectTypeInfo> = {
-  'truth-table': {
-    propsComponent: TruthTablePropsComponent,
-    defaultProps: {
-      name: '',
-      inputVariableCount: 2,
-      outputVariableCount: 1,
-    } as TruthTableProps,
-    createInstance: (props, state) => {
-      return new TruthTableProject(props, state);
-    }
-  },
-} as const;
-
+export const projectTypes: Record<string, ProjectTypeInfo> = {};
 export type ProjectType = keyof typeof projectTypes;
 
 // Helper to get project type
@@ -39,4 +23,8 @@ export function getProjectType(key: ProjectType): ProjectTypeInfo {
   const type = projectTypes[key];
   if (!type) throw new Error(`Unknown project type: ${key}`);
   return type;
+}
+
+export function registerProject(key: ProjectType, info: ProjectTypeInfo) {
+  projectTypes[key] = info;
 }

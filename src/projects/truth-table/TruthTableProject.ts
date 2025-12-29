@@ -1,5 +1,6 @@
 import { createPanel } from "@/utility/dockview/integration";
 import { Project, type BaseProjectProps, type BaseProjectState, type TruthTableData, type TruthTableCell } from "../Project";
+import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
 import type { Formula, FunctionType } from "@/utility/types";
 import { computed } from "vue";
 
@@ -109,3 +110,10 @@ export class TruthTableProject extends Project<TruthTableProps, TruthTableState>
     })
   }
 }
+
+// Register the runtime class with the project registry to avoid direct import cycles
+import { registerProject } from '@/projects/projectRegistry';
+registerProject('truth-table', {
+  propsComponent: TruthTablePropsComponent,
+  projectClass: TruthTableProject
+});

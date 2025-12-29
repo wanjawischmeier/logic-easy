@@ -104,7 +104,7 @@ export class ProjectLifecycleManager {
       stateKeys: project.state ? Object.keys(project.state) : [],
       sampleState: project.state
     })
-
+    
     // Validate that project type exists in registry
     const projectTypeInfo = projectTypes[project.projectType]
     if (!projectTypeInfo) {
@@ -135,7 +135,7 @@ export class ProjectLifecycleManager {
 
     // Create the Project instance using the factory from registry
     // Pass stateManager.state so the instance uses the same reactive object
-    const projectInstance = projectTypeInfo.createInstance(project.props, stateManager.state as BaseProjectState)
+    const projectInstance = new projectTypeInfo.projectClass(project.props, stateManager.state)
     Project.currentProject = projectInstance
     console.log('[ProjectLifecycle.open] Created project instance:', {
       hasInstance: !!projectInstance,

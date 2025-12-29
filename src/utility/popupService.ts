@@ -76,7 +76,7 @@ export function showProjectCreationPopup(panelIdOrMenuEntry: string | MenuEntry)
 
   popupService.open({
     projectPropsComponent: projectType.propsComponent,
-    initialProps: projectType.defaultProps,
+    initialProps: projectType.projectClass?.defaultProps,
     onProjectCreate: async (props: any) => {
       projectManager.createProject(props.name, registryEntry.projectType, props);
     },

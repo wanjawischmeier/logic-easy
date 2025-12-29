@@ -1,5 +1,6 @@
 import { computed, reactive, isReactive, type UnwrapNestedRefs } from "vue";
 import type { Component } from "vue";
+import type { ProjectType } from "./projectRegistry";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
@@ -91,7 +92,7 @@ export interface ProjectInfo {
  * Full project data as stored in localStorage
  */
 export interface StoredProject extends ProjectInfo {
-    projectType: string
+    projectType: ProjectType
     props: Record<string, unknown>
     state: Record<string, unknown>
 }
