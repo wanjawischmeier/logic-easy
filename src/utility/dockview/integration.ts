@@ -5,6 +5,7 @@ import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { stateManager } from '@/states/stateManager';
 import { dockviewService } from '@/utility/dockview/service';
 import { getProjectType } from '@/projects/projectRegistry';
+import { projectManager } from '@/projects/projectManager';
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -110,7 +111,6 @@ export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): b
     projectPropsComponent: projectType.propsComponent,
     initialProps: projectType.defaultProps,
     onProjectCreate: async (props: any) => {
-      const { projectManager } = await import('@/projects/projectManager');
       projectManager.createProject(props.name, registryEntry.projectType, props);
     },
   });
