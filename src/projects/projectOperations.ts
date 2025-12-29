@@ -1,8 +1,7 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import type { Project } from '@/utility/types'
 import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
-import { Project as ProjectClass } from '@/projects/Project'
+import { Project, type StoredProject } from '@/projects/Project'
 
 /**
  * Handles CRUD operations on projects
@@ -13,11 +12,11 @@ export class ProjectOperations {
   /**
    * Create a new project
    */
-  async create(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>, onCreated?: (project: Project) => void): Promise<Project> {
+  async create(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
     // Enforce project limit before creating
     this.metadataManager.enforceLimit()
 
-    const project: Project = {
+    const project: StoredProject = {
       id: Date.now(),
       name,
       lastModified: Date.now(),
@@ -40,10 +39,10 @@ export class ProjectOperations {
     }
 
     // Initialize project state on the project instance if available
-    if (ProjectClass.currentProject) {
-      await ProjectClass.currentProject.createState()
+    if (Project.currentProject) {
+      await Project.currentProject.createState()
       // Save the initialized state
-      const state = ProjectClass.currentProject.state || {}
+      const state = Project.currentProject.state || {}
       this.updateState(project.id, state)
     }
 

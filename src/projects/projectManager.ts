@@ -1,11 +1,10 @@
-import type { ProjectInfo, Project } from '@/utility/types'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import { ProjectLifecycleManager } from '@/projects/projectLifecycle'
 import { ProjectOperations } from '@/projects/projectOperations'
 import { ProjectImportExport } from '@/projects/projectImportExport'
 import { loadingService } from '@/utility/loadingService'
 import { ProjectFileOperations } from '@/projects/projectFileOperations'
-import { Project as ProjectClass } from '@/projects/Project'
+import { Project, type ProjectInfo, type StoredProject } from '@/projects/Project'
 import { dockviewService } from '@/utility/dockview/service'
 import { getDockviewApi } from '@/utility/dockview/integration'
 
@@ -25,7 +24,7 @@ export class ProjectManager {
     this.importExport = new ProjectImportExport(this.metadata)
   }
 
-  public projectString(project: Project | ProjectInfo): string {
+  public projectString(project: StoredProject | ProjectInfo): string {
     return this.metadata.projectString(project)
   }
 
@@ -96,7 +95,7 @@ export class ProjectManager {
     }
   }
 
-  async loadProjectFromFile(file: File): Promise<Project> {
+  async loadProjectFromFile(file: File): Promise<StoredProject> {
     loadingService.show('Loading project from file...')
     // Add a small delay to ensure spinner is visible
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -144,7 +143,7 @@ export class ProjectManager {
   }
 
   saveCurrentProject(): void {
-    const currentProject = ProjectClass.currentProject;
+    const currentProject = Project.currentProject;
     const currentInfo = this.currentProjectInfo;
     if (!currentProject || !currentInfo) {
       console.warn('No current project to save');
@@ -161,7 +160,7 @@ export class ProjectManager {
     return this.lifecycle.setCurrent(projectId)
   }
 
-  getCurrentProject(): Project | null {
+  getCurrentProject(): StoredProject | null {
     return this.lifecycle.getCurrent()
   }
 
@@ -171,7 +170,7 @@ export class ProjectManager {
 
   // === Project CRUD ===
 
-  createProject(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>, onCreated?: (project: Project) => void): void {
+  createProject(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>, onCreated?: (project: StoredProject) => void): void {
     loadingService.show('Creating project...')
 
     setTimeout(async () => {

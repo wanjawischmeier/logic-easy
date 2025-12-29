@@ -1,7 +1,7 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectFileOperations } from '@/projects/projectFileOperations'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import type { Project } from '@/utility/types'
+import type { StoredProject } from '@/utility/types'
 import type { BaseProjectProps } from '@/projects/Project'
 
 /**
@@ -12,7 +12,7 @@ export class ProjectImportExport {
   /**
    * Load and save project from .le file (without opening it)
    */
-  async importFromFile(file: File): Promise<Project> {
+  async importFromFile(file: File): Promise<StoredProject> {
     // Parse the file
     const importedProject = await ProjectFileOperations.loadFromFile(file)
 

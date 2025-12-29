@@ -1,8 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import type { Project } from '@/utility/types'
-import { Project as ProjectClass, type BaseProjectState } from '@/projects/Project'
+import { Project, type StoredProject, type BaseProjectState } from '@/projects/Project'
 import { loadingService } from '@/utility/loadingService'
 import { stateManager } from '@/states/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
@@ -47,7 +46,7 @@ export class ProjectLifecycleManager {
   /**
    * Get the currently open project (full data)
    */
-  getCurrent(): Project | null {
+  getCurrent(): StoredProject | null {
     if (!this.currentProjectId.value) {
       return null
     }
@@ -94,7 +93,7 @@ export class ProjectLifecycleManager {
   /**
    * Open a project by ID (loads state into stateManager)
    */
-  open(projectId: number): Project | null {
+  open(projectId: number): StoredProject | null {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) return null
 
@@ -137,7 +136,7 @@ export class ProjectLifecycleManager {
     // Create the Project instance using the factory from registry
     // Pass stateManager.state so the instance uses the same reactive object
     const projectInstance = projectTypeInfo.createInstance(project.props, stateManager.state as BaseProjectState)
-    ProjectClass.currentProject = projectInstance
+    Project.currentProject = projectInstance
     console.log('[ProjectLifecycle.open] Created project instance:', {
       hasInstance: !!projectInstance,
       instanceState: projectInstance.state,
@@ -157,7 +156,7 @@ export class ProjectLifecycleManager {
     console.log(`Closing project: ${this.metadataManager.projectString(projectInfo)}`)
     this.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
-    ProjectClass.currentProject = null
+    Project.currentProject = null
 
     // Clear the state to trigger reactivity updates
     this.clearState()

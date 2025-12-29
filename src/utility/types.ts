@@ -36,29 +36,3 @@ export interface ListEntry {
 }
 
 export type ListEntries = ListEntry[];
-
-
-/**
- * Project information (without the full state)
- */
-export interface ProjectInfo {
-  id: number
-  name: string
-  lastModified: number
-}
-
-/**
- * Full project data as stored in localStorage
- */
-export interface Project extends ProjectInfo {
-  projectType: string
-  props: Record<string, unknown>
-  state: Record<string, unknown>
-}
-
-/**
- * Metadata stored in localStorage to track all projects
- */
-export interface ProjectMetadata {
-  projects: ProjectInfo[]
-}
