@@ -1,8 +1,7 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectFileOperations } from '@/projects/projectFileOperations'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import type { StoredProject } from '@/utility/types'
-import type { BaseProjectProps } from '@/projects/Project'
+import type { StoredProject } from './Project'
 
 /**
  * Handles import/export operations for projects

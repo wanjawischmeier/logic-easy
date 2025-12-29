@@ -23,10 +23,10 @@
 
 <script lang="ts">
 import { defineComponent, computed, type ComputedRef } from 'vue';
-import { createPanelAfterPopup } from '@/utility/dockview/integration';
 import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import { projectManager } from '@/projects/projectManager';
+import { showProjectCreationPopup } from '@/utility/popupService';
 
 interface ListEntry {
   label: string;
@@ -61,7 +61,7 @@ export default defineComponent({
       newMenu.value.map((menuEntry: MenuEntry) => ({
         label: menuEntry.label,
         disabled: menuEntry.disabled,
-        action: () => createPanelAfterPopup(menuEntry),
+        action: () => showProjectCreationPopup(menuEntry),
       }))
     );
 
@@ -103,7 +103,7 @@ export default defineComponent({
       });
     });
 
-    return { newMenu, runAction: createPanelAfterPopup, newProjectEntries, recentProjectEntries };
+    return { newMenu, runAction: showProjectCreationPopup, newProjectEntries, recentProjectEntries };
   },
 });
 </script>

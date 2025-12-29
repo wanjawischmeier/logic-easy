@@ -1,4 +1,4 @@
-import type { ProjectMetadata, StoredProject } from "@/utility/types"
+import type { ProjectMetadata, StoredProject } from "./Project"
 
 const PROJECT_METADATA_KEY = 'logic-easy-projects-metadata'
 const PROJECT_KEY_PREFIX = 'logic-easy-project-'

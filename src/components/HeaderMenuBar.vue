@@ -45,8 +45,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry';
-import { createPanel, createPanelAfterPopup } from '@/utility/dockview/integration';
-import { popupService } from '@/utility/popupService';
+import { createPanel } from '@/utility/dockview/integration';
+import { popupService, showProjectCreationPopup } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
 import { projectManager } from '@/projects/projectManager';
@@ -121,8 +121,8 @@ function runAction(entry: MenuEntry): void {
   }
 
   if (entry.panelId) {
-    if (entry.withPopup ?? false) {
-      createPanelAfterPopup(entry.panelId);
+    if (entry.createProject ?? false) {
+      showProjectCreationPopup(entry.panelId);
     } else {
       createPanel(entry.panelId, entry.label);
     }

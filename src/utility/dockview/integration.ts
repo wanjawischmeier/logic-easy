@@ -1,11 +1,8 @@
 import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
-import { popupService } from '@/utility/popupService';
-import { checkDockEntryRequirements, dockRegistry, type MenuEntry } from '@/router/dockRegistry';
+import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { stateManager } from '@/states/stateManager';
 import { dockviewService } from '@/utility/dockview/service';
-import { getProjectType } from '@/projects/projectRegistry';
-import { projectManager } from '@/projects/projectManager';
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -72,47 +69,4 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
     console.error('Failed to add panel', err);
     return false;
   }
-}
-
-/**
- * Creates a new panel after first showing a popup.
- * @param panelId The id with which the new panel should be created.
- * @returns Wether or not the panel was sucessfully created.
- */
-export function createPanelAfterPopup(panelId: string): boolean;
-
-/**
- * Creates a new panel after first showing a popup.
- * @param menuEntry The menu entry whose id will be assigned to the new panel.
- * @returns Wether or not the panel was sucessfully created.
- */
-export function createPanelAfterPopup(menuEntry: MenuEntry): boolean;
-
-// Main function called by both overloads
-export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): boolean {
-  let panelId: string;
-  let menuEntry: MenuEntry | undefined;
-
-  // Type guard to determine which overload was called
-  if (typeof panelIdOrMenuEntry === 'string') {
-    panelId = panelIdOrMenuEntry;
-  } else {
-    menuEntry = panelIdOrMenuEntry;
-    if (!menuEntry?.panelId) return false;
-    panelId = menuEntry.panelId;
-  }
-
-  const registryEntry = dockRegistry.find(item => item.id === panelId);
-  if (!registryEntry?.projectType) return false;
-
-  const projectType = getProjectType(registryEntry.projectType);
-
-  popupService.open({
-    projectPropsComponent: projectType.propsComponent,
-    initialProps: projectType.defaultProps,
-    onProjectCreate: async (props: any) => {
-      projectManager.createProject(props.name, registryEntry.projectType, props);
-    },
-  });
-  return true;
 }

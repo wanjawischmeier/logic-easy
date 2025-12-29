@@ -6,7 +6,7 @@ import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
 import { Project } from '@/projects/Project';
-import type { TruthTableProject, TruthTableState } from '@/projects/truth-table/TruthTableProject';
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -31,7 +31,7 @@ export type MenuEntry = {
   tooltip?: string;
   panelId?: string;
   children?: MenuEntry[];
-  withPopup?: boolean;
+  createProject?: boolean;
   disabled?: boolean;
 };
 
