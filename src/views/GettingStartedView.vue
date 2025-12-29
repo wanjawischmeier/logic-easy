@@ -26,8 +26,14 @@ import { defineComponent, computed, type ComputedRef } from 'vue';
 import { createPanelAfterPopup } from '@/utility/dockview/integration';
 import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
-import type { ListEntry } from '@/utility/types';
 import { projectManager } from '@/projects/projectManager';
+
+interface ListEntry {
+  label: string;
+  action: () => void;
+  disabled?: boolean;
+  subtitle?: string;
+}
 
 export default defineComponent({
   name: 'GettingStartedView',
