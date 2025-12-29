@@ -4,6 +4,7 @@ import { getDockviewApi } from '@/utility/dockview/integration'
 import { StateFileOperations } from '@/states/stateFileOperations'
 import { dockviewService } from '@/utility/dockview/service'
 import type { TruthTableState } from '@/states/truthTableState'
+import type { AutomatonState } from './automatonState'
 
 const STORAGE_VERSION = 1
 
@@ -13,6 +14,7 @@ const STORAGE_VERSION = 1
 export interface AppState {
   version: number
   truthTable?: TruthTableState
+  automaton?: AutomatonState
   panelStates?: Record<string, Record<string, unknown>>
   dockviewLayout?: unknown // Stores the dockview panel layout
 }

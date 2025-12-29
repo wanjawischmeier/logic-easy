@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { FsmExport } from '@/utility/FsmExport.ts'
+import type { AutomatonState } from '@/states/automatonState.ts'
 import { computed } from 'vue'
 
 const props = defineProps<{
-  data: FsmExport
+  data: AutomatonState
 }>()
 
 // compute necessary amount of bits for state IDs
