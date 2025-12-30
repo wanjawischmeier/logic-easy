@@ -1,5 +1,4 @@
 import { type Component } from "vue";
-import type { BaseProjectProps, BaseProjectState, Project } from "./Project";
 
 export type ValidationResult = {
   valid: boolean;

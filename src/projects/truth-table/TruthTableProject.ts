@@ -27,7 +27,7 @@ export class TruthTableProject extends Project<TruthTableProps, TruthTableState>
   }
 
   static override useState() {
-    const state = computed(() => this.useProjectState<TruthTableProject>())
+    const state = computed(() => Project.useProjectState<TruthTableProject>())
     const inputVars = computed(() => state.value?.inputVars || [])
     const outputVars = computed(() => state.value?.outputVars || [])
     const functionTypes = computed(() => Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>))
