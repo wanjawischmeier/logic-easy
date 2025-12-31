@@ -1,6 +1,5 @@
 import type { TruthTableData } from "@/projects/Project";
-import { Project } from "@/projects/Project";
-import type { TruthTableProject } from "@/projects/truth-table/TruthTableProject";
+import { stateManager } from "@/states/stateManager";
 import { minifyTruthTable } from "@/utility/truthtable/espresso";
 import { FunctionType, type Formula, type Literal, type Term } from "@/utility/types";
 
@@ -106,26 +105,26 @@ function getVariableValue(term: Term, variable: string): number {
 export const updateTruthTable = async (newValues: TruthTableData) => {
   console.log('[updateTruthTable] Called with new values:', newValues);
 
-  const state = Project.useProjectState<TruthTableProject>();
-  if (!state) {
-    console.warn('[updateTruthTable] No state found');
+  if (!stateManager.state.truthTable) {
+    console.warn('[updateTruthTable] No truth table state found');
     return;
   }
 
   console.log('[updateTruthTable] Current state before update:', {
-    hasValues: !!state.values,
-    currentValues: state.values,
+    hasValues: !!stateManager.state.truthTable.values,
+    currentValues: stateManager.state.truthTable.values,
     newValues
   });
 
-  state.values = newValues
-  console.log('[updateTruthTable] State updated, values are now:', state.values);
+  // Replace the entire truthTable object to trigger computed refs in components
+  stateManager.state.truthTable.values = newValues
+  console.log('[updateTruthTable] State updated, values are now:', stateManager.state.truthTable.values);
 
   // Calculate formulas for each output variable
   const formulas: Record<string, Record<string, Formula>> = {}
 
-  for (let outputIdx = 0; outputIdx < state.outputVars.length; outputIdx++) {
-    const outputVar = state.outputVars[outputIdx]
+  for (let outputIdx = 0; outputIdx < stateManager.state.truthTable.outputVars.length; outputIdx++) {
+    const outputVar = stateManager.state.truthTable.outputVars[outputIdx]
     if (!outputVar) continue
 
     // Extract single output column
@@ -143,7 +142,7 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
       minifiedDNF = []
     } else {
       minifiedDNF = await minifyTruthTable(
-        state.inputVars,
+        stateManager.state.truthTable.inputVars,
         [outputVar],
         singleOutputValues
       )
@@ -163,19 +162,22 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
       minifiedCNF = []
     } else {
       minifiedCNF = await minifyTruthTable(
-        state.inputVars,
+        stateManager.state.truthTable.inputVars,
         [outputVar],
         invertedValues
       )
     }
 
     formulas[outputVar] = {
-      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, state.inputVars),
-      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, state.inputVars)
+      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, stateManager.state.truthTable.inputVars),
+      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, stateManager.state.truthTable.inputVars)
     }
   }
 
-  state.formulas = formulas
-  console.log('[updateTruthTable] Formulas updated:', formulas);
-  console.log('[updateTruthTable] Final state:', state);
+  stateManager.state.truthTable.formulas = formulas
+  console.log('[updateTruthTable] Full stateManager.state:', stateManager.state);
+
+  // Notify listeners and save
+  stateManager.notifyStateUpdate()
+  console.log('[updateTruthTable] State update notified')
 }

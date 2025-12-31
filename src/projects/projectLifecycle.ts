@@ -1,7 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import { Project, type StoredProject, type BaseProjectState } from '@/projects/Project'
+import type { StoredProject } from '@/projects/Project'
 import { loadingService } from '@/utility/loadingService'
 import { stateManager } from '@/states/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
@@ -104,7 +104,7 @@ export class ProjectLifecycleManager {
       stateKeys: project.state ? Object.keys(project.state) : [],
       sampleState: project.state
     })
-    
+
     // Validate that project type exists in registry
     const projectTypeInfo = projectTypes[project.projectType]
     if (!projectTypeInfo) {
@@ -126,21 +126,13 @@ export class ProjectLifecycleManager {
     this.currentProjectId.value = null
     this.setCurrentId(projectId)
 
-    // Assign the project state to stateManager
-    Object.assign(stateManager.state, project.state)
+    // Copy over shared state properties
+    stateManager.state = project.state
+
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
       stateManagerKeys: Object.keys(stateManager.state),
-      stateManagerState: stateManager.state
-    })
-
-    // Create the Project instance using the factory from registry
-    // Pass stateManager.state so the instance uses the same reactive object
-    const projectInstance = new projectTypeInfo.projectClass(project.props, stateManager.state)
-    Project.currentProject = projectInstance
-    console.log('[ProjectLifecycle.open] Created project instance:', {
-      hasInstance: !!projectInstance,
-      instanceState: projectInstance.state,
-      instanceStateKeys: projectInstance.state ? Object.keys(projectInstance.state) : []
+      truthTableState: stateManager.state.truthTable,
+      automatonState: stateManager.state.automaton
     })
 
     return project
@@ -156,7 +148,6 @@ export class ProjectLifecycleManager {
     console.log(`Closing project: ${this.metadataManager.projectString(projectInfo)}`)
     this.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
-    Project.currentProject = null
 
     // Clear the state to trigger reactivity updates
     this.clearState()

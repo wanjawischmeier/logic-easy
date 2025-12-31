@@ -21,13 +21,13 @@ interface KVPanelState {
 }
 
 // Load saved panel state
-const savedState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
+const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
 
 const selectedType = ref<FunctionType>(
-  savedState?.selectedType ?? defaultFunctionType
+  panelState?.selectedType ?? defaultFunctionType
 );
 const selectedOutputIndex = ref(
-  savedState?.selectedOutputIndex ?? 0
+  panelState?.selectedOutputIndex ?? 0
 );
 
 onMounted(() => {
@@ -35,6 +35,26 @@ onMounted(() => {
     title.value = props.params.api.title ?? ''
   })
   title.value = props.params.api.title ?? ''
+  /*
+  // Subscribe to state updates
+  const unsubscribe = stateManager.onStateUpdate(() => {
+    console.log('[KVDiagramPanel] State update event received')
+    const newValues = stateManager.state.truthTable?.values
+    if (newValues && JSON.stringify(newValues) !== JSON.stringify(tableValues.value)) {
+      console.log('[KVDiagramPanel] Updating tableValues from state update event')
+      isUpdatingFromState = true
+      tableValues.value = newValues.map((row: TruthTableCell[]) => [...row])
+    }
+  })
+  */
+  // Store unsubscribe for cleanup
+  const originalDispose = disposable?.dispose
+  disposable = {
+    dispose: () => {
+      originalDispose?.()
+      // unsubscribe()
+    }
+  }
 })
 
 onBeforeUnmount(() => {

@@ -3,10 +3,11 @@ import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
+import StateTablePanel from '@/panels/StateTablePanel.vue';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
-import { Project } from '@/projects/Project';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
+import { stateManager } from '@/states/stateManager';
 
 export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -66,11 +67,7 @@ export const dockRegistry: DockEntry[] = [
   {
     id: 'state-table',
     label: 'State Table',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
+    component: StateTablePanel
   },
   {
     id: 'state-machine',
@@ -128,32 +125,30 @@ export const dockComponents: Record<string, unknown> = Object.fromEntries(
 const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true;
 
-  const currentProject = Project.currentProject;
-  if (!currentProject) return false;
+  const truthTableState = stateManager.state.truthTable;
+  if (!truthTableState) return false;
 
   let checkPassed = true;
 
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
-        // Check if current project is a truth table project with state
-        if (!currentProject.state || !(currentProject instanceof Object)) {
+        // Check if truth table state exists
+        if (!truthTableState) {
           checkPassed = false;
         }
         break;
 
       case 'Min2InputVars':
         // Check if truth table has at least 2 input variables
-        const minState = currentProject.state as TruthTableState;
-        if ((minState?.inputVars?.length ?? 0) < 2) {
+        if ((truthTableState?.inputVars?.length ?? 0) < 2) {
           checkPassed = false;
         }
         break;
 
       case 'Max4InputVars':
         // Check if truth table has at most 4 input variables
-        const maxState = currentProject.state as TruthTableState;
-        if ((maxState?.inputVars?.length ?? 0) > 4) {
+        if ((truthTableState?.inputVars?.length ?? 0) > 4) {
           checkPassed = false;
         }
         break;

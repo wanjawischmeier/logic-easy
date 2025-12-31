@@ -13,8 +13,6 @@ import LoadingScreen from '@/components/LoadingScreen.vue'
 import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockview/service'
 import type { BaseProjectProps } from '@/projects/Project'
-import { Project } from '@/projects/Project'
-import type { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const componentsForDockview = dockComponents;
 const dockviewApi = ref<DockviewApi | null>(null)
@@ -40,9 +38,9 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
   isRestoringLayout = true
 
   // Await to ensure state is ready before panels mount
-  const currentState = Project.useProjectState<TruthTableProject>()
-  if (currentState?.values) {
-    await updateTruthTable(currentState.values)
+  const truthTableState = stateManager.state.truthTable
+  if (truthTableState?.values) {
+    await updateTruthTable(truthTableState.values)
   }
 
   // Clear existing panels only when switching projects
@@ -65,25 +63,28 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
       // Check if any panels were restored
       if (api.panels.length === 0) {
         console.log('No panels in saved layout, restoring default layout')
-        const currentProject = Project.currentProject
-        if (currentProject) {
-          currentProject.restoreDefaultPanelLayout()
+        const projectClass = projectManager.currentProjectClass
+        const props = projectManager.currentProjectProps
+        if (projectClass && props) {
+          projectClass.restoreDefaultPanelLayout(props)
         }
       }
     } catch (err) {
       console.error('Failed to load layout from project state:', err)
       console.warn('Falling back to default layout')
-      const currentProject = Project.currentProject
-      if (currentProject) {
-        currentProject.restoreDefaultPanelLayout()
+      const projectClass = projectManager.currentProjectClass
+      const props = projectManager.currentProjectProps
+      if (projectClass && props) {
+        projectClass.restoreDefaultPanelLayout(props)
       }
     }
   } else {
     // No saved layout, load default
     console.log('No saved layout, loading default')
-    const currentProject = Project.currentProject
-    if (currentProject) {
-      currentProject.restoreDefaultPanelLayout()
+    const projectClass = projectManager.currentProjectClass
+    const props = projectManager.currentProjectProps
+    if (projectClass && props) {
+      projectClass.restoreDefaultPanelLayout(props)
     }
   }
 

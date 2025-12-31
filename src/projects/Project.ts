@@ -1,6 +1,6 @@
-import { computed, reactive, isReactive, type UnwrapNestedRefs } from "vue";
-import type { Component } from "vue";
+import type { App, Component } from "vue";
 import type { ProjectType } from "./projectRegistry";
+import type { AppState } from "@/states/stateManager";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
@@ -10,74 +10,50 @@ export interface BaseProjectProps {
     [key: string]: unknown;
 }
 
-export interface BaseProjectState {
-    dockviewLayout?: unknown;
-    panelStates?: Record<string, Record<string, unknown>>;
-    [key: string]: unknown;
+/**
+ * Abstract base class for project types
+ * Projects are now purely static - no instances are created
+ * State is managed through AppState in the state manager
+ */
+export abstract class Project {
+    /**
+     * Restore the default panel layout for this project type
+     * @param props - The project props
+     */
+    static restoreDefaultPanelLayout(props: BaseProjectProps): void {
+        throw new Error('restoreDefaultPanelLayout must be implemented by subclass')
+    }
+
+    /**
+     * Initialize/create the state for this project type in the AppState
+     * @param state - The AppState object to initialize
+     * @param props - The project props
+     */
+    static createState(state: AppState, props: BaseProjectProps): void {
+        throw new Error('createState must be implemented by subclass')
+    }
+
+    /**
+     * Create a composable hook for accessing project state
+     * Subclasses should override this to provide convenient computed properties
+     */
+    static useState(): { state: any } {
+        throw new Error('useState must be implemented by subclass')
+    }
 }
 
-export abstract class Project<
-    TProps extends BaseProjectProps = BaseProjectProps,
-    TState extends BaseProjectState = BaseProjectState
-> {
-    static currentProject: Project | null = null;
-    props: TProps;
-    state?: UnwrapNestedRefs<TState>;
-
-    constructor(props: TProps, state?: TState) {
-        this.props = props;
-        console.log('[Project.constructor] Creating project instance:', {
-            propsName: props.name,
-            hasState: !!state,
-            stateKeys: state ? Object.keys(state) : [],
-            isStateReactive: state ? isReactive(state) : false,
-            state: state
-        });
-        if (state) {
-            // Only wrap in reactive if not already reactive
-            this.state = isReactive(state) ? state as UnwrapNestedRefs<TState> : reactive(state) as UnwrapNestedRefs<TState>;
-            console.log('[Project.constructor] After setting state:', {
-                thisStateKeys: this.state ? Object.keys(this.state) : [],
-                thisState: this.state
-            });
-        }
-    }
-
-    // Static method to get default props - subclasses can override
-    static get defaultProps(): BaseProjectProps {
-        return {
-            name: '',
-        };
-    }
-
-    // Static method to get project state - provides reactive access
-    static useProjectState<T extends Project>(): T['state'] | undefined {
-        if (!Project.currentProject) return undefined;
-        return Project.currentProject.state as T['state'];
-    }
-
-    // Static method to create a composable for the project state
-    // Subclasses should override this to provide convenient computed properties
-    static useState<T extends Project>(): { state: any } {
-        const state = computed(() => this.useProjectState<T>());
-        return { state };
-    }
-
-    abstract restoreDefaultPanelLayout(): void;
-    abstract createState(): void;
+// Type for the Project class (static methods only)
+export interface ProjectClass {
+    restoreDefaultPanelLayout(props: BaseProjectProps): void;
+    createState(state: AppState, props: BaseProjectProps): void;
+    useState(): { state: any };
 }
 
-// Type for the Project constructor
-export interface ProjectConstructor<TProps extends BaseProjectProps = BaseProjectProps> {
-    new(props: TProps): Project<TProps>;
-    get defaultProps(): TProps;
-    readonly prototype: Project<TProps>;
-}
-
-export interface ProjectTypeDefinition<TProps extends BaseProjectProps = BaseProjectProps> {
+export interface ProjectTypeDefinition {
     propsComponent: Component;
-    projectClass: ProjectConstructor<TProps>;
+    projectClass: ProjectClass;
 }
+
 
 /**
  * Project information (without the full state)
@@ -93,8 +69,8 @@ export interface ProjectInfo {
  */
 export interface StoredProject extends ProjectInfo {
     projectType: ProjectType
-    props: Record<string, unknown>
-    state: Record<string, unknown>
+    props: BaseProjectProps
+    state: AppState
 }
 
 /**

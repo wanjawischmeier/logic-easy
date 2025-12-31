@@ -1,38 +1,31 @@
-import { reactive, watch, type UnwrapNestedRefs } from 'vue'
+import { reactive, watch, type UnwrapNestedRefs, toRef } from 'vue'
 import { projectManager } from '@/projects/projectManager'
-import type { BaseProjectState } from '@/projects/Project'
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
+import type { AutomatonState } from '@/projects/automaton/AutomatonProject'
+
+const STORAGE_VERSION = 1
+
+export interface AppState {
+  version: number
+  truthTable?: TruthTableState
+  automaton?: AutomatonState
+  panelStates?: Record<string, Record<string, unknown>>
+  dockviewLayout?: unknown // Stores the dockview panel layout
+}
 
 /**
  * Manages application state and syncs with project storage
  * This is now just a thin wrapper around the project manager's state
  */
 export class StateManager {
-  public state: UnwrapNestedRefs<BaseProjectState>
+  public state: UnwrapNestedRefs<AppState>
   private saveTimer: ReturnType<typeof setTimeout> | null = null
+  private stateUpdateListeners: Set<() => void> = new Set()
 
   constructor() {
-    this.state = reactive({}) as UnwrapNestedRefs<BaseProjectState>
-
-    // Auto-save to localStorage whenever state changes
-    // Debounce to avoid excessive writes
-    watch(
-      () => this.state,
-      (newState) => {
-        if (this.saveTimer) clearTimeout(this.saveTimer)
-        this.saveTimer = setTimeout(() => {
-          this.saveState(newState as BaseProjectState)
-        }, 300)
-      },
-      { deep: true }
-    )
-  }
-
-  /**
-   * Save state to project manager
-   */
-  // CHECK: doesnt make any sense?
-  private saveState(state: BaseProjectState): void {
-    projectManager.saveCurrentProject()
+    this.state = reactive({
+      version: STORAGE_VERSION
+    }) as UnwrapNestedRefs<AppState>
   }
 
   /**
@@ -85,6 +78,25 @@ export class StateManager {
    */
   closeCurrentProject(): void {
     projectManager.closeCurrentProject()
+  }
+
+  /**
+   * Subscribe to state updates
+   * @returns Unsubscribe function
+   */
+  onStateUpdate(callback: () => void): () => void {
+    this.stateUpdateListeners.add(callback)
+    return () => this.stateUpdateListeners.delete(callback)
+  }
+
+  /**
+   * Notify all listeners that state has been updated
+   * Also triggers a save
+   */
+  notifyStateUpdate(): void {
+    console.log('[StateManager] notifyStateUpdate called, notifying', this.stateUpdateListeners.size, 'listeners')
+    this.stateUpdateListeners.forEach(listener => listener())
+    this.save()
   }
 }
 

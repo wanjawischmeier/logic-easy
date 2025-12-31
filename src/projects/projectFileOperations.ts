@@ -1,5 +1,5 @@
-import type { StoredProject } from "@/utility/types"
 import { ProjectStorage } from "@/projects/projectStorage";
+import type { StoredProject } from "./Project";
 
 /**
  * File import/export operations for projects

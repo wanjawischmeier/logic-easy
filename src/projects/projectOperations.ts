@@ -1,7 +1,9 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
-import { Project, type StoredProject } from '@/projects/Project'
+import type { BaseProjectProps, StoredProject } from '@/projects/Project'
+import { projectTypes } from '@/projects/projectRegistry'
+import { stateManager, type AppState } from '@/states/stateManager'
 
 /**
  * Handles CRUD operations on projects
@@ -12,7 +14,7 @@ export class ProjectOperations {
   /**
    * Create a new project
    */
-  async create(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
+  async create<TProps extends BaseProjectProps>(name: string, projectType: string = 'truth-table', props?: TProps, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
     // Enforce project limit before creating
     this.metadataManager.enforceLimit()
 
@@ -22,7 +24,9 @@ export class ProjectOperations {
       lastModified: Date.now(),
       projectType,
       props: props || { name },
-      state: {}
+      state: {
+        version: 1
+      }
     }
 
     ProjectStorage.saveProject(project)
@@ -32,18 +36,18 @@ export class ProjectOperations {
       lastModified: project.lastModified
     })
 
-    // Open the created project (will set current project instance)
+    // Open the created project (will load state into stateManager)
     const opened = this.lifecycle.open(project.id)
     if (!opened) {
       throw new Error(`Failed to open created project: ${this.metadataManager.projectString(project)}`)
     }
 
-    // Initialize project state on the project instance if available
-    if (Project.currentProject) {
-      await Project.currentProject.createState()
+    // Initialize project state using the static createState method
+    const projectTypeInfo = projectTypes[projectType]
+    if (projectTypeInfo?.projectClass) {
+      projectTypeInfo.projectClass.createState(stateManager.state, project.props)
       // Save the initialized state
-      const state = Project.currentProject.state || {}
-      this.updateState(project.id, state)
+      this.updateState(project.id, stateManager.state)
     }
 
     // Call callback after everything is set up
@@ -81,7 +85,7 @@ export class ProjectOperations {
   /**
    * Apply new state to project
    */
-  updateState(projectId: number, state: Record<string, unknown>): boolean {
+  updateState(projectId: number, state: AppState): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)
@@ -98,6 +102,7 @@ export class ProjectOperations {
       lastModified: project.lastModified
     })
 
+    console.log('Saved project')
     return true
   }
 

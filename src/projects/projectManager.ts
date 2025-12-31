@@ -4,9 +4,11 @@ import { ProjectOperations } from '@/projects/projectOperations'
 import { ProjectImportExport } from '@/projects/projectImportExport'
 import { loadingService } from '@/utility/loadingService'
 import { ProjectFileOperations } from '@/projects/projectFileOperations'
-import { Project, type ProjectInfo, type StoredProject } from '@/projects/Project'
+import type { BaseProjectProps, ProjectInfo, StoredProject } from '@/projects/Project'
 import { dockviewService } from '@/utility/dockview/service'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import { stateManager, type AppState } from '@/states/stateManager'
+import { projectTypes, type ProjectType } from './projectRegistry'
 
 /**
  * Orchestrates all project-related operations
@@ -143,15 +145,14 @@ export class ProjectManager {
   }
 
   saveCurrentProject(): void {
-    const currentProject = Project.currentProject;
     const currentInfo = this.currentProjectInfo;
-    if (!currentProject || !currentInfo) {
+    if (!currentInfo) {
       console.warn('No current project to save');
       return;
     }
 
-    // Get the state directly from the current project instance
-    const state = currentProject.state || {};
+    // Get the state directly from the state manager
+    const state = stateManager.state;
 
     this.updateProjectState(currentInfo.id, state);
   }
@@ -168,9 +169,25 @@ export class ProjectManager {
     return this.lifecycle.currentInfo
   }
 
+  get currentProjectClass() {
+    const currentInfo = this.currentProjectInfo
+    if (!currentInfo) return null
+
+    const storedProject = this.getCurrentProject()
+    if (!storedProject) return null
+
+    const projectType = projectTypes[storedProject.projectType]
+    return projectType?.projectClass || null
+  }
+
+  get currentProjectProps() {
+    const storedProject = this.getCurrentProject()
+    return storedProject?.props || null
+  }
+
   // === Project CRUD ===
 
-  createProject(name: string, projectType: string = 'truth-table', props?: Record<string, unknown>, onCreated?: (project: StoredProject) => void): void {
+  createProject<TProps extends BaseProjectProps>(name: string, projectType: ProjectType, props?: TProps, onCreated?: (project: StoredProject) => void): void {
     loadingService.show('Creating project...')
 
     setTimeout(async () => {
@@ -188,7 +205,7 @@ export class ProjectManager {
     return this.operations.rename(projectId, newName)
   }
 
-  updateProjectState(projectId: number, state: Record<string, unknown>): boolean {
+  updateProjectState(projectId: number, state: AppState): boolean {
     return this.operations.updateState(projectId, state)
   }
 
@@ -204,12 +221,12 @@ export class ProjectManager {
 
   downloadProject(projectId?: number): void {
     if (!projectId) {
-      const projectInfo = this.lifecycle.currentInfo
-      if (!projectInfo) {
+      const currentId = this.lifecycle.currentId
+      if (!currentId) {
         console.warn(`Failed to save: No project open`)
         return
       }
-      projectId = projectInfo.id
+      projectId = currentId
     }
 
     ProjectFileOperations.download(projectId)

@@ -46,17 +46,17 @@ export const popupService = {
  * @param panelId The id with which the new panel should be created.
  * @returns Wether or not the project was sucessfully created.
  */
-export function showProjectCreationPopup(panelId: string): boolean;
+export function showProjectCreationPopup(panelId: string): Promise<boolean>;
 
 /**
  * Creates a new project after first showing a popup.
  * @param menuEntry The menu entry whose id will be assigned to the new panel.
  * @returns Wether or not the project was sucessfully created.
  */
-export function showProjectCreationPopup(menuEntry: MenuEntry): boolean;
+export function showProjectCreationPopup(menuEntry: MenuEntry): Promise<boolean>;
 
 // Main function called by both overloads
-export function showProjectCreationPopup(panelIdOrMenuEntry: string | MenuEntry): boolean {
+export async function showProjectCreationPopup(panelIdOrMenuEntry: string | MenuEntry): Promise<boolean> {
   let panelId: string;
   let menuEntry: MenuEntry | undefined;
 
@@ -74,10 +74,18 @@ export function showProjectCreationPopup(panelIdOrMenuEntry: string | MenuEntry)
 
   const projectType = getProjectType(registryEntry.projectType);
 
+  // Get default props based on project type
+  let defaultProps: BaseProjectProps = { name: '' };
+  if (registryEntry.projectType === 'truth-table') {
+    const { defaultTruthTableProps } = await import('@/projects/truth-table/TruthTableProject');
+    defaultProps = defaultTruthTableProps;
+  }
+
   popupService.open({
     projectPropsComponent: projectType.propsComponent,
-    initialProps: projectType.projectClass?.defaultProps,
+    initialProps: defaultProps,
     onProjectCreate: async (props: any) => {
+      if (!registryEntry.projectType) return;
       projectManager.createProject(props.name, registryEntry.projectType, props);
     },
   });

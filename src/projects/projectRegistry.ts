@@ -1,4 +1,5 @@
 import { type Component } from "vue";
+import type { ProjectClass } from "./Project";
 
 export type ValidationResult = {
   valid: boolean;
@@ -10,7 +11,7 @@ export type ValidationFunction = () => ValidationResult;
 export interface ProjectTypeInfo {
   propsComponent: Component;
   // Optional runtime class reference (set via registerProjectClass)
-  projectClass?: any;
+  projectClass?: ProjectClass;
 }
 
 // Registry of all project types

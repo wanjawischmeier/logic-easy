@@ -79,7 +79,7 @@ import {
   getBinaryString
 } from '@/utility/truthtable/kvDiagramLayout';
 import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights';
-import type { TruthTableData, TruthTableCell } from '@/states/truthTableState';
+import type { TruthTableData, TruthTableCell } from '@/projects/Project';
 
 const props = defineProps<{
   inputVars: string[];
