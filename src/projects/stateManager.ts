@@ -39,9 +39,7 @@ export class StateManager {
 
         if (this.saveTimer) clearTimeout(this.saveTimer)
         this.saveTimer = setTimeout(() => {
-          console.log('trigger save')
           projectManager.saveCurrentProject()
-          console.log('save complete')
 
           // Hide spinner 300ms after save completes
           this.savingSpinnerTimer = setTimeout(() => {

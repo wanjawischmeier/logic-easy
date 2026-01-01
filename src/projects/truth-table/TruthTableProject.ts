@@ -1,10 +1,13 @@
 import { createPanel } from "@/utility/dockview/integration";
-import { Project, type BaseProjectProps, type TruthTableData, type TruthTableCell } from "../Project";
+import { Project, type BaseProjectProps } from "../Project";
 import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
 import type { Formula } from "@/utility/types";
 import { computed } from "vue";
 import { stateManager } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
+
+export type TruthTableCell = 0 | 1 | '-';
+export type TruthTableData = TruthTableCell[][];
 
 // Default values for TruthTableProps
 export interface TruthTableProps extends BaseProjectProps {
