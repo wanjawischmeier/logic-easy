@@ -33,7 +33,8 @@ export class ProjectOperations {
     this.metadataManager.update({
       id: project.id,
       name: project.name,
-      lastModified: project.lastModified
+      lastModified: project.lastModified,
+      projectType: project.projectType
     })
 
     // Open the created project (will load state into stateManager)
@@ -77,7 +78,8 @@ export class ProjectOperations {
     this.metadataManager.update({
       id: project.id,
       name: project.name,
-      lastModified: project.lastModified
+      lastModified: project.lastModified,
+      projectType: project.projectType
     })
 
     // Brief delay to show the spinner
@@ -105,7 +107,8 @@ export class ProjectOperations {
     this.metadataManager.update({
       id: project.id,
       name: project.name,
-      lastModified: project.lastModified
+      lastModified: project.lastModified,
+      projectType: project.projectType
     })
 
     console.log('Saved project')

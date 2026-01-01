@@ -29,7 +29,8 @@ export class ProjectImportExport {
       this.metadataManager.update({
         id: existingProject.id,
         name: existingProject.name,
-        lastModified: existingProject.lastModified
+        lastModified: existingProject.lastModified,
+        projectType: existingProject.projectType
       })
 
       return existingProject
@@ -44,7 +45,8 @@ export class ProjectImportExport {
     this.metadataManager.update({
       id: importedProject.id,
       name: importedProject.name,
-      lastModified: importedProject.lastModified
+      lastModified: importedProject.lastModified,
+      projectType: importedProject.projectType
     })
 
     return importedProject

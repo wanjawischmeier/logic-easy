@@ -99,6 +99,7 @@ export class TruthTableProject extends Project {
 }
 
 registerProjectType('truth-table', {
+  name: 'Truth Table',
   propsComponent: TruthTablePropsComponent,
   projectClass: TruthTableProject
 });
