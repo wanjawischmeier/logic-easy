@@ -4,7 +4,6 @@ import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { StoredProject } from '@/projects/Project'
 import { COMPATIBLE_STORAGE_VERSIONS, stateManager, STORAGE_VERSION } from '@/projects/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
-import { Toast } from '@/utility/toastService'
 
 
 /**
