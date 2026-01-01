@@ -1,7 +1,8 @@
 import { Project, type BaseProjectProps } from "../Project";
 import { computed, onMounted } from "vue";
-import { stateManager, type AppState } from "@/states/stateManager";
-import { registerProject } from "../projectRegistry";
+import { stateManager } from "@/states/stateManager";
+import { registerProjectType } from "../projectRegistry";
+import AutomatonPropsComponent from "./AutomatonPropsComponent.vue";
 
 // Default values for AutomatonProps
 export interface AutomatonProps extends BaseProjectProps {
@@ -59,6 +60,12 @@ function disposeFsmListener() {
 ensureFsmListener()
 
 export class AutomatonProject extends Project {
+    static override get defaultProps(): AutomatonProps {
+        return {
+            name: '',
+        }
+    }
+
     static override useState() {
         onMounted(ensureFsmListener)
 
@@ -96,11 +103,11 @@ export class AutomatonProject extends Project {
         console.warn('[AutomatonProject.restoreDefaultPanelLayout] Not yet implemented')
     }
 
-    static override createState(appState: AppState, props: AutomatonProps) {
+    static override createState(props: AutomatonProps) {
         console.log('[AutomatonProject.createState] Initializing project state')
 
         // Initialize empty automaton state
-        appState.automaton = {
+        stateManager.state.automaton = {
             states: [],
             transitions: [],
         }
@@ -110,9 +117,8 @@ export class AutomatonProject extends Project {
 }
 
 export { disposeFsmListener }
-/*
-registerProject('truth-table', {
-  propsComponent: null,
-  projectClass: AutomatonProject
+
+registerProjectType('automaton', {
+    propsComponent: AutomatonPropsComponent,
+    projectClass: AutomatonProject
 });
-*/

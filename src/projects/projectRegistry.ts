@@ -26,6 +26,6 @@ export function getProjectType(key: ProjectType): ProjectTypeInfo {
 }
 
 // Register the runtime class with the project registry to avoid direct import cycles
-export function registerProject(key: ProjectType, info: ProjectTypeInfo) {
+export function registerProjectType(key: ProjectType, info: ProjectTypeInfo) {
   projectTypes[key] = info;
 }

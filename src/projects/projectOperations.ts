@@ -14,7 +14,7 @@ export class ProjectOperations {
   /**
    * Create a new project
    */
-  async create<TProps extends BaseProjectProps>(name: string, projectType: string = 'truth-table', props?: TProps, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
+  async create<TProps extends BaseProjectProps>(name: string, projectType: string, props?: TProps, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
     // Enforce project limit before creating
     this.metadataManager.enforceLimit()
 
@@ -45,7 +45,7 @@ export class ProjectOperations {
     // Initialize project state using the static createState method
     const projectTypeInfo = projectTypes[projectType]
     if (projectTypeInfo?.projectClass) {
-      projectTypeInfo.projectClass.createState(stateManager.state, project.props)
+      projectTypeInfo.projectClass.createState(project.props)
       // Save the initialized state
       this.updateState(project.id, stateManager.state)
     }

@@ -1,22 +1,16 @@
 import { createPanel } from "@/utility/dockview/integration";
 import { Project, type BaseProjectProps, type TruthTableData, type TruthTableCell } from "../Project";
 import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
-import type { Formula, FunctionType } from "@/utility/types";
+import type { Formula } from "@/utility/types";
 import { computed } from "vue";
-import { stateManager, type AppState } from "@/states/stateManager";
-import { registerProject as registerProjectType } from '@/projects/projectRegistry';
+import { stateManager } from "@/states/stateManager";
+import { registerProjectType } from '@/projects/projectRegistry';
 
 // Default values for TruthTableProps
 export interface TruthTableProps extends BaseProjectProps {
   inputVariableCount: number;
   outputVariableCount: number;
 }
-
-export const defaultTruthTableProps: TruthTableProps = {
-  name: '',
-  inputVariableCount: 2,
-  outputVariableCount: 1,
-};
 
 export interface TruthTableState {
   inputVars: string[];
@@ -26,15 +20,15 @@ export interface TruthTableState {
   formulas: Record<string, Record<string, Formula>>;
 }
 
-export function useTruthTableState() {
-  const values = computed(() => stateManager.state.truthTable?.values ?? []);
-  const inputVars = computed(() => stateManager.state.truthTable?.inputVars ?? []);
-  const outputVars = computed(() => stateManager.state.truthTable?.outputVars ?? []);
-
-  return { values, inputVars, outputVars };
-}
-
 export class TruthTableProject extends Project {
+  static override get defaultProps(): TruthTableProps {
+    return {
+      name: '',
+      inputVariableCount: 3,
+      outputVariableCount: 1,
+    };
+  }
+
   static override useState() {
     const state = computed(() => stateManager.state.truthTable);
 
@@ -43,11 +37,8 @@ export class TruthTableProject extends Project {
     const values = computed(() => stateManager.state.truthTable?.values ?? []);
     const minifiedValues = computed(() => state.value?.minifiedValues ?? []);
     const formulas = computed(() => state.value?.formulas ?? {});
-    const functionTypes = computed(() =>
-      Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
-    );
 
-    return { inputVars, outputVars, values, minifiedValues, formulas, functionTypes }
+    return { inputVars, outputVars, values, minifiedValues, formulas }
   }
 
   static override restoreDefaultPanelLayout(props: TruthTableProps) {
@@ -66,7 +57,7 @@ export class TruthTableProject extends Project {
     return Array.from({ length: count }, (_, i) => String.fromCharCode(startCharCode + i))
   }
 
-  static override createState(appState: AppState, props: TruthTableProps) {
+  static override createState(props: TruthTableProps) {
     console.log('[TruthTableProject.createState] Initializing project state')
 
     // Generate variable names
@@ -88,7 +79,7 @@ export class TruthTableProject extends Project {
     ) as TruthTableData
 
     // Initialize state
-    appState.truthTable = {
+    stateManager.state.truthTable = {
       inputVars: inputVariables,
       outputVars: outputVariables,
       formulas,

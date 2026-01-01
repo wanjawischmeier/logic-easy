@@ -49,8 +49,12 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
+const functionTypes = computed(() =>
+  Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
+);
+
 // Access state from params
-const { inputVars, outputVars, values, minifiedValues, formulas, functionTypes } = TruthTableProject.useState()
+const { inputVars, outputVars, values, minifiedValues, formulas } = TruthTableProject.useState()
 
 // Local model for the component
 const tableValues = ref<TruthTableData>(values ? values.value.map((row: TruthTableCell[]) => [...row]) : [])

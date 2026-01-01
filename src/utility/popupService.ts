@@ -74,16 +74,9 @@ export async function showProjectCreationPopup(panelIdOrMenuEntry: string | Menu
 
   const projectType = getProjectType(registryEntry.projectType);
 
-  // Get default props based on project type
-  let defaultProps: BaseProjectProps = { name: '' };
-  if (registryEntry.projectType === 'truth-table') {
-    const { defaultTruthTableProps } = await import('@/projects/truth-table/TruthTableProject');
-    defaultProps = defaultTruthTableProps;
-  }
-
   popupService.open({
     projectPropsComponent: projectType.propsComponent,
-    initialProps: defaultProps,
+    initialProps: projectType.projectClass?.defaultProps,
     onProjectCreate: async (props: any) => {
       if (!registryEntry.projectType) return;
       projectManager.createProject(props.name, registryEntry.projectType, props);

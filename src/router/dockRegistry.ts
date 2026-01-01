@@ -67,7 +67,8 @@ export const dockRegistry: DockEntry[] = [
   {
     id: 'state-table',
     label: 'State Table',
-    component: StateTablePanel
+    component: StateTablePanel,
+    projectType: 'automaton'
   },
   {
     id: 'state-machine',

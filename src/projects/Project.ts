@@ -17,6 +17,13 @@ export interface BaseProjectProps {
  */
 export abstract class Project {
     /**
+     * Get default props for this project type
+     */
+    static get defaultProps(): BaseProjectProps {
+        throw new Error('defaultProps must be implemented by subclass')
+    }
+
+    /**
      * Restore the default panel layout for this project type
      * @param props - The project props
      */
@@ -29,7 +36,7 @@ export abstract class Project {
      * @param state - The AppState object to initialize
      * @param props - The project props
      */
-    static createState(state: AppState, props: BaseProjectProps): void {
+    static createState(props: BaseProjectProps): void {
         throw new Error('createState must be implemented by subclass')
     }
 
@@ -44,8 +51,9 @@ export abstract class Project {
 
 // Type for the Project class (static methods only)
 export interface ProjectClass {
+    readonly defaultProps: BaseProjectProps;
     restoreDefaultPanelLayout(props: BaseProjectProps): void;
-    createState(state: AppState, props: BaseProjectProps): void;
+    createState(props: BaseProjectProps): void;
     useState(): any;
 }
 

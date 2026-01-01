@@ -176,8 +176,4 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
 
   Object.assign(stateManager.state.truthTable.formulas, formulas);
   console.log('[updateTruthTable] Full stateManager.state:', stateManager.state);
-
-  // Notify listeners and save
-  // stateManager.notifyStateUpdate()
-  // console.log('[updateTruthTable] State update notified')
 }
