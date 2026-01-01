@@ -6,7 +6,6 @@ import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
 import StateTablePanel from '@/panels/StateTablePanel.vue';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
-import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
 import { stateManager } from '@/states/stateManager';
 
 export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
@@ -95,7 +94,11 @@ export const dockRegistry: DockEntry[] = [
   {
     id: 'fsm-engine',
     label: 'FSM Engine',
-    component: FsmEnginePanel
+    component: FsmEnginePanel,
+    projectType: 'automaton',
+    requires: {
+      view: ['Automaton']
+    }
   },
 ];
 
