@@ -9,7 +9,7 @@ import type { ProjectType } from '@/projects/projectRegistry';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
 import { stateManager } from '@/states/stateManager';
 
-export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
+export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
 
 // Create requirements propagate down
@@ -68,7 +68,10 @@ export const dockRegistry: DockEntry[] = [
     id: 'state-table',
     label: 'State Table',
     component: StateTablePanel,
-    projectType: 'automaton'
+    projectType: 'automaton',
+    requires: {
+      view: ['Automaton']
+    }
   },
   {
     id: 'state-machine',
@@ -125,31 +128,34 @@ export const dockComponents: Record<string, unknown> = Object.fromEntries(
 
 const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true;
-
-  const truthTableState = stateManager.state.truthTable;
-  if (!truthTableState) return false;
-
   let checkPassed = true;
 
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
         // Check if truth table state exists
-        if (!truthTableState) {
+        if (!stateManager.state.truthTable) {
+          checkPassed = false;
+        }
+        break;
+
+      case 'Automaton':
+        // Check if truth table state exists
+        if (!stateManager.state.automaton) {
           checkPassed = false;
         }
         break;
 
       case 'Min2InputVars':
         // Check if truth table has at least 2 input variables
-        if ((truthTableState?.inputVars?.length ?? 0) < 2) {
+        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
           checkPassed = false;
         }
         break;
 
       case 'Max4InputVars':
         // Check if truth table has at most 4 input variables
-        if ((truthTableState?.inputVars?.length ?? 0) > 4) {
+        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
           checkPassed = false;
         }
         break;

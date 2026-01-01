@@ -7,7 +7,7 @@
 <script setup lang="ts">
 import type { ValidationFunction } from '@/projects/projectRegistry';
 import { ref, computed, onMounted, watch } from 'vue';
-import type { AutomatonProps } from './AutomatonProject';
+import type { AutomatonProps } from './AutomatonTypes';
 
 const props = defineProps<{
   modelValue: AutomatonProps;

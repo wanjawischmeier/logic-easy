@@ -130,9 +130,7 @@ export class ProjectLifecycleManager {
     Object.assign(stateManager.state, project.state);
 
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
-      stateManagerKeys: Object.keys(stateManager.state),
-      truthTableState: stateManager.state.truthTable,
-      automatonState: stateManager.state.automaton
+      stateManagerState: stateManager.state
     })
 
     return project

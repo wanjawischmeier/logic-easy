@@ -1,32 +1,11 @@
-import { Project, type BaseProjectProps } from "../Project";
+import { Project } from "../Project";
 import { computed, onMounted } from "vue";
 import { stateManager } from "@/states/stateManager";
 import { registerProjectType } from "../projectRegistry";
 import AutomatonPropsComponent from "./AutomatonPropsComponent.vue";
+import type { AutomatonProps, AutomatonState } from "./AutomatonTypes";
 
-// Default values for AutomatonProps
-export interface AutomatonProps extends BaseProjectProps {
-    // Add any automaton-specific props here
-}
-
-export const defaultAutomatonProps: AutomatonProps = {
-    name: '',
-};
-
-// export interface for data in fsm editor (same scheme as in stores / export)
-export interface AutomatonState {
-    states: Array<{
-        id: string | number
-        name: string
-        initial: boolean | null
-        final: boolean | null
-    }>
-    transitions: Array<{
-        id: string | number
-        from: string | number
-        label: string
-    }>
-}
+export type { AutomatonProps, AutomatonState } from "./AutomatonTypes";
 
 // reactive postmessage listener
 const fsmHandler = (event: MessageEvent) => {
@@ -56,8 +35,6 @@ function disposeFsmListener() {
         console.log('FSM listener disposed')
     }
 }
-
-ensureFsmListener()
 
 export class AutomatonProject extends Project {
     static override get defaultProps(): AutomatonProps {

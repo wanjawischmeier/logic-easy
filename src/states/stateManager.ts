@@ -1,7 +1,7 @@
 import { reactive, watch, type UnwrapNestedRefs, toRef } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { AutomatonState } from '@/projects/automaton/AutomatonProject'
+import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 
 const STORAGE_VERSION = 1
 
@@ -19,8 +19,9 @@ export interface AppState {
  */
 export class StateManager {
   public state: UnwrapNestedRefs<AppState>
+  public isSaving = reactive({ value: false })
   private saveTimer: ReturnType<typeof setTimeout> | null = null
-  private stateUpdateListeners: Set<() => void> = new Set()
+  private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor() {
     this.state = reactive({
@@ -32,9 +33,20 @@ export class StateManager {
     watch(
       () => this.state,
       () => {
+        // Show spinner immediately on any state change
+        this.isSaving.value = true
+        if (this.savingSpinnerTimer) clearTimeout(this.savingSpinnerTimer)
+
         if (this.saveTimer) clearTimeout(this.saveTimer)
         this.saveTimer = setTimeout(() => {
+          console.log('trigger save')
           projectManager.saveCurrentProject()
+          console.log('save complete')
+
+          // Hide spinner 300ms after save completes
+          this.savingSpinnerTimer = setTimeout(() => {
+            this.isSaving.value = false
+          }, 300)
         }, 300)
       },
       { deep: true }
@@ -47,14 +59,6 @@ export class StateManager {
    */
   async openFile(): Promise<void> {
     return projectManager.openProject()
-  }
-
-  /**
-   * Manually trigger a save
-   */
-  save(): void {
-    if (this.saveTimer) clearTimeout(this.saveTimer)
-    projectManager.saveCurrentProject()
   }
 
   /**
@@ -92,25 +96,6 @@ export class StateManager {
    */
   closeCurrentProject(): void {
     projectManager.closeCurrentProject()
-  }
-
-  /**
-   * Subscribe to state updates
-   * @returns Unsubscribe function
-   */
-  onStateUpdate(callback: () => void): () => void {
-    this.stateUpdateListeners.add(callback)
-    return () => this.stateUpdateListeners.delete(callback)
-  }
-
-  /**
-   * Notify all listeners that state has been updated
-   * Also triggers a save
-   */
-  notifyStateUpdate(): void {
-    console.log('[StateManager] notifyStateUpdate called, notifying', this.stateUpdateListeners.size, 'listeners')
-    this.stateUpdateListeners.forEach(listener => listener())
-    this.save()
   }
 }
 

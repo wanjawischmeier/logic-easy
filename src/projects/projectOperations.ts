@@ -72,12 +72,18 @@ export class ProjectOperations {
     project.name = newName
     project.lastModified = Date.now()
 
+    stateManager.isSaving.value = true
     ProjectStorage.saveProject(project)
     this.metadataManager.update({
       id: project.id,
       name: project.name,
       lastModified: project.lastModified
     })
+
+    // Brief delay to show the spinner
+    setTimeout(() => {
+      stateManager.isSaving.value = false
+    }, 300)
 
     return true
   }
