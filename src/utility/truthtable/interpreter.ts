@@ -117,7 +117,7 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
   });
 
   // Replace the entire truthTable object to trigger computed refs in components
-  stateManager.state.truthTable.values = newValues
+  Object.assign(stateManager.state.truthTable.values, newValues);
   console.log('[updateTruthTable] State updated, values are now:', stateManager.state.truthTable.values);
 
   // Calculate formulas for each output variable
@@ -174,10 +174,10 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
     }
   }
 
-  stateManager.state.truthTable.formulas = formulas
+  Object.assign(stateManager.state.truthTable.formulas, formulas);
   console.log('[updateTruthTable] Full stateManager.state:', stateManager.state);
 
   // Notify listeners and save
-  stateManager.notifyStateUpdate()
-  console.log('[updateTruthTable] State update notified')
+  // stateManager.notifyStateUpdate()
+  // console.log('[updateTruthTable] State update notified')
 }

@@ -24,9 +24,23 @@ export class StateManager {
 
   constructor() {
     this.state = reactive({
-      version: STORAGE_VERSION
-    }) as UnwrapNestedRefs<AppState>
+      version: STORAGE_VERSION,
+    }) as UnwrapNestedRefs<AppState>;
+
+    // Auto-save to localStorage whenever state changes
+    // Debounce to avoid excessive writes
+    watch(
+      () => this.state,
+      () => {
+        if (this.saveTimer) clearTimeout(this.saveTimer)
+        this.saveTimer = setTimeout(() => {
+          projectManager.saveCurrentProject()
+        }, 300)
+      },
+      { deep: true }
+    )
   }
+
 
   /**
    * Open file picker and load a project

@@ -35,24 +35,12 @@ onMounted(() => {
     title.value = props.params.api.title ?? ''
   })
   title.value = props.params.api.title ?? ''
-  /*
-  // Subscribe to state updates
-  const unsubscribe = stateManager.onStateUpdate(() => {
-    console.log('[KVDiagramPanel] State update event received')
-    const newValues = stateManager.state.truthTable?.values
-    if (newValues && JSON.stringify(newValues) !== JSON.stringify(tableValues.value)) {
-      console.log('[KVDiagramPanel] Updating tableValues from state update event')
-      isUpdatingFromState = true
-      tableValues.value = newValues.map((row: TruthTableCell[]) => [...row])
-    }
-  })
-  */
+
   // Store unsubscribe for cleanup
   const originalDispose = disposable?.dispose
   disposable = {
     dispose: () => {
       originalDispose?.()
-      // unsubscribe()
     }
   }
 })
@@ -62,10 +50,10 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { state, inputVars, outputVars, functionTypes } = TruthTableProject.useState()
+const { inputVars, outputVars, values, minifiedValues, formulas, functionTypes } = TruthTableProject.useState()
 
 // Local model for the component
-const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
+const tableValues = ref<TruthTableData>(values ? values.value.map((row: TruthTableCell[]) => [...row]) : [])
 let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
@@ -80,14 +68,12 @@ watch(tableValues, (newVal) => {
   updateTruthTable(newVal)
 }, { deep: true })
 
-// Watch for external changes from state
-watch(() => state.value?.values, (newVal) => {
-  console.log('[KVDiagramPanel] state.value.values changed:', newVal);
-  if (newVal && JSON.stringify(newVal) !== JSON.stringify(tableValues.value)) {
-    console.log('[KVDiagramPanel] Updating tableValues from state');
-    isUpdatingFromState = true
-    tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
-  }
+// Watch for external changes from state (use getter so watcher tracks the computed ref)
+watch(() => values.value, (newVal) => {
+  console.log('[KVPanel] state.value.values changed:', newVal);
+  if (!newVal) return
+  isUpdatingFromState = true
+  tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
 
 // Auto-save panel state when values change
@@ -102,7 +88,7 @@ const currentFormula = computed(() => {
     return Formula.empty;
   }
 
-  return state.value?.formulas?.[outputVar]?.[selectedType.value];
+  return formulas.value[outputVar]?.[selectedType.value];
 });
 </script>
 
@@ -121,7 +107,7 @@ const currentFormula = computed(() => {
 
     <div class="h-full flex flex-col items-center justify-center overflow-auto">
       <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
-        :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="state?.minifiedValues || []"
+        :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
         :formula="currentFormula" :functionType="selectedType" />
 
       <div class="mt-4 w-full flex justify-center">

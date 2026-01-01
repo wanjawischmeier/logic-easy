@@ -4,7 +4,7 @@ import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
 import type { Formula, FunctionType } from "@/utility/types";
 import { computed } from "vue";
 import { stateManager, type AppState } from "@/states/stateManager";
-import { registerProject } from '@/projects/projectRegistry';
+import { registerProject as registerProjectType } from '@/projects/projectRegistry';
 
 // Default values for TruthTableProps
 export interface TruthTableProps extends BaseProjectProps {
@@ -26,14 +26,28 @@ export interface TruthTableState {
   formulas: Record<string, Record<string, Formula>>;
 }
 
+export function useTruthTableState() {
+  const values = computed(() => stateManager.state.truthTable?.values ?? []);
+  const inputVars = computed(() => stateManager.state.truthTable?.inputVars ?? []);
+  const outputVars = computed(() => stateManager.state.truthTable?.outputVars ?? []);
+
+  return { values, inputVars, outputVars };
+}
+
 export class TruthTableProject extends Project {
   static override useState() {
-    const state = computed(() => stateManager.state.truthTable)
-    const inputVars = computed(() => state.value?.inputVars || [])
-    const outputVars = computed(() => state.value?.outputVars || [])
-    const functionTypes = computed(() => Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>))
+    const state = computed(() => stateManager.state.truthTable);
 
-    return { state, inputVars, outputVars, functionTypes }
+    const inputVars = computed(() => state.value?.inputVars ?? []);
+    const outputVars = computed(() => state.value?.outputVars ?? []);
+    const values = computed(() => stateManager.state.truthTable?.values ?? []);
+    const minifiedValues = computed(() => state.value?.minifiedValues ?? []);
+    const formulas = computed(() => state.value?.formulas ?? {});
+    const functionTypes = computed(() =>
+      Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
+    );
+
+    return { inputVars, outputVars, values, minifiedValues, formulas, functionTypes }
   }
 
   static override restoreDefaultPanelLayout(props: TruthTableProps) {
@@ -90,8 +104,7 @@ export class TruthTableProject extends Project {
   }
 }
 
-// Register the runtime class with the project registry to avoid direct import cycles
-registerProject('truth-table', {
+registerProjectType('truth-table', {
   propsComponent: TruthTablePropsComponent,
   projectClass: TruthTableProject
 });

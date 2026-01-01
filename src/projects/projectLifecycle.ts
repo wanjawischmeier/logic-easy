@@ -127,7 +127,7 @@ export class ProjectLifecycleManager {
     this.setCurrentId(projectId)
 
     // Copy over shared state properties
-    stateManager.state = project.state
+    Object.assign(stateManager.state, project.state);
 
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
       stateManagerKeys: Object.keys(stateManager.state),

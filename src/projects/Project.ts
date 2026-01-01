@@ -37,7 +37,7 @@ export abstract class Project {
      * Create a composable hook for accessing project state
      * Subclasses should override this to provide convenient computed properties
      */
-    static useState(): { state: any } {
+    static useState() {
         throw new Error('useState must be implemented by subclass')
     }
 }
@@ -46,7 +46,7 @@ export abstract class Project {
 export interface ProjectClass {
     restoreDefaultPanelLayout(props: BaseProjectProps): void;
     createState(state: AppState, props: BaseProjectProps): void;
-    useState(): { state: any };
+    useState(): any;
 }
 
 export interface ProjectTypeDefinition {

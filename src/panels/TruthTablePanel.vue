@@ -23,19 +23,16 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { state, inputVars, outputVars } = TruthTableProject.useState()
+const { inputVars, outputVars, values } = TruthTableProject.useState()
 
 console.log('[TruthTablePanel] State from useState:', {
-  hasState: !!state.value,
-  stateKeys: state.value ? Object.keys(state.value) : [],
   inputVars: inputVars.value,
   outputVars: outputVars.value,
-  hasValues: !!(state.value?.values),
-  state: state.value
+  hasValues: !!(values.value),
 })
 
 // Local model for the table component
-const tableValues = ref<TruthTableData>(state.value?.values ? state.value.values.map((row: TruthTableCell[]) => [...row]) : [])
+const tableValues = ref<TruthTableData>(values ? values.value.map((row: TruthTableCell[]) => [...row]) : [])
 let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
@@ -51,13 +48,11 @@ watch(tableValues, (newVal) => {
 }, { deep: true })
 
 // Watch for external changes from state
-watch(() => state.value?.values, (newVal) => {
+watch(() => values.value, (newVal) => {
   console.log('[TruthTablePanel] state.value.values changed:', newVal);
-  if (newVal && JSON.stringify(newVal) !== JSON.stringify(tableValues.value)) {
-    console.log('[TruthTablePanel] Updating tableValues from state');
-    isUpdatingFromState = true
-    tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
-  }
+  if (!newVal) return
+  isUpdatingFromState = true
+  tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
 </script>
 
