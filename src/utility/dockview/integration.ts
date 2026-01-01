@@ -42,7 +42,7 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
 
   const registryEntry = dockRegistry.find(item => item.id === panelId);
   if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
-    console.log(`Panel with id '${registryEntry}' :(`);
+    console.warn(`Panel with id '${registryEntry}' doesnt pass the requirements`);
     return false;
   }
 
