@@ -2,7 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
-import { useFsmListener } from '@/utility/FsmListener';
+import { useFsmListener } from '@/projects/automaton/AutomatonProject'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
