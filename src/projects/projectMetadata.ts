@@ -1,6 +1,6 @@
 import { reactive, type UnwrapNestedRefs } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
-import type { ProjectMetadata, ProjectInfo, StoredProject } from '@/utility/types'
+import type { ProjectMetadata, ProjectInfo, StoredProject } from './Project'
 
 const MAX_PROJECTS = 5
 

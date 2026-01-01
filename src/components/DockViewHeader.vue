@@ -63,7 +63,7 @@
 import { ref, watch, computed } from 'vue';
 import HeaderMenuBar from './HeaderMenuBar.vue';
 import { projectManager } from '@/projects/projectManager';
-import { stateManager } from '@/states/stateManager';
+import { stateManager } from '@/projects/stateManager';
 
 const projectInput = ref<HTMLInputElement>()
 const currentProjectInfo = computed(() => projectManager.currentProjectInfo)

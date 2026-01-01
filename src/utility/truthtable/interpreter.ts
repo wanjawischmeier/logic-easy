@@ -1,5 +1,5 @@
 import type { TruthTableData } from "@/projects/Project";
-import { stateManager } from "@/states/stateManager";
+import { stateManager } from "@/projects/stateManager";
 import { minifyTruthTable } from "@/utility/truthtable/espresso";
 import { FunctionType, type Formula, type Literal, type Term } from "@/utility/types";
 

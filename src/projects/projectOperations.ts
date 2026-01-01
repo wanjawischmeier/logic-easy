@@ -3,7 +3,7 @@ import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
 import type { BaseProjectProps, StoredProject } from '@/projects/Project'
 import { projectTypes } from '@/projects/projectRegistry'
-import { stateManager, type AppState } from '@/states/stateManager'
+import { stateManager, type AppState } from '@/projects/stateManager'
 
 /**
  * Handles CRUD operations on projects

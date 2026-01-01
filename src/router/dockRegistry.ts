@@ -6,7 +6,7 @@ import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
 import StateTablePanel from '@/panels/StateTablePanel.vue';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
-import { stateManager } from '@/states/stateManager';
+import { stateManager } from '@/projects/stateManager';
 
 export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'

@@ -1,6 +1,6 @@
 import type { App, Component } from "vue";
 import type { ProjectType } from "./projectRegistry";
-import type { AppState } from "@/states/stateManager";
+import type { AppState } from "@/projects/stateManager";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];

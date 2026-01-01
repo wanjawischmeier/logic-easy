@@ -1,7 +1,7 @@
 import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
 import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
-import { stateManager } from '@/states/stateManager';
+import { stateManager } from '@/projects/stateManager';
 import { dockviewService } from '@/utility/dockview/service';
 
 /**

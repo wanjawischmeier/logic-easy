@@ -3,7 +3,7 @@ import { Project, type BaseProjectProps, type TruthTableData, type TruthTableCel
 import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
 import type { Formula } from "@/utility/types";
 import { computed } from "vue";
-import { stateManager } from "@/states/stateManager";
+import { stateManager } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
 
 // Default values for TruthTableProps

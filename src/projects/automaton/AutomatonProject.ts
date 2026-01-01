@@ -1,6 +1,6 @@
 import { Project } from "../Project";
 import { computed, onMounted } from "vue";
-import { stateManager } from "@/states/stateManager";
+import { stateManager } from "@/projects/stateManager";
 import { registerProjectType } from "../projectRegistry";
 import AutomatonPropsComponent from "./AutomatonPropsComponent.vue";
 import type { AutomatonProps, AutomatonState } from "./AutomatonTypes";

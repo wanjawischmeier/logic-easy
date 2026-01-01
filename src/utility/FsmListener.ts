@@ -1,6 +1,6 @@
 import { onMounted, onBeforeUnmount } from 'vue'
-import { stateManager } from '@/states/stateManager'
-import { type AutomatonState } from '@/states/automatonState'
+import { stateManager } from '@/projects/stateManager'
+import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 
 // listener for export fsm -> statetable
 export function useFsmListener() {

@@ -50,7 +50,7 @@ import { popupService, showProjectCreationPopup } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import ManualPopup from './popups/ManualPopup.vue';
 import { projectManager } from '@/projects/projectManager';
-import { stateManager } from '@/states/stateManager';
+import { stateManager } from '@/projects/stateManager';
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 

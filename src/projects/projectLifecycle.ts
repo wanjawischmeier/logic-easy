@@ -3,7 +3,7 @@ import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { StoredProject } from '@/projects/Project'
 import { loadingService } from '@/utility/loadingService'
-import { stateManager } from '@/states/stateManager'
+import { stateManager } from '@/projects/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
 
 /**

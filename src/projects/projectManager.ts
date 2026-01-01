@@ -7,7 +7,7 @@ import { ProjectFileOperations } from '@/projects/projectFileOperations'
 import type { BaseProjectProps, ProjectInfo, StoredProject } from '@/projects/Project'
 import { dockviewService } from '@/utility/dockview/service'
 import { getDockviewApi } from '@/utility/dockview/integration'
-import { stateManager, type AppState } from '@/states/stateManager'
+import { stateManager, type AppState } from '@/projects/stateManager'
 import { projectTypes, type ProjectType } from './projectRegistry'
 
 /**

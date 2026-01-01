@@ -27,3 +27,12 @@ export const Formula = {
     terms: []
   })
 };
+
+export interface ListEntry {
+  label: string;
+  action: () => void;
+  disabled?: boolean;
+  subtitle?: string;
+}
+
+export type ListEntries = ListEntry[];

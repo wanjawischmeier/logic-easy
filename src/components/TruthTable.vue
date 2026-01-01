@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TruthTableData } from '@/states/truthTableState';
+import type { TruthTableData } from '@/projects/Project';
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
 

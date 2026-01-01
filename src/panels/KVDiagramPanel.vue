@@ -6,7 +6,7 @@ import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
-import { stateManager } from '@/states/stateManager';
+import { stateManager } from '@/projects/stateManager';
 import { type TruthTableData, type TruthTableCell } from '@/projects/Project';
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject';
 
