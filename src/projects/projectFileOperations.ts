@@ -1,5 +1,5 @@
-import type { Project } from "@/utility/types"
 import { ProjectStorage } from "@/projects/projectStorage";
+import type { StoredProject } from "./Project";
 
 /**
  * File import/export operations for projects
@@ -9,9 +9,9 @@ export class ProjectFileOperations {
    * Download project as .le file
    */
   static download(projectId: number): boolean;
-  static download(project: Project): boolean;
-  static download(projectOrId: number | Project): boolean {
-    let project: Project | null;
+  static download(project: StoredProject): boolean;
+  static download(projectOrId: number | StoredProject): boolean {
+    let project: StoredProject | null;
     if (typeof projectOrId === 'number') {
       project = ProjectStorage.loadProject(projectOrId)
     } else {
@@ -41,14 +41,14 @@ export class ProjectFileOperations {
   /**
    * Load project from .le file
    */
-  static loadFromFile(file: File): Promise<Project> {
+  static loadFromFile(file: File): Promise<StoredProject> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
 
       reader.onload = (e) => {
         try {
           const content = e.target?.result as string
-          const project = JSON.parse(content) as Project
+          const project = JSON.parse(content) as StoredProject
 
           // Validate project structure
           if (!project.id || !project.name || !project.state) {
@@ -56,7 +56,7 @@ export class ProjectFileOperations {
           }
 
           // Update timestamp for imported project (keep original ID)
-          const importedProject: Project = {
+          const importedProject: StoredProject = {
             ...project,
             lastModified: Date.now()
           }

@@ -1,6 +1,6 @@
 import { reactive, type UnwrapNestedRefs } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
-import type { ProjectMetadata, ProjectInfo, Project } from '@/utility/types'
+import type { ProjectMetadata, ProjectInfo, StoredProject } from './Project'
 
 const MAX_PROJECTS = 5
 
@@ -12,6 +12,11 @@ export class ProjectMetadataManager {
 
   constructor() {
     this.metadata = reactive(ProjectStorage.loadMetadata())
+
+    // If metadata is empty, scan localStorage for projects and rebuild it
+    if (this.metadata.projects.length === 0) {
+      this.rebuildMetadataFromStorage()
+    }
   }
 
   /**
@@ -78,7 +83,36 @@ export class ProjectMetadataManager {
   /**
    * Format project as string for logging
    */
-  projectString(project: Project | ProjectInfo): string {
+  projectString(project: StoredProject | ProjectInfo): string {
     return `${project.name} (id=${project.id})`
+  }
+
+  /**
+   * Rebuild metadata by scanning all projects in localStorage
+   */
+  private rebuildMetadataFromStorage(): void {
+    const projectIds = ProjectStorage.getAllProjectIds()
+
+    if (projectIds.length === 0) {
+      return
+    }
+
+    console.warn(`No metadata found: Rebuilding metadata from ${projectIds.length} projects in localStorage`)
+
+    const projectInfos: ProjectInfo[] = []
+    for (const projectId of projectIds) {
+      const project = ProjectStorage.loadProject(projectId)
+      if (project) {
+        projectInfos.push({
+          id: project.id,
+          name: project.name,
+          lastModified: project.lastModified,
+          projectType: project.projectType
+        })
+      }
+    }
+
+    this.metadata.projects = projectInfos
+    ProjectStorage.saveMetadata(this.metadata)
   }
 }

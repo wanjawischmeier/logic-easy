@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer'
 import { init, WASI } from '@wasmer/wasi'
-import type { TruthTableData, TruthTableCell } from '@/states/truthTableState'
+import type { TruthTableData, TruthTableCell } from '@/projects/truth-table/TruthTableProject'
 
 // Check if Buffer already exists on globalThis
 if (typeof (globalThis as { Buffer?: unknown }).Buffer === 'undefined') {

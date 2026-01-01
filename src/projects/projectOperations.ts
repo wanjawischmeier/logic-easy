@@ -1,34 +1,60 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import { createDefaultAppState, type AppState } from '@/states/stateManager'
-import type { Project } from '@/utility/types'
+import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
+import type { BaseProjectProps, StoredProject } from '@/projects/Project'
+import { projectTypes } from '@/projects/projectRegistry'
+import { stateManager, type AppState } from '@/projects/stateManager'
 
 /**
  * Handles CRUD operations on projects
  */
 export class ProjectOperations {
-  constructor(private metadataManager: ProjectMetadataManager) { }
+  constructor(private metadataManager: ProjectMetadataManager, private lifecycle: ProjectLifecycleManager) { }
 
   /**
    * Create a new project
    */
-  create(name: string): Project {
+  async create<TProps extends BaseProjectProps>(name: string, projectType: string, props?: TProps, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
     // Enforce project limit before creating
     this.metadataManager.enforceLimit()
 
-    const project: Project = {
+    const project: StoredProject = {
       id: Date.now(),
       name,
       lastModified: Date.now(),
-      state: createDefaultAppState()
+      projectType,
+      props: props || { name },
+      state: {
+        version: 1
+      }
     }
 
     ProjectStorage.saveProject(project)
     this.metadataManager.update({
       id: project.id,
       name: project.name,
-      lastModified: project.lastModified
+      lastModified: project.lastModified,
+      projectType: project.projectType
     })
+
+    // Open the created project (will load state into stateManager)
+    const opened = this.lifecycle.open(project.id)
+    if (!opened) {
+      throw new Error(`Failed to open created project: ${this.metadataManager.projectString(project)}`)
+    }
+
+    // Initialize project state using the static createState method
+    const projectTypeInfo = projectTypes[projectType]
+    if (projectTypeInfo?.projectClass) {
+      projectTypeInfo.projectClass.createState(project.props)
+      // Save the initialized state
+      this.updateState(project.id, stateManager.state)
+    }
+
+    // Call callback after everything is set up
+    if (onCreated) {
+      onCreated(project)
+    }
 
     return project
   }
@@ -47,12 +73,19 @@ export class ProjectOperations {
     project.name = newName
     project.lastModified = Date.now()
 
+    stateManager.isSaving.value = true
     ProjectStorage.saveProject(project)
     this.metadataManager.update({
       id: project.id,
       name: project.name,
-      lastModified: project.lastModified
+      lastModified: project.lastModified,
+      projectType: project.projectType
     })
+
+    // Brief delay to show the spinner
+    setTimeout(() => {
+      stateManager.isSaving.value = false
+    }, 300)
 
     return true
   }
@@ -74,9 +107,11 @@ export class ProjectOperations {
     this.metadataManager.update({
       id: project.id,
       name: project.name,
-      lastModified: project.lastModified
+      lastModified: project.lastModified,
+      projectType: project.projectType
     })
 
+    console.log('Saved project')
     return true
   }
 

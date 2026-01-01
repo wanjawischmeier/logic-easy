@@ -23,11 +23,18 @@
 
 <script lang="ts">
 import { defineComponent, computed, type ComputedRef } from 'vue';
-import { createPanelAfterPopup } from '@/utility/dockview/integration';
 import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
-import type { ListEntry } from '@/utility/types';
 import { projectManager } from '@/projects/projectManager';
+import { showProjectCreationPopup } from '@/utility/popupService';
+import { projectTypes } from '@/projects/projectRegistry';
+
+interface ListEntry {
+  label: string;
+  action: () => void;
+  disabled?: boolean;
+  subtitle?: string;
+}
 
 export default defineComponent({
   name: 'GettingStartedView',
@@ -55,7 +62,7 @@ export default defineComponent({
       newMenu.value.map((menuEntry: MenuEntry) => ({
         label: menuEntry.label,
         disabled: menuEntry.disabled,
-        action: () => createPanelAfterPopup(menuEntry),
+        action: () => showProjectCreationPopup(menuEntry),
       }))
     );
 
@@ -87,9 +94,14 @@ export default defineComponent({
         const displayName = number ? `${project.name} (${number})` : project.name;
         const dateStr = formatDate(project.lastModified);
 
+        // Get project type name
+        const projectTypeInfo = projectTypes[project.projectType];
+        const projectTypeName = projectTypeInfo?.name || project.projectType;
+        const subtitle = `${dateStr} · ${projectTypeName}`;
+
         return {
           label: displayName,
-          subtitle: dateStr,
+          subtitle,
           action: () => {
             projectManager.openProject(project.id);
           },
@@ -97,7 +109,7 @@ export default defineComponent({
       });
     });
 
-    return { newMenu, runAction: createPanelAfterPopup, newProjectEntries, recentProjectEntries };
+    return { newMenu, runAction: showProjectCreationPopup, newProjectEntries, recentProjectEntries };
   },
 });
 </script>

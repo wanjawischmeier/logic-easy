@@ -1,4 +1,4 @@
-import type { ProjectMetadata, Project } from "@/utility/types"
+import type { ProjectMetadata, StoredProject } from "./Project"
 
 const PROJECT_METADATA_KEY = 'logic-easy-projects-metadata'
 const PROJECT_KEY_PREFIX = 'logic-easy-project-'
@@ -73,14 +73,14 @@ export class ProjectStorage {
   /**
    * Load a project's full data from localStorage
    */
-  static loadProject(projectId: number): Project | null {
+  static loadProject(projectId: number): StoredProject | null {
     try {
       const key = this.getProjectKey(projectId)
       const stored = localStorage.getItem(key)
       if (!stored) {
         return null
       }
-      return JSON.parse(stored) as Project
+      return JSON.parse(stored) as StoredProject
     } catch (error) {
       console.error(`Failed to load project ${projectId}:`, error)
       return null
@@ -90,7 +90,7 @@ export class ProjectStorage {
   /**
    * Save a project's full data to localStorage
    */
-  static saveProject(project: Project): void {
+  static saveProject(project: StoredProject): void {
     try {
       const key = this.getProjectKey(project.id)
       localStorage.setItem(key, JSON.stringify(project))
@@ -109,5 +109,27 @@ export class ProjectStorage {
     } catch (error) {
       console.error(`Failed to remove project ${projectId}:`, error)
     }
+  }
+
+  /**
+   * Scan localStorage for all projects and return their IDs
+   */
+  static getAllProjectIds(): number[] {
+    const projectIds: number[] = []
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith(PROJECT_KEY_PREFIX)) {
+          const idStr = key.substring(PROJECT_KEY_PREFIX.length)
+          const id = parseInt(idStr, 10)
+          if (!isNaN(id)) {
+            projectIds.push(id)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to scan projects in localStorage:', error)
+    }
+    return projectIds
   }
 }

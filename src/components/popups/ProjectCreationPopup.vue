@@ -6,23 +6,24 @@
 
       <!-- Popup Content -->
       <div
-        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full pt-4 pb-2 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200"
+        class="relative bg-surface-1 border border-surface-3 rounded-xs shadow-xl max-w-2xl w-full p-6 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200"
         @keydown.enter="onEnterPress">
         <!-- Project Name Input -->
-        <div class="px-6">
-          <input v-focus ref="projectInput" type="text" placeholder="Project Name" maxlength="40" v-model="projectName"
-            class="w-full outline-none truncate text-3xl text-on-surface mb-1" />
-          <p v-if="projectNameError" class="text-xs text-red-400 mb-4">{{ projectNameError }}</p>
-          <div v-else class="mb-4"></div>
-        </div>
+        <input v-focus ref="projectInput" type="text" placeholder="Project Name" maxlength="40" v-model="projectName"
+          class="w-full outline-none truncate text-3xl text-on-surface mb-1" />
+        <p v-if="projectNameError" class="text-xs text-red-400 mb-4">{{ projectNameError }}</p>
+        <div v-else class="mb-4"></div>
+
+        <hr class="text-surface-3">
 
         <!-- Project-Specific Configuration -->
-        <div class="flex-1 overflow-auto px-6 py-4">
-          <slot :project-name="projectName" :register-validation="registerValidation"></slot>
+        <div class="flex-1 overflow-auto py-4">
+          <slot :project-name="projectName" :register-validation="registerValidation" :model-value="projectProps"
+            :onUpdate:model-value="(newValue: Record<string, unknown>) => projectProps = newValue"></slot>
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center justify-end gap-2 px-6 py-4">
+        <div class="flex items-center justify-end gap-2 pt-4">
           <button @click="onCancel" class="px-2 py-1 rounded-xs font-medium text-on-surface bg-surface-2" type="button">
             Cancel
           </button>
@@ -36,29 +37,27 @@
 </template>
 
 <script setup lang="ts">
+import type { ValidationFunction } from '@/projects/projectRegistry';
 import { ref, watch, computed } from 'vue';
 
-export type ValidationResult = {
-  valid: boolean;
-  error?: string;
-};
-
-export type ValidationFunction = () => ValidationResult;
-
-defineProps<{
+const props = defineProps<{
   visible: boolean;
+  initialProps: Record<string, unknown>;
 }>();
 
 const emit = defineEmits<{
   close: [];
-  create: [projectName: string];
+  create: [props: Record<string, unknown>];
 }>();
 
-const projectName = ref('');
+const projectName = ref((props.initialProps.name as string) || '');
+const projectProps = ref<Record<string, unknown>>({ ...props.initialProps });
 const childValidation = ref<ValidationFunction | null>(null);
 
+// Keep name in projectProps synchronized with projectName
 watch(projectName, (newVal) => {
   projectName.value = newVal.replace(/[^A-Za-z0-9\s_\-()]/g, '');
+  projectProps.value = { ...projectProps.value, name: projectName.value };
 });
 
 // Allow child components to register their validation function
@@ -107,7 +106,7 @@ function onCancel() {
 
 function onCreate() {
   if (isValid.value) {
-    emit('create', projectName.value);
+    emit('create', projectProps.value);
   }
 }
 

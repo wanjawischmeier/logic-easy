@@ -1,8 +1,10 @@
 import { ref, type Ref } from 'vue'
-import { createDefaultAppState, stateManager } from '@/states/stateManager'
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import type { Project } from '@/utility/types'
+import type { StoredProject } from '@/projects/Project'
+import { loadingService } from '@/utility/loadingService'
+import { stateManager } from '@/projects/stateManager'
+import { projectTypes } from '@/projects/projectRegistry'
 
 /**
  * Manages current project state (opening, closing, tracking current project)
@@ -44,7 +46,7 @@ export class ProjectLifecycleManager {
   /**
    * Get the currently open project (full data)
    */
-  getCurrent(): Project | null {
+  getCurrent(): StoredProject | null {
     if (!this.currentProjectId.value) {
       return null
     }
@@ -91,9 +93,31 @@ export class ProjectLifecycleManager {
   /**
    * Open a project by ID (loads state into stateManager)
    */
-  open(projectId: number): Project | null {
+  open(projectId: number): StoredProject | null {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) return null
+
+    console.log('[ProjectLifecycle.open] Loaded project from storage:', {
+      projectId,
+      projectType: project.projectType,
+      hasState: !!project.state,
+      stateKeys: project.state ? Object.keys(project.state) : [],
+      sampleState: project.state
+    })
+
+    // Validate that project type exists in registry
+    const projectTypeInfo = projectTypes[project.projectType]
+    if (!projectTypeInfo) {
+      console.error(`No project type registered: ${project.projectType}`)
+      loadingService.hide()
+      return null
+    }
+
+    // Check if state is empty (newly created project that hasn't been initialized)
+    const hasState = project.state && Object.keys(project.state).length > 0
+    if (!hasState) {
+      console.warn('[ProjectLifecycle.open] Project has empty state - may need initialization')
+    }
 
     // Clear the state first
     this.clearState()
@@ -102,11 +126,12 @@ export class ProjectLifecycleManager {
     this.currentProjectId.value = null
     this.setCurrentId(projectId)
 
-    // Assign new project state
-    Object.assign(stateManager.state, project.state)
-    if (!stateManager.state.panelStates) {
-      stateManager.state.panelStates = {}
-    }
+    // Copy over shared state properties
+    Object.assign(stateManager.state, project.state);
+
+    console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
+      stateManagerState: stateManager.state
+    })
 
     return project
   }
@@ -124,8 +149,5 @@ export class ProjectLifecycleManager {
 
     // Clear the state to trigger reactivity updates
     this.clearState()
-
-    // Reset to default empty state structure
-    Object.assign(stateManager.state, createDefaultAppState())
   }
 }

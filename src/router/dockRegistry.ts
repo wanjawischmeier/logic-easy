@@ -4,11 +4,11 @@ import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
 import StateTablePanel from '@/panels/StateTablePanel.vue';
-import { stateManager } from '@/states/stateManager';
-import TruthTableProjectProps from '@/components/popups/TruthTableProjectProps.vue';
-import { computed, markRaw } from 'vue';
+import { computed } from 'vue';
+import type { ProjectType } from '@/projects/projectRegistry';
+import { stateManager } from '@/projects/stateManager';
 
-export type PanelRequirement = 'TruthTable' | 'TransitionTable' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
+export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
 
 // Create requirements propagate down
@@ -21,7 +21,7 @@ type DockEntry = {
   id: string;
   label: string;
   component: unknown;
-  projectPropsComponent?: unknown;
+  projectType?: ProjectType;
   requires?: Requirements;
 };
 
@@ -31,7 +31,7 @@ export type MenuEntry = {
   tooltip?: string;
   panelId?: string;
   children?: MenuEntry[];
-  withPopup?: boolean;
+  createProject?: boolean;
   disabled?: boolean;
 };
 
@@ -40,7 +40,7 @@ export const dockRegistry: DockEntry[] = [
     id: 'truth-table',
     label: 'Truth Table',
     component: TruthTablePanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
+    projectType: 'truth-table',
     requires: {
       view: ['TruthTable']
     }
@@ -49,15 +49,37 @@ export const dockRegistry: DockEntry[] = [
     id: 'kv-diagram',
     label: 'KV Diagram',
     component: KVDiagramPanel,
-    projectPropsComponent: markRaw(TruthTableProjectProps),
+    projectType: 'truth-table',
     requires: {
       view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
     }
   },
-    {
+  {
+    id: 'transition-table',
+    label: 'Transition Table',
+    component: KVDiagramPanel,
+    projectType: 'truth-table',
+    requires: {
+      create: ['NotSupported']
+    }
+  },
+  {
     id: 'state-table',
     label: 'State Table',
-    component: StateTablePanel
+    component: StateTablePanel,
+    projectType: 'automaton',
+    requires: {
+      view: ['Automaton']
+    }
+  },
+  {
+    id: 'state-machine',
+    label: 'State Machine',
+    component: KVDiagramPanel,
+    projectType: 'truth-table',
+    requires: {
+      create: ['NotSupported']
+    }
   },
   {
     id: 'espresso-testing',
@@ -72,13 +94,17 @@ export const dockRegistry: DockEntry[] = [
   {
     id: 'fsm-engine',
     label: 'FSM Engine',
-    component: FsmEnginePanel
+    component: FsmEnginePanel,
+    projectType: 'automaton',
+    requires: {
+      view: ['Automaton']
+    }
   },
 ];
 
 export const newMenu = computed<MenuEntry[]>(() =>
   dockRegistry
-    .filter((menuEntry) => menuEntry.projectPropsComponent)
+    .filter((menuEntry) => menuEntry.projectType !== undefined)
     .map((menuEntry) => ({
       label: menuEntry.label,
       panelId: menuEntry.id,
@@ -105,24 +131,33 @@ export const dockComponents: Record<string, unknown> = Object.fromEntries(
 
 const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true;
-
   let checkPassed = true;
 
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
-        if (stateManager.state.truthTable === undefined) {
+        // Check if truth table state exists
+        if (!stateManager.state.truthTable) {
+          checkPassed = false;
+        }
+        break;
+
+      case 'Automaton':
+        // Check if truth table state exists
+        if (!stateManager.state.automaton) {
           checkPassed = false;
         }
         break;
 
       case 'Min2InputVars':
+        // Check if truth table has at least 2 input variables
         if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
           checkPassed = false;
         }
         break;
 
       case 'Max4InputVars':
+        // Check if truth table has at most 4 input variables
         if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
           checkPassed = false;
         }

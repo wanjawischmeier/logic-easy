@@ -1,5 +1,3 @@
-import type { AppState } from "@/states/stateManager";
-
 export const FunctionType = {
   DNF: 'DNF',
   CNF: 'CNF',
@@ -38,27 +36,3 @@ export interface ListEntry {
 }
 
 export type ListEntries = ListEntry[];
-
-
-/**
- * Project information (without the full state)
- */
-export interface ProjectInfo {
-  id: number
-  name: string
-  lastModified: number
-}
-
-/**
- * Full project data including state
- */
-export interface Project extends ProjectInfo {
-  state: AppState
-}
-
-/**
- * Metadata stored in localStorage to track all projects
- */
-export interface ProjectMetadata {
-  projects: ProjectInfo[]
-}
