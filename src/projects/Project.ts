@@ -74,6 +74,7 @@ export interface ProjectInfo {
  * Full project data as stored in localStorage
  */
 export interface StoredProject extends ProjectInfo {
+    version?: number
     projectType: ProjectType
     props: BaseProjectProps
     state: AppState

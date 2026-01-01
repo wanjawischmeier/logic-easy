@@ -1,9 +1,9 @@
-import { reactive, watch, type UnwrapNestedRefs, toRef } from 'vue'
+import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 
-const STORAGE_VERSION = 1
+export const STORAGE_VERSION = 1
 
 export interface AppState {
   version: number
@@ -23,10 +23,14 @@ export class StateManager {
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
 
-  constructor() {
-    this.state = reactive({
+  static get defaultState(): AppState {
+    return {
       version: STORAGE_VERSION,
-    }) as UnwrapNestedRefs<AppState>;
+    }
+  }
+
+  constructor() {
+    this.state = reactive(StateManager.defaultState) as UnwrapNestedRefs<AppState>;
 
     // Auto-save to localStorage whenever state changes
     // Debounce to avoid excessive writes

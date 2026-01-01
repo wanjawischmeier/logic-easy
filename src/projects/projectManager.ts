@@ -54,7 +54,10 @@ export class ProjectManager {
       loadingService.show('Opening project...')
       setTimeout(() => {
         try {
-          this.lifecycle.open(projectId)
+          const project = this.lifecycle.open(projectId)
+          if (!project) {
+            loadingService.hide()
+          }
         } catch (error) {
           console.error('Failed to open project:', error)
           loadingService.hide()
@@ -105,7 +108,7 @@ export class ProjectManager {
     try {
       const project = await this.importExport.importFromFile(file)
       // Open the imported project to trigger state loading and watch
-      this.lifecycle.open(project.id)
+      this.openProject(project.id)
       // Don't hide loading screen here - let the layout restoration handle it
       return project
     } catch (error) {

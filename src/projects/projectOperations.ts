@@ -3,7 +3,7 @@ import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
 import type { BaseProjectProps, StoredProject } from '@/projects/Project'
 import { projectTypes } from '@/projects/projectRegistry'
-import { stateManager, type AppState } from '@/projects/stateManager'
+import { StateManager, stateManager, STORAGE_VERSION, type AppState } from '@/projects/stateManager'
 
 /**
  * Handles CRUD operations on projects
@@ -24,9 +24,7 @@ export class ProjectOperations {
       lastModified: Date.now(),
       projectType,
       props: props || { name },
-      state: {
-        version: 1
-      }
+      state: StateManager.defaultState
     }
 
     ProjectStorage.saveProject(project)

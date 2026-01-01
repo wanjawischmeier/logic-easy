@@ -129,7 +129,7 @@ const setupPendingProjectLoad = (api: DockviewApi) => {
 
     setTimeout(() => {
       try {
-        projectManager.lifecycle.open(projectIdToLoad)
+        projectManager.openProject(projectIdToLoad)
         // Layout restoration will be handled by the watch below
       } catch (error) {
         console.error('Failed to open project on page load:', error)

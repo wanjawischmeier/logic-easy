@@ -3,8 +3,10 @@ import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { StoredProject } from '@/projects/Project'
 import { loadingService } from '@/utility/loadingService'
-import { stateManager } from '@/projects/stateManager'
+import { stateManager, STORAGE_VERSION } from '@/projects/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
+import { Toast } from '@/utility/toastService'
+
 
 /**
  * Manages current project state (opening, closing, tracking current project)
@@ -95,7 +97,19 @@ export class ProjectLifecycleManager {
    */
   open(projectId: number): StoredProject | null {
     const project = ProjectStorage.loadProject(projectId)
-    if (!project) return null
+    if (!project) {
+      console.warn(`Failed to open project with id ${projectId}: Couldn't load from storage`)
+      return null
+    }
+
+    if (!project.version || project.version !== STORAGE_VERSION) {
+      console.warn(
+        `Failed to open project with id ${projectId}:
+Version mismatch (Project: ${project.version ?? 'unknown'}, current: ${STORAGE_VERSION})`
+      )
+      Toast.error('Failed to open project');
+      return null
+    }
 
     console.log('[ProjectLifecycle.open] Loaded project from storage:', {
       projectId,

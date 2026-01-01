@@ -5,6 +5,8 @@ import { VueLatex } from 'vatex';
 import router from '@/router';
 import { dockComponents } from '@/router/dockRegistry';
 import { iframeManager } from '@/utility/iframeManager';
+import Toast from 'vue-toastification';
+import '@/style/toastification.css';
 
 const App = defineComponent({
   name: 'App',
@@ -34,6 +36,12 @@ Object.entries(dockComponents).forEach(([id, comp]) => {
 
 app.use(router);
 app.component('vue-latex', VueLatex);
+
+app.use(Toast, {
+  transition: "Vue-Toastification__fade",
+  maxToasts: 20,
+  newestOnTop: true
+});
 
 app.mount(document.getElementById('app')!);
 
