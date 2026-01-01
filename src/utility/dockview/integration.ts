@@ -1,8 +1,8 @@
-import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
-import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry';
-import { updateTruthTable } from '@/utility/truthtable/interpreter';
-import { stateManager } from '@/projects/stateManager';
-import { dockviewService } from '@/utility/dockview/service';
+import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue'
+import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry'
+import { updateTruthTable } from '@/utility/truthtable/interpreter'
+import { stateManager } from '@/projects/stateManager'
+import { dockviewService } from '@/utility/dockview/service'
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -10,7 +10,7 @@ import { dockviewService } from '@/utility/dockview/service';
  * @returns The current DockviewApi instance if the service is initialized; otherwise `null`.
  */
 export function getDockviewApi(): DockviewApi | null {
-  return dockviewService.getApi();
+  return dockviewService.getApi()
 }
 
 /**
@@ -19,10 +19,10 @@ export function getDockviewApi(): DockviewApi | null {
  * @returns The panel if one could be found; otherwise `undefined`.
  */
 function getPanelByID(panelId: string): IDockviewPanel | undefined {
-  const api = getDockviewApi();
-  if (!api || !api.panels) return undefined;
+  const api = getDockviewApi()
+  if (!api || !api.panels) return undefined
 
-  return api.panels.find(p => p.id === panelId);
+  return api.panels.find((p) => p.id === panelId)
 }
 
 /**
@@ -32,25 +32,25 @@ function getPanelByID(panelId: string): IDockviewPanel | undefined {
  * @param position Where to position the panel in the dockview.
  * @returns `true` if the panel was sucessfully created; `false` otherwise.
  */
-export function createPanel(panelId: string, label: string, position?: AddPanelPositionOptions): boolean {
-  const api = getDockviewApi();
+
+export function createPanel(panelId: string, label: string, position?: AddPanelPositionOptions, params?: Record<string, unknown>): boolean {
+  const api = getDockviewApi()
   if (!api) {
-    console.warn('Dockview API not ready yet');
-    return false;
+    console.warn('Dockview API not ready yet')
+    return false
   }
 
-  const registryEntry = dockRegistry.find(item => item.id === panelId);
-  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
-    console.log(`Panel with id '${registryEntry}' :(`);
-    return false;
+  const registryEntry = dockRegistry.find((item) => item.id === panelId)
+  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) {
+    console.log(`Panel with id '${registryEntry}' :(`)
+    return false
   }
 
-  // Check if panel with this component already exists
-  const existingPanel = getPanelByID(panelId);
+  const existingPanel = getPanelByID(panelId)
   if (existingPanel) {
-    console.log(`Panel with id '${panelId}' already exists, focusing on it`);
-    existingPanel.api.setActive();
-    return true;
+    console.log(`Panel with id '${panelId}' already exists, focusing on it`)
+    existingPanel.api.setActive()
+    return true
   }
 
   try {
@@ -59,14 +59,15 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       component: panelId,
       title: label,
       position: position,
-      params: {
+      // unspecific params possible for automaton, ppbly TODO: use same style for both state types
+      params: params ?? {
         state: stateManager.state?.truthTable,
-        updateTruthTable
-      }
-    });
-    return true;
+        updateTruthTable,
+      },
+    })
+    return true
   } catch (err) {
-    console.error('Failed to add panel', err);
-    return false;
+    console.error('Failed to add panel', err)
+    return false
   }
 }
