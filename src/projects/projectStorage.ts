@@ -110,4 +110,26 @@ export class ProjectStorage {
       console.error(`Failed to remove project ${projectId}:`, error)
     }
   }
+
+  /**
+   * Scan localStorage for all projects and return their IDs
+   */
+  static getAllProjectIds(): number[] {
+    const projectIds: number[] = []
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith(PROJECT_KEY_PREFIX)) {
+          const idStr = key.substring(PROJECT_KEY_PREFIX.length)
+          const id = parseInt(idStr, 10)
+          if (!isNaN(id)) {
+            projectIds.push(id)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to scan projects in localStorage:', error)
+    }
+    return projectIds
+  }
 }

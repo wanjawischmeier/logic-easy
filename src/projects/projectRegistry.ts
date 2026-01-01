@@ -9,6 +9,7 @@ export type ValidationResult = {
 export type ValidationFunction = () => ValidationResult;
 
 export interface ProjectTypeInfo {
+  name: string;
   propsComponent: Component;
   // Optional runtime class reference (set via registerProjectClass)
   projectClass?: ProjectClass;

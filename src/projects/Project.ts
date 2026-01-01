@@ -67,6 +67,7 @@ export interface ProjectInfo {
     id: number
     name: string
     lastModified: number
+    projectType: ProjectType
 }
 
 /**
