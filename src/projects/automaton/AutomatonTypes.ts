@@ -1,8 +1,11 @@
 import type { BaseProjectProps } from "../Project";
 
+// define automaton type
+export type AutomatonType = 'mealy' | 'moore';
+
 // Default values for AutomatonProps
 export interface AutomatonProps extends BaseProjectProps {
-    // Add any automaton-specific props here
+    automatonType : AutomatonType;
 }
 
 // export interface for data in fsm editor (same scheme as in stores / export)
@@ -18,4 +21,6 @@ export interface AutomatonState {
         from: string | number
         label: string
     }>
+    automatonType: AutomatonType;
 }
+

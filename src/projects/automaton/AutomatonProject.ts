@@ -13,6 +13,7 @@ const fsmHandler = (event: MessageEvent) => {
         const fsmData: AutomatonState = {
             states: event.data.fsm.states || [],
             transitions: event.data.fsm.transitions || [],
+            automatonType: event.data.fsm.automatonType
         }
         stateManager.state.automaton = { ...fsmData }
     }
@@ -40,6 +41,7 @@ export class AutomatonProject extends Project {
     static override get defaultProps(): AutomatonProps {
         return {
             name: '',
+            automatonType: 'mealy'
         }
     }
 
@@ -48,7 +50,7 @@ export class AutomatonProject extends Project {
 
         const state = computed(() => stateManager.state.automaton)
         const automaton = computed(() =>
-            stateManager.state.automaton || { states: [], transitions: [] }
+            stateManager.state.automaton || { states: [], transitions: [], automatonType:'mealy' }
         )
 
         const bitNumber = computed(() => {
@@ -64,13 +66,16 @@ export class AutomatonProject extends Project {
             )
         )
 
+        const automatonType = computed(() => automaton.value.automatonType);
+
         return {
             state,
             automaton,
             states,
             transitions,
             bitNumber,
-            binaryIDs
+            binaryIDs,
+            automatonType
         }
     }
 
@@ -87,6 +92,7 @@ export class AutomatonProject extends Project {
         stateManager.state.automaton = {
             states: [],
             transitions: [],
+            automatonType: props.automatonType,
         }
 
         console.log('[AutomatonProject.createState] State initialized')

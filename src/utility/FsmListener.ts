@@ -10,7 +10,8 @@ export function useFsmListener() {
 
             const fsmData: AutomatonState = {
                 states: event.data.fsm.states || [],
-                transitions: event.data.fsm.transitions || []
+                transitions: event.data.fsm.transitions || [],
+                automatonType: event.data.fsm.automatonType
             }
             console.log('fsmlistener works. fsmData:', fsmData)
             stateManager.state.automaton = fsmData
