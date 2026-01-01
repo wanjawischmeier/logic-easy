@@ -106,7 +106,7 @@ export class AutomatonProject extends Project {
 export { disposeFsmListener }
 
 registerProjectType('automaton', {
-  name: 'State Machine',
+  name: 'State Machine', // TODO: not really used!
   propsComponent: AutomatonPropsComponent,
   projectClass: AutomatonProject,
 })

@@ -55,30 +55,12 @@ export const dockRegistry: DockEntry[] = [
     }
   },
   {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
-  },
-  {
     id: 'state-table',
-    label: 'State Table',
+    label: 'State and Transition Table',
     component: StateTablePanel,
     projectType: 'automaton',
     requires: {
       view: ['Automaton']
-    }
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
     }
   },
   {
@@ -93,7 +75,7 @@ export const dockRegistry: DockEntry[] = [
   },
   {
     id: 'fsm-engine',
-    label: 'FSM Engine',
+    label: 'Automaton Editor',
     component: FsmEnginePanel,
     projectType: 'automaton',
     requires: {
