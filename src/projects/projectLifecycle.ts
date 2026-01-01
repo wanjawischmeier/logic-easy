@@ -2,8 +2,7 @@ import { ref, type Ref } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { StoredProject } from '@/projects/Project'
-import { loadingService } from '@/utility/loadingService'
-import { stateManager, STORAGE_VERSION } from '@/projects/stateManager'
+import { COMPATIBLE_STORAGE_VERSIONS, stateManager, STORAGE_VERSION } from '@/projects/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
 import { Toast } from '@/utility/toastService'
 
@@ -79,20 +78,6 @@ export class ProjectLifecycleManager {
   }
 
   /**
-   * Set the current project (without opening)
-   */
-  setCurrent(projectId: number): boolean {
-    const projectInfo = this.metadataManager.findById(projectId)
-    if (!projectInfo) {
-      console.error(`Project not found with id: ${projectId}`)
-      return false
-    }
-
-    this.setCurrentId(projectId)
-    return true
-  }
-
-  /**
    * Open a project by ID (loads state into stateManager)
    */
   open(projectId: number): StoredProject | null {
@@ -102,12 +87,11 @@ export class ProjectLifecycleManager {
       return null
     }
 
-    if (!project.version || project.version !== STORAGE_VERSION) {
+    if (!COMPATIBLE_STORAGE_VERSIONS.includes(project.state.version)) {
       console.warn(
         `Failed to open project with id ${projectId}:
-Version mismatch (Project: ${project.version ?? 'unknown'}, current: ${STORAGE_VERSION})`
+Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}, compatible: [${COMPATIBLE_STORAGE_VERSIONS}])`
       )
-      Toast.error('Failed to open project');
       return null
     }
 
@@ -123,7 +107,6 @@ Version mismatch (Project: ${project.version ?? 'unknown'}, current: ${STORAGE_V
     const projectTypeInfo = projectTypes[project.projectType]
     if (!projectTypeInfo) {
       console.error(`No project type registered: ${project.projectType}`)
-      loadingService.hide()
       return null
     }
 

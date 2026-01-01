@@ -49,6 +49,7 @@ import LoadingScreen from '@/components/LoadingScreen.vue'
 import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockview/service'
 import type { BaseProjectProps } from '@/projects/Project'
+import { Toast } from '@/utility/toastService'
 
 const componentsForDockview = dockComponents
 const dockviewApi = ref<DockviewApi | null>(null)
@@ -107,6 +108,7 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
     } catch (err) {
       console.error('Failed to load layout from project state:', err)
       console.warn('Falling back to default layout')
+      Toast.warning('Failed to load project layout, using default')
       restoreDefaultLayout()
     }
   } else {
@@ -202,6 +204,7 @@ const setupLayoutAutoSave = (api: DockviewApi) => {
       console.log('Layout saved to project state')
     } catch (err) {
       console.error('Failed to save layout:', err)
+      Toast.error('Failed to save project layout')
     }
   })
 }

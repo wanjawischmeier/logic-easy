@@ -166,7 +166,7 @@
   align-items: center;
   color: #fff;
   opacity: 0.3;
-  transition: visibility 0s, opacity 0.2s linear;
+  transition: visibility 0s, opacity 100ms linear;
 }
 .Vue-Toastification__close-button:hover,
 .Vue-Toastification__close-button:focus {

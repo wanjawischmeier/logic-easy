@@ -3,7 +3,8 @@ import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
 import type { BaseProjectProps, StoredProject } from '@/projects/Project'
 import { projectTypes } from '@/projects/projectRegistry'
-import { StateManager, stateManager, STORAGE_VERSION, type AppState } from '@/projects/stateManager'
+import { StateManager, stateManager, type AppState } from '@/projects/stateManager'
+import { Toast } from '@/utility/toastService'
 
 /**
  * Handles CRUD operations on projects
@@ -32,7 +33,7 @@ export class ProjectOperations {
       id: project.id,
       name: project.name,
       lastModified: project.lastModified,
-      projectType: project.projectType
+      projectType: project.projectType,
     })
 
     // Open the created project (will load state into stateManager)
@@ -64,6 +65,7 @@ export class ProjectOperations {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)
+      Toast.error('Failed to rename project')
       return false
     }
 
@@ -95,6 +97,7 @@ export class ProjectOperations {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)
+      Toast.error('Failed to update project')
       return false
     }
 
@@ -110,23 +113,6 @@ export class ProjectOperations {
     })
 
     console.log('Saved project')
-    return true
-  }
-
-  /**
-   * Delete a project
-   */
-  delete(projectId: number): boolean {
-    const project = ProjectStorage.loadProject(projectId)
-    if (!project) {
-      console.error(`Project not found with id: ${projectId}`)
-      return false
-    }
-
-    ProjectStorage.removeProject(projectId)
-    this.metadataManager.remove(projectId)
-
-    console.log(`Deleted project: ${this.metadataManager.projectString(project)}`)
     return true
   }
 }

@@ -3,7 +3,10 @@ import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 
-export const STORAGE_VERSION = 1
+export const STORAGE_VERSION: number = 4
+export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
+  3, 4
+]
 
 export interface AppState {
   version: number

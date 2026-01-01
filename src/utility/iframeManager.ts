@@ -1,3 +1,5 @@
+import { Toast } from "./toastService"
+
 type IframeConfig = {
   key: string
   src: string
@@ -51,6 +53,7 @@ class IframeManager {
 
     if (!iframeSrc) {
       console.error(`No src found for iframe ${key}`)
+      Toast.error('Failed to reset iframe')
       return null
     }
 
@@ -97,6 +100,7 @@ class IframeManager {
       return newIframe
     } catch (err) {
       console.error(`resetIframe error for ${key}`, err)
+      Toast.error('Failed to reset iframe')
       window.dispatchEvent(new CustomEvent(`${key}-ready`))
       return null
     }

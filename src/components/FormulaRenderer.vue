@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Toast } from '@/utility/toastService';
 import { FunctionType, type Formula } from '@/utility/types';
 import { computed, ref } from 'vue';
 
@@ -48,6 +49,7 @@ async function copyLatex() {
     setTimeout(() => (copied.value = false), 1400);
   } catch (error) {
     console.error(`Failed to copy formula to clipboard: ${error}`)
+    Toast.error('Failed to copy formula to clipboard');
   } finally {
     const btn = document.getElementById('copy-to-clipboard') as HTMLButtonElement | null;
     if (btn && document.activeElement === btn) btn.blur();

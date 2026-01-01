@@ -9,6 +9,7 @@ import { dockviewService } from '@/utility/dockview/service'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { projectTypes, type ProjectType } from './projectRegistry'
+import { Toast } from '@/utility/toastService'
 
 /**
  * Orchestrates all project-related operations
@@ -56,10 +57,12 @@ export class ProjectManager {
         try {
           const project = this.lifecycle.open(projectId)
           if (!project) {
+            Toast.error('Failed to open project')
             loadingService.hide()
           }
         } catch (error) {
           console.error('Failed to open project:', error)
+          Toast.error('Failed to open project');
           loadingService.hide()
         }
       }, 100)
@@ -97,6 +100,7 @@ export class ProjectManager {
       }
     } catch (error) {
       console.error(`Failed to load project from file: ${error}`)
+      Toast.error('Failed to load project');
     }
   }
 
@@ -160,10 +164,6 @@ export class ProjectManager {
     this.updateProjectState(currentInfo.id, state);
   }
 
-  setCurrentProject(projectId: number): boolean {
-    return this.lifecycle.setCurrent(projectId)
-  }
-
   getCurrentProject(): StoredProject | null {
     return this.lifecycle.getCurrent()
   }
@@ -199,6 +199,7 @@ export class ProjectManager {
         // Don't hide loading screen here - let the layout restoration handle it
       } catch (error) {
         console.error('Failed to create project:', error)
+        Toast.error('Failed to create project');
         loadingService.hide()
       }
     }, 100)
@@ -210,10 +211,6 @@ export class ProjectManager {
 
   updateProjectState(projectId: number, state: AppState): boolean {
     return this.operations.updateState(projectId, state)
-  }
-
-  deleteProject(projectId: number): boolean {
-    return this.operations.delete(projectId)
   }
 
   listProjects(): ProjectInfo[] {

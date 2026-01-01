@@ -39,7 +39,7 @@ app.component('vue-latex', VueLatex);
 
 app.use(Toast, {
   transition: "Vue-Toastification__fade",
-  maxToasts: 20,
+  maxToasts: 5,
   newestOnTop: true
 });
 

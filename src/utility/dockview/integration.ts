@@ -3,6 +3,7 @@ import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry'
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { stateManager } from '@/projects/stateManager';
 import { dockviewService } from '@/utility/dockview/service';
+import { Toast } from '../toastService';
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -66,7 +67,8 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
     });
     return true;
   } catch (err) {
-    console.error('Failed to add panel', err);
+    console.error('Failed to create panel', err);
+    Toast.error('Failed to create panel')
     return false;
   }
 }
