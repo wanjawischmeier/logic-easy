@@ -10,7 +10,7 @@
       <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
         :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
 
-      <GettingStartedView v-if="!hasPanels"></GettingStartedView>
+      <GettingStartedView v-if="!hasPanels && !projectManager.currentProjectId"></GettingStartedView>
 
       <!-- Loading Screen -->
       <LoadingScreen />

@@ -168,6 +168,10 @@ export class ProjectManager {
     return this.lifecycle.getCurrent()
   }
 
+  get currentProjectId(): number | null {
+    return this.lifecycle.currentId
+  }
+
   get currentProjectInfo(): ProjectInfo | null {
     return this.lifecycle.currentInfo
   }
