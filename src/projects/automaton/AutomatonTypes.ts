@@ -19,8 +19,9 @@ export interface AutomatonState {
     transitions: Array<{
         id: string | number
         from: string | number
-        label: string
         to: string | number
+        input: string
+        output: string
     }>
     automatonType: AutomatonType;
 }

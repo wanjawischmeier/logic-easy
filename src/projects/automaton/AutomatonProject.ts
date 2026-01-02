@@ -1,55 +1,53 @@
 import { Project } from '../Project'
-import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed, onMounted } from 'vue'
 import { stateManager } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
 import type { AutomatonProps, AutomatonState } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
-export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
-
-// listener for export fsm -> statetable
-export function useFsmListener() {
-  const handler = (event: MessageEvent) => {
-    if (event.data?.action === 'export') {
-      console.log('raw data:', event.data.fsm)
-
-      const fsmData: AutomatonState = {
-        states: event.data.fsm.states || [],
-        transitions: event.data.fsm.transitions || [],
-        automatonType: event.data.fsm.automatonType,
-      }
-      console.log('fsmlistener works. fsmData:', fsmData)
-      stateManager.state.automaton = fsmData
-    }
-  }
-
-  onMounted(() => {
-    window.addEventListener('message', handler)
-    console.log('fsm event listener mounted')
-  })
-  onBeforeUnmount(() => {
-    window.removeEventListener('message', handler)
-  })
+interface RawFsmTransition {
+  id?: string | number
+  from?: string | number
+  to?: string | number
+  label?: string | unknown
 }
 
-// reactive postmessage listener
-const fsmHandler = (event: MessageEvent) => {
+const parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
+  const tr = raw as RawFsmTransition
+  const label = String(tr.label ?? '')
+  const parts = label.split('/')
+  return {
+    id: Number(tr.id ?? 0),
+    from: Number(tr.from ?? 0),
+    to: Number(tr.to ?? 0),
+    input: parts[0] || '0',
+    output: parts[1] || '-',
+  }
+}
+
+
+
+export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
+
+// message listener + handler
+const listenerHandler = (event: MessageEvent) => {
   if (event.data?.action === 'export') {
     const fsmData: AutomatonState = {
       states: event.data.fsm.states || [],
-      transitions: event.data.fsm.transitions || [],
+      transitions: (event.data.fsm.transitions || []).map(parseRawTransition),
       automatonType: event.data.fsm.automatonType,
     }
-    stateManager.state.automaton = { ...fsmData }
+    stateManager.state.automaton = fsmData
   }
 }
+
 
 let listenerAttached = false
 
 function ensureFsmListener() {
   if (!listenerAttached) {
-    window.addEventListener('message', fsmHandler)
+    window.addEventListener('message', listenerHandler)
     listenerAttached = true
     console.log('FSM listener attached')
   }
@@ -57,7 +55,7 @@ function ensureFsmListener() {
 
 function disposeFsmListener() {
   if (listenerAttached) {
-    window.removeEventListener('message', fsmHandler)
+    window.removeEventListener('message', listenerHandler)
     listenerAttached = false
     console.log('FSM listener disposed')
   }
@@ -74,7 +72,6 @@ export class AutomatonProject extends Project {
   static override useState() {
     onMounted(ensureFsmListener)
 
-    const state = computed(() => stateManager.state.automaton)
     const automaton = computed(
       () => stateManager.state.automaton || { states: [], transitions: [], automatonType: 'mealy' },
     )
@@ -109,34 +106,24 @@ export class AutomatonProject extends Project {
       return map
     })
 
-    // input symbols
+    // unique inputs aus transitions
     const inputSymbols = computed(() => {
-      const symbols = new Set<string>()
-      transitions.value.forEach((tr) => {
-        const label = String(tr.label ?? '')
-        const input = label.split('/')[0]?.trim()
-        if (input && input.length > 0) symbols.add(input)
-      })
+      const symbols = new Set(transitions.value.map(tr => tr.input).filter(Boolean))
       return symbols.size === 0 ? ['0'] : Array.from(symbols).sort()
     })
 
-    // compute amount of input and output bits
     const inputBits = computed(() => {
       const first = inputSymbols.value[0]
-      return first?.length ?? 1
+      return first ? first.length : 1
     })
 
     const outputBits = computed(() => {
-      const outputs = transitions.value.map((tr) => {
-        const label = String(tr.label ?? '')
-        const output = label.split('/')[1]?.trim()
-        return output ? output.length : 0
-      })
-      return Math.max(...outputs, 1)
+      const lengths = transitions.value.map(tr => (tr.output || '').length)
+      return Math.max(...lengths, 1)
     })
 
     return {
-      state,
+      state: automaton,
       automaton,
       states,
       transitions,
@@ -146,7 +133,7 @@ export class AutomatonProject extends Project {
       stateIndexMap,
       inputSymbols,
       inputBits,
-      outputBits,
+      outputBits
     }
   }
 
@@ -175,7 +162,7 @@ export class AutomatonProject extends Project {
   }
 }
 
-export { disposeFsmListener }
+export { disposeFsmListener, ensureFsmListener }
 
 registerProjectType('automaton', {
   name: 'State Machine', // TODO: not really used!
