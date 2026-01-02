@@ -10,27 +10,27 @@ export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
 
 // listener for export fsm -> statetable
 export function useFsmListener() {
-    const handler = (event: MessageEvent) => {
-        if (event.data?.action === 'export') {
-            console.log('raw data:', event.data.fsm)
+  const handler = (event: MessageEvent) => {
+    if (event.data?.action === 'export') {
+      console.log('raw data:', event.data.fsm)
 
-            const fsmData: AutomatonState = {
-                states: event.data.fsm.states || [],
-                transitions: event.data.fsm.transitions || [],
-                automatonType: event.data.fsm.automatonType
-            }
-            console.log('fsmlistener works. fsmData:', fsmData)
-            stateManager.state.automaton = fsmData
-        }
+      const fsmData: AutomatonState = {
+        states: event.data.fsm.states || [],
+        transitions: event.data.fsm.transitions || [],
+        automatonType: event.data.fsm.automatonType,
+      }
+      console.log('fsmlistener works. fsmData:', fsmData)
+      stateManager.state.automaton = fsmData
     }
+  }
 
-    onMounted(() => {
-        window.addEventListener('message', handler)
-        console.log('fsm event listener mounted')
-    })
-    onBeforeUnmount(() => {
-        window.removeEventListener('message', handler)
-    })
+  onMounted(() => {
+    window.addEventListener('message', handler)
+    console.log('fsm event listener mounted')
+  })
+  onBeforeUnmount(() => {
+    window.removeEventListener('message', handler)
+  })
 }
 
 // reactive postmessage listener
@@ -79,18 +79,61 @@ export class AutomatonProject extends Project {
       () => stateManager.state.automaton || { states: [], transitions: [], automatonType: 'mealy' },
     )
 
+    //basic attributes
+    const states = computed(() => automaton.value.states || [])
+    const transitions = computed(() => automaton.value.transitions || [])
+    const automatonType = computed(() => automaton.value.automatonType || 'mealy')
+
+    // amount of bits for binary state coding
     const bitNumber = computed(() => {
-      const n = automaton.value.states.length
+      const n = states.value.length
       return n === 0 ? 1 : Math.ceil(Math.log2(Math.max(n, 1)))
     })
 
-    const states = computed(() => automaton.value.states)
-    const transitions = computed(() => automaton.value.transitions)
-    const binaryIDs = computed(() =>
-      states.value.map((state) => Number(state.id).toString(2).padStart(bitNumber.value, '0')),
-    )
+    // binary ids of states
+    const binaryIDs = computed(() => {
+      return states.value.map((state) => {
+        const idNum = Number(state.id)
+        return isNaN(idNum)
+          ? '0'.padStart(bitNumber.value, '0')
+          : idNum.toString(2).padStart(bitNumber.value, '0')
+      })
+    })
 
-    const automatonType = computed(() => automaton.value.automatonType)
+    // state index map for quick lookup
+    const stateIndexMap = computed(() => {
+      const map = new Map<string | number, number>()
+      states.value.forEach((state, index) => {
+        map.set(state.id, index)
+      })
+      return map
+    })
+
+    // input symbols
+    const inputSymbols = computed(() => {
+      const symbols = new Set<string>()
+      transitions.value.forEach((tr) => {
+        const label = String(tr.label ?? '')
+        const input = label.split('/')[0]?.trim()
+        if (input && input.length > 0) symbols.add(input)
+      })
+      return symbols.size === 0 ? ['0'] : Array.from(symbols).sort()
+    })
+
+    // compute amount of input and output bits
+    const inputBits = computed(() => {
+      const first = inputSymbols.value[0]
+      return first?.length ?? 1
+    })
+
+    const outputBits = computed(() => {
+      const outputs = transitions.value.map((tr) => {
+        const label = String(tr.label ?? '')
+        const output = label.split('/')[1]?.trim()
+        return output ? output.length : 0
+      })
+      return Math.max(...outputs, 1)
+    })
 
     return {
       state,
@@ -100,6 +143,10 @@ export class AutomatonProject extends Project {
       bitNumber,
       binaryIDs,
       automatonType,
+      stateIndexMap,
+      inputSymbols,
+      inputBits,
+      outputBits,
     }
   }
 

@@ -20,6 +20,7 @@ export interface AutomatonState {
         id: string | number
         from: string | number
         label: string
+        to: string | number
     }>
     automatonType: AutomatonType;
 }
