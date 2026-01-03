@@ -6,6 +6,7 @@ import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
 import type { AutomatonProps, AutomatonState } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
+// types to avoid "any" type and validate types
 interface RawFsmTransition {
   id?: string | number
   from?: string | number
@@ -13,10 +14,25 @@ interface RawFsmTransition {
   label?: string | unknown
 }
 
+interface RawFsmState {
+  id?: string | number | null
+  name?: string | null
+  initial?: boolean | null
+  final?: boolean | null
+}
+
+interface RawFsmData {
+  states?: unknown
+  transitions?: unknown
+  automatonType?: AutomatonState['automatonType']
+}
+
+// according to interfaces above: parsing to really use correct types in this module (depending less on fsm engine)
 const parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
   const tr = raw as RawFsmTransition
   const label = String(tr.label ?? '')
   const parts = label.split('/')
+
   return {
     id: Number(tr.id ?? 0),
     from: Number(tr.from ?? 0),
@@ -26,22 +42,43 @@ const parseRawTransition = (raw: unknown): AutomatonState['transitions'][number]
   }
 }
 
+const parseRawState = (raw: unknown): AutomatonState['states'][number] => {
+  const s = raw as RawFsmState
 
+  const id = Number(s.id ?? 0)
+
+  return {
+    id,
+    name: s.name ?? `q${id}`,
+    initial: s.initial ?? false,
+    final: s.final ?? false,
+  }
+}
 
 export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
 
 // message listener + handler
 const listenerHandler = (event: MessageEvent) => {
   if (event.data?.action === 'export') {
+    const raw = event.data.fsm as RawFsmData
+
+    const states = Array.isArray(raw.states)
+      ? raw.states.map(parseRawState)
+      : []
+
+    const transitions = Array.isArray(raw.transitions)
+      ? raw.transitions.map(parseRawTransition)
+      : []
+
     const fsmData: AutomatonState = {
-      states: event.data.fsm.states || [],
-      transitions: (event.data.fsm.transitions || []).map(parseRawTransition),
-      automatonType: event.data.fsm.automatonType,
+      states,
+      transitions,
+      automatonType: raw.automatonType ?? 'mealy',
     }
+
     stateManager.state.automaton = fsmData
   }
 }
-
 
 let listenerAttached = false
 
@@ -49,7 +86,6 @@ function ensureFsmListener() {
   if (!listenerAttached) {
     window.addEventListener('message', listenerHandler)
     listenerAttached = true
-    console.log('FSM listener attached')
   }
 }
 
@@ -57,7 +93,6 @@ function disposeFsmListener() {
   if (listenerAttached) {
     window.removeEventListener('message', listenerHandler)
     listenerAttached = false
-    console.log('FSM listener disposed')
   }
 }
 
@@ -106,9 +141,23 @@ export class AutomatonProject extends Project {
       return map
     })
 
-    // unique inputs aus transitions
+    // binary ids of states in transitions
+    const binaryTransitions = computed(() => {
+      return transitions.value.map((tr) => {
+        const fromIndex = stateIndexMap.value.get(tr.from) ?? 0 // same coding
+        const toIndex = stateIndexMap.value.get(tr.to) ?? 0
+
+        return {
+          ...tr,
+          fromBinary: binaryIDs.value[fromIndex],
+          toBinary: binaryIDs.value[toIndex],
+        }
+      })
+    })
+
+    // unique inputs from transitions
     const inputSymbols = computed(() => {
-      const symbols = new Set(transitions.value.map(tr => tr.input).filter(Boolean))
+      const symbols = new Set(transitions.value.map((tr) => tr.input).filter(Boolean))
       return symbols.size === 0 ? ['0'] : Array.from(symbols).sort()
     })
 
@@ -118,7 +167,7 @@ export class AutomatonProject extends Project {
     })
 
     const outputBits = computed(() => {
-      const lengths = transitions.value.map(tr => (tr.output || '').length)
+      const lengths = transitions.value.map((tr) => (tr.output || '').length)
       return Math.max(...lengths, 1)
     })
 
@@ -133,12 +182,13 @@ export class AutomatonProject extends Project {
       stateIndexMap,
       inputSymbols,
       inputBits,
-      outputBits
+      outputBits,
+      binaryTransitions,
     }
   }
 
   static override restoreDefaultPanelLayout(props: AutomatonProps) {
-    // TODO: Implement default panel layout for automaton
+    // TODO: create default panel, probably to chose between table & editor
 
     // create FSM editor panel as default
     console.log('[AutomatonProject.restoreDefaultPanelLayout] applying default layout')

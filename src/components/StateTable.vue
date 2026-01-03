@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
 
-const { states, transitions, binaryIDs } = AutomatonProject.useState()
+const { states, transitions, binaryIDs, binaryTransitions } = AutomatonProject.useState()
 </script>
 
 <template>
@@ -87,11 +87,69 @@ const { states, transitions, binaryIDs } = AutomatonProject.useState()
         </tr>
       </tbody>
     </table>
+    <div v-else class="p-4 justify-center text-center text-gray-400 text-lg items-center">
+      Please add transitions!
+    </div>
 
+    <!-- ACTUAL TRANSITION Table -->
+    <table
+      v-if="transitions?.length"
+      class="flex-auto bg-gray-800 border border-primary table-fixed w-auto select-none"
+    >
+      <thead>
+        <tr>
+          <th
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+          >
+            Z^n
+          </th>
+          <th
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+          >
+            X^n
+          </th>
+          <th
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+          >
+            Z^(n+1)
+          </th>
+          <th
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+          >
+            Y^n
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="transition in binaryTransitions" :key="transition.id">
+          <td
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+          >
+            {{ transition.fromBinary }}
+          </td>
+          <td
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+          >
+            {{ transition.input }}
+          </td>
+          <td
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+          >
+            {{ transition.toBinary }}
+          </td>
+          <td
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+          >
+            {{ transition.output }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <div v-else class="p-4 justify-center text-center text-gray-400 text-lg items-center">
       Please add transitions!
     </div>
   </div>
+
   <div v-else class="p-4 justify-center text-center text-gray-400 text-lg items-center">
     No data! Come on, paint a cool automaton!
   </div>
