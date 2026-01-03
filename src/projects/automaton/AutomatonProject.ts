@@ -62,9 +62,7 @@ const listenerHandler = (event: MessageEvent) => {
   if (event.data?.action === 'export') {
     const raw = event.data.fsm as RawFsmData
 
-    const states = Array.isArray(raw.states)
-      ? raw.states.map(parseRawState)
-      : []
+    const states = Array.isArray(raw.states) ? raw.states.map(parseRawState) : []
 
     const transitions = Array.isArray(raw.transitions)
       ? raw.transitions.map(parseRawTransition)
@@ -140,7 +138,7 @@ export class AutomatonProject extends Project {
       })
       return map
     })
-
+    
     // binary ids of states in transitions
     const binaryTransitions = computed(() => {
       return transitions.value.map((tr) => {

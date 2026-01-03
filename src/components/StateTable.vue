@@ -1,96 +1,56 @@
 <script setup lang="ts">
 import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
 
-const { states, transitions, binaryIDs, binaryTransitions } = AutomatonProject.useState()
+const {
+  states,
+  transitions,
+  binaryIDs,
+  binaryTransitions,
+  bitNumber,
+  inputBits,
+  outputBits,
+} = AutomatonProject.useState()
 </script>
 
 <template>
   <div
     v-if="states.length"
-    class="w-full h-full overflow-auto flex flex-col justify-center gap-10 items-center"
+    class="w-full h-full overflow-auto flex flex-col justify-center gap-4 items-center"
   >
+    <h1 class="text-xl font-mono">States</h1>
     <!-- STATE CODES Table -->
-    <table class="flex-auto bg-gray-800 border border-primary table-fixed w-auto select-none mb-8">
+    <table class="flex-auto bg-gray-800 border border-primary table-auto select-none mb-0">
       <thead>
         <tr>
           <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
           >
-            binary ID
+            name of state
           </th>
           <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-24 font-mono border-r-4"
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
           >
-            Name
+            binary index
           </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(state, index) in states" :key="state.id">
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
-          >
-            {{ binaryIDs[index] }}
-          </td>
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           >
             {{ state.name }}
           </td>
+          <td
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
+          >
+            {{ binaryIDs[index] }}
+          </td>
         </tr>
       </tbody>
     </table>
 
-    <!-- TRANSITION Table -->
-    <table
-      v-if="transitions?.length"
-      class="flex-auto bg-gray-800 border border-primary table-fixed w-auto select-none"
-    >
-      <thead>
-        <tr>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
-          >
-            ID
-          </th>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-24 font-mono border-r-4"
-          >
-            From
-          </th>
-          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-28 font-mono">
-            Input
-          </th>
-          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-28 font-mono">
-            Output
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="transition in transitions" :key="transition.id">
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
-          >
-            {{ transition.id }}
-          </td>
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
-          >
-            {{ transition.from }}
-          </td>
-          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary px-3 py-4">
-            {{ transition.input }}
-          </td>
-          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary px-3 py-4">
-            {{ transition.output }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <div v-else class="p-4 justify-center text-center text-gray-400 text-lg items-center">
-      Please add transitions!
-    </div>
-
+    <h1 class="mt-6 text-xl font-mono">Transitions</h1>
     <!-- ACTUAL TRANSITION Table -->
     <table
       v-if="transitions?.length"
@@ -99,48 +59,113 @@ const { states, transitions, binaryIDs, binaryTransitions } = AutomatonProject.u
       <thead>
         <tr>
           <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            :colspan="bitNumber"
           >
-            Z^n
+            first state
           </th>
           <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            :colspan="inputBits"
           >
-            X^n
+            input
           </th>
           <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            :colspan="bitNumber"
           >
-            Z^(n+1)
+            next state
           </th>
           <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-20 font-mono border-r-4"
+            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            :colspan="outputBits"
           >
-            Y^n
+            output
+          </th>
+        </tr>
+        <tr>
+          <!-- Z^n bits -->
+          <th
+            v-for="i in bitNumber"
+            :key="'z-from-' + i"
+            class="px-0 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
+            :class="i === bitNumber ? 'border-r-4' : 'border-r border-gray-600'"
+          >
+            <vue-latex :expression="`Z_{${bitNumber - i}}^n`" />
+          </th>
+
+          <!-- X^n bits -->
+          <th
+            v-for="i in inputBits"
+            :key="'x-' + i"
+            class="px-1 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
+            :class="i === inputBits ? 'border-r-4' : 'border-r border-gray-600'"
+          >
+            <vue-latex :expression="`X_{${inputBits - i}}^n`" />
+          </th>
+
+          <!-- Z^(n+1) bits -->
+          <th
+            v-for="i in bitNumber"
+            :key="'z-to-' + i"
+            class="px-1 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
+            :class="i === bitNumber ? 'border-r-4' : 'border-r border-gray-600'"
+          >
+            <vue-latex :expression="`Z_{${bitNumber - i}}^{(n+1)}`" />
+          </th>
+
+          <!-- Y^n bits -->
+          <th
+            v-for="i in outputBits"
+            :key="'y-' + i"
+            class="px-1 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
+            :class="i === outputBits ? 'border-r-4' : 'border-r border-gray-600'"
+          >
+            <vue-latex :expression="`Y_{${outputBits - i}}^n`" />
           </th>
         </tr>
       </thead>
+
       <tbody>
         <tr v-for="transition in binaryTransitions" :key="transition.id">
+          <!-- Z^n bits -->
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+            v-for="(_, i) in bitNumber"
+            :key="transition.id + '-from-' + i"
+            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+            :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ transition.fromBinary }}
+            {{ (transition.fromBinary ?? '').charAt(i) || '0' }}
           </td>
+
+          <!-- X^n bits -->
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+            v-for="(_, i) in inputBits"
+            :key="transition.id + '-in-' + i"
+            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+            :class="i === inputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ transition.input }}
+            {{ transition.input[i] ?? '0' }}
           </td>
+
+          <!-- Z^(n+1) bits -->
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+            v-for="(_, i) in bitNumber"
+            :key="transition.id + '-to-' + i"
+            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+            :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ transition.toBinary }}
+            {{ (transition.toBinary ?? '').charAt(i) || '0' }}
           </td>
+
+          <!-- Y^n bits -->
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-3 py-4"
+            v-for="(_, i) in outputBits"
+            :key="transition.id + '-out-' + i"
+            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+            :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ transition.output }}
+            {{ transition.output[i] ?? '0' }}
           </td>
         </tr>
       </tbody>
