@@ -3,7 +3,7 @@ import { Project, type BaseProjectProps } from "../Project";
 import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
 import type { Formula } from "@/utility/types";
 import { computed } from "vue";
-import { stateManager } from "@/projects/stateManager";
+import { stateManager, type AppState } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
 
 export type TruthTableCell = 0 | 1 | '-';
@@ -95,6 +95,10 @@ export class TruthTableProject extends Project {
       outputVars: outputVariables,
       hasValues: !!values
     })
+  }
+
+  static override validateState(state: AppState): boolean {
+    return state.truthTable != undefined;
   }
 }
 

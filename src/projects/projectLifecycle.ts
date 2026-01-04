@@ -115,7 +115,13 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
       console.warn('[ProjectLifecycle.open] Project has empty state - may need initialization')
     }
 
+    if (!(projectTypeInfo.projectClass?.validateState(project.state) ?? false)) {
+      console.error('[ProjectLifecycle.open] Project state failed type specific validation')
+      return null
+    }
+
     // Clear the state first
+    // TODO: is this necessary?
     this.clearState()
 
     // Clear the ID first to force reactivity, then set it

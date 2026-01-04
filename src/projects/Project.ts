@@ -44,6 +44,10 @@ export abstract class Project {
     static useState() {
         throw new Error('useState must be implemented by subclass')
     }
+
+    static validateState(state: AppState): boolean {
+        throw new Error('validateState must be implemented by subclass')
+    }
 }
 
 // Type for the Project class (static methods only)
@@ -52,6 +56,7 @@ export interface ProjectClass {
     restoreDefaultPanelLayout(props: BaseProjectProps): void;
     createState(props: BaseProjectProps): void;
     useState(): any;
+    validateState(state: AppState): boolean;
 }
 
 export interface ProjectTypeDefinition {
