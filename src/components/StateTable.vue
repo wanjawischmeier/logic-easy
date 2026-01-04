@@ -1,15 +1,8 @@
 <script setup lang="ts">
 import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
 
-const {
-  states,
-  transitions,
-  binaryIDs,
-  binaryTransitions,
-  bitNumber,
-  inputBits,
-  outputBits,
-} = AutomatonProject.useState()
+const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits, outputBits } =
+  AutomatonProject.useState()
 </script>
 
 <template>
@@ -128,7 +121,7 @@ const {
 
       <tbody>
         <tr v-for="transition in binaryTransitions" :key="transition.id">
-          <!-- Z^n bits -->
+          <!-- Z^n bits (read only) -->
           <td
             v-for="(_, i) in bitNumber"
             :key="transition.id + '-from-' + i"
@@ -138,17 +131,20 @@ const {
             {{ (transition.fromBinary ?? '').charAt(i) || '0' }}
           </td>
 
-          <!-- X^n bits -->
+          <!-- X^n bits (edit) -->
           <td
             v-for="(_, i) in inputBits"
             :key="transition.id + '-in-' + i"
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === inputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ transition.input[i] ?? '0' }}
+            <input
+              v-model="transition.input"
+              class="bg-transparent text-center outline-none w-10"
+            />
           </td>
 
-          <!-- Z^(n+1) bits -->
+          <!-- Z^(n+1) bits (readonly) -->
           <td
             v-for="(_, i) in bitNumber"
             :key="transition.id + '-to-' + i"
@@ -158,14 +154,17 @@ const {
             {{ (transition.toBinary ?? '').charAt(i) || '0' }}
           </td>
 
-          <!-- Y^n bits -->
+          <!-- Y^n bits (edit) -->
           <td
             v-for="(_, i) in outputBits"
             :key="transition.id + '-out-' + i"
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ transition.output[i] ?? '0' }}
+            <input
+              v-model="transition.output"
+              class="bg-transparent text-center outline-none w-10"
+            />
           </td>
         </tr>
       </tbody>

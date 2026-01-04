@@ -1,9 +1,9 @@
 import { Project } from '../Project'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { stateManager } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
-import type { AutomatonProps, AutomatonState } from './AutomatonTypes'
+import type { AutomatonProps, AutomatonState, AutomatonType } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
 // types to avoid "any" type and validate types
@@ -21,10 +21,15 @@ interface RawFsmState {
   final?: boolean | null
 }
 
+// set fixed automaton type
+function setAutomatonType(value: unknown): AutomatonType {
+  return value === 'moore' ? 'moore' : 'mealy'
+}
+
 interface RawFsmData {
   states?: unknown
   transitions?: unknown
-  automatonType?: AutomatonState['automatonType']
+  automatonType?: unknown
 }
 
 // according to interfaces above: parsing to really use correct types in this module (depending less on fsm engine)
@@ -71,7 +76,7 @@ const listenerHandler = (event: MessageEvent) => {
     const fsmData: AutomatonState = {
       states,
       transitions,
-      automatonType: raw.automatonType ?? 'mealy',
+      automatonType: setAutomatonType(raw.automatonType),
     }
 
     stateManager.state.automaton = fsmData
@@ -109,6 +114,39 @@ export class AutomatonProject extends Project {
       () => stateManager.state.automaton || { states: [], transitions: [], automatonType: 'mealy' },
     )
 
+    watch(
+      () => automaton.value,
+      (val) => {
+        if (!val) return
+
+        const actualState: AutomatonState = {
+          states: (val.states || []).map((s) => ({
+            id: s.id,
+            name: s.name,
+            initial: s.initial,
+            final: s.final,
+          })),
+          transitions: (val.transitions || []).map((t) => ({
+            id: t.id,
+            from: t.from,
+            to: t.to,
+            input: t.input,
+            output: t.output,
+          })),
+          automatonType: setAutomatonType(val.automatonType),
+        }
+
+        window.postMessage(
+          {
+            action: 'automatonimport',
+            fsm: actualState,
+          },
+          window.location.origin,
+        )
+      },
+      { deep: true },
+    )
+
     //basic attributes
     const states = computed(() => automaton.value.states || [])
     const transitions = computed(() => automaton.value.transitions || [])
@@ -138,7 +176,7 @@ export class AutomatonProject extends Project {
       })
       return map
     })
-    
+
     // binary ids of states in transitions
     const binaryTransitions = computed(() => {
       return transitions.value.map((tr) => {
@@ -207,6 +245,35 @@ export class AutomatonProject extends Project {
     }
 
     console.log('[AutomatonProject.createState] State initialized')
+  }
+  // export table / automatonstate -> fsm engine submodule
+
+  static exportToFsmEngine() {
+    const automaton = stateManager.state.automaton
+    if (!automaton) return
+
+    const stateData = {
+      states: automaton.states.map((s) => ({
+        id: s.id,
+        name: s.name,
+        initial: s.initial,
+        final: s.final,
+      })),
+      transitions: automaton.transitions.map((t) => ({
+        id: t.id,
+        from: t.from,
+        to: t.to,
+        label: `${t.input}/${t.output}`, //(re)concatenate (TODO: add moore!)
+      })),
+      automatonType: setAutomatonType(automaton.automatonType),
+    }
+    window.postMessage(
+      {
+        action: 'automatonimport',
+        fsm: stateData,
+      },
+      '*',
+    )
   }
 }
 
