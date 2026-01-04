@@ -122,7 +122,7 @@ function runAction(entry: MenuEntry): void {
 
   if (entry.panelId) {
     if (entry.createProject ?? false) {
-      showProjectCreationPopup(entry.panelId);
+      showProjectCreationPopup(entry);
     } else {
       createPanel(entry.panelId, entry.label);
     }

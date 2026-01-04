@@ -108,7 +108,7 @@ export const newMenu = computed<MenuEntry[]>(() =>
     .map((menuEntry) => ({
       label: menuEntry.label,
       panelId: menuEntry.id,
-      withPopup: true,
+      createProject: true,
       disabled: !checkDockEntryRequirements(menuEntry, 'CREATE')
     }))
     .sort((a, b) => Number(a.disabled) - Number(b.disabled))

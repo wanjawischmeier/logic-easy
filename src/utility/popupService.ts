@@ -43,33 +43,11 @@ export const popupService = {
 
 /**
  * Creates a new project after first showing a popup.
- * @param panelId The id with which the new panel should be created.
- * @returns Wether or not the project was sucessfully created.
- */
-export function showProjectCreationPopup(panelId: string): Promise<boolean>;
-
-/**
- * Creates a new project after first showing a popup.
  * @param menuEntry The menu entry whose id will be assigned to the new panel.
  * @returns Wether or not the project was sucessfully created.
  */
-export function showProjectCreationPopup(menuEntry: MenuEntry): Promise<boolean>;
-
-// Main function called by both overloads
-export async function showProjectCreationPopup(panelIdOrMenuEntry: string | MenuEntry): Promise<boolean> {
-  let panelId: string;
-  let menuEntry: MenuEntry | undefined;
-
-  // Type guard to determine which overload was called
-  if (typeof panelIdOrMenuEntry === 'string') {
-    panelId = panelIdOrMenuEntry;
-  } else {
-    menuEntry = panelIdOrMenuEntry;
-    if (!menuEntry?.panelId) return false;
-    panelId = menuEntry.panelId;
-  }
-
-  const registryEntry = dockRegistry.find(item => item.id === panelId);
+export function showProjectCreationPopup(menuEntry: MenuEntry): boolean {
+  const registryEntry = dockRegistry.find(item => item.id === menuEntry.panelId);
   if (!registryEntry?.projectType) return false;
 
   const projectType = getProjectType(registryEntry.projectType);
