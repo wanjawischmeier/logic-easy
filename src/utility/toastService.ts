@@ -15,8 +15,8 @@ export class Toast {
         rtl: false,
     }
 
-    static info(error: string) {
-        toast.info(error, {
+    static info(text: string) {
+        toast.info(text, {
             ...this.baseProps,
             timeout: 3000,
             pauseOnHover: true,
@@ -24,8 +24,8 @@ export class Toast {
         });
     }
 
-    static warning(error: string) {
-        toast.warning(error, {
+    static warning(text: string) {
+        toast.warning(text, {
             ...this.baseProps,
             timeout: 5000,
             pauseOnHover: true,
@@ -33,8 +33,8 @@ export class Toast {
         });
     }
 
-    static error(error: string) {
-        toast.error(error, {
+    static error(text: string) {
+        toast.error(text, {
             ...this.baseProps,
             timeout: 10000,
             pauseOnHover: false,
