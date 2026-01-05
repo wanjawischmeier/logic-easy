@@ -6,6 +6,17 @@ import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
 import type { AutomatonProps, AutomatonState, AutomatonType } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
+// flag for edit dominance
+export type UpdateSource = 'automatoneditor' | 'table' | null
+export let lastUpdateSource: UpdateSource = null
+export function getLastUpdateSource(): UpdateSource {
+  return lastUpdateSource
+}
+export function setLastUpdateSource(source: UpdateSource) {
+  lastUpdateSource = source
+}
+
+
 // types to avoid "any" type and validate types
 interface RawFsmTransition {
   id?: string | number
@@ -43,7 +54,7 @@ const parseRawTransition = (raw: unknown): AutomatonState['transitions'][number]
     from: Number(tr.from ?? 0),
     to: Number(tr.to ?? 0),
     input: parts[0] || '0',
-    output: parts[1] || '-',
+    output: parts[1] || '0',
   }
 }
 
@@ -65,6 +76,7 @@ const parseRawState = (raw: unknown): AutomatonState['states'][number] => {
  */
 export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
 let updateFromEditor = false
+// prevention flags: no double one-way export without exchange
 let lastImportedFsmData: AutomatonState | null = null
 let lastSentFsmData: AutomatonState | null = null
 
@@ -89,6 +101,8 @@ const listenerHandler = (event: MessageEvent) => {
       return
     }
     lastImportedFsmData = fsmData
+
+    lastUpdateSource = 'automatoneditor'
 
     updateFromEditor = true
     stateManager.state.automaton = fsmData
@@ -149,7 +163,7 @@ export class AutomatonProject extends Project {
       () => stateManager.state.automaton,
       (val) => {
         console.log('watch in automatonproject activated')
-        if (!val || updateFromEditor || !fsmiFrameReady) return
+        if (!val || updateFromEditor || !fsmiFrameReady || lastUpdateSource !== 'table') return
 
         if (automatonDebounce !== null) {
           clearTimeout(automatonDebounce)
@@ -188,7 +202,7 @@ export class AutomatonProject extends Project {
             },
             '*',
           )
-        }, 100)
+        }, 50)
       },
       { deep: true },
     )
