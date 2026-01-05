@@ -70,9 +70,7 @@ export class ProjectLifecycleManager {
 
   private clearState(): void {
     Object.keys(stateManager.state).forEach(
-      key => delete (
-        stateManager.state as Record<string, unknown>
-      )[key]
+      (key) => delete (stateManager.state as Record<string, unknown>)[key],
     )
   }
 
@@ -102,7 +100,7 @@ export class ProjectLifecycleManager {
       projectType: project.projectType,
       hasState: !!project.state,
       stateKeys: project.state ? Object.keys(project.state) : [],
-      sampleState: project.state
+      sampleState: project.state,
     })
 
     // Validate that project type exists in registry
@@ -127,10 +125,12 @@ export class ProjectLifecycleManager {
     this.setCurrentId(projectId)
 
     // Copy over shared state properties
-    Object.assign(stateManager.state, project.state);
+    stateManager.beginRestore()
+    Object.assign(stateManager.state, project.state)
+    stateManager.endRestore()
 
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
-      stateManagerState: stateManager.state
+      stateManagerState: stateManager.state,
     })
 
     return project

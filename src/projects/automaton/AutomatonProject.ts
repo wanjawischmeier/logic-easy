@@ -62,6 +62,8 @@ const parseRawState = (raw: unknown): AutomatonState['states'][number] => {
 
 export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
 
+let updateFromEditor = false
+
 // message listener + handler
 const listenerHandler = (event: MessageEvent) => {
   if (event.data?.action === 'export') {
@@ -78,8 +80,9 @@ const listenerHandler = (event: MessageEvent) => {
       transitions,
       automatonType: setAutomatonType(raw.automatonType),
     }
-
+    updateFromEditor = true
     stateManager.state.automaton = fsmData
+    updateFromEditor = false
   }
 }
 
@@ -99,6 +102,12 @@ function disposeFsmListener() {
   }
 }
 
+// helper function to get iframe
+function getFsmIframe(): HTMLIFrameElement | undefined {
+  return (window as unknown as Window & { __fsm_preloaded_iframe?: HTMLIFrameElement })
+    .__fsm_preloaded_iframe
+}
+
 export class AutomatonProject extends Project {
   static override get defaultProps(): AutomatonProps {
     return {
@@ -114,11 +123,29 @@ export class AutomatonProject extends Project {
       () => stateManager.state.automaton || { states: [], transitions: [], automatonType: 'mealy' },
     )
 
-    watch(
-      () => automaton.value,
-      (val) => {
-        if (!val) return
+    let fsmiFrameReady = false
+    function markFsmiFrameReady() {
+      fsmiFrameReady = true
+    }
 
+    window.addEventListener('__fsm_preloaded_iframe-ready', () => {
+      markFsmiFrameReady()
+    })
+
+    // debouncing
+    let automatonDebounce: number | null = null
+
+    watch(
+      () => stateManager.state.automaton,
+      (val) => {
+        console.log('watch in automatonproject activated')
+        if (!val || updateFromEditor || !fsmiFrameReady) return
+
+        if (automatonDebounce !== null) {
+          clearTimeout(automatonDebounce)
+        }
+
+        automatonDebounce = window.setTimeout(() => {
         const actualState: AutomatonState = {
           states: (val.states || []).map((s) => ({
             id: s.id,
@@ -136,13 +163,17 @@ export class AutomatonProject extends Project {
           automatonType: setAutomatonType(val.automatonType),
         }
 
-        window.postMessage(
+        const fsmIframe = getFsmIframe()
+        if (!fsmIframe || !fsmIframe.contentWindow) return
+
+        fsmIframe.contentWindow.postMessage(
           {
             action: 'automatonimport',
             fsm: actualState,
           },
-          window.location.origin,
+          '*',
         )
+      }, 100)
       },
       { deep: true },
     )
@@ -245,35 +276,6 @@ export class AutomatonProject extends Project {
     }
 
     console.log('[AutomatonProject.createState] State initialized')
-  }
-  // export table / automatonstate -> fsm engine submodule
-
-  static exportToFsmEngine() {
-    const automaton = stateManager.state.automaton
-    if (!automaton) return
-
-    const stateData = {
-      states: automaton.states.map((s) => ({
-        id: s.id,
-        name: s.name,
-        initial: s.initial,
-        final: s.final,
-      })),
-      transitions: automaton.transitions.map((t) => ({
-        id: t.id,
-        from: t.from,
-        to: t.to,
-        label: `${t.input}/${t.output}`, //(re)concatenate (TODO: add moore!)
-      })),
-      automatonType: setAutomatonType(automaton.automatonType),
-    }
-    window.postMessage(
-      {
-        action: 'automatonimport',
-        fsm: stateData,
-      },
-      '*',
-    )
   }
 }
 

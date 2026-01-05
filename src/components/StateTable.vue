@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
 
-const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits, outputBits } =
-  AutomatonProject.useState()
+const {
+  states,
+  transitions,
+  binaryIDs,
+  binaryTransitions,
+  bitNumber,
+  inputBits,
+  outputBits,
+} = AutomatonProject.useState()
 </script>
 
 <template>
@@ -11,6 +18,7 @@ const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits,
     class="w-full h-full overflow-auto flex flex-col justify-center gap-4 items-center"
   >
     <h1 class="text-xl font-mono">States</h1>
+
     <!-- STATE CODES Table -->
     <table class="flex-auto bg-gray-800 border border-primary table-auto select-none mb-0">
       <thead>
@@ -44,9 +52,10 @@ const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits,
     </table>
 
     <h1 class="mt-6 text-xl font-mono">Transitions</h1>
-    <!-- ACTUAL TRANSITION Table -->
+
+    <!-- TRANSITION TABLE -->
     <table
-      v-if="transitions?.length"
+      v-if="transitions.length"
       class="flex-auto bg-gray-800 border border-primary table-fixed w-auto select-none"
     >
       <thead>
@@ -120,26 +129,30 @@ const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits,
       </thead>
 
       <tbody>
-        <tr v-for="transition in binaryTransitions" :key="transition.id">
+        <tr
+          v-for="(transitionView, idx) in binaryTransitions"
+          :key="transitionView.id"
+        >
           <!-- Z^n bits (read only) -->
           <td
             v-for="(_, i) in bitNumber"
-            :key="transition.id + '-from-' + i"
+            :key="transitionView.id + '-from-' + i"
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ (transition.fromBinary ?? '').charAt(i) || '0' }}
+            {{ (transitionView.fromBinary ?? '').charAt(i) || '0' }}
           </td>
 
-          <!-- X^n bits (edit) -->
+          <!-- X^n bits (edit underlying transitions) -->
           <td
             v-for="(_, i) in inputBits"
-            :key="transition.id + '-in-' + i"
+            :key="transitionView.id + '-in-' + i"
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === inputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
             <input
-              v-model="transition.input"
+              v-if="transitions[idx]"
+              v-model="transitions[idx]!.input"
               class="bg-transparent text-center outline-none w-10"
             />
           </td>
@@ -147,28 +160,30 @@ const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits,
           <!-- Z^(n+1) bits (readonly) -->
           <td
             v-for="(_, i) in bitNumber"
-            :key="transition.id + '-to-' + i"
+            :key="transitionView.id + '-to-' + i"
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ (transition.toBinary ?? '').charAt(i) || '0' }}
+            {{ (transitionView.toBinary ?? '').charAt(i) || '0' }}
           </td>
 
-          <!-- Y^n bits (edit) -->
+          <!-- Y^n bits (edit underlying transitions) -->
           <td
             v-for="(_, i) in outputBits"
-            :key="transition.id + '-out-' + i"
+            :key="transitionView.id + '-out-' + i"
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
             <input
-              v-model="transition.output"
+              v-if="transitions[idx]"
+              v-model="transitions[idx]!.output"
               class="bg-transparent text-center outline-none w-10"
             />
           </td>
         </tr>
       </tbody>
     </table>
+
     <div v-else class="p-4 justify-center text-center text-gray-400 text-lg items-center">
       Please add transitions!
     </div>
