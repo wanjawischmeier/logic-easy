@@ -1,4 +1,3 @@
-editor
 <script setup lang="ts">
 import {
   AutomatonProject,
@@ -77,6 +76,13 @@ function addTransitionRow() {
   })
 }
 
+// Hilfsfunktion: Bits auf gegebene Länge mit x auffüllen
+function normalizeBitsToX(value: string | undefined, length: number): string {
+  const v = value ?? ''
+  if (v.length >= length) return v
+  return v + 'x'.repeat(length - v.length)
+}
+
 // remap bits from Z^n+1 to "transition.to"
 function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   const tr = transitions.value[idx]
@@ -85,6 +91,7 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   if (bit === 'x') {
     alert('Please enter a bit') // TODO
   }
+
   setLastUpdateSource('table')
 
   const current = (binaryTransitions.value[idx]?.toBinary ?? '').padStart(bitNumber.value, '0')
@@ -249,16 +256,17 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
             >
               <input
                 v-if="transitions[idx]"
-                :value="(transitions[idx]!.input ?? '').padEnd(inputBits, '0').charAt(i)"
+                :value="normalizeBitsToX(transitions[idx]!.input, inputBits).charAt(i)"
                 class="bg-transparent text-center outline-none w-6"
                 @input="
                   (e) => {
-                    setLastUpdateSource('table')
-                    const raw = (transitions[idx]!.input ?? '').padEnd(inputBits, '0')
-                    const chars = raw.split('')
-                    const bit = (e.target as HTMLInputElement).value === '1' ? '1' : '0'
+                    const current = normalizeBitsToX(transitions[idx]!.input, inputBits)
+                    const chars = current.split('')
+                    const v = (e.target as HTMLInputElement).value
+                    const bit = v === '1' ? '1' : v === '0' ? '0' : 'x'
                     chars[i] = bit
                     transitions[idx]!.input = chars.join('')
+                    setLastUpdateSource('table')
                   }
                 "
               />
@@ -277,9 +285,9 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
                 class="bg-transparent text-center outline-none w-6"
                 @input="
                   (e) => {
-                    setLastUpdateSource('table')
-                    const val = (e.target as HTMLInputElement).value === '1' ? '1' : '0'
-                    updateToFromBits(idx, i, val)
+                    const v = (e.target as HTMLInputElement).value
+                    const bit = v === '1' ? '1' : v === '0' ? '0' : 'x'
+                    updateToFromBits(idx, i, bit)
                   }
                 "
               />
@@ -294,16 +302,17 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
             >
               <input
                 v-if="transitions[idx]"
-                :value="(transitions[idx]!.output ?? '').padEnd(outputBits, '0').charAt(i)"
+                :value="normalizeBitsToX(transitions[idx]!.output, outputBits).charAt(i)"
                 class="bg-transparent text-center outline-none w-6"
                 @input="
                   (e) => {
-                    setLastUpdateSource('table')
-                    const raw = (transitions[idx]!.output ?? '').padEnd(outputBits, '0')
-                    const chars = raw.split('')
-                    const bit = (e.target as HTMLInputElement).value === '1' ? '1' : '0'
+                    const current = normalizeBitsToX(transitions[idx]!.output, outputBits)
+                    const chars = current.split('')
+                    const v = (e.target as HTMLInputElement).value
+                    const bit = v === '1' ? '1' : v === '0' ? '0' : 'x'
                     chars[i] = bit
                     transitions[idx]!.output = chars.join('')
+                    setLastUpdateSource('table')
                   }
                 "
               />
