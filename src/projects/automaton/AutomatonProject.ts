@@ -60,11 +60,15 @@ const parseRawState = (raw: unknown): AutomatonState['states'][number] => {
   }
 }
 
+/*
+ * export fsm <-> table variables and functions
+ */
 export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
-
 let updateFromEditor = false
+let lastImportedFsmData: AutomatonState | null = null
+let lastSentFsmData: AutomatonState | null = null
 
-// message listener + handler
+// message listener + handler for export fsm editor <-> state table
 const listenerHandler = (event: MessageEvent) => {
   if (event.data?.action === 'export') {
     const raw = event.data.fsm as RawFsmData
@@ -80,6 +84,12 @@ const listenerHandler = (event: MessageEvent) => {
       transitions,
       automatonType: setAutomatonType(raw.automatonType),
     }
+
+    if (lastImportedFsmData && JSON.stringify(lastImportedFsmData) === JSON.stringify(fsmData)) {
+      return
+    }
+    lastImportedFsmData = fsmData
+
     updateFromEditor = true
     stateManager.state.automaton = fsmData
     updateFromEditor = false
@@ -146,34 +156,39 @@ export class AutomatonProject extends Project {
         }
 
         automatonDebounce = window.setTimeout(() => {
-        const actualState: AutomatonState = {
-          states: (val.states || []).map((s) => ({
-            id: s.id,
-            name: s.name,
-            initial: s.initial,
-            final: s.final,
-          })),
-          transitions: (val.transitions || []).map((t) => ({
-            id: t.id,
-            from: t.from,
-            to: t.to,
-            input: t.input,
-            output: t.output,
-          })),
-          automatonType: setAutomatonType(val.automatonType),
-        }
+          const actualState: AutomatonState = {
+            states: (val.states || []).map((s) => ({
+              id: s.id,
+              name: s.name,
+              initial: s.initial,
+              final: s.final,
+            })),
+            transitions: (val.transitions || []).map((t) => ({
+              id: t.id,
+              from: t.from,
+              to: t.to,
+              input: t.input,
+              output: t.output,
+            })),
+            automatonType: setAutomatonType(val.automatonType),
+          }
 
-        const fsmIframe = getFsmIframe()
-        if (!fsmIframe || !fsmIframe.contentWindow) return
+          if (lastSentFsmData && JSON.stringify(lastSentFsmData) === JSON.stringify(actualState)) {
+            return
+          }
+          lastSentFsmData = actualState
 
-        fsmIframe.contentWindow.postMessage(
-          {
-            action: 'automatonimport',
-            fsm: actualState,
-          },
-          '*',
-        )
-      }, 100)
+          const fsmIframe = getFsmIframe()
+          if (!fsmIframe || !fsmIframe.contentWindow) return
+
+          fsmIframe.contentWindow.postMessage(
+            {
+              action: 'automatonimport',
+              fsm: actualState,
+            },
+            '*',
+          )
+        }, 100)
       },
       { deep: true },
     )
