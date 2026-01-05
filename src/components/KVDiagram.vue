@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-8 font-mono">
+  <div class="mt-8 font-mono" :key="renderKey">
     <div v-if="variables.length < 2 || variables.length > 4">
       Only 2, 3, or 4 variables are supported for KV-Diagrams.
     </div>
@@ -68,9 +68,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { type Formula, FunctionType, defaultFunctionType } from '../utility/types';
-
 import {
   getLeftVariables,
   getTopVariables,
@@ -100,6 +99,12 @@ const leftVariables = computed(() => getLeftVariables(variables.value));
 const topVariables = computed(() => getTopVariables(variables.value));
 const rowCodes = computed(() => getRowCodes(variables.value.length));
 const colCodes = computed(() => getColCodes(variables.value.length));
+
+const renderKey = ref(0);
+onMounted(() => {
+  console.log('kv mount2')
+  renderKey.value++;
+})
 
 const getValue = (rowCode: string, colCode: string) => {
   if (!props.modelValue) return '-';
