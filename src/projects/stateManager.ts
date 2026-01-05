@@ -3,11 +3,22 @@ import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 
+/**
+ * The current storage version
+ */
 export const STORAGE_VERSION: number = 4
+
+/**
+ * All storage versions that are compatible with the current one
+ */
 export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
   3, 4
 ]
 
+/**
+ * Everything that describes the state of the app,
+ * can be stored in a project.
+ */
 export interface AppState {
   version: number
   truthTable?: TruthTableState
@@ -17,8 +28,7 @@ export interface AppState {
 }
 
 /**
- * Manages application state and syncs with project storage
- * This is now just a thin wrapper around the project manager's state
+ * Manages the application state
  */
 export class StateManager {
   public state: UnwrapNestedRefs<AppState>
@@ -26,6 +36,9 @@ export class StateManager {
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
 
+  /**
+   * Empty default state
+   */
   static get defaultState(): AppState {
     return {
       version: STORAGE_VERSION,
@@ -94,13 +107,6 @@ export class StateManager {
     )
 
     return stopWatch
-  }
-
-  /**
-   * Close the current project
-   */
-  closeCurrentProject(): void {
-    projectManager.closeCurrentProject()
   }
 }
 

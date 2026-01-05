@@ -1,3 +1,30 @@
+<template>
+  <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
+
+    <div class="w-full flex gap-10 text-sm justify-end">
+      <MultiSelectSwitch v-if="outputVars.length > 1" :label="'Output Variable'" :values="outputVars"
+        :initialSelected="selectedOutputIndex" :onSelect="(v, i) => selectedOutputIndex = i">
+      </MultiSelectSwitch>
+
+      <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
+        :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
+      </MultiSelectSwitch>
+    </div>
+
+    <div class="h-full flex flex-col items-center justify-center overflow-auto">
+      <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
+        :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
+        :formula="currentFormula" :functionType="selectedType" />
+
+      <div class="mt-4 w-full flex justify-center">
+        <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped></style>
+
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
@@ -94,30 +121,3 @@ const currentFormula = computed(() => {
   return formulas.value[outputVar]?.[selectedType.value];
 });
 </script>
-
-<template>
-  <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
-
-    <div class="w-full flex gap-10 text-sm justify-end">
-      <MultiSelectSwitch v-if="outputVars.length > 1" :label="'Output Variable'" :values="outputVars"
-        :initialSelected="selectedOutputIndex" :onSelect="(v, i) => selectedOutputIndex = i">
-      </MultiSelectSwitch>
-
-      <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
-        :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
-      </MultiSelectSwitch>
-    </div>
-
-    <div class="h-full flex flex-col items-center justify-center overflow-auto">
-      <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
-        :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
-        :formula="currentFormula" :functionType="selectedType" />
-
-      <div class="mt-4 w-full flex justify-center">
-        <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />
-      </div>
-    </div>
-  </div>
-</template>
-
-<style scoped></style>

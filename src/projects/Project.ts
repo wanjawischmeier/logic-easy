@@ -2,6 +2,9 @@ import type { Component } from "vue";
 import type { ProjectType } from "./projectRegistry";
 import type { AppState } from "@/projects/stateManager";
 
+/**
+ * Props define what is needed to initialize a project state
+ */
 export interface BaseProjectProps {
     name: string;
     [key: string]: unknown;
@@ -9,8 +12,6 @@ export interface BaseProjectProps {
 
 /**
  * Abstract base class for project types
- * Projects are now purely static - no instances are created
- * State is managed through AppState in the state manager
  */
 export abstract class Project {
     /**
@@ -22,7 +23,7 @@ export abstract class Project {
 
     /**
      * Restore the default panel layout for this project type
-     * @param props - The project props
+     * @param props The project props
      */
     static restoreDefaultPanelLayout(props: BaseProjectProps): void {
         throw new Error('restoreDefaultPanelLayout must be implemented by subclass')
@@ -30,8 +31,8 @@ export abstract class Project {
 
     /**
      * Initialize/create the state for this project type in the AppState
-     * @param state - The AppState object to initialize
-     * @param props - The project props
+     * @param state The AppState object to initialize
+     * @param props The project props
      */
     static createState(props: BaseProjectProps): void {
         throw new Error('createState must be implemented by subclass')
@@ -39,18 +40,24 @@ export abstract class Project {
 
     /**
      * Create a composable hook for accessing project state
-     * Subclasses should override this to provide convenient computed properties
      */
     static useState() {
+        // Subclasses override this to provide convenient computed properties
         throw new Error('useState must be implemented by subclass')
     }
 
+    /**
+     * @param state The AppState that is to be validated
+     * @returns True if the AppState is valid for this project class
+     */
     static validateState(state: AppState): boolean {
         throw new Error('validateState must be implemented by subclass')
     }
 }
 
-// Type for the Project class (static methods only)
+/**
+ * Type for the Project class (static methods only)
+ */
 export interface ProjectClass {
     readonly defaultProps: BaseProjectProps;
     restoreDefaultPanelLayout(props: BaseProjectProps): void;
@@ -59,14 +66,16 @@ export interface ProjectClass {
     validateState(state: AppState): boolean;
 }
 
+/**
+ * Properties needed to register a project type
+ */
 export interface ProjectTypeDefinition {
     propsComponent: Component;
     projectClass: ProjectClass;
 }
 
-
 /**
- * Project information (without the full state)
+ * Basic project information
  */
 export interface ProjectInfo {
     id: number

@@ -2,6 +2,10 @@ import { reactive, type UnwrapNestedRefs } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
 import type { ProjectMetadata, ProjectInfo, StoredProject } from './Project'
 
+/**
+ * Maximum number of projects that are kept in local storage
+ * and shown in recents.
+ */
 const MAX_PROJECTS = 5
 
 /**

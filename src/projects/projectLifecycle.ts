@@ -20,7 +20,7 @@ export class ProjectLifecycleManager {
   }
 
   /**
-   * Get the saved project ID from storage (if any)
+   * Get the saved project ID from storage
    */
   getSavedProjectId(): number | null {
     return ProjectStorage.loadCurrentProjectId()
@@ -68,6 +68,9 @@ export class ProjectLifecycleManager {
     this.currentProjectId.value = null
   }
 
+  /**
+   * Clears all keys in the current state
+   */
   private clearState(): void {
     Object.keys(stateManager.state).forEach(
       key => delete (
@@ -121,7 +124,6 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     }
 
     // Clear the state first
-    // TODO: is this necessary?
     this.clearState()
 
     // Clear the ID first to force reactivity, then set it

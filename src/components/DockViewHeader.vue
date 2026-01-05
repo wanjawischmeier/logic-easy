@@ -33,7 +33,7 @@
               @keydown.enter="handleProjectEnter" @focusout="handleRenameProject" />
           </div>
 
-          <button type="button" @click="stateManager.closeCurrentProject" :disabled="stateManager.isSaving.value"
+          <button type="button" @click="projectManager.closeCurrentProject" :disabled="stateManager.isSaving.value"
             :title="stateManager.isSaving.value ? 'Saving...' : 'Close project'" class="relative h-full px-3 mb-px flex items-center justify-center
            text-xl rounded-xs border border-transparent
            text-primary-variant"

@@ -27,6 +27,10 @@ export class ProjectManager {
     this.importExport = new ProjectImportExport(this.metadata)
   }
 
+  /**
+   * Format project as string for logging
+   * @param project The project to format
+   */
   public projectString(project: StoredProject | ProjectInfo): string {
     return this.metadata.projectString(project)
   }

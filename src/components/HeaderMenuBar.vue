@@ -73,7 +73,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
     },
     {
       label: 'Close Project',
-      action: stateManager.closeCurrentProject,
+      action: projectManager.closeCurrentProject,
       disabled: !hasCurrentProject.value,
     },
   ],
