@@ -1,7 +1,7 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectFileOperations } from '@/projects/projectFileOperations'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
-import type { Project } from '@/utility/types'
+import type { StoredProject } from './Project'
 
 /**
  * Handles import/export operations for projects
@@ -11,7 +11,7 @@ export class ProjectImportExport {
   /**
    * Load and save project from .le file (without opening it)
    */
-  async importFromFile(file: File): Promise<Project> {
+  async importFromFile(file: File): Promise<StoredProject> {
     // Parse the file
     const importedProject = await ProjectFileOperations.loadFromFile(file)
 
@@ -29,7 +29,8 @@ export class ProjectImportExport {
       this.metadataManager.update({
         id: existingProject.id,
         name: existingProject.name,
-        lastModified: existingProject.lastModified
+        lastModified: existingProject.lastModified,
+        projectType: existingProject.projectType
       })
 
       return existingProject
@@ -44,7 +45,8 @@ export class ProjectImportExport {
     this.metadataManager.update({
       id: importedProject.id,
       name: importedProject.name,
-      lastModified: importedProject.lastModified
+      lastModified: importedProject.lastModified,
+      projectType: importedProject.projectType
     })
 
     return importedProject

@@ -1,10 +1,9 @@
 import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
-import { popupService } from '@/utility/popupService';
-import { checkDockEntryRequirements, dockRegistry, type MenuEntry } from '@/router/dockRegistry';
+import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
-import { createTruthTableProject } from '@/projects/create/truthTableProjectCreation';
-import { stateManager } from '@/states/stateManager';
+import { stateManager } from '@/projects/stateManager';
 import { dockviewService } from '@/utility/dockview/service';
+import { Toast } from '../toastService';
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -43,6 +42,7 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
 
   const registryEntry = dockRegistry.find(item => item.id === panelId);
   if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
+    console.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`);
     return false;
   }
 
@@ -59,78 +59,12 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       id: panelId,
       component: panelId,
       title: label,
-      position: position,
-      params: {
-        state: stateManager.state?.truthTable,
-        updateTruthTable
-      }
+      position: position
     });
     return true;
   } catch (err) {
-    console.error('Failed to add panel', err);
+    console.error('Failed to create panel', err);
+    Toast.error('Failed to create panel')
     return false;
   }
-}
-
-/**
- * Creates a new panel after first showing a popup.
- * @param panelId The id with which the new panel should be created.
- * @returns Wether or not the panel was sucessfully created.
- */
-export function createPanelAfterPopup(panelId: string): boolean;
-
-/**
- * Creates a new panel after first showing a popup.
- * @param menuEntry The menu entry whose id will be assigned to the new panel.
- * @returns Wether or not the panel was sucessfully created.
- */
-export function createPanelAfterPopup(menuEntry: MenuEntry): boolean;
-
-// Main function called by both overloads
-export function createPanelAfterPopup(panelIdOrMenuEntry: string | MenuEntry): boolean {
-  let panelId: string;
-  let menuEntry: MenuEntry | undefined;
-
-  // Type guard to determine which overload was called
-  if (typeof panelIdOrMenuEntry === 'string') {
-    panelId = panelIdOrMenuEntry;
-  } else {
-    menuEntry = panelIdOrMenuEntry;
-    if (!menuEntry?.panelId) return false;
-    panelId = menuEntry.panelId;
-  }
-
-  const registryEntry = dockRegistry.find(item => item.id === panelId);
-  if (!registryEntry?.projectPropsComponent) return false;
-
-  /**
-   * Defines project creation logic based on panel type.
-   * @param projectName The name of the project to be created
-   * @param props The custom project props
-   */
-  function createProject(projectName: string, props: Record<string, unknown>): undefined {
-    switch (panelId) {
-      case 'truth-table':
-      case 'kv-diagram':
-        if (props.inputCount === null || props.outputCount === null) {
-          return;
-        }
-
-        createTruthTableProject(
-          projectName,
-          props.inputCount as number,
-          props.outputCount as number
-        );
-        break;
-
-      default:
-        break;
-    }
-  };
-
-  popupService.open({
-    projectPropsComponent: registryEntry.projectPropsComponent,
-    onProjectCreate: createProject,
-  });
-  return true;
 }

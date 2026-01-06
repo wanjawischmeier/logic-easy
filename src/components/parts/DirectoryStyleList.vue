@@ -18,10 +18,10 @@
           <!-- right cell: actual item button aligned to same row height -->
           <div class="h-10 flex items-center">
             <button @click="entry.action()" :disabled="entry.disabled"
-              class="group flex items-center hover:text-secondary-variant underline-offset-4 disabled:bg-transparent disabled:no-underline disabled:text-on-surface-disabled rounded-xs cursor-pointer disabled:cursor-default w-full text-left"
+              class="group flex items-center hover:text-secondary-variant underline-offset-4 disabled:bg-transparent disabled:no-underline disabled:text-on-surface-disabled rounded-xs cursor-pointer disabled:cursor-default w-full text-left truncate"
               :title="entry.label">
               <span class="group-hover:underline">{{ entry.label }}</span>
-              <span v-if="entry.subtitle" class="ml-2 text-on-surface-disabled group-hover:no-underline">{{
+              <span v-if="entry.subtitle" class="ml-2 text-on-surface-disabled group-hover:no-underline truncate">{{
                 entry.subtitle }}</span>
             </button>
           </div>

@@ -10,7 +10,6 @@
           </div>
         </a>
 
-
         <HeaderMenuBar />
       </div>
 
@@ -34,10 +33,24 @@
               @keydown.enter="handleProjectEnter" @focusout="handleRenameProject" />
           </div>
 
-          <button type="button" @click="stateManager.closeCurrentProject" title="Close project"
-            class="h-full px-3 mb-px text-xl rounded-xs border border-transparent hover:bg-red-900 hover:border-on-surface">
-            <span aria-hidden="true">×</span>
+          <button type="button" @click="projectManager.closeCurrentProject" :disabled="stateManager.isSaving.value"
+            :title="stateManager.isSaving.value ? 'Saving...' : 'Close project'" class="relative h-full px-3 mb-px flex items-center justify-center
+           text-xl rounded-xs border border-transparent
+           text-primary-variant"
+            :class="stateManager.isSaving.value ? '' : 'hover:text-on-surface hover:bg-red-900 hover:border-on-surface'">
+
+            <span class="-translate-y-px" :class="stateManager.isSaving.value ? 'text-transparent' : ''"
+              aria-hidden="true">
+              ×
+            </span>
+
+            <div v-if="stateManager.isSaving.value" class="absolute inset-0 flex items-center justify-center">
+              <div
+                class="animate-spin aspect-square h-2/5 translate-y-px border-2 border-primary-variant border-t-transparent rounded-full">
+              </div>
+            </div>
           </button>
+
         </div>
       </transition>
     </div>
@@ -48,7 +61,7 @@
 import { ref, watch, computed } from 'vue';
 import HeaderMenuBar from './HeaderMenuBar.vue';
 import { projectManager } from '@/projects/projectManager';
-import { stateManager } from '@/states/stateManager';
+import { stateManager } from '@/projects/stateManager';
 
 const projectInput = ref<HTMLInputElement>()
 const currentProjectInfo = computed(() => projectManager.currentProjectInfo)

@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-8 font-mono">
+  <div class="mt-8 font-mono" :key="renderKey">
     <div v-if="variables.length < 2 || variables.length > 4">
       Only 2, 3, or 4 variables are supported for KV-Diagrams.
     </div>
@@ -68,9 +68,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { type Formula, FunctionType, defaultFunctionType } from '../utility/types';
-
 import {
   getLeftVariables,
   getTopVariables,
@@ -79,7 +78,7 @@ import {
   getBinaryString
 } from '@/utility/truthtable/kvDiagramLayout';
 import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights';
-import type { TruthTableData, TruthTableCell } from '@/states/truthTableState';
+import type { TruthTableData, TruthTableCell } from '@/projects/truth-table/TruthTableProject';
 
 const props = defineProps<{
   inputVars: string[];
@@ -152,4 +151,13 @@ const getHighlights = (rIdx: number, cIdx: number) => {
     props.inputVars
   );
 };
+
+const renderKey = ref(0);
+
+const refresh = async () => {
+  await nextTick();
+  renderKey.value++;
+};
+
+defineExpose({ refresh });
 </script>

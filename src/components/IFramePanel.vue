@@ -1,3 +1,11 @@
+<template>
+    <div ref="containerRef" class="w-full h-full" style="position: relative;">
+        <slot />
+    </div>
+</template>
+
+<style scoped></style>
+
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 
@@ -151,11 +159,3 @@ defineExpose({
     updatePosition: updateIframePosition
 })
 </script>
-
-<template>
-    <div ref="containerRef" class="w-full h-full" style="position: relative;">
-        <slot />
-    </div>
-</template>
-
-<style scoped></style>

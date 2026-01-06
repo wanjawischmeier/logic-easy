@@ -1,5 +1,52 @@
+<template>
+  <div ref="containerRef"
+    :class="['w-full h-full overflow-auto flex', centeredHorizontally ? 'justify-center' : 'justify-start', centeredVertically ? ' items-center' : 'items-start']">
+    <table v-if="modelValue.length && inputVars.length && outputVars.length" ref="tableRef"
+      class="bg-surface-1 border border-primary table-fixed w-auto select-none">
+      <thead>
+        <tr>
+          <th v-for="(input, idx) in inputVars" :key="input"
+            class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1 w-16"
+            :class="{ 'border-r-4': idx === inputVars.length - 1, 'border-r': idx !== inputVars.length - 1 }">
+            <vue-latex :expression="input" display-mode />
+          </th>
+          <th v-for="output in outputVars" :key="output"
+            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r last:border-r-0 w-24">
+            <vue-latex :expression="output" display-mode />
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(row, rowIdx) in modelValue" :key="rowIdx">
+          <!-- Generated Input Columns -->
+          <td v-for="(input, colIdx) in inputVars" :key="'in-' + colIdx"
+            class="text-lg font-mono text-center align-middle bg-surface-1 border-b border-primary" :class="{
+              'border-r-4': colIdx === inputVars.length - 1,
+              'border-r': colIdx !== inputVars.length - 1
+            }">
+            <div class="flex-1 flex items-center justify-center">
+              <vue-latex :fontsize=12 :expression="getInputValue(rowIdx, colIdx).toString()" display-mode />
+            </div>
+          </td>
+          <!-- Editable Output Columns -->
+          <td v-for="(cell, colIdx) in row" :key="'out-' + colIdx"
+            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-all duration-100"
+            :class="{
+              'border-r': colIdx !== row.length - 1
+            }" @click="toggleCell(rowIdx, colIdx)">
+            <div class="flex-1 flex items-center justify-center">
+              <vue-latex :fontsize=12 :expression="cell.toString()" display-mode />
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div v-else class="p-4">No data :/</div>
+  </div>
+</template>
+
 <script setup lang="ts">
-import type { TruthTableData } from '@/states/truthTableState';
+import type { TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
 
@@ -82,50 +129,3 @@ watch(
   { deep: true }
 )
 </script>
-
-<template>
-  <div ref="containerRef"
-    :class="['w-full h-full overflow-auto flex', centeredHorizontally ? 'justify-center' : 'justify-start', centeredVertically ? ' items-center' : 'items-start']">
-    <table v-if="modelValue.length && inputVars.length && outputVars.length" ref="tableRef"
-      class="bg-surface-1 border border-primary table-fixed w-auto select-none">
-      <thead>
-        <tr>
-          <th v-for="(input, idx) in inputVars" :key="input"
-            class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1 w-16"
-            :class="{ 'border-r-4': idx === inputVars.length - 1, 'border-r': idx !== inputVars.length - 1 }">
-            <vue-latex :expression="input" display-mode />
-          </th>
-          <th v-for="output in outputVars" :key="output"
-            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r last:border-r-0 w-24">
-            <vue-latex :expression="output" display-mode />
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(row, rowIdx) in modelValue" :key="rowIdx">
-          <!-- Generated Input Columns -->
-          <td v-for="(input, colIdx) in inputVars" :key="'in-' + colIdx"
-            class="text-lg font-mono text-center align-middle bg-surface-1 border-b border-primary" :class="{
-              'border-r-4': colIdx === inputVars.length - 1,
-              'border-r': colIdx !== inputVars.length - 1
-            }">
-            <div class="flex-1 flex items-center justify-center">
-              <vue-latex :fontsize=12 :expression="getInputValue(rowIdx, colIdx).toString()" display-mode />
-            </div>
-          </td>
-          <!-- Editable Output Columns -->
-          <td v-for="(cell, colIdx) in row" :key="'out-' + colIdx"
-            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-all duration-100"
-            :class="{
-              'border-r': colIdx !== row.length - 1
-            }" @click="toggleCell(rowIdx, colIdx)">
-            <div class="flex-1 flex items-center justify-center">
-              <vue-latex :fontsize=12 :expression="cell.toString()" display-mode />
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <div v-else class="p-4">No data :/</div>
-  </div>
-</template>
