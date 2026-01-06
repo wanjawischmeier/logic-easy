@@ -17,9 +17,9 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           if (req.url === '/logic-easy/docs' || req.url === '/logic-easy/docs/') {
-            req.url = '/logic-easy/docs/index.html'
+            req.url = '/logic-easy/docs/.vitepress/dist/index.html'
           }
-          if (req.url?.startsWith('/logic-easy/docs')) {
+          else if (req.url?.startsWith('/logic-easy/docs')) {
             // Rewrite the URL to point to the correct location
             const newPath = req.url.replace('/logic-easy/docs', '/logic-easy/docs/.vitepress/dist')
             req.url = newPath
