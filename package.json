@@ -16,8 +16,8 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
-    "fsm:build": "cd public/fsm-engine && npm run build",
-    "docs:build": "cd public/docs && npm run build"
+    "fsm:build": "cd public/fsm-engine && npm ci && npm run build",
+    "docs:build": "cd public/docs && npm ci && npm run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
