@@ -59,11 +59,7 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       id: panelId,
       component: panelId,
       title: label,
-      position: position,
-      params: {
-        state: stateManager.state?.truthTable,
-        updateTruthTable
-      }
+      position: position
     });
     return true;
   } catch (err) {

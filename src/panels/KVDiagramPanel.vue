@@ -48,6 +48,7 @@ interface KVPanelState {
 
 // Load saved panel state
 const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
+const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 
 const selectedType = ref<FunctionType>(
   panelState?.selectedType ?? defaultFunctionType
@@ -57,16 +58,26 @@ const selectedOutputIndex = ref(
 );
 
 onMounted(() => {
-  disposable = props.params.api.onDidTitleChange(() => {
+  const titleDisposable = props.params.api.onDidTitleChange(() => {
     title.value = props.params.api.title ?? ''
   })
   title.value = props.params.api.title ?? ''
 
+  // Listen to panel visibility changes
+  // TODO: Optimize this, rn just for testing
+  const visibilityDisposable = props.params.api.onDidActiveChange(() => {
+    if (props.params.api.isActive) {
+      // Panel became active/visible - refresh latex rendering
+      console.log('Refresh kv diagram')
+      kvDiagramRef.value?.refresh()
+    }
+  })
+
   // Store unsubscribe for cleanup
-  const originalDispose = disposable?.dispose
   disposable = {
     dispose: () => {
-      originalDispose?.()
+      titleDisposable?.()
+      visibilityDisposable?.()
     }
   }
 })

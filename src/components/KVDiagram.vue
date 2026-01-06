@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { type Formula, FunctionType, defaultFunctionType } from '../utility/types';
 import {
   getLeftVariables,
@@ -99,12 +99,6 @@ const leftVariables = computed(() => getLeftVariables(variables.value));
 const topVariables = computed(() => getTopVariables(variables.value));
 const rowCodes = computed(() => getRowCodes(variables.value.length));
 const colCodes = computed(() => getColCodes(variables.value.length));
-
-const renderKey = ref(0);
-onMounted(() => {
-  console.log('kv mount2')
-  renderKey.value++;
-})
 
 const getValue = (rowCode: string, colCode: string) => {
   if (!props.modelValue) return '-';
@@ -157,4 +151,13 @@ const getHighlights = (rIdx: number, cIdx: number) => {
     props.inputVars
   );
 };
+
+const renderKey = ref(0);
+
+const refresh = async () => {
+  await nextTick();
+  renderKey.value++;
+};
+
+defineExpose({ refresh });
 </script>
