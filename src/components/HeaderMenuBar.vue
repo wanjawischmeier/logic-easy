@@ -48,7 +48,6 @@ import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry';
 import { createPanel } from '@/utility/dockview/integration';
 import { popupService, showProjectCreationPopup } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
-import ManualPopup from './popups/ManualPopup.vue';
 import { projectManager } from '@/projects/projectManager';
 import { stateManager } from '@/projects/stateManager';
 
@@ -83,7 +82,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
     { label: 'VHDL', tooltip: '.vhdl' },
   ],
   Help: [
-    { label: 'Manual', action: () => popupService.open({ component: ManualPopup }) },
+    { label: 'Manual', action: () => window.open('/logic-easy/docs', '_blank', 'noopener,noreferrer') },
     { label: 'About', action: () => popupService.open({ component: CreditPopup }) },
   ],
 }));

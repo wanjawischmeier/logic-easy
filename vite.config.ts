@@ -12,6 +12,22 @@ export default defineConfig({
     vueJsx(),
     vueDevTools(),
     tailwindcss(),
+    {
+      name: 'docs-redirect',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === '/logic-easy/docs' || req.url === '/logic-easy/docs/') {
+            req.url = '/logic-easy/docs/index.html'
+          }
+          if (req.url?.startsWith('/logic-easy/docs')) {
+            // Rewrite the URL to point to the correct location
+            const newPath = req.url.replace('/logic-easy/docs', '/logic-easy/docs/.vitepress/dist')
+            req.url = newPath
+          }
+          next()
+        })
+      }
+    }
   ],
   resolve: {
     alias: {
@@ -25,7 +41,6 @@ export default defineConfig({
     include: ['buffer']
   },
   base: '/logic-easy/',
-
   build: {
     rollupOptions: {
       output: {
