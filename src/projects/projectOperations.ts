@@ -28,6 +28,16 @@ export class ProjectOperations {
       state: StateManager.defaultState
     }
 
+    // Initialize project state using the static createState method BEFORE saving
+    const projectTypeInfo = projectTypes[projectType]
+    if (projectTypeInfo?.projectClass) {
+      projectTypeInfo.projectClass.createState(project.props)
+      project.state = {
+        ...project.state,
+        ...stateManager.state
+      }
+    }
+
     ProjectStorage.saveProject(project)
     this.metadataManager.update({
       id: project.id,
@@ -36,18 +46,10 @@ export class ProjectOperations {
       projectType: project.projectType,
     })
 
-    // Open the created project (will load state into stateManager)
+    // Open the created project
     const opened = this.lifecycle.open(project.id)
     if (!opened) {
       throw new Error(`Failed to open created project: ${this.metadataManager.projectString(project)}`)
-    }
-
-    // Initialize project state using the static createState method
-    const projectTypeInfo = projectTypes[projectType]
-    if (projectTypeInfo?.projectClass) {
-      projectTypeInfo.projectClass.createState(project.props)
-      // Save the initialized state
-      this.updateState(project.id, stateManager.state)
     }
 
     // Call callback after everything is set up
