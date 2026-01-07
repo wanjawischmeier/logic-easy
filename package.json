@@ -17,7 +17,8 @@
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
     "fsm:build": "cd public/fsm-engine && npm ci && npm run build",
-    "docs:build": "cd public/docs && npm ci && npm run build"
+    "docs:build": "cd public/docs && npm ci && npm run build",
+    "copy-docs": "node scripts/copy-docs.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
