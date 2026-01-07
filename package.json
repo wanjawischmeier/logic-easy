@@ -10,7 +10,6 @@
     "dev": "vite",
     "prebuild": "npm run fsm:build && npm run docs:build",
     "build": "run-p type-check \"build-only {@}\" --",
-    "postbuild": "node scripts/copy-docs.js",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",
@@ -18,7 +17,8 @@
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
     "fsm:build": "cd public/fsm-engine && npm ci && npm run build",
-    "docs:build": "cd public/docs && npm ci && npm run build"
+    "docs:build": "cd public/docs && npm ci && npm run build && node ../../scripts/copy-docs.js",
+    "docs:dev": "cd public/docs && npm run dev"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
