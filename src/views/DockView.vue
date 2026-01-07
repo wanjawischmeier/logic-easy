@@ -51,8 +51,6 @@ import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockview/service'
 import type { BaseProjectProps } from '@/projects/Project'
 import { Toast } from '@/utility/toastService'
-import type KVDiagramPanel from '@/panels/KVDiagramPanel.vue'
-import { getDockviewApi } from '@/utility/dockview/integration'
 
 const componentsForDockview = dockComponents
 const dockviewApi = ref<DockviewApi | null>(null)

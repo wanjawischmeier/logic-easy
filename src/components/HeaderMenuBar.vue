@@ -1,7 +1,7 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
     <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
-      <button class="border border-transparent  hover:border-surface-3 hover:bg-surface-2"
+      <button class="border border-transparent pb-0.5  hover:border-surface-3 hover:bg-surface-2"
         @click.stop="toggleMenu(menu)" :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
         {{ menu }}
       </button>

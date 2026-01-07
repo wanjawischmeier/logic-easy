@@ -1,25 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, watch } from 'vue'
 import TruthTable from '../components/TruthTable.vue'
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
-import type { IDockviewPanelProps } from 'dockview-vue';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
-
-const props = defineProps<Partial<IDockviewPanelProps>>()
-
-const title = ref('')
-let disposable: { dispose?: () => void } | null = null
-
-onMounted(() => {
-  disposable = props.params.api.onDidTitleChange(() => {
-    title.value = props.params.api.title ?? ''
-  })
-  title.value = props.params.api.title ?? ''
-})
-
-onBeforeUnmount(() => {
-  disposable?.dispose?.()
-})
 
 // Access state from params
 const { inputVars, outputVars, values } = TruthTableProject.useState()
