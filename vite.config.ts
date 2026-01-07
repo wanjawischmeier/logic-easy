@@ -13,6 +13,7 @@ export default defineConfig({
     vueDevTools(),
     tailwindcss(),
     {
+      // For routing docs from public folder on dev builds
       name: 'docs-redirect',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {

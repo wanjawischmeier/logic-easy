@@ -82,7 +82,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
     { label: 'VHDL', tooltip: '.vhdl' },
   ],
   Help: [
-    { label: 'Manual', action: () => window.open('/logic-easy/docs', '_blank', 'noopener,noreferrer') },
+    { label: 'Manual', action: () => window.open('/logic-easy/docs/', '_blank', 'noopener,noreferrer') },
     { label: 'About', action: () => popupService.open({ component: CreditPopup }) },
   ],
 }));
