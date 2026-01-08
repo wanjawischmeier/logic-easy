@@ -29,6 +29,7 @@
     "buffer": "^6.0.3",
     "dagre": "^0.8.5",
     "dockview-vue": "^4.11.0",
+    "html2canvas-pro": "^1.6.4",
     "jotai": "^2.16.0",
     "katex": "^0.13.24",
     "konva": "^10.0.12",
