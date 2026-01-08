@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
+import IframePanel from '@/components/IFramePanel.vue'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
@@ -20,9 +21,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div style="height:100%; color:red;">
-    Hello World
-    <div>{{ title }}</div>
+  <div class="h-full text-white flex flex-col gap-2 p-2">
+    <div class="font-semibold">{{ title }}</div>
+    <IframePanel iframe-key="__fsm_preloaded_iframe" src="/logic-easy/fsm-engine/dist/index.html"
+      :visible="params.api.isVisible" class="flex-1" />
   </div>
 </template>
 

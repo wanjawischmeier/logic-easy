@@ -1,6 +1,7 @@
-import { stateManager } from "../states/stateManager";
-import { minifyTruthTable } from "./espresso";
-import { FunctionType, type Formula, type Literal, type Term, type TruthTableData } from "./types";
+import { stateManager } from "@/projects/stateManager";
+import type { TruthTableData } from "@/projects/truth-table/TruthTableProject";
+import { minifyTruthTable } from "@/utility/truthtable/espresso";
+import { FunctionType, type Formula, type Literal, type Term } from "@/utility/types";
 
 /**
  * Interprets a minified truth table into a logical function (list of terms).
@@ -60,8 +61,25 @@ export function interpretMinifiedTable(
   // Sort terms to ensure consistent order (e.g. !a before b)
   terms.sort((a, b) => compareTerms(a, b, inputVars));
 
-  if (terms.length === 0 || terms[0]?.literals.length === 0) {
-    terms = [{ literals: [{ variable: '0', negated: false }] }];
+  // Handle edge cases: tautology and contradiction
+  if (terms.length === 0) {
+    // No terms at all
+    if (formulaType === 'DNF') {
+      // DNF with no terms = always false (contradiction)
+      terms = [{ literals: [{ variable: '0', negated: false }] }];
+    } else {
+      // CNF with no clauses = always true (tautology)
+      terms = [{ literals: [{ variable: '1', negated: false }] }];
+    }
+  } else if (terms.some(t => t.literals.length === 0)) {
+    // At least one term has no literals (from all don't-cares)
+    if (formulaType === 'DNF') {
+      // DNF with term that has no literals = always true (tautology)
+      terms = [{ literals: [{ variable: '1', negated: false }] }];
+    } else {
+      // CNF with clause that has no literals = always false (contradiction)
+      terms = [{ literals: [{ variable: '0', negated: false }] }];
+    }
   }
 
   return { type: formulaType, terms };
@@ -85,9 +103,22 @@ function getVariableValue(term: Term, variable: string): number {
 }
 
 export const updateTruthTable = async (newValues: TruthTableData) => {
-  if (!stateManager.state.truthTable) return;
+  console.log('[updateTruthTable] Called with new values:', newValues);
 
-  stateManager.state.truthTable.values = newValues
+  if (!stateManager.state.truthTable) {
+    console.warn('[updateTruthTable] No truth table state found');
+    return;
+  }
+
+  console.log('[updateTruthTable] Current state before update:', {
+    hasValues: !!stateManager.state.truthTable.values,
+    currentValues: stateManager.state.truthTable.values,
+    newValues
+  });
+
+  // Replace the entire truthTable object to trigger computed refs in components
+  Object.assign(stateManager.state.truthTable.values, newValues);
+  console.log('[updateTruthTable] State updated, values are now:', stateManager.state.truthTable.values);
 
   // Calculate formulas for each output variable
   const formulas: Record<string, Record<string, Formula>> = {}
@@ -99,12 +130,23 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
     // Extract single output column
     const singleOutputValues = newValues.map(row => [row[outputIdx]]) as TruthTableData
 
+    // Check if output is all zeros or all ones (trivial cases)
+    const hasOne = singleOutputValues.some(row => row[0] === 1)
+    const hasZero = singleOutputValues.some(row => row[0] === 0)
+    const hasDontCare = singleOutputValues.some(row => row[0] === '-')
+
     // 1. DNF: Minify ON-set
-    const minifiedDNF = await minifyTruthTable(
-      stateManager.state.truthTable.inputVars,
-      [outputVar],
-      singleOutputValues
-    )
+    let minifiedDNF: TruthTableData
+    if (!hasOne && !hasDontCare) {
+      // All zeros - empty ON-set, no need to run Espresso
+      minifiedDNF = []
+    } else {
+      minifiedDNF = await minifyTruthTable(
+        stateManager.state.truthTable.inputVars,
+        [outputVar],
+        singleOutputValues
+      )
+    }
 
     // 2. CNF: Minify OFF-set (invert output)
     const invertedValues = singleOutputValues.map(row => {
@@ -114,11 +156,17 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
       return [val]
     }) as TruthTableData
 
-    const minifiedCNF = await minifyTruthTable(
-      stateManager.state.truthTable.inputVars,
-      [outputVar],
-      invertedValues
-    )
+    let minifiedCNF: TruthTableData
+    if (!hasZero && !hasDontCare) {
+      // All ones - empty OFF-set, no need to run Espresso
+      minifiedCNF = []
+    } else {
+      minifiedCNF = await minifyTruthTable(
+        stateManager.state.truthTable.inputVars,
+        [outputVar],
+        invertedValues
+      )
+    }
 
     formulas[outputVar] = {
       DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, stateManager.state.truthTable.inputVars),
@@ -126,5 +174,6 @@ export const updateTruthTable = async (newValues: TruthTableData) => {
     }
   }
 
-  stateManager.state.truthTable.formulas = formulas
+  Object.assign(stateManager.state.truthTable.formulas, formulas);
+  console.log('[updateTruthTable] Full stateManager.state:', stateManager.state);
 }

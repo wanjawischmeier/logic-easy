@@ -7,15 +7,33 @@
       </div>
       <button v-for="(item, idx) in values" :key="idx" @click="select(idx, item)" :aria-pressed="idx === selected"
         class="px-3 py-1.5 rounded relative z-10 transition-colors duration-100"
-        :class="idx === selected ? 'text-on-surface' : ''">
+        :class="randomSelectMode && idx === selected ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]' : ''">
         {{ getLabel(item) }}
       </button>
     </div>
   </div>
 </template>
 
+<!-- For the random select easter egg-->
+<style>
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+</style>
+
 <script setup lang="ts">
-import { ref, toRefs, watch } from 'vue'
+import { stateManager } from '@/projects/stateManager';
+import { onMounted, ref, toRefs, watch } from 'vue'
 
 const props = defineProps<{
   values: unknown[]
@@ -35,6 +53,62 @@ const { values, initialSelected, labelKey, labelFn, onSelect, label } = toRefs(p
 const selected = ref<number | null>(
   initialSelected?.value ?? (values.value && values.value.length ? 0 : null)
 )
+
+// Animation state tracking
+let animationTimeout: number | null = null
+const isAnimating = ref(false)
+
+function equal2D<T>(a: T[][], b: T[][]): boolean {
+  // outer length
+  if (a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i++) {
+    const rowA = a[i];
+    const rowB = b[i];
+    if (!rowA || !rowB) return false
+
+    // inner length
+    if (rowA.length !== rowB.length) return false;
+
+    for (let j = 0; j < rowA.length; j++) {
+      if (rowA[j] !== rowB[j]) return false;
+    }
+  }
+
+  return true
+}
+
+// For the random select easter egg
+const randomSelectMode = ref(false)
+function checkRandomSelectMode() {
+  const truthTable = stateManager.state.truthTable
+  if (!truthTable || truthTable.inputVars.length !== 4) {
+    randomSelectMode.value = false
+    return
+  }
+
+  randomSelectMode.value = equal2D(truthTable.values, [
+    [0, 0, 0, 0],
+    [1, 1, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [1, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 0, 0],
+    [1, 0, 0, 0],
+    [1, 0, 0, 0],
+    [0, 0, 0, 0],
+    [1, 1, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ])
+}
+
+onMounted(checkRandomSelectMode)
+watch(stateManager.state, checkRandomSelectMode)
 
 watch(initialSelected, (v) => {
   selected.value = v ?? (values.value && values.value.length ? 0 : null)
@@ -56,11 +130,79 @@ function getLabel(item: unknown) {
   return String(item ?? '')
 }
 
-function select(idx: number, item: unknown) {
-  selected.value = idx
+function emitSelection(idx: number, item: unknown) {
   emit('update:selected', idx)
   if (onSelect?.value && typeof onSelect.value === 'function') {
     onSelect.value(item, idx)
   }
+}
+
+function select(idx: number, item: unknown) {
+  if (randomSelectMode.value) {
+    selectRandom()
+    return
+  }
+
+  selected.value = idx
+  emitSelection(idx, item)
+}
+
+function selectRandom() {
+  // If already animating, stop and select current
+  if (isAnimating.value && animationTimeout !== null) {
+    clearTimeout(animationTimeout)
+    animationTimeout = null
+    isAnimating.value = false
+
+    // Emit current selection
+    const targetItem = values.value[selected.value ?? 0]
+    emitSelection(selected.value ?? 0, targetItem)
+    return
+  }
+
+  const INITIAL_VELOCITY = 3 + Math.random() * 3 // switches per frame
+  const DAMPING = 0.75 // velocity multiplier per bounce
+  const MIN_VELOCITY = 0.15 // stop when velocity drops below this
+  const FRAME_DELAY = 50 // milliseconds between updates
+
+  const maxIndex = values.value.length - 1
+  if (maxIndex < 0) return
+
+  let currentPosition = selected.value ?? 0
+  let velocity = INITIAL_VELOCITY
+  let direction = 1
+  isAnimating.value = true
+
+  const animate = () => {
+    currentPosition += velocity * direction
+
+    // Bounce off edges
+    if (currentPosition >= maxIndex) {
+      currentPosition = maxIndex
+      direction = -1
+      velocity *= DAMPING
+    } else if (currentPosition <= 0) {
+      currentPosition = 0
+      direction = 1
+      velocity *= DAMPING
+    }
+
+    const displayIndex = Math.round(currentPosition)
+    selected.value = displayIndex
+
+    // Continue animation or finish
+    if (velocity > MIN_VELOCITY) {
+      animationTimeout = setTimeout(animate, FRAME_DELAY) as unknown as number
+    } else {
+      isAnimating.value = false
+      animationTimeout = null
+
+      // Animation complete - select target
+      const targetItem = values.value[selected.value]
+      emitSelection(selected.value, targetItem)
+    }
+  }
+
+  animate()
 }
 </script>

@@ -1,7 +1,11 @@
 import { reactive, type UnwrapNestedRefs } from 'vue'
-import { ProjectStorage } from './projectStorage'
-import type { ProjectMetadata, ProjectInfo, Project } from '../utility/types'
+import { ProjectStorage } from '@/projects/projectStorage'
+import type { ProjectMetadata, ProjectInfo, StoredProject } from './Project'
 
+/**
+ * Maximum number of projects that are kept in local storage
+ * and shown in recents.
+ */
 const MAX_PROJECTS = 5
 
 /**
@@ -12,6 +16,11 @@ export class ProjectMetadataManager {
 
   constructor() {
     this.metadata = reactive(ProjectStorage.loadMetadata())
+
+    // If metadata is empty, scan localStorage for projects and rebuild it
+    if (this.metadata.projects.length === 0) {
+      this.rebuildMetadataFromStorage()
+    }
   }
 
   /**
@@ -31,7 +40,7 @@ export class ProjectMetadataManager {
   /**
    * Find project info by ID
    */
-  findById(projectId: string): ProjectInfo | null {
+  findById(projectId: number): ProjectInfo | null {
     return this.metadata.projects.find(p => p.id === projectId) || null
   }
 
@@ -51,7 +60,7 @@ export class ProjectMetadataManager {
   /**
    * Remove project from metadata
    */
-  remove(projectId: string): void {
+  remove(projectId: number): void {
     this.metadata.projects = this.metadata.projects.filter(p => p.id !== projectId)
     ProjectStorage.saveMetadata(this.metadata)
   }
@@ -78,7 +87,36 @@ export class ProjectMetadataManager {
   /**
    * Format project as string for logging
    */
-  projectString(project: Project | ProjectInfo): string {
+  projectString(project: StoredProject | ProjectInfo): string {
     return `${project.name} (id=${project.id})`
+  }
+
+  /**
+   * Rebuild metadata by scanning all projects in localStorage
+   */
+  private rebuildMetadataFromStorage(): void {
+    const projectIds = ProjectStorage.getAllProjectIds()
+
+    if (projectIds.length === 0) {
+      return
+    }
+
+    console.warn(`No metadata found: Rebuilding metadata from ${projectIds.length} projects in localStorage`)
+
+    const projectInfos: ProjectInfo[] = []
+    for (const projectId of projectIds) {
+      const project = ProjectStorage.loadProject(projectId)
+      if (project) {
+        projectInfos.push({
+          id: project.id,
+          name: project.name,
+          lastModified: project.lastModified,
+          projectType: project.projectType
+        })
+      }
+    }
+
+    this.metadata.projects = projectInfos
+    ProjectStorage.saveMetadata(this.metadata)
   }
 }

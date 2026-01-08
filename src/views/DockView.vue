@@ -1,70 +1,88 @@
+<template>
+  <div class="flex flex-col h-screen bg-surface-1">
+    <div class="h-[39px]">
+      <DockViewHeader />
+    </div>
+
+    <div class="h-px bg-surface-2"></div>
+
+    <div class="flex-1 min-h-0 relative">
+      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
+        :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
+
+      <GettingStartedView v-if="!hasPanels">
+      </GettingStartedView>
+
+      <!-- Loading Screen -->
+      <LoadingScreen />
+
+      <!-- Popup System -->
+      <template v-if="popupService.current.value">
+        <!-- Generic Popup -->
+        <component v-if="!popupService.isProjectCreation && 'component' in popupService.current.value"
+          :is="popupService.current.value.component" v-bind="popupService.current.value.props" />
+
+        <!-- Project Creation Popup -->
+        <ProjectCreationPopup
+          v-if="popupService.isProjectCreation && 'projectPropsComponent' in popupService.current.value" :visible="true"
+          :initial-props="popupService.current.value.initialProps" @close="popupService.close"
+          @create="handleProjectCreate" v-slot="slotProps">
+          <component :is="popupService.current.value.projectPropsComponent" :model-value="slotProps.modelValue"
+            @update:model-value="slotProps['onUpdate:modelValue']"
+            :register-validation="slotProps.registerValidation" />
+        </ProjectCreationPopup>
+      </template>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import DockViewHeader from '../components/DockViewHeader.vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
-import { updateTruthTable } from '@/utility/truthTableInterpreter'
+import DockViewHeader from '@/components/DockViewHeader.vue'
 import { dockComponents } from '@/router/dockRegistry'
-import { stateManager } from '@/states/stateManager'
+import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import GettingStartedView from './GettingStartedView.vue'
 import { popupService } from '@/utility/popupService'
 import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
+import LoadingScreen from '@/components/LoadingScreen.vue'
+import { loadingService } from '@/utility/loadingService'
+import { dockviewService } from '@/utility/dockview/service'
+import type { BaseProjectProps } from '@/projects/Project'
+import { Toast } from '@/utility/toastService'
 
-type DockviewApiMinimal = {
-  addPanel: (opts: {
-    id: string;
-    component: string;
-    title?: string;
-    params?: Record<string, unknown>;
-    position?: unknown;
-  }) => void;
-  panels: Array<{
-    id: string;
-    api: {
-      setActive: () => void;
-    };
-  }>;
-};
-
-const componentsForDockview = dockComponents;
+const componentsForDockview = dockComponents
 const dockviewApi = ref<DockviewApi | null>(null)
-let layoutChangeDisposable: { dispose?: () => void } | null = null
 let panelDisposable: { dispose?: () => void } | null = null
+let layoutChangeDisposable: { dispose?: () => void } | null = null
 
-const hasPanels = ref(true)
+// Initialize pending project ID immediately
+let pendingInitialProjectId: number | null = projectManager.getPendingInitialProjectId()
+let isInitializingProject = pendingInitialProjectId !== null
 let isRestoringLayout = false
+const hasPanels = ref(pendingInitialProjectId !== null)
 
-const loadDefaultLayout = (api: DockviewApi) => {
-  api.addPanel({
-    id: 'truth-table',
-    component: 'truth-table',
-    title: 'Truth Table',
-    params: {
-      state: stateManager.state!.truthTable,
-      updateTruthTable
-    },
-  })
-
-  api.addPanel({
-    id: 'kv-diagram',
-    component: 'kv-diagram',
-    title: 'KV Diagram',
-    position: { referencePanel: 'truth-table', direction: 'right' },
-    params: {
-      state: stateManager.state!.truthTable,
-      updateTruthTable,
-    },
-  })
+if (pendingInitialProjectId !== null) {
+  console.log('Pending project to load on page load:', pendingInitialProjectId)
+  loadingService.show('Loading page...')
+} else {
+  // No project to load, ensure loading screen is hidden
+  loadingService.hide()
 }
 
-const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
+// Helper function to restore default panel layout
+const restoreDefaultLayout = () => {
+  const projectClass = projectManager.currentProjectClass
+  const props = projectManager.currentProjectProps
+  if (projectClass && props) {
+    projectClass.restoreDefaultPanelLayout(props)
+  }
+}
+
+const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
   // Set flag to prevent premature project close during restoration
   isRestoringLayout = true
-
-  // Initial calculation
-  if (stateManager.state!.truthTable) {
-    updateTruthTable(stateManager.state!.truthTable.values)
-  }
 
   // Clear existing panels only when switching projects
   if (isProjectChange) {
@@ -84,60 +102,79 @@ const restoreLayout = (api: DockviewApi, isProjectChange = false) => {
       console.log('Loaded layout from project state')
 
       // Check if any panels were restored
-      if (api.panels.length === 0 && stateManager.state.truthTable) {
+      if (api.panels.length === 0) {
         console.log('No panels in saved layout, restoring default layout')
-        loadDefaultLayout(api)
-      } else {
-        // Update all panel params to use current state reference
-        api.panels.forEach(panel => {
-          panel.api.updateParameters({
-            state: stateManager.state!.truthTable,
-            updateTruthTable,
-          })
-        })
+        restoreDefaultLayout()
       }
     } catch (err) {
       console.error('Failed to load layout from project state:', err)
       console.warn('Falling back to default layout')
-      loadDefaultLayout(api)
+      Toast.warning('Failed to load project layout, using default')
+      restoreDefaultLayout()
     }
-  } else if (stateManager.state.truthTable) {
+  } else {
     // No saved layout, load default
     console.log('No saved layout, loading default')
-    loadDefaultLayout(api)
+    restoreDefaultLayout()
   }
 
   // Clear flag after restoration is complete
   isRestoringLayout = false
 }
 
-const onReady = (event: DockviewReadyEvent) => {
-  dockviewApi.value = event.api
+const setupPendingProjectLoad = (api: DockviewApi) => {
+  if (pendingInitialProjectId !== null) {
+    const projectIdToLoad = pendingInitialProjectId
+    pendingInitialProjectId = null
 
-    // Expose dockview API and shared panel params so HeaderMenuBar can add panels
-    ; (window as unknown as { __dockview_api?: DockviewApiMinimal }).__dockview_api = event.api as unknown as DockviewApiMinimal;
+    console.log('Dockview ready, loading pending project:', projectIdToLoad)
+    loadingService.show('Opening project...')
 
-  // Restore layout for current project
-  restoreLayout(event.api)
+    setTimeout(() => {
+      try {
+        projectManager.openProject(projectIdToLoad)
+        // Layout restoration will be handled by the watch below
+      } catch (error) {
+        console.error('Failed to open project on page load:', error)
+        loadingService.hide()
+        isInitializingProject = false
+      }
+    }, 100)
+  }
+}
 
-  // Watch for project changes and restore layout
+const setupProjectChangeWatcher = (api: DockviewApi) => {
   watch(
-    () => projectManager.currentProjectInfo?.id,
-    (newProjectId, oldProjectId) => {
-      if (newProjectId && newProjectId !== oldProjectId && event.api) {
-        console.log('Project changed, restoring layout for:', newProjectId)
-        restoreLayout(event.api, true)
+    () => projectManager.currentProjectInfo,
+    (newProjectInfo, oldProjectInfo) => {
+      // Trigger when project changes or opens (null -> ID)
+      if (newProjectInfo?.id && newProjectInfo?.id !== oldProjectInfo?.id) {
+        const isProjectChange = oldProjectInfo?.id !== null && oldProjectInfo?.id !== undefined
+        console.log(isProjectChange ? `Project changed to: ${projectManager.projectString(newProjectInfo)}` : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`)
+
+        restoreLayout(api, isProjectChange).then(() => {
+          // Hide loading screen after layout is fully restored
+          setTimeout(() => {
+            loadingService.hide()
+            isInitializingProject = false
+          }, 100)
+        }).catch(err => {
+          console.error('Failed to restore layout:', err)
+          loadingService.hide()
+          isInitializingProject = false
+        })
       }
     }
   )
+}
 
-  // Track panel count
+const setupPanelTracking = (api: DockviewApi) => {
   const updatePanelCount = () => {
-    const panelCount = event.api.panels.length
+    const panelCount = api.panels.length
     hasPanels.value = panelCount > 0
 
-    // Close project when all panels are closed and we are not restoring a layout
-    if (panelCount === 0 && !isRestoringLayout) {
+    // Close project when all panels are closed and we are not restoring a layout or initializing
+    if (panelCount === 0 && !isRestoringLayout && !isInitializingProject) {
       projectManager.closeCurrentProject()
     }
   }
@@ -145,47 +182,56 @@ const onReady = (event: DockviewReadyEvent) => {
   updatePanelCount()
 
   // Listen for panel additions and removals
-  panelDisposable = event.api.onDidAddPanel(() => updatePanelCount())
-  const removeDisposable = event.api.onDidRemovePanel(() => updatePanelCount())
+  panelDisposable = api.onDidAddPanel(() => updatePanelCount())
+  const removeDisposable = api.onDidRemovePanel(() => updatePanelCount())
 
   const originalPanelDispose = panelDisposable.dispose
   panelDisposable.dispose = () => {
     originalPanelDispose?.()
     removeDisposable.dispose()
   }
+}
 
-  // Setup auto-save on layout changes
-  layoutChangeDisposable = event.api.onDidLayoutChange(() => {
+const setupLayoutAutoSave = (api: DockviewApi) => {
+  layoutChangeDisposable = api.onDidLayoutChange(() => {
+    // Skip saving during layout restoration to avoid overwriting with partial state
+    if (isRestoringLayout || isInitializingProject) {
+      return
+    }
+
     try {
-      const layout = event.api.toJSON()
-
-      // Remove state and updateTruthTable from panel params before saving
-      if (layout.panels && 'panels' in layout.panels) {
-        const panels = layout.panels as { panels?: Array<{ params?: Record<string, unknown> }> };
-        panels.panels?.forEach(panel => {
-          if (panel.params) {
-            delete panel.params.state
-            delete panel.params.updateTruthTable
-          }
-        })
-      }
-
+      const layout = api.toJSON()
       stateManager.state.dockviewLayout = layout
       console.log('Layout saved to project state')
     } catch (err) {
-      console.error('Failed to save layout to project state:', err)
+      console.error('Failed to save layout:', err)
+      Toast.error('Failed to save project layout')
     }
   })
 }
 
-const popupProps = ref<Record<string, unknown>>({})
+const onReady = (event: DockviewReadyEvent) => {
+  dockviewApi.value = event.api
 
-const handleProjectCreate = (projectName: string) => {
+  // Register dockview API and minimize function with service
+  dockviewService.registerApi(event.api)
+  dockviewService.registerMinimize(() => {
+    hasPanels.value = false
+  })
+
+  // Setup all dockview functionality
+  setupPendingProjectLoad(event.api)
+  setupProjectChangeWatcher(event.api)
+  setupPanelTracking(event.api)
+  setupLayoutAutoSave(event.api)
+}
+
+const handleProjectCreate = (props: Record<string, unknown>) => {
   const popup = popupService.current.value
   if (!popup || !popupService.isProjectCreation) return
 
   if ('onProjectCreate' in popup) {
-    popup.onProjectCreate(projectName, popupProps.value)
+    popup.onProjectCreate(props as BaseProjectProps)
   }
   popupService.close()
 }
@@ -212,37 +258,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   layoutChangeDisposable?.dispose?.()
   panelDisposable?.dispose?.()
+  dockviewService.unregister()
 })
 </script>
-
-<template>
-  <div class="flex flex-col h-screen bg-surface-1">
-    <div class="h-[39px]">
-      <DockViewHeader />
-    </div>
-
-    <div class="h-px bg-surface-2"></div>
-
-    <div class="flex-1 min-h-0 relative">
-      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
-        :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
-
-      <GettingStartedView v-if="!hasPanels"></GettingStartedView>
-
-      <!-- Popup System -->
-      <template v-if="popupService.current.value">
-        <!-- Generic Popup -->
-        <component v-if="!popupService.isProjectCreation && 'component' in popupService.current.value"
-          :is="popupService.current.value.component" v-bind="popupService.current.value.props" />
-
-        <!-- Project Creation Popup -->
-        <ProjectCreationPopup
-          v-if="popupService.isProjectCreation && 'projectPropsComponent' in popupService.current.value" :visible="true"
-          @close="popupService.close" @create="handleProjectCreate">
-          <component :is="popupService.current.value.projectPropsComponent" v-model:input-count="popupProps.inputCount"
-            v-model:output-count="popupProps.outputCount" />
-        </ProjectCreationPopup>
-      </template>
-    </div>
-  </div>
-</template>

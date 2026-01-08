@@ -1,5 +1,4 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
@@ -13,6 +12,23 @@ export default defineConfig({
     vueJsx(),
     vueDevTools(),
     tailwindcss(),
+    {
+      // For routing docs from public folder on dev builds
+      name: 'docs-redirect',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === '/logic-easy/docs' || req.url === '/logic-easy/docs/') {
+            req.url = '/logic-easy/docs/.vitepress/dist/index.html'
+          }
+          else if (req.url?.startsWith('/logic-easy/docs')) {
+            // Rewrite the URL to point to the correct location
+            const newPath = req.url.replace('/logic-easy/docs', '/logic-easy/docs/.vitepress/dist')
+            req.url = newPath
+          }
+          next()
+        })
+      }
+    }
   ],
   resolve: {
     alias: {
@@ -26,7 +42,6 @@ export default defineConfig({
     include: ['buffer']
   },
   base: '/logic-easy/',
-
   build: {
     rollupOptions: {
       output: {

@@ -3,7 +3,7 @@
     <!-- GitHub Logo-->
     <div class="absolute flex justify-end items-end w-full h-full select-none">
       <a class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 rounded-full shadow-2xl"
-        href="https://github.com/wanjawischmeier/logic-easy">
+        href="https://github.com/wanjawischmeier/logic-easy" target="_blank" rel="noopener noreferrer">
         <img src="/GithubLogo.png" alt="GitHub Logo" class="w-12 aspect-auto invert">
       </a>
     </div>
@@ -22,41 +22,94 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue';
-import { addPanelWithPopup } from '@/utility/dockviewIntegration';
+import { defineComponent, computed, type ComputedRef } from 'vue';
 import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
-import type { ComputedRef } from 'vue';
-import type { ListEntry } from '@/utility/types';
 import { projectManager } from '@/projects/projectManager';
+import { showProjectCreationPopup } from '@/utility/popupService';
+import { projectTypes } from '@/projects/projectRegistry';
+
+interface ListEntry {
+  label: string;
+  action: () => void;
+  disabled?: boolean;
+  subtitle?: string;
+}
 
 export default defineComponent({
   name: 'GettingStartedView',
   components: { DirectoryStyleList },
   setup() {
-    function runAction(menuEntry: MenuEntry): void {
-      if (!menuEntry.panelKey) return;
-      addPanelWithPopup(menuEntry.panelKey, menuEntry.label);
+    function formatDate(timestamp: number): string {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (seconds < 60) return 'Just now';
+      if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+      if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+      if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`;
+
+      // For older dates, show the actual date
+      const date = new Date(timestamp);
+      return date.toLocaleDateString();
     }
 
     const newProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
       newMenu.value.map((menuEntry: MenuEntry) => ({
         label: menuEntry.label,
         disabled: menuEntry.disabled,
-        action: () => runAction(menuEntry),
+        action: () => showProjectCreationPopup(menuEntry),
       }))
     );
 
-    const recentProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
-      projectManager.listProjects().map((project) => ({
-        label: project.name,
-        action: () => {
-          projectManager.openProject(project.id);
-        },
-      }))
-    );
+    const recentProjectEntries: ComputedRef<ListEntry[]> = computed(() => {
+      const projects = projectManager.listProjects();
 
-    return { newMenu, runAction, newProjectEntries, recentProjectEntries };
+      // Group projects by name to identify duplicates
+      const projectsByName = new Map<string, typeof projects>();
+      projects.forEach((project) => {
+        const existing = projectsByName.get(project.name) || [];
+        existing.push(project);
+        projectsByName.set(project.name, existing);
+      });
+
+      // For each group with duplicates, sort by ID and assign numbers
+      const nameNumbers = new Map<number, number>();
+      projectsByName.forEach((group) => {
+        if (group.length > 1) {
+          // Sort by ID to get consistent numbering
+          const sorted = [...group].sort((a, b) => a.id - b.id);
+          sorted.forEach((project, index) => {
+            nameNumbers.set(project.id, index + 1);
+          });
+        }
+      });
+
+      return projects.map((project) => {
+        const number = nameNumbers.get(project.id);
+        const displayName = number ? `${project.name} (${number})` : project.name;
+        const dateStr = formatDate(project.lastModified);
+
+        // Get project type name
+        const projectTypeInfo = projectTypes[project.projectType];
+        const projectTypeName = projectTypeInfo?.name || project.projectType;
+        const subtitle = `${dateStr} · ${projectTypeName}`;
+
+        return {
+          label: displayName,
+          subtitle,
+          action: () => {
+            projectManager.openProject(project.id);
+          },
+        };
+      });
+    });
+
+    return { newMenu, runAction: showProjectCreationPopup, newProjectEntries, recentProjectEntries };
   },
 });
 </script>

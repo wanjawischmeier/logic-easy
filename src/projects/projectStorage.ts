@@ -1,4 +1,5 @@
-import type { ProjectMetadata, Project } from "../utility/types"
+import { Toast } from "@/utility/toastService"
+import type { ProjectMetadata, StoredProject } from "./Project"
 
 const PROJECT_METADATA_KEY = 'logic-easy-projects-metadata'
 const PROJECT_KEY_PREFIX = 'logic-easy-project-'
@@ -11,7 +12,7 @@ export class ProjectStorage {
   /**
    * Generate a project storage key
    */
-  static getProjectKey(projectId: string): string {
+  static getProjectKey(projectId: number): string {
     return `${PROJECT_KEY_PREFIX}${projectId}`
   }
 
@@ -27,6 +28,7 @@ export class ProjectStorage {
       return JSON.parse(stored) as ProjectMetadata
     } catch (error) {
       console.error('Failed to load project metadata:', error)
+      Toast.error('Failed to load project metadata')
       return { projects: [] }
     }
   }
@@ -39,17 +41,20 @@ export class ProjectStorage {
       localStorage.setItem(PROJECT_METADATA_KEY, JSON.stringify(metadata))
     } catch (error) {
       console.error('Failed to save project metadata:', error)
+      Toast.error('Failed to save project metadata')
     }
   }
 
   /**
    * Load the current project ID from localStorage
    */
-  static loadCurrentProjectId(): string | null {
+  static loadCurrentProjectId(): number | null {
     try {
-      return localStorage.getItem(CURRENT_PROJECT_KEY)
+      const stored = localStorage.getItem(CURRENT_PROJECT_KEY)
+      return stored ? parseInt(stored, 10) : null
     } catch (error) {
       console.error('Failed to load current project ID:', error)
+      Toast.error('Failed to load current project id')
       return null
     }
   }
@@ -57,31 +62,33 @@ export class ProjectStorage {
   /**
    * Save the current project ID to localStorage
    */
-  static saveCurrentProjectId(projectId: string | null): void {
+  static saveCurrentProjectId(projectId: number | null): void {
     try {
-      if (projectId) {
-        localStorage.setItem(CURRENT_PROJECT_KEY, projectId)
+      if (projectId !== null) {
+        localStorage.setItem(CURRENT_PROJECT_KEY, projectId.toString())
       } else {
         localStorage.removeItem(CURRENT_PROJECT_KEY)
       }
     } catch (error) {
       console.error('Failed to save current project ID:', error)
+      Toast.error('Failed to save current project id')
     }
   }
 
   /**
    * Load a project's full data from localStorage
    */
-  static loadProject(projectId: string): Project | null {
+  static loadProject(projectId: number): StoredProject | null {
     try {
       const key = this.getProjectKey(projectId)
       const stored = localStorage.getItem(key)
       if (!stored) {
         return null
       }
-      return JSON.parse(stored) as Project
+      return JSON.parse(stored) as StoredProject
     } catch (error) {
       console.error(`Failed to load project ${projectId}:`, error)
+      Toast.error('Failed to load project')
       return null
     }
   }
@@ -89,24 +96,49 @@ export class ProjectStorage {
   /**
    * Save a project's full data to localStorage
    */
-  static saveProject(project: Project): void {
+  static saveProject(project: StoredProject): void {
     try {
       const key = this.getProjectKey(project.id)
       localStorage.setItem(key, JSON.stringify(project))
     } catch (error) {
       console.error(`Failed to save project ${project.id}:`, error)
+      Toast.error('Failed to save project')
     }
   }
 
   /**
    * Remove a project from localStorage
    */
-  static removeProject(projectId: string): void {
+  static removeProject(projectId: number): void {
     try {
       const key = this.getProjectKey(projectId)
       localStorage.removeItem(key)
     } catch (error) {
       console.error(`Failed to remove project ${projectId}:`, error)
+      Toast.error('Failed to remove project')
     }
+  }
+
+  /**
+   * Scan localStorage for all projects and return their IDs
+   */
+  static getAllProjectIds(): number[] {
+    const projectIds: number[] = []
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith(PROJECT_KEY_PREFIX)) {
+          const idStr = key.substring(PROJECT_KEY_PREFIX.length)
+          const id = parseInt(idStr, 10)
+          if (!isNaN(id)) {
+            projectIds.push(id)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to scan projects in localStorage:', error)
+      Toast.error('Failed to scan projects')
+    }
+    return projectIds
   }
 }

@@ -1,10 +1,12 @@
 import 'dockview-vue/dist/styles/dockview.css';
 import { createApp, defineComponent, type Component } from 'vue';
 import { DockviewVue } from 'dockview-vue';
-import router from './router';
 import { VueLatex } from 'vatex';
-import { dockComponents } from './router/dockRegistry';
-import { logicCircuits } from './utility/logicCircuitsWrapper';
+import router from '@/router';
+import { dockComponents } from '@/router/dockRegistry';
+import { iframeManager } from '@/utility/iframeManager';
+import Toast from 'vue-toastification';
+import '@/style/toastification.css';
 
 const App = defineComponent({
   name: 'App',
@@ -35,9 +37,15 @@ Object.entries(dockComponents).forEach(([id, comp]) => {
 app.use(router);
 app.component('vue-latex', VueLatex);
 
+app.use(Toast, {
+  transition: "Vue-Toastification__fade",
+  maxToasts: 5,
+  newestOnTop: true
+});
+
 app.mount(document.getElementById('app')!);
 
-// Preload logic circuits iframe after app has mounted
+// Preload all registered iframes after app has mounted
 setTimeout(() => {
-  logicCircuits.preloadIFrame();
+  iframeManager.preloadAll();
 }, 0);
