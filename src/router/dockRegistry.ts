@@ -1,7 +1,7 @@
 import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue';
 import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
-import LogicCircuitsTestingPanel from '@/panels/LogicCircuitsTestingPanel.vue';
+import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue';
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
 import StateTablePanel from '@/panels/StateTablePanel.vue';
 import { computed } from 'vue';
@@ -87,9 +87,9 @@ export const dockRegistry: DockEntry[] = [
     component: EspressoTestingPanel
   },
   {
-    id: 'lc-testing',
+    id: 'lc-iframe',
     label: 'Logic Circuits Panel',
-    component: LogicCircuitsTestingPanel
+    component: LogicCircuitsPanel,
   },
   {
     id: 'fsm-engine',
