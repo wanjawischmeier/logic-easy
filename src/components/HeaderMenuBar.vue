@@ -81,9 +81,11 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
   View: viewMenu.value,
   Export: [
     { label: 'LogicCircuits', tooltip: '.lc', children: [
-        {label: 'AND/OR', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!, 'dnf') }},
-        {label: 'NAND', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!, 'dnf', 'nand') }},
-        {label: 'NOR', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!, 'dnf', 'nor') }},
+        {label: 'AND/OR', action: () => {
+          formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf')
+        }},
+        {label: 'NAND', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf', 'nand') }},
+        {label: 'NOR', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf', 'nor') }},
       ]},
     { label: 'VHDL', tooltip: '.vhdl', children: [
         {label: 'Case-When', action: () => {  exportTruthTableTOVHDLcaseWhen(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided') }},
