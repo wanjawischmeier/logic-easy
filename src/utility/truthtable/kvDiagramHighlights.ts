@@ -1,14 +1,24 @@
 import { type Term, FunctionType } from "@/utility/types";
 
+const CELL_PADDING = '6px'
+
+interface TermColor {
+  border: string
+  fill: string
+}
+
 /**
  * Generate a semi-transparent HSLA color string for a term index.
  *
  * @param indexIndex of the term to generate a color for.
  * @returns HSLA color string (e.g. "hsla(120, 70%, 50%, 0.4)").
  */
-function getTermColor(index: number): string {
+function getTermColor(index: number): TermColor {
   const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
-  return `hsla(${hue}, 70%, 50%, 0.4)`;
+  return {
+    border: `hsla(${hue}, 70%, 50%, 0.6)`,
+    fill: `hsla(${hue}, 70%, 50%, 0.25)`
+  }
 }
 
 /**
@@ -69,60 +79,170 @@ function isCovered(
 }
 
 /**
+ * Pre-calculate coverage for all cells and terms.
+ *
+ * @param terms Array of terms to evaluate.
+ * @param rows All row binary codes.
+ * @param cols All column binary codes.
+ * @param functionType DNF or CNF mode.
+ * @param inputVars Ordered list of input variable names.
+ * @returns 3D array of coverage
+ */
+function calculateAllCoverage(
+  terms: Term[],
+  rows: string[],
+  cols: string[],
+  functionType: FunctionType,
+  inputVars: string[]
+): boolean[][][] {
+  const coverage: boolean[][][] = [];
+
+  terms.forEach((term, termIndex) => {
+    coverage[termIndex] = [];
+    rows.forEach((rowCode, rowIndex) => {
+      coverage[termIndex]![rowIndex] = [];
+      cols.forEach((colCode, colIndex) => {
+        coverage[termIndex]![rowIndex]![colIndex] = isCovered(term, rowCode, colCode, functionType, inputVars);
+      });
+    });
+  });
+
+  return coverage;
+}
+
+/**
+ * Compute css style for a given coverage scenario.
+ * Puts borders on all egdes that do not have a neighbor.
+ */
+function getStyleFromCoverage(color: TermColor, hasTop: boolean, hasBottom: boolean, hasLeft: boolean, hasRight: boolean) {
+  return {
+    backgroundColor: color.fill,
+    top: hasTop ? '0' : CELL_PADDING,
+    bottom: hasBottom ? '0' : CELL_PADDING,
+    left: hasLeft ? '0' : CELL_PADDING,
+    right: hasRight ? '0' : CELL_PADDING,
+    'border-top': hasTop ? '' : `solid ${color.border}`,
+    'border-bottom': hasBottom ? '' : `solid ${color.border}`,
+    'border-left': hasLeft ? '' : `solid ${color.border}`,
+    'border-right': hasRight ? '' : `solid ${color.border}`,
+  }
+}
+
+/**
+ * Create a highlight for a cell that is part of a full coverage, with borders on edges.
+ */
+function createFullCoverageHighlight(
+  rowIndex: number,
+  colIndex: number,
+  rowCount: number,
+  colCount: number,
+  color: TermColor
+): Highlight {
+  const isTopEdge = rowIndex === 0;
+  const isBottomEdge = rowIndex === rowCount - 1;
+  const isLeftEdge = colIndex === 0;
+  const isRightEdge = colIndex === colCount - 1;
+
+  return {
+    style: getStyleFromCoverage(color, !isTopEdge, !isBottomEdge, !isLeftEdge, !isRightEdge)
+  };
+}
+
+/**
+ * Check if an entire row is covered by a term.
+ */
+function isEntireRowCovered(
+  coverage: boolean[][][],
+  termIndex: number,
+  rowIndex: number,
+  colCount: number,
+  isCNF: boolean
+): boolean {
+  for (let ci = 0; ci < colCount; ci++) {
+    if (coverage[termIndex]?.[rowIndex]?.[ci] === isCNF) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Check if an entire column is covered by a term.
+ */
+function isEntireColCovered(
+  coverage: boolean[][][],
+  termIndex: number,
+  colIndex: number,
+  rowCount: number,
+  isCNF: boolean
+): boolean {
+  for (let ri = 0; ri < rowCount; ri++) {
+    if (coverage[termIndex]?.[ri]?.[colIndex] === isCNF) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Infer visual highlight regions for a single cell by checking adjacency coverage for each term.
  *
  * Produces an array of Highlight objects describing background color and which cell edges
  * should be flush (no padding) to indicate grouping across neighboring cells.
  *
  * @param terms Array of terms (DNF or CNF) to consider.
+ * @param coverage Pre-calculated coverage map [termIndex][rowIndex][colIndex].
  * @param rows All row binary codes.
  * @param cols All column binary codes.
  * @param rowIndexRow index of the current cell.
  * @param colIndexColumn index of the current cell.
- * @param rowCodeBinary code for the current row.
- * @param colCodeBinary code for the current column.
- * @param inputVarsOrdered list of input variable names.
+ * @param functionType DNF or CNF mode.
  * @returns Array of Highlight descriptors for the cell.
  */
 function inferHighlightFromCoverage(
   terms: Term[],
+  coverage: boolean[][][],
   rows: string[],
   cols: string[],
   rowIndex: number,
   colIndex: number,
-  rowCode: string,
-  colCode: string,
-  functionType: FunctionType,
-  inputVars: string[]
+  functionType: FunctionType
 ): Highlight[] {
   const highlights: Highlight[] = [];
-  const pad = '8px';
+  const isCNF = functionType === FunctionType.CNF;
 
   terms.forEach((term, index) => {
-    const covered = isCovered(term, rowCode, colCode, functionType, inputVars);
-    const isCNF = functionType === FunctionType.CNF;
-    if (covered === isCNF) return
+    const covered = coverage[index]?.[rowIndex]?.[colIndex];
+    if (covered === undefined || covered === isCNF) return
 
     const color = getTermColor(index);
 
-    const topRow = rows[(rowIndex - 1 + rows.length) % rows.length]!;
-    const bottomRow = rows[(rowIndex + 1) % rows.length]!;
-    const leftCol = cols[(colIndex - 1 + cols.length) % cols.length]!;
-    const rightCol = cols[(colIndex + 1) % cols.length]!;
+    const topRowIndex = (rowIndex - 1 + rows.length) % rows.length;
+    const bottomRowIndex = (rowIndex + 1) % rows.length;
+    const leftColIndex = (colIndex - 1 + cols.length) % cols.length;
+    const rightColIndex = (colIndex + 1) % cols.length;
 
-    const hasTop = isCovered(term, topRow, colCode, functionType, inputVars) !== isCNF;
-    const hasBottom = isCovered(term, bottomRow, colCode, functionType, inputVars) !== isCNF;
-    const hasLeft = isCovered(term, rowCode, leftCol, functionType, inputVars) !== isCNF;
-    const hasRight = isCovered(term, rowCode, rightCol, functionType, inputVars) !== isCNF;
+    let hasTop = coverage[index]?.[topRowIndex]?.[colIndex] !== isCNF;
+    let hasBottom = coverage[index]?.[bottomRowIndex]?.[colIndex] !== isCNF;
+    let hasLeft = coverage[index]?.[rowIndex]?.[leftColIndex] !== isCNF;
+    let hasRight = coverage[index]?.[rowIndex]?.[rightColIndex] !== isCNF;
+
+    // Check edge cases: if entire row/column is covered, show outer borders
+    if (rowIndex === 0 && isEntireColCovered(coverage, index, colIndex, rows.length, isCNF)) {
+      hasTop = false;
+    }
+    if (rowIndex === rows.length - 1 && isEntireColCovered(coverage, index, colIndex, rows.length, isCNF)) {
+      hasBottom = false;
+    }
+    if (colIndex === 0 && isEntireRowCovered(coverage, index, rowIndex, cols.length, isCNF)) {
+      hasLeft = false;
+    }
+    if (colIndex === cols.length - 1 && isEntireRowCovered(coverage, index, rowIndex, cols.length, isCNF)) {
+      hasRight = false;
+    }
 
     highlights.push({
-      style: {
-        backgroundColor: color,
-        top: hasTop ? '0' : pad,
-        bottom: hasBottom ? '0' : pad,
-        left: hasLeft ? '0' : pad,
-        right: hasRight ? '0' : pad,
-      }
+      style: getStyleFromCoverage(color, hasTop, hasBottom, hasLeft, hasRight)
     });
   });
 
@@ -169,15 +289,7 @@ export function calculateHighlights(
   if (functionType === FunctionType.DNF) {
     // DNF constant 1 (tautology): highlight all cells
     if (isConstant1) {
-      return [{
-        style: {
-          backgroundColor: getTermColor(0),
-          top: '0',
-          bottom: '0',
-          left: '0',
-          right: '0',
-        }
-      }];
+      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, getTermColor(0))];
     }
     // DNF constant 0 (contradiction): highlight no cells
     if (isConstant0) {
@@ -187,34 +299,31 @@ export function calculateHighlights(
     // CNF mode
     // CNF constant 0 (contradiction): highlight all cells
     if (isConstant0) {
-      return [{
-        style: {
-          backgroundColor: getTermColor(0),
-          top: '0',
-          bottom: '0',
-          left: '0',
-          right: '0',
-        }
-      }];
+      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, getTermColor(0))];
     }
     // CNF constant 1 (tautology): highlight no cells
     if (isConstant1) {
       return [];
     }
 
+    // Pre-calculate coverage for CNF check
+    const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars);
+
     // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
     // A clause (sum) is FALSE when ALL its literals are false
     // So we highlight cells where at least one clause is completely false
-    const anyClauseFalse = terms.some(term => {
-      return !isCovered(term, rowCode, colCode, functionType, inputVars);
+    const anyClauseFalse = terms.some((_, termIndex) => {
+      return !coverage[termIndex]?.[rowIndex]?.[colIndex];
     });
 
     if (!anyClauseFalse) return []; // Cell doesn't contribute to making formula false
   }
 
+  // Pre-calculate coverage for all cells once
+  const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars);
+
   return inferHighlightFromCoverage(
-    terms, rowCodes, colCodes,
-    rowIndex, colIndex, rowCode, colCode,
-    functionType, inputVars
+    terms, coverage, rowCodes, colCodes,
+    rowIndex, colIndex, functionType
   );
 }

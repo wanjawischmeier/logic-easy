@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { stateManager } from '@/projects/stateManager';
-import { ref, toRefs, watch } from 'vue'
+import { onMounted, ref, toRefs, watch } from 'vue'
 
 const props = defineProps<{
   values: unknown[]
@@ -53,6 +53,10 @@ const { values, initialSelected, labelKey, labelFn, onSelect, label } = toRefs(p
 const selected = ref<number | null>(
   initialSelected?.value ?? (values.value && values.value.length ? 0 : null)
 )
+
+// Animation state tracking
+let animationTimeout: number | null = null
+const isAnimating = ref(false)
 
 function equal2D<T>(a: T[][], b: T[][]): boolean {
   // outer length
@@ -76,7 +80,7 @@ function equal2D<T>(a: T[][], b: T[][]): boolean {
 
 // For the random select easter egg
 const randomSelectMode = ref(false)
-watch(stateManager.state, () => {
+function checkRandomSelectMode() {
   const truthTable = stateManager.state.truthTable
   if (!truthTable || truthTable.inputVars.length !== 4) {
     randomSelectMode.value = false
@@ -101,7 +105,10 @@ watch(stateManager.state, () => {
     [0, 0, 0, 0],
     [0, 0, 0, 0],
   ])
-})
+}
+
+onMounted(checkRandomSelectMode)
+watch(stateManager.state, checkRandomSelectMode)
 
 watch(initialSelected, (v) => {
   selected.value = v ?? (values.value && values.value.length ? 0 : null)
@@ -123,6 +130,13 @@ function getLabel(item: unknown) {
   return String(item ?? '')
 }
 
+function emitSelection(idx: number, item: unknown) {
+  emit('update:selected', idx)
+  if (onSelect?.value && typeof onSelect.value === 'function') {
+    onSelect.value(item, idx)
+  }
+}
+
 function select(idx: number, item: unknown) {
   if (randomSelectMode.value) {
     selectRandom()
@@ -130,13 +144,22 @@ function select(idx: number, item: unknown) {
   }
 
   selected.value = idx
-  emit('update:selected', idx)
-  if (onSelect?.value && typeof onSelect.value === 'function') {
-    onSelect.value(item, idx)
-  }
+  emitSelection(idx, item)
 }
 
 function selectRandom() {
+  // If already animating, stop and select current
+  if (isAnimating.value && animationTimeout !== null) {
+    clearTimeout(animationTimeout)
+    animationTimeout = null
+    isAnimating.value = false
+
+    // Emit current selection
+    const targetItem = values.value[selected.value ?? 0]
+    emitSelection(selected.value ?? 0, targetItem)
+    return
+  }
+
   const INITIAL_VELOCITY = 3 + Math.random() * 3 // switches per frame
   const DAMPING = 0.75 // velocity multiplier per bounce
   const MIN_VELOCITY = 0.15 // stop when velocity drops below this
@@ -148,6 +171,7 @@ function selectRandom() {
   let currentPosition = selected.value ?? 0
   let velocity = INITIAL_VELOCITY
   let direction = 1
+  isAnimating.value = true
 
   const animate = () => {
     currentPosition += velocity * direction
@@ -168,14 +192,14 @@ function selectRandom() {
 
     // Continue animation or finish
     if (velocity > MIN_VELOCITY) {
-      setTimeout(animate, FRAME_DELAY)
+      animationTimeout = setTimeout(animate, FRAME_DELAY) as unknown as number
     } else {
+      isAnimating.value = false
+      animationTimeout = null
+
       // Animation complete - select target
       const targetItem = values.value[selected.value]
-      emit('update:selected', selected.value)
-      if (onSelect?.value && typeof onSelect.value === 'function') {
-        onSelect.value(targetItem, selected.value)
-      }
+      emitSelection(selected.value, targetItem)
     }
   }
 

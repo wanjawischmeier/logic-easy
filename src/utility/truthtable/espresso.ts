@@ -105,7 +105,7 @@ export async function minifyTruthTable(
 
   if (result.exitCode !== 0) {
     console.error('Espresso failed', result.stderr)
-    Toast.error('Minimization with espresso failed')
+    Toast.error('Minimization failed')
     return []
   }
 

@@ -35,10 +35,10 @@ import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
+import { getDockviewApi } from '@/utility/dockview/integration';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
-const title = ref('')
 let disposable: { dispose?: () => void } | null = null
 
 interface KVPanelState {
@@ -58,14 +58,12 @@ const selectedOutputIndex = ref(
 );
 
 onMounted(() => {
-  const titleDisposable = props.params.api.onDidTitleChange(() => {
-    title.value = props.params.api.title ?? ''
-  })
-  title.value = props.params.api.title ?? ''
+  const api = getDockviewApi()
+  if (!api) return
 
   // Listen to panel visibility changes
   // TODO: Optimize this, rn just for testing
-  const visibilityDisposable = props.params.api.onDidActiveChange(() => {
+  const visibilityDisposable = api.onDidActivePanelChange(() => {
     if (props.params.api.isActive) {
       // Panel became active/visible - refresh latex rendering
       console.log('Refresh kv diagram')
@@ -76,8 +74,7 @@ onMounted(() => {
   // Store unsubscribe for cleanup
   disposable = {
     dispose: () => {
-      titleDisposable?.()
-      visibilityDisposable?.()
+      visibilityDisposable.dispose()
     }
   }
 })

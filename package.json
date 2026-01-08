@@ -18,6 +18,7 @@
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
     "fsm:build": "cd public/fsm-engine && npm ci && npm run build",
+    "fsm:dev": "cd public/fsm-engine && npm run dev",
     "docs:build": "cd public/docs && npm ci && npm run build",
     "docs:dev": "cd public/docs && npm run dev"
   },
