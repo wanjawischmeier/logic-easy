@@ -50,7 +50,7 @@ import { popupService, showProjectCreationPopup } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import { projectManager } from '@/projects/projectManager';
 import { stateManager } from '@/projects/stateManager';
-import { screenshotRegistry } from '@/utility/screenshotRegistry';
+import { downloadRegistry } from '@/utility/downloadRegistry';
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 
@@ -81,7 +81,8 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
   Export: [
     { label: 'LogicCircuits', tooltip: '.lc' },
     { label: 'VHDL', tooltip: '.vhdl' },
-    { label: 'Screenshots', tooltip: '.zip', action: () => screenshotRegistry.exportAll() },
+    { label: 'Screenshots', tooltip: '.zip', action: () => downloadRegistry.exportAllScreenshots() },
+    { label: 'LaTeX', tooltip: '.tex', action: () => downloadRegistry.exportAllLatex() },
   ],
   Help: [
     { label: 'Manual', action: () => window.open('/logic-easy/docs/', '_blank', 'noopener,noreferrer') },

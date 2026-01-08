@@ -1,7 +1,7 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
-    <div class="w-full flex gap-10 text-sm justify-end">
+    <div class="w-full flex gap-4 text-sm justify-end">
       <MultiSelectSwitch v-if="outputVars.length > 1" :label="'Output Variable'" :values="outputVars"
         :initialSelected="selectedOutputIndex" :onSelect="(v, i) => selectedOutputIndex = i">
       </MultiSelectSwitch>
@@ -26,16 +26,14 @@
       </div>
 
       <!-- Screenshot-only view -->
-      <div data-screenshot-only class="hidden">
-        <div class="flex flex-row gap-32 items-start justify-center">
-          <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${selectedType}`"
-            class="flex flex-col items-center gap-4">
-            <KVDiagram v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" :output-index="index"
-              :minified-values="minifiedValues || []" :formula="formulas[outputVar]?.[selectedType] || Formula.empty"
-              :functionType="selectedType" />
+      <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
+        <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${selectedType}`"
+          class="flex flex-col items-center gap-4">
+          <KVDiagram v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" :output-index="index"
+            :minified-values="minifiedValues || []" :formula="formulas[outputVar]?.[selectedType] || Formula.empty"
+            :functionType="selectedType" />
 
-            <FormulaRenderer :latex-expression="getLatexExpression(index)" />
-          </div>
+          <FormulaRenderer :latex-expression="getLatexExpression(index)" />
         </div>
       </div>
     </div>

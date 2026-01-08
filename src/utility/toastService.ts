@@ -29,7 +29,7 @@ export class Toast {
             ...this.baseProps,
             timeout: 5000,
             pauseOnHover: true,
-            hideProgressBar: false,
+            hideProgressBar: true,
         });
     }
 

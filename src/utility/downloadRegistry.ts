@@ -5,17 +5,18 @@ import { loadingService } from './loadingService'
 import { projectManager } from '@/projects/projectManager'
 import { Toast } from './toastService'
 
-interface ScreenshotRegistration {
+interface DownloadRegistration {
     id: string
     targetRef: Ref<HTMLElement | null>
     filename: string
+    latexContent?: Ref<string | undefined>
 }
 
-class ScreenshotRegistry {
-    private registrations = new Map<string, ScreenshotRegistration>()
+class DownloadRegistry {
+    private registrations = new Map<string, DownloadRegistration>()
 
-    register(id: string, targetRef: Ref<HTMLElement | null>, filename: string) {
-        this.registrations.set(id, { id, targetRef, filename })
+    register(id: string, targetRef: Ref<HTMLElement | null>, filename: string, latexContent?: Ref<string | undefined>) {
+        this.registrations.set(id, { id, targetRef, filename, latexContent })
     }
 
     unregister(id: string) {
@@ -46,13 +47,13 @@ class ScreenshotRegistry {
         })
 
         // Find and show elements marked to be shown only in screenshots
-        const screenshotOnlyElements = element.querySelectorAll('[data-screenshot-only]')
+        const screenshotOnlyFlexElements = element.querySelectorAll('[data-screenshot-only-flex]')
         const originalScreenshotOnlyDisplayValues = new Map<Element, string>()
 
-        screenshotOnlyElements.forEach((el) => {
+        screenshotOnlyFlexElements.forEach((el) => {
             const htmlEl = el as HTMLElement
             originalScreenshotOnlyDisplayValues.set(el, htmlEl.style.display)
-            htmlEl.style.display = 'block'
+            htmlEl.style.display = 'flex'
         })
 
         try {
@@ -85,7 +86,7 @@ class ScreenshotRegistry {
             })
 
             // Restore screenshot-only elements
-            screenshotOnlyElements.forEach((el) => {
+            screenshotOnlyFlexElements.forEach((el) => {
                 const htmlEl = el as HTMLElement
                 htmlEl.style.display = originalScreenshotOnlyDisplayValues.get(el) || ''
             })
@@ -99,7 +100,7 @@ class ScreenshotRegistry {
         }
     }
 
-    async exportAll(): Promise<void> {
+    async exportAllScreenshots(): Promise<void> {
         const registrations = Array.from(this.registrations.values())
         if (registrations.length === 0) {
             console.warn('No screenshots registered')
@@ -156,6 +157,76 @@ class ScreenshotRegistry {
         loadingService.hide()
     }
 
+    async exportAllLatex(): Promise<void> {
+        const registrations = Array.from(this.registrations.values())
+        const latexRegistrations = registrations.filter(reg => reg.latexContent?.value)
+        if (latexRegistrations.length === 0) {
+            Toast.warning('No LaTeX content available to export')
+            return
+        }
+
+        loadingService.show('Exporting LaTeX document...')
+        console.log(`Exporting ${latexRegistrations.length} LaTeX sections...`)
+
+        await new Promise(resolve => setTimeout(resolve, 100))
+        const projectName = projectManager.currentProjectInfo?.name || 'project'
+        const timestamp = new Date().toISOString().slice(0, 10)
+
+        // Build LaTeX document
+        let latexDocument = `\\documentclass{article}
+\\usepackage{amsmath}
+\\usepackage{amssymb}
+\\usepackage{geometry}
+\\geometry{margin=1in}
+
+\\title{${projectName.replace(/_/g, '\\_')}}
+\\date{${timestamp}}
+
+\\begin{document}
+\\maketitle
+
+`
+
+        for (const { filename, latexContent } of latexRegistrations) {
+            const content = latexContent?.value
+            if (!content) continue
+
+            const sectionName = filename
+                .split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ')
+                .replace(/_/g, '\\_')
+
+            latexDocument += `\\section{${sectionName}}
+
+${content}
+
+`
+        }
+
+        latexDocument += `\\end{document}
+`
+
+        try {
+            const blob = new Blob([latexDocument], { type: 'text/plain' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `${projectName}-${timestamp}.tex`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
+            console.log('LaTeX document exported')
+        } catch (error) {
+            console.error('LaTeX export failed:', error)
+            Toast.error('Failed to export LaTeX document')
+        } finally {
+            loadingService.hide()
+        }
+    }
+
     getRegistrationCount(): number {
         return this.registrations.size
     }
@@ -166,4 +237,4 @@ class ScreenshotRegistry {
 }
 
 // Export singleton instance
-export const screenshotRegistry = new ScreenshotRegistry()
+export const downloadRegistry = new DownloadRegistry()

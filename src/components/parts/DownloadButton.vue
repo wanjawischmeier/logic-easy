@@ -14,13 +14,16 @@
         </div>
 
         <div v-if="showDropdown"
-            class="absolute right-0 mt-1 p-0.5 w-32 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
-            <button @click="handleScreenshot" class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3">
-                Screenshot
+            class="absolute right-0 mt-1 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
+            <button @click="handleScreenshot"
+                class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
+                <span>Screenshot</span>
+                <span class="opacity-70">.png</span>
             </button>
             <button v-if="latexContent" @click="handleLatexDownload"
-                class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3">
-                LaTeX
+                class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
+                <span>LaTeX</span>
+                <span class="opacity-70">.tex</span>
             </button>
         </div>
     </div>
@@ -30,7 +33,7 @@
 
 <script setup lang="ts">
 import { onUnmounted, ref, toRef, watch, onMounted } from 'vue'
-import { screenshotRegistry } from '@/utility/screenshotRegistry'
+import { downloadRegistry } from '@/utility/downloadRegistry'
 import { loadingService } from '@/utility/loadingService'
 import { Toast } from '@/utility/toastService'
 
@@ -52,6 +55,7 @@ const props = withDefaults(defineProps<Props>(), {
 const showDropdown = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
 const targetElement = toRef(props, 'targetRef')
+const latexContentRef = toRef(props, 'latexContent')
 const isCapturing = ref(false)
 
 // Generate unique ID for registration
@@ -60,7 +64,7 @@ const registrationId = `screenshot-${Date.now()}-${Math.random().toString(36).su
 // Watch for targetElement to become available and register
 watch(targetElement, (newVal) => {
     if (newVal) {
-        screenshotRegistry.register(registrationId, targetElement, props.filename)
+        downloadRegistry.register(registrationId, targetElement, props.filename, latexContentRef)
     }
 }, { immediate: true })
 
@@ -95,7 +99,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside)
-    screenshotRegistry.unregister(registrationId)
+    downloadRegistry.unregister(registrationId)
 })
 
 const downloadLatex = () => {
@@ -134,7 +138,7 @@ const captureScreenshot = async () => {
     isCapturing.value = true
 
     try {
-        const blob = await screenshotRegistry.captureScreenshot(
+        const blob = await downloadRegistry.captureScreenshot(
             targetElement.value,
             SCREENSHOT_COLOR_BG,
             SCEENSHOT_PADDING
