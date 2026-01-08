@@ -85,7 +85,7 @@ export function exportTruthTableTOVHDLcaseWhen(
   //when, basically the truth table
   truthTable.values.forEach((cell, i) => {
 
-    vhdlLines.push('    when "' + truthTable.inputVars.map((_, colIdx) => getInputValue(i, colIdx, numInputs).toString()).join('') + '" => outputs <= "' + cell.map((outputVal) => outputVal.toString()).join('') + '";');
+    vhdlLines.push('    when "' + truthTable.inputVars.map((_, colIdx) => getInputValue(i, colIdx, numInputs).toString()).join('') + '" => outputs <="' + cell.map((outputVal) => outputVal.toString()).join('') + '";');
 
   })
 

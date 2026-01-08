@@ -158,3 +158,27 @@ export function formulaToLC(
 
   return lcFile
 }
+
+export function formulaToLcFile(
+  projectName:string,
+  truthTable: TruthTableState,
+  minimizeForm: ('dnf' | 'cnf') = 'dnf',
+  outType: 'and-or' | 'nand' | 'nor' = 'and-or'
+):void{
+
+  const content:string = formulaToLC(truthTable, minimizeForm, outType).toString()
+
+  const blob = new Blob([content], {
+    type: 'text/lc',
+  })
+
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', projectName.replace(/\s+/g, '_') + "_"+minimizeForm + "_"+outType + '.lc')
+  link.style.visibility = 'hidden'
+
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}

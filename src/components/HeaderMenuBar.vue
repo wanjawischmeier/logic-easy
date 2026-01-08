@@ -24,6 +24,7 @@ import ManualPopup from './popups/ManualPopup.vue';
 import { projectManager } from '@/projects/projectManager';
 import { stateManager } from '@/states/stateManager';
 import { exportTruthTableTOVHDLboolExpr, exportTruthTableTOVHDLcaseWhen } from '@/utility/VHDL/export.ts'
+import { formulaToLcFile } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 
@@ -52,7 +53,11 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
   ],
   View: viewMenu.value,
   Export: [
-    { label: 'LogicCircuits', tooltip: '.lc' },
+    { label: 'LogicCircuits', tooltip: '.lc', children: [
+        {label: 'AND/OR', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!, 'dnf') }},
+        {label: 'NAND', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!, 'dnf', 'nand') }},
+        {label: 'NOR', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!, 'dnf', 'nor') }},
+      ]},
     { label: 'VHDL', tooltip: '.vhdl', children: [
         {label: 'Case-When', action: () => {  exportTruthTableTOVHDLcaseWhen(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided') }},
         {label: 'Boolean expressions', children : [
