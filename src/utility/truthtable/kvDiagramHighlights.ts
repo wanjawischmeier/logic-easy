@@ -1,6 +1,8 @@
 import { type Term, FunctionType } from "@/utility/types";
 
 const CELL_PADDING = '6px'
+const BORDER_WIDTH = '2px'
+const BORDER_RADIUS = '1rem'
 
 interface TermColor {
   border: string
@@ -121,10 +123,14 @@ function getStyleFromCoverage(color: TermColor, hasTop: boolean, hasBottom: bool
     bottom: hasBottom ? '0' : CELL_PADDING,
     left: hasLeft ? '0' : CELL_PADDING,
     right: hasRight ? '0' : CELL_PADDING,
-    'border-top': hasTop ? '' : `solid ${color.border}`,
-    'border-bottom': hasBottom ? '' : `solid ${color.border}`,
-    'border-left': hasLeft ? '' : `solid ${color.border}`,
-    'border-right': hasRight ? '' : `solid ${color.border}`,
+    'border-top-left-radius': hasTop || hasLeft ? '' : BORDER_RADIUS,
+    'border-top-right-radius': hasTop || hasRight ? '' : BORDER_RADIUS,
+    'border-bottom-left-radius': hasBottom || hasLeft ? '' : BORDER_RADIUS,
+    'border-bottom-right-radius': hasBottom || hasRight ? '' : BORDER_RADIUS,
+    'border-top': hasTop ? '' : `${BORDER_WIDTH} solid ${color.border}`,
+    'border-bottom': hasBottom ? '' : `${BORDER_WIDTH} solid ${color.border}`,
+    'border-left': hasLeft ? '' : `${BORDER_WIDTH} solid ${color.border}`,
+    'border-right': hasRight ? '' : `${BORDER_WIDTH} solid ${color.border}`,
   }
 }
 

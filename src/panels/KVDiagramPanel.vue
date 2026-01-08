@@ -1,7 +1,7 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
-    <div class="w-full flex gap-10 text-sm justify-end">
+    <div class="w-full flex gap-4 text-sm justify-end">
       <MultiSelectSwitch v-if="outputVars.length > 1" :label="'Output Variable'" :values="outputVars"
         :initialSelected="selectedOutputIndex" :onSelect="(v, i) => selectedOutputIndex = i">
       </MultiSelectSwitch>
@@ -9,15 +9,31 @@
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
         :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
       </MultiSelectSwitch>
+      <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="projectLatex" />
     </div>
 
-    <div class="h-full flex flex-col items-center justify-center overflow-auto">
-      <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
-        :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
-        :formula="currentFormula" :functionType="selectedType" />
+    <div class="h-full" ref="screenshotRef">
+      <!-- Interactive view -->
+      <div data-screenshot-ignore class="h-full flex flex-col items-center justify-center overflow-auto">
+        <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
+          :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
+          :formula="currentFormula" :functionType="selectedType" />
 
-      <div class="mt-4 w-full flex justify-center">
-        <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />
+        <div class="mt-4 w-full flex justify-center">
+          <FormulaRenderer :latex-expression="getLatexExpression(selectedOutputIndex)" />
+        </div>
+      </div>
+
+      <!-- Screenshot-only view -->
+      <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
+        <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${selectedType}`"
+          class="flex flex-col items-center gap-4">
+          <KVDiagram v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" :output-index="index"
+            :minified-values="minifiedValues || []" :formula="formulas[outputVar]?.[selectedType] || Formula.empty"
+            :functionType="selectedType" />
+
+          <FormulaRenderer :latex-expression="getLatexExpression(index)" />
+        </div>
       </div>
     </div>
   </div>
@@ -29,6 +45,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
+import DownloadButton from '@/components/parts/DownloadButton.vue'
 import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
@@ -49,6 +66,7 @@ interface KVPanelState {
 // Load saved panel state
 const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
 const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
+const screenshotRef = ref<HTMLElement | null>(null)
 
 const selectedType = ref<FunctionType>(
   panelState?.selectedType ?? defaultFunctionType
@@ -128,4 +146,45 @@ const currentFormula = computed(() => {
 
   return formulas.value[outputVar]?.[selectedType.value];
 });
+
+const projectLatex = computed(() => {
+  const expressions: string[] = [];
+
+  for (let i = 0; i < outputVars.value.length; i++) {
+    const expr = getLatexExpression(i);
+    expressions.push(`$$${expr}$$`);
+  }
+
+  return expressions.join('\n\n');
+});
+
+function getLatexExpression(outputVariableIndex: number) {
+  const varName = outputVars.value[outputVariableIndex];
+  if (!varName || !currentFormula.value?.terms.length) return `f(${varName}) = ...`;
+
+  const terms = currentFormula.value.terms.map(term => {
+    if (term.literals.length === 0) return '1';
+
+    if (currentFormula.value?.type === FunctionType.DNF) {
+      // Product of literals
+      return term.literals.map(lit => {
+        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
+      }).join('');
+    } else {
+      // Sum of literals (CNF)
+      const sum = term.literals.map(lit => {
+        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
+      }).join(' + ');
+
+      if (term.literals.length === 1) {
+        return sum;
+      } else {
+        return `(${sum})`;
+      }
+    }
+  });
+
+  const result = currentFormula.value.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
+  return `f(${varName}) = ${result}`;
+}
 </script>
