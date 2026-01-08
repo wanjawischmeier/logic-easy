@@ -1,20 +1,29 @@
 import { LCFile } from './LCFile.ts'
 import type { Element } from './Elements.ts'
+import type { TruthTableState } from '@/states/truthTableState.ts'
 import type { Formula } from '@/utility/types.ts'
 
 /**
- * @param inputVars - list of input variable names
- * @param outputVars - list of output variable names
- * @param formulas - mapping of output variable names to their formulas
+ * builds a .lc file out of the minimized formulas of a truth table
+ * @param truthTable
+ * @param minimizeForm
  * @param outType
- * @returns LCFile representing the logic circuit in AND-OR form
  */
 export function formulaToLC(
-  inputVars: string[],
-  outputVars: string[],
-  formulas: Record<string, Formula>,
+  truthTable: TruthTableState,
+  minimizeForm: ('dnf' | 'cnf') = 'dnf',
   outType: 'and-or' | 'nand' | 'nor' = 'and-or'
 ): LCFile {
+
+
+  console.log(truthTable.formulas)
+  const inputVars = truthTable.inputVars
+  const outputVars = truthTable.outputVars
+
+  const formulas: Record<string, Formula> = {} as Record<string, Formula>
+  outputVars.forEach(ov => {
+    formulas[ov] = (minimizeForm === 'dnf' ? truthTable.formulas[ov]!.DNF : truthTable.formulas[ov]!.CNF) as Formula
+  })
 
   //create new lc File instance
   const lcFile = new LCFile()

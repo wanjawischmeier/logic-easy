@@ -146,9 +146,6 @@ watch(() => props.params.api.isVisible, (visible) => {
   }
 })
 
-// Selected function type (DNF / CNF)
-const selectedType = ref<FunctionType>(defaultFunctionType)
-
 // formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
 const formulas = reactive<Record<string, Formula>>({})
 
@@ -164,26 +161,25 @@ function handleMethodSelect(idx: number | null) {
 }
 
 function updateFormulas() {
-  const formulasMap = state.value?.formulas || {}
-  // clear previous keys
-  for (const k of Object.keys(formulas)) delete formulas[k]
 
-  for (const out of outputVars.value) {
-    if (!out) continue
-    formulas[out] = formulasMap?.[out]?.[selectedType.value] ?? Formula.empty
-  }
 
   let fileContent = ''
 
+
+  if (!state.value) {
+    console.error('No truth table state available')
+    return
+  }
+
   switch (selectedMethod.value) {
     case 'AND/OR':
-      fileContent = formulaToLC(inputVars.value, outputVars.value, formulas).toString()
+      fileContent = formulaToLC(state.value!).toString()
       break
     case 'NAND':
-      fileContent = formulaToLC(inputVars.value, outputVars.value, formulas, 'nand').toString()
+      fileContent = formulaToLC(state.value!, 'dnf', 'nand').toString()
       break
     case 'NOR':
-      fileContent = formulaToLC(inputVars.value, outputVars.value, formulas, 'nor').toString()
+      fileContent = formulaToLC(state.value!, 'dnf','nor').toString()
       break
   }
 
@@ -197,7 +193,7 @@ function updateFormulas() {
 }
 
 // Keep the plain object in sync with state and selection
-watch([() => state.value?.formulas, outputVars, selectedType], updateFormulas, { immediate: true })
+watch([() => state.value?.formulas, outputVars], updateFormulas, { immediate: true })
 
 // UI for floating round selector
 const showMethodPicker = ref(false)
@@ -222,7 +218,6 @@ function selectMethod(option: LCMethodType) {
   <div class="h-full text-white flex flex-col gap-2 p-2">
     <div ref="containerRef" class="flex-1 z-0 relative"></div>
 
-    <!-- TODO make this nicer -->
     <teleport to="body">
       <div class="fixed z-50 bottom-3 left-3 flex flex-col items-start">
         <transition enter-active-class="transition-opacity duration-150" leave-active-class="transition-opacity duration-150" enter-from-class="opacity-0" leave-to-class="opacity-0">
