@@ -9,7 +9,8 @@
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
         :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
       </MultiSelectSwitch>
-      <ScreenshotButton :target-ref="screenshotRef" filename="kv" />
+      <DownloadButton :target-ref="screenshotRef" filename="kv"
+        :latex-content="getLatexExpression(selectedOutputIndex)" />
     </div>
 
     <div class="h-full" ref="screenshotRef">
@@ -20,7 +21,7 @@
           :formula="currentFormula" :functionType="selectedType" />
 
         <div class="mt-4 w-full flex justify-center">
-          <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />
+          <FormulaRenderer :latex-expression="getLatexExpression(selectedOutputIndex)" />
         </div>
       </div>
 
@@ -33,7 +34,7 @@
               :minified-values="minifiedValues || []" :formula="formulas[outputVar]?.[selectedType] || Formula.empty"
               :functionType="selectedType" />
 
-            <FormulaRenderer :formula="formulas[outputVar]?.[selectedType] || Formula.empty" :output-var="outputVar" />
+            <FormulaRenderer :latex-expression="getLatexExpression(index)" />
           </div>
         </div>
       </div>
@@ -47,7 +48,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
-import ScreenshotButton from '@/components/parts/ScreenshotButton.vue'
+import DownloadButton from '@/components/parts/DownloadButton.vue'
 import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
@@ -55,7 +56,6 @@ import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { getDockviewApi } from '@/utility/dockview/integration';
-import { projectManager } from '@/projects/projectManager';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -149,4 +149,34 @@ const currentFormula = computed(() => {
 
   return formulas.value[outputVar]?.[selectedType.value];
 });
+
+function getLatexExpression(outputVariableIndex: number) {
+  const varName = outputVars.value[outputVariableIndex];
+  if (!varName || !currentFormula.value?.terms.length) return `f(${varName}) = ...`;
+
+  const terms = currentFormula.value.terms.map(term => {
+    if (term.literals.length === 0) return '1';
+
+    if (currentFormula.value?.type === FunctionType.DNF) {
+      // Product of literals
+      return term.literals.map(lit => {
+        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
+      }).join('');
+    } else {
+      // Sum of literals (CNF)
+      const sum = term.literals.map(lit => {
+        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
+      }).join(' + ');
+
+      if (term.literals.length === 1) {
+        return sum;
+      } else {
+        return `(${sum})`;
+      }
+    }
+  });
+
+  const result = currentFormula.value.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
+  return `f(${varName}) = ${result}`;
+}
 </script>

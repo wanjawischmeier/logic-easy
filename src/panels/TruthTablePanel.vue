@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import TruthTable from '@/components/TruthTable.vue'
-import ScreenshotButton from '@/components/parts/ScreenshotButton.vue'
+import DownloadButton from '@/components/parts/DownloadButton.vue'
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 
@@ -44,7 +44,7 @@ const screenshotRef = ref<HTMLElement | null>(null)
 <template>
   <div class="h-full text-white flex flex-col p-2 overflow-auto">
     <div class="flex justify-end h-10 mb-2">
-      <ScreenshotButton :target-ref="screenshotRef" filename="truth-table" />
+      <DownloadButton :target-ref="screenshotRef" filename="truth-table" />
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" />

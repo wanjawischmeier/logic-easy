@@ -26,51 +26,17 @@
 
 <script setup lang="ts">
 import { Toast } from '@/utility/toastService';
-import { FunctionType, type Formula } from '@/utility/types';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps<{
-  formula?: Formula;
-  outputVar?: string;
+  latexExpression: string
 }>();
-
-const latexExpression = computed(() => {
-  const formula = props.formula;
-  const varName = props.outputVar || 'x';
-
-  if (!formula || !formula.terms.length) return `f(${varName}) = ...`;
-
-  const terms = formula.terms.map(term => {
-    if (term.literals.length === 0) return '1';
-
-    if (formula.type === FunctionType.DNF) {
-      // Product of literals
-      return term.literals.map(lit => {
-        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
-      }).join('');
-    } else {
-      // Sum of literals (CNF)
-      const sum = term.literals.map(lit => {
-        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
-      }).join(' + ');
-
-      if (term.literals.length === 1) {
-        return sum;
-      } else {
-        return `(${sum})`;
-      }
-    }
-  });
-
-  const result = formula.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
-  return `f(${varName}) = ${result}`;
-});
 
 const copied = ref(false);
 
 async function copyLatex() {
   try {
-    await navigator.clipboard.writeText(latexExpression.value);
+    await navigator.clipboard.writeText(props.latexExpression);
     copied.value = true;
     setTimeout(() => (copied.value = false), 1400);
   } catch (error) {
