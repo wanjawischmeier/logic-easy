@@ -4,64 +4,27 @@ import type { IDockviewPanelProps } from 'dockview-vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject.ts'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
 import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
+import IframePanel from '@/components/IFramePanel.vue'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
-// Access state from params
 const { outputVars, inputVars, formulas } = TruthTableProject.useState()
 
 const title = ref('')
-const containerRef = ref<HTMLDivElement | null>(null)
 let disposable: { dispose?: () => void } | null = null
 
-// Keep a reference to the current iframe; update it when the wrapper swaps frames.
-let preloadedIframe: HTMLIFrameElement | undefined
+const panelRef = ref<HTMLElement | null>(null)
+const methodUpdaterStyle = ref<{ left?: string; bottom?: string }>({})
+let positionObserver: ResizeObserver | null = null
 
-let iframeReadyHandler: EventListener | null = null
-
-let resizeObserver: ResizeObserver | null = null
-let pollInterval: number | null = null
-
-function getGlobalIframe(): HTMLIFrameElement | undefined {
-  return (window as Window & { __lc_preloaded_iframe?: HTMLIFrameElement }).__lc_preloaded_iframe
-}
-
-function updateIframePosition() {
-  // always read current reference
-  preloadedIframe = preloadedIframe || getGlobalIframe()
-  if (!preloadedIframe || !containerRef.value) return
-
-  const rect = containerRef.value.getBoundingClientRect()
-  preloadedIframe.style.cssText = `
-    position: fixed;
-    left: ${rect.left}px;
-    top: ${rect.top}px;
-    width: ${rect.width}px;
-    height: ${rect.height}px;
-    border: none;
-    z-index: 1;
-    pointer-events: auto;
-  `
-}
-
-function setupIframe() {
-  preloadedIframe = preloadedIframe || getGlobalIframe()
-  if (!preloadedIframe) return false
-  // Show and position the iframe
-  preloadedIframe.style.display = 'block'
-  updateIframePosition()
-
-  // Watch for container size/position changes
-  resizeObserver = new ResizeObserver(() => updateIframePosition())
-  if (containerRef.value) {
-    resizeObserver.observe(containerRef.value)
+function updateMethodPickerPosition() {
+  if (!panelRef.value) return
+  const rect = panelRef.value.getBoundingClientRect()
+  const offset = 12
+  methodUpdaterStyle.value = {
+    left: `${rect.left + offset}px`,
+    bottom: `${window.innerHeight - rect.bottom + offset}px`,
   }
-
-  // Also update on scroll (in case dockview moves)
-  window.addEventListener('scroll', updateIframePosition, true)
-  window.addEventListener('resize', updateIframePosition)
-
-  return true
 }
 
 onMounted(() => {
@@ -72,78 +35,21 @@ onMounted(() => {
   })
   title.value = props.params.api.title ?? ''
 
-  // Try to pick up the current global iframe, otherwise poll.
-  preloadedIframe = getGlobalIframe()
-  if (!preloadedIframe) {
-    console.log('Preloaded iframe not yet available, waiting...')
-    // Poll for iframe availability
-    pollInterval = window.setInterval(() => {
-      preloadedIframe = getGlobalIframe()
-      if (preloadedIframe) {
-        console.log('Preloaded iframe now available')
-        if (pollInterval !== null) {
-          clearInterval(pollInterval)
-          pollInterval = null
-        }
-        setupIframe()
-      }
-    }, 100)
-  } else {
-    setupIframe()
-  }
-
-  // React to wrapper swaps (resetIFrame will dispatch 'lc-iframe-ready')
-  const onIframeReady = (ev: Event) => {
-    const ce = ev as CustomEvent<{ iframe?: HTMLIFrameElement }>
-    // update local ref and re-run setup to ensure the new iframe is shown & positioned
-    preloadedIframe = ce?.detail?.iframe ?? getGlobalIframe()
-    console.log('LogicCircuitsTestingPanel: detected iframe swap')
-    // tear down previous observers/listeners before re-setup
-    resizeObserver?.disconnect()
-    window.removeEventListener('scroll', updateIframePosition, true)
-    window.removeEventListener('resize', updateIframePosition)
-    setupIframe()
-  }
-  iframeReadyHandler = onIframeReady
-  window.addEventListener('lc-iframe-ready', onIframeReady as EventListener)
+  updateMethodPickerPosition()
+  positionObserver = new ResizeObserver(() => updateMethodPickerPosition())
+  panelRef.value && positionObserver.observe(panelRef.value)
+  window.addEventListener('scroll', updateMethodPickerPosition, true)
+  window.addEventListener('resize', updateMethodPickerPosition)
 })
 
 onBeforeUnmount(() => {
   console.log('LogicCircuitsTestingPanel unmounted')
-
-  if (pollInterval !== null) {
-    clearInterval(pollInterval)
-    pollInterval = null
-  }
-
-  // Hide iframe when panel closes
-  preloadedIframe = preloadedIframe || getGlobalIframe()
-  if (preloadedIframe) {
-    preloadedIframe.style.display = 'none'
-  }
-
-  resizeObserver?.disconnect()
-  window.removeEventListener('scroll', updateIframePosition, true)
-  window.removeEventListener('resize', updateIframePosition)
-  // remove the lc-iframe-ready listener
-  if (iframeReadyHandler) {
-    window.removeEventListener('lc-iframe-ready', iframeReadyHandler)
-    iframeReadyHandler = null
-  }
-
   disposable?.dispose?.()
+  positionObserver?.disconnect()
+  window.removeEventListener('scroll', updateMethodPickerPosition, true)
+  window.removeEventListener('resize', updateMethodPickerPosition)
 })
 
-// Watch for panel visibility changes
-watch(() => props.params.api.isVisible, (visible) => {
-  preloadedIframe = preloadedIframe || getGlobalIframe()
-  if (preloadedIframe) {
-    preloadedIframe.style.display = visible ? 'block' : 'none'
-  }
-  if (visible) {
-    updateIframePosition()
-  }
-})
 
 // formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
 
@@ -160,9 +66,7 @@ function handleMethodSelect(idx: number | null) {
 
 function updateFormulas() {
 
-
   let fileContent = ''
-
 
   switch (selectedMethod.value) {
     case 'AND/OR':
@@ -186,7 +90,7 @@ function updateFormulas() {
 }
 
 // Keep the plain object in sync with state and selection
-watch([() => formulas], updateFormulas, { immediate: true })
+watch([() => formulas.value], updateFormulas, { immediate: true, deep: true })
 
 // UI for floating round selector
 const showMethodPicker = ref(false)
@@ -208,21 +112,24 @@ function selectMethod(option: LCMethodType) {
 </script>
 
 <template>
-  <div class="h-full text-white flex flex-col gap-2 p-2">
-    <div ref="containerRef" class="flex-1 z-0 relative"></div>
+  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2 p-2">
+    <IframePanel iframe-key="__lc_preloaded_iframe" src="/logic-easy/logic-circuits/index.html"
+                 :visible="params.api.isVisible" class="flex-1" />
 
     <teleport to="body">
-      <div class="fixed z-50 bottom-3 left-3 flex flex-col items-start">
-        <transition enter-active-class="transition-opacity duration-150" leave-active-class="transition-opacity duration-150" enter-from-class="opacity-0" leave-to-class="opacity-0">
-          <div v-if="showMethodPicker" class="mb-2 w-44 rounded-xl border border-white/10 bg-slate-900/95 shadow-2xl backdrop-blur-sm p-1.5" role="menu">
-            <button v-for="option in methodOptions" :key="option.value" type="button" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-100 hover:bg-white/10 transition" :class="{ 'bg-white/15 text-white': selectedMethod === option.value }" role="menuitemradio" :aria-checked="selectedMethod === option.value" @click="selectMethod(option.value)">
-              {{ option.label }}
-            </button>
-          </div>
-        </transition>
+      <div id="lc-method-updater" class="fixed z-50 flex flex-col items-start" :style="methodUpdaterStyle">
+        <div class="flex flex-col items-start gap-2">
+          <transition enter-active-class="transition-opacity duration-150" leave-active-class="transition-opacity duration-150" enter-from-class="opacity-0" leave-to-class="opacity-0">
+            <div v-if="showMethodPicker" class="mb-2 w-44 rounded-xl border border-white/10 bg-slate-900/95 shadow-2xl backdrop-blur-sm p-1.5" role="menu">
+              <button v-for="option in methodOptions" :key="option.value" type="button" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-100 hover:bg-white/10 transition" :class="{ 'bg-white/15 text-white': selectedMethod === option.value }" role="menuitemradio" :aria-checked="selectedMethod === option.value" @click="selectMethod(option.value)">
+                {{ option.label }}
+              </button>
+            </div>
+          </transition>
 
-        <button type="button" :aria-expanded="showMethodPicker" aria-label="Select logic circuit method" @click="togglePicker" class="w-7 h-7 rounded-full border border-white/20 bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 text-xs font-semibold shadow-lg hover:shadow-xl hover:border-white/35 transition transform ">
-        </button>
+          <button type="button" :aria-expanded="showMethodPicker" aria-label="Select logic circuit method" @click="togglePicker" class="w-7 h-7 rounded-full border border-white/20 bg-gradient-to-br from-slate-800 to-slate-900 text-slate-100 text-xs font-semibold shadow-lg hover:shadow-xl hover:border-white/35 transition transform ">
+          </button>
+        </div>
       </div>
     </teleport>
   </div>
