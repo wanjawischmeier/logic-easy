@@ -111,6 +111,44 @@ function calculateAllCoverage(
 }
 
 /**
+ * Compute css style for a given coverage scenario.
+ * Puts borders on all egdes that do not have a neighbor.
+ */
+function getStyleFromCoverage(color: TermColor, hasTop: boolean, hasBottom: boolean, hasLeft: boolean, hasRight: boolean) {
+  return {
+    backgroundColor: color.fill,
+    top: hasTop ? '0' : CELL_PADDING,
+    bottom: hasBottom ? '0' : CELL_PADDING,
+    left: hasLeft ? '0' : CELL_PADDING,
+    right: hasRight ? '0' : CELL_PADDING,
+    'border-top': hasTop ? '' : `solid ${color.border}`,
+    'border-bottom': hasBottom ? '' : `solid ${color.border}`,
+    'border-left': hasLeft ? '' : `solid ${color.border}`,
+    'border-right': hasRight ? '' : `solid ${color.border}`,
+  }
+}
+
+/**
+ * Create a highlight for a cell that is part of a full coverage, with borders on edges.
+ */
+function createFullCoverageHighlight(
+  rowIndex: number,
+  colIndex: number,
+  rowCount: number,
+  colCount: number,
+  color: TermColor
+): Highlight {
+  const isTopEdge = rowIndex === 0;
+  const isBottomEdge = rowIndex === rowCount - 1;
+  const isLeftEdge = colIndex === 0;
+  const isRightEdge = colIndex === colCount - 1;
+
+  return {
+    style: getStyleFromCoverage(color, !isTopEdge, !isBottomEdge, !isLeftEdge, !isRightEdge)
+  };
+}
+
+/**
  * Check if an entire row is covered by a term.
  */
 function isEntireRowCovered(
@@ -204,17 +242,7 @@ function inferHighlightFromCoverage(
     }
 
     highlights.push({
-      style: {
-        backgroundColor: color.fill,
-        top: hasTop ? '0' : CELL_PADDING,
-        bottom: hasBottom ? '0' : CELL_PADDING,
-        left: hasLeft ? '0' : CELL_PADDING,
-        right: hasRight ? '0' : CELL_PADDING,
-        'border-top': hasTop ? '' : `solid ${color.border}`,
-        'border-bottom': hasBottom ? '' : `solid ${color.border}`,
-        'border-left': hasLeft ? '' : `solid ${color.border}`,
-        'border-right': hasRight ? '' : `solid ${color.border}`,
-      }
+      style: getStyleFromCoverage(color, hasTop, hasBottom, hasLeft, hasRight)
     });
   });
 
@@ -261,15 +289,7 @@ export function calculateHighlights(
   if (functionType === FunctionType.DNF) {
     // DNF constant 1 (tautology): highlight all cells
     if (isConstant1) {
-      return [{
-        style: {
-          backgroundColor: getTermColor(0).fill,
-          top: '0',
-          bottom: '0',
-          left: '0',
-          right: '0',
-        }
-      }];
+      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, getTermColor(0))];
     }
     // DNF constant 0 (contradiction): highlight no cells
     if (isConstant0) {
@@ -279,15 +299,7 @@ export function calculateHighlights(
     // CNF mode
     // CNF constant 0 (contradiction): highlight all cells
     if (isConstant0) {
-      return [{
-        style: {
-          backgroundColor: getTermColor(0).fill,
-          top: '0',
-          bottom: '0',
-          left: '0',
-          right: '0',
-        }
-      }];
+      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, getTermColor(0))];
     }
     // CNF constant 1 (tautology): highlight no cells
     if (isConstant1) {
