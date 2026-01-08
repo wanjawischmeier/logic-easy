@@ -9,9 +9,11 @@
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
         :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
       </MultiSelectSwitch>
+      <ScreenshotButton :target-ref="screenshotRef" filename="kv" />
     </div>
 
-    <div class="h-full flex flex-col items-center justify-center overflow-auto">
+
+    <div ref="screenshotRef" class="h-full flex flex-col items-center justify-center overflow-auto">
       <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
         :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
         :formula="currentFormula" :functionType="selectedType" />
@@ -29,6 +31,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
+import ScreenshotButton from '@/components/parts/ScreenshotButton.vue'
 import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
@@ -49,6 +52,7 @@ interface KVPanelState {
 // Load saved panel state
 const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
 const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
+const screenshotRef = ref<HTMLElement | null>(null)
 
 const selectedType = ref<FunctionType>(
   panelState?.selectedType ?? defaultFunctionType

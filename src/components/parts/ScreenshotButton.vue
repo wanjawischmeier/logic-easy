@@ -1,86 +1,6 @@
-<script setup lang="ts">
-import { computed, nextTick, ref, toRef, type Ref } from 'vue'
-import html2canvas from 'html2canvas-pro'
-
-const SCREENSHOT_COLOR_BG = 'transparent'
-const SCEENSHOT_PADDING = '1rem'
-
-interface Props {
-    targetRef: HTMLElement | null
-    filename?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-    filename: 'screenshot',
-    targetRef: null
-})
-
-const targetElement = toRef(props, 'targetRef')
-const isCapturing = ref(false)
-
-const captureScreenshot = async () => {
-    if (!targetElement.value || isCapturing.value) {
-        console.error('Screenshot element not found')
-        return
-    }
-
-    isCapturing.value = true
-
-    const element = targetElement.value as HTMLElement
-    const computedStyle = window.getComputedStyle(element)
-
-    // Save computed styles safely
-    const originalOverflow = computedStyle.overflow
-    const originalHeight = computedStyle.height
-    const originalPadding = computedStyle.padding
-
-    try {
-        await nextTick() // Ensure DOM is fully rendered
-
-        // Temporarily modify styles
-        element.style.overflow = 'visible'
-        element.style.height = 'auto'
-        element.style.position = 'relative' // Ensure proper positioning
-        element.style.padding = SCEENSHOT_PADDING // Add padding on all sides
-
-        const canvas = await html2canvas(element, {
-            backgroundColor: SCREENSHOT_COLOR_BG, // Dark theme background
-            scale: window.devicePixelRatio || 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false // Reduce console noise
-        })
-
-        // Download
-        canvas.toBlob((blob) => {
-            if (blob) {
-                const url = URL.createObjectURL(blob)
-                const link = document.createElement('a')
-                link.href = url
-                link.download = `${props.filename}-${new Date().toISOString().slice(0, 10)}.png`
-                document.body.appendChild(link)
-                link.click()
-                document.body.removeChild(link)
-                URL.revokeObjectURL(url)
-            }
-        })
-
-    } catch (error) {
-        console.error('Screenshot failed:', error)
-    } finally {
-        // Always restore styles
-        element.style.overflow = originalOverflow
-        element.style.height = originalHeight
-        element.style.padding = originalPadding
-        element.style.position = ''
-        isCapturing.value = false
-    }
-}
-</script>
-
 <template>
     <button @click="captureScreenshot" :disabled="isCapturing"
-        class="px-3 py-1 bg-primary hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors text-sm flex items-center gap-2"
+        class="px-3 py-1 bg-surface-3 hover:bg-primary disabled:bg-surface-2 disabled:cursor-not-allowed text-white rounded transition-colors text-sm flex items-center gap-2"
         title="Take screenshot">
         <svg v-if="!isCapturing" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -95,3 +15,71 @@ const captureScreenshot = async () => {
 </template>
 
 <style scoped></style>
+
+<script setup lang="ts">
+import { onUnmounted, ref, toRef, watch } from 'vue'
+import { screenshotRegistry } from '@/utility/screenshotRegistry'
+
+const SCREENSHOT_COLOR_BG = 'transparent'
+const SCEENSHOT_PADDING = '1rem'
+
+interface Props {
+    targetRef: HTMLElement | null
+    filename?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    filename: 'screenshot',
+    targetRef: null,
+    registerForBulkExport: false
+})
+
+const targetElement = toRef(props, 'targetRef')
+const isCapturing = ref(false)
+
+// Generate unique ID for registration
+const registrationId = `screenshot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+// Watch for targetElement to become available and register
+watch(targetElement, (newVal) => {
+    if (newVal) {
+        screenshotRegistry.register(registrationId, targetElement, props.filename)
+    }
+}, { immediate: true })
+
+onUnmounted(() => {
+    screenshotRegistry.unregister(registrationId)
+})
+
+const captureScreenshot = async () => {
+    if (!targetElement.value || isCapturing.value) {
+        console.error('Screenshot element not found')
+        return
+    }
+
+    isCapturing.value = true
+
+    try {
+        const blob = await screenshotRegistry.captureScreenshot(
+            targetElement.value,
+            SCREENSHOT_COLOR_BG,
+            SCEENSHOT_PADDING
+        )
+
+        if (blob) {
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `${props.filename}-${new Date().toISOString().slice(0, 10)}.png`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+        }
+    } catch (error) {
+        console.error('Screenshot failed:', error)
+    } finally {
+        isCapturing.value = false
+    }
+}
+</script>

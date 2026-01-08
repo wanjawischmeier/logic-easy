@@ -1,8 +1,8 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
     <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
-      <button class="border border-transparent pb-0.5  hover:border-surface-3 hover:bg-surface-2"
-        @click.stop="toggleMenu(menu)" :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
+      <button class="border border-transparent hover:border-surface-3 hover:bg-surface-2" @click.stop="toggleMenu(menu)"
+        :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
         {{ menu }}
       </button>
 
@@ -50,6 +50,7 @@ import { popupService, showProjectCreationPopup } from '@/utility/popupService';
 import CreditPopup from './popups/CreditPopup.vue';
 import { projectManager } from '@/projects/projectManager';
 import { stateManager } from '@/projects/stateManager';
+import { screenshotRegistry } from '@/utility/screenshotRegistry';
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 
@@ -80,6 +81,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
   Export: [
     { label: 'LogicCircuits', tooltip: '.lc' },
     { label: 'VHDL', tooltip: '.vhdl' },
+    { label: 'Screenshots', tooltip: '.zip', action: () => screenshotRegistry.exportAll() },
   ],
   Help: [
     { label: 'Manual', action: () => window.open('/logic-easy/docs/', '_blank', 'noopener,noreferrer') },
