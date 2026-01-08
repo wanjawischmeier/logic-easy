@@ -1,4 +1,4 @@
-import type { TruthTableState } from '@/states/truthTableState.ts'
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject.ts'
 
 
 /**
