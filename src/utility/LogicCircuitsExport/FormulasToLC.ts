@@ -1,6 +1,6 @@
 import { LCFile } from './LCFile.ts'
 import type { Element } from './Elements.ts'
-import type { TruthTableState } from '@/states/truthTableState.ts'
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject.ts'
 import type { Formula } from '@/utility/types.ts'
 
 /**
