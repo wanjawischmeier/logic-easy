@@ -7,7 +7,7 @@
       </button>
 
       <div v-if="activeMenu === menu"
-           class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
+        class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
         <ul class="pr-1">
           <li v-for="(entry, idx) in items" :key="idx" class="relative">
             <button
@@ -22,7 +22,7 @@
 
             <!-- Submenu -->
             <div v-if="entry.children && activeSubmenu === idx"
-                 class="absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
+              class="absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
               <ul class="pr-1">
                 <li v-for="(child, childIdx) in entry.children" :key="childIdx">
                   <button
@@ -81,24 +81,30 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
   ],
   View: viewMenu.value,
   Export: [
-    { label: 'LogicCircuits', tooltip: '.lc' },
-    { label: 'VHDL', tooltip: '.vhdl' },
+    {
+      label: 'LogicCircuits', tooltip: '.lc', children: [
+        {
+          label: 'AND/OR', action: () => {
+            formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf')
+          }
+        },
+        { label: 'NAND', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf', 'nand') } },
+        { label: 'NOR', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf', 'nor') } },
+      ]
+    },
+    {
+      label: 'VHDL', tooltip: '.vhdl', children: [
+        { label: 'Case-When', action: () => { exportTruthTableTOVHDLcaseWhen(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided') } },
+        {
+          label: 'Boolean expressions', children: [
+            { label: "DNF", action: () => { exportTruthTableTOVHDLboolExpr(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided') } },
+            { label: "CNF", action: () => { exportTruthTableTOVHDLboolExpr(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided', 'cnf') } },
+          ]
+        },
+      ]
+    },
     { label: 'Screenshots', tooltip: '.zip', action: () => downloadRegistry.exportAllScreenshots() },
     { label: 'LaTeX', tooltip: '.tex', action: () => downloadRegistry.exportAllLatex() },
-    { label: 'LogicCircuits', tooltip: '.lc', children: [
-        {label: 'AND/OR', action: () => {
-          formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf')
-        }},
-        {label: 'NAND', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf', 'nand') }},
-        {label: 'NOR', action: () => { formulaToLcFile(projectManager.getCurrentProject()?.name ?? 'no name provided', stateManager.state.truthTable!.formulas, stateManager.state.truthTable!.inputVars, stateManager.state.truthTable!.outputVars, 'dnf', 'nor') }},
-      ]},
-    { label: 'VHDL', tooltip: '.vhdl', children: [
-        {label: 'Case-When', action: () => {  exportTruthTableTOVHDLcaseWhen(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided') }},
-        {label: 'Boolean expressions', children : [
-            {label: "DNF", action: () => { exportTruthTableTOVHDLboolExpr(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided') }},
-            {label: "CNF", action: () => { exportTruthTableTOVHDLboolExpr(stateManager.state.truthTable, projectManager.getCurrentProject()?.name ?? 'no name provided', 'cnf' )}},
-          ]},
-      ]},
   ],
   Help: [
     { label: 'Manual', action: () => window.open('/logic-easy/docs/', '_blank', 'noopener,noreferrer') },
