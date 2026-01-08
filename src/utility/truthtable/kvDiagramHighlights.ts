@@ -1,14 +1,24 @@
 import { type Term, FunctionType } from "@/utility/types";
 
+const CELL_PADDING = '6px'
+
+interface TermColor {
+  border: string
+  fill: string
+}
+
 /**
  * Generate a semi-transparent HSLA color string for a term index.
  *
  * @param indexIndex of the term to generate a color for.
  * @returns HSLA color string (e.g. "hsla(120, 70%, 50%, 0.4)").
  */
-function getTermColor(index: number): string {
+function getTermColor(index: number): TermColor {
   const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
-  return `hsla(${hue}, 70%, 50%, 0.4)`;
+  return {
+    border: `hsla(${hue}, 70%, 50%, 0.6)`,
+    fill: `hsla(${hue}, 70%, 50%, 0.25)`
+  }
 }
 
 /**
@@ -96,7 +106,6 @@ function inferHighlightFromCoverage(
   inputVars: string[]
 ): Highlight[] {
   const highlights: Highlight[] = [];
-  const pad = '8px';
 
   terms.forEach((term, index) => {
     const covered = isCovered(term, rowCode, colCode, functionType, inputVars);
@@ -117,11 +126,15 @@ function inferHighlightFromCoverage(
 
     highlights.push({
       style: {
-        backgroundColor: color,
-        top: hasTop ? '0' : pad,
-        bottom: hasBottom ? '0' : pad,
-        left: hasLeft ? '0' : pad,
-        right: hasRight ? '0' : pad,
+        backgroundColor: color.fill,
+        top: hasTop ? '0' : CELL_PADDING,
+        bottom: hasBottom ? '0' : CELL_PADDING,
+        left: hasLeft ? '0' : CELL_PADDING,
+        right: hasRight ? '0' : CELL_PADDING,
+        'border-top': hasTop ? '' : `solid ${color.border}`,
+        'border-bottom': hasBottom ? '' : `solid ${color.border}`,
+        'border-left': hasLeft ? '' : `solid ${color.border}`,
+        'border-right': hasRight ? '' : `solid ${color.border}`,
       }
     });
   });
@@ -171,7 +184,7 @@ export function calculateHighlights(
     if (isConstant1) {
       return [{
         style: {
-          backgroundColor: getTermColor(0),
+          backgroundColor: getTermColor(0).fill,
           top: '0',
           bottom: '0',
           left: '0',
@@ -189,7 +202,7 @@ export function calculateHighlights(
     if (isConstant0) {
       return [{
         style: {
-          backgroundColor: getTermColor(0),
+          backgroundColor: getTermColor(0).fill,
           top: '0',
           bottom: '0',
           left: '0',
