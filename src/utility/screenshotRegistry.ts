@@ -2,6 +2,8 @@ import { type Ref } from 'vue'
 import html2canvas from 'html2canvas-pro'
 import JSZip from 'jszip'
 import { loadingService } from './loadingService'
+import { projectManager } from '@/projects/projectManager'
+import { Toast } from './toastService'
 
 interface ScreenshotRegistration {
     id: string
@@ -79,14 +81,13 @@ class ScreenshotRegistry {
     }
 
     async exportAll(): Promise<void> {
-        loadingService.show('Exporting project as screenshots...')
         const registrations = Array.from(this.registrations.values())
-
         if (registrations.length === 0) {
             console.warn('No screenshots registered')
             return
         }
 
+        loadingService.show('Exporting project as screenshots...')
         console.log(`Exporting ${registrations.length} screenshots...`)
 
         const zip = new JSZip()
@@ -109,6 +110,7 @@ class ScreenshotRegistry {
                 await new Promise(resolve => setTimeout(resolve, 100))
             } catch (error) {
                 console.error(`Failed to capture ${filename}:`, error)
+                Toast.warning(`Failed to capture ${filename}`)
             }
         }
 
@@ -116,8 +118,16 @@ class ScreenshotRegistry {
         const zipBlob = await zip.generateAsync({ type: 'blob' })
         const url = URL.createObjectURL(zipBlob)
         const link = document.createElement('a')
+        const projectName = projectManager.currentProjectInfo?.name
+        if (!projectName) {
+            console.log('Failed to get project name')
+            Toast.error('Failed to export screenshots')
+            loadingService.hide()
+            return
+        }
+
         link.href = url
-        link.download = `screenshots-${timestamp}.zip`
+        link.download = `${projectName}-screenshots-${timestamp}.zip`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)

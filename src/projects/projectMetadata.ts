@@ -109,7 +109,7 @@ export class ProjectMetadataManager {
       if (project) {
         projectInfos.push({
           id: project.id,
-          name: project.name,
+          name: project.props?.name || project.name || 'Untitled',
           lastModified: project.lastModified,
           projectType: project.projectType
         })
