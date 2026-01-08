@@ -1,28 +1,30 @@
-import { LCFile } from './LCFile.ts'
-import type { Element } from './Elements.ts'
+import { LCFile } from './LCFile'
+import type { Element } from './Elements'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject.ts'
 import type { Formula } from '@/utility/types.ts'
 
 /**
  * builds a .lc file out of the minimized formulas of a truth table
- * @param truthTable
+ * @param rawFormulas
+ * @param inputVars
+ * @param outputVars
  * @param minimizeForm
  * @param outType
  */
 export function formulaToLC(
-  truthTable: TruthTableState,
+  rawFormulas:  Record<string, Record<string, Formula>>,
+  inputVars: string[],
+  outputVars: string[],
   minimizeForm: ('dnf' | 'cnf') = 'dnf',
   outType: 'and-or' | 'nand' | 'nor' = 'and-or'
 ): LCFile {
 
 
-  console.log(truthTable.formulas)
-  const inputVars = truthTable.inputVars
-  const outputVars = truthTable.outputVars
+  console.log(rawFormulas)
 
   const formulas: Record<string, Formula> = {} as Record<string, Formula>
   outputVars.forEach(ov => {
-    formulas[ov] = (minimizeForm === 'dnf' ? truthTable.formulas[ov]!.DNF : truthTable.formulas[ov]!.CNF) as Formula
+    formulas[ov] = (minimizeForm === 'dnf' ? rawFormulas[ov]!.DNF : rawFormulas[ov]!.CNF) as Formula
   })
 
   //create new lc File instance
@@ -70,7 +72,7 @@ export function formulaToLC(
       0
     )
     lamp.addText(outputVar, 1) //add text label right to the lamp
-    lampsByOutput.set(outputVar, lamp) //add lamp to map by output variable name
+    lampsByOutput.set(outputVar, lamp) //sadd lamp to map by output variable name
 
     //create or gate only if there are multiple terms, otherwise there is no "aggregation" via or needed
     let termCollector: Element = lamp  //holds either the OR gate or the lamp directly if only one term
@@ -161,12 +163,14 @@ export function formulaToLC(
 
 export function formulaToLcFile(
   projectName:string,
-  truthTable: TruthTableState,
+  rawFormulas:  Record<string, Record<string, Formula>>,
+  inputVars: string[],
+  outputVars: string[],
   minimizeForm: ('dnf' | 'cnf') = 'dnf',
   outType: 'and-or' | 'nand' | 'nor' = 'and-or'
 ):void{
 
-  const content:string = formulaToLC(truthTable, minimizeForm, outType).toString()
+  const content:string = formulaToLC(rawFormulas, inputVars, outputVars, minimizeForm, outType).toString()
 
   const blob = new Blob([content], {
     type: 'text/lc',

@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, reactive } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject.ts'
-import { Formula } from '@/utility/types.ts'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
 import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
 // Access state from params
-const state = TruthTableProject.useState()
-const { outputVars } = TruthTableProject.useState()
+const { outputVars, inputVars, formulas } = TruthTableProject.useState()
 
 const title = ref('')
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -166,20 +164,15 @@ function updateFormulas() {
   let fileContent = ''
 
 
-  if (!state) {
-    console.error('No truth table state available')
-    return
-  }
-
   switch (selectedMethod.value) {
     case 'AND/OR':
-      fileContent = formulaToLC(state).toString()
+      fileContent = formulaToLC(formulas.value, inputVars.value, outputVars.value).toString()
       break
     case 'NAND':
-      fileContent = formulaToLC(state, 'dnf', 'nand').toString()
+      fileContent = formulaToLC(formulas.value, inputVars.value, outputVars.value, 'dnf', 'nand').toString()
       break
     case 'NOR':
-      fileContent = formulaToLC(state, 'dnf','nor').toString()
+      fileContent = formulaToLC(formulas.value, inputVars.value, outputVars.value, 'dnf','nor').toString()
       break
   }
 
@@ -193,7 +186,7 @@ function updateFormulas() {
 }
 
 // Keep the plain object in sync with state and selection
-watch([() => state.formulas, outputVars], updateFormulas, { immediate: true })
+watch([() => formulas], updateFormulas, { immediate: true })
 
 // UI for floating round selector
 const showMethodPicker = ref(false)
