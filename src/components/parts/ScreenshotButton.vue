@@ -1,15 +1,11 @@
 <template>
     <button @click="captureScreenshot" :disabled="isCapturing"
-        class="px-3 py-1 bg-surface-3 hover:bg-primary disabled:bg-surface-2 disabled:cursor-not-allowed text-white rounded transition-colors text-sm flex items-center gap-2"
+        class="px-3 py-1 bg-surface-3 hover:bg-primary text-white rounded transition-colors text-sm flex items-center gap-2"
         title="Take screenshot">
-        <svg v-if="!isCapturing" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
             <circle cx="12" cy="13" r="4"></circle>
-        </svg>
-        <svg v-else class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
         </svg>
     </button>
 </template>
@@ -19,6 +15,8 @@
 <script setup lang="ts">
 import { onUnmounted, ref, toRef, watch } from 'vue'
 import { screenshotRegistry } from '@/utility/screenshotRegistry'
+import { loadingService } from '@/utility/loadingService'
+import { Toast } from '@/utility/toastService'
 
 const SCREENSHOT_COLOR_BG = 'transparent'
 const SCEENSHOT_PADDING = '1rem'
@@ -31,7 +29,6 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     filename: 'screenshot',
     targetRef: null,
-    registerForBulkExport: false
 })
 
 const targetElement = toRef(props, 'targetRef')
@@ -52,8 +49,13 @@ onUnmounted(() => {
 })
 
 const captureScreenshot = async () => {
+    loadingService.show('Taking screenshot')
+    await new Promise(resolve => setTimeout(resolve, 100)) // Wait 100ms to prevent flicker
+
     if (!targetElement.value || isCapturing.value) {
         console.error('Screenshot element not found')
+        Toast.error('Failed to take screenshot')
+        loadingService.hide()
         return
     }
 
@@ -78,8 +80,10 @@ const captureScreenshot = async () => {
         }
     } catch (error) {
         console.error('Screenshot failed:', error)
+        Toast.error('Failed to take screenshot')
     } finally {
         isCapturing.value = false
+        loadingService.hide()
     }
 }
 </script>
