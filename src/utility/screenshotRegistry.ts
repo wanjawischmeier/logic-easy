@@ -32,6 +32,7 @@ class ScreenshotRegistry {
         // Save computed styles safely
         const originalOverflow = computedStyle.overflow
         const originalHeight = computedStyle.height
+        const originalWidth = computedStyle.width
         const originalPadding = computedStyle.padding
 
         // Find and hide elements marked to be ignored in screenshots
@@ -44,10 +45,21 @@ class ScreenshotRegistry {
             htmlEl.style.display = 'none'
         })
 
+        // Find and show elements marked to be shown only in screenshots
+        const screenshotOnlyElements = element.querySelectorAll('[data-screenshot-only]')
+        const originalScreenshotOnlyDisplayValues = new Map<Element, string>()
+
+        screenshotOnlyElements.forEach((el) => {
+            const htmlEl = el as HTMLElement
+            originalScreenshotOnlyDisplayValues.set(el, htmlEl.style.display)
+            htmlEl.style.display = 'block'
+        })
+
         try {
-            // Temporarily modify styles
+            // Temporarily modify styles to fit content
             element.style.overflow = 'visible'
             element.style.height = 'auto'
+            element.style.width = 'fit-content'
             element.style.position = 'relative'
             element.style.padding = padding
 
@@ -72,9 +84,16 @@ class ScreenshotRegistry {
                 htmlEl.style.display = originalDisplayValues.get(el) || ''
             })
 
+            // Restore screenshot-only elements
+            screenshotOnlyElements.forEach((el) => {
+                const htmlEl = el as HTMLElement
+                htmlEl.style.display = originalScreenshotOnlyDisplayValues.get(el) || ''
+            })
+
             // Always restore styles
             element.style.overflow = originalOverflow
             element.style.height = originalHeight
+            element.style.width = originalWidth
             element.style.padding = originalPadding
             element.style.position = ''
         }

@@ -12,14 +12,30 @@
       <ScreenshotButton :target-ref="screenshotRef" filename="kv" />
     </div>
 
+    <div class="h-full" ref="screenshotRef">
+      <!-- Interactive view -->
+      <div data-screenshot-ignore class="h-full flex flex-col items-center justify-center overflow-auto">
+        <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
+          :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
+          :formula="currentFormula" :functionType="selectedType" />
 
-    <div ref="screenshotRef" class="h-full flex flex-col items-center justify-center overflow-auto">
-      <KVDiagram :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues" :input-vars="inputVars"
-        :output-vars="outputVars" :output-index="selectedOutputIndex" :minified-values="minifiedValues || []"
-        :formula="currentFormula" :functionType="selectedType" />
+        <div class="mt-4 w-full flex justify-center">
+          <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />
+        </div>
+      </div>
 
-      <div class="mt-4 w-full flex justify-center">
-        <FormulaRenderer :formula="currentFormula" :output-var="outputVars[selectedOutputIndex]" />
+      <!-- Screenshot-only view -->
+      <div data-screenshot-only class="hidden">
+        <div class="flex flex-row gap-32 items-start justify-center">
+          <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${selectedType}`"
+            class="flex flex-col items-center gap-4">
+            <KVDiagram v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" :output-index="index"
+              :minified-values="minifiedValues || []" :formula="formulas[outputVar]?.[selectedType] || Formula.empty"
+              :functionType="selectedType" />
+
+            <FormulaRenderer :formula="formulas[outputVar]?.[selectedType] || Formula.empty" :output-var="outputVar" />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -39,6 +55,7 @@ import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { getDockviewApi } from '@/utility/dockview/integration';
+import { projectManager } from '@/projects/projectManager';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

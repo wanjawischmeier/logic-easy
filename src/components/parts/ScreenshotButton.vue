@@ -77,6 +77,9 @@ const captureScreenshot = async () => {
             link.click()
             document.body.removeChild(link)
             URL.revokeObjectURL(url)
+        } else {
+            console.log('Failed to capture screenshot: empty blob')
+            Toast.error('Failed to take screenshot')
         }
     } catch (error) {
         console.error('Screenshot failed:', error)
