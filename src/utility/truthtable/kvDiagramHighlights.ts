@@ -79,50 +79,129 @@ function isCovered(
 }
 
 /**
+ * Pre-calculate coverage for all cells and terms.
+ *
+ * @param terms Array of terms to evaluate.
+ * @param rows All row binary codes.
+ * @param cols All column binary codes.
+ * @param functionType DNF or CNF mode.
+ * @param inputVars Ordered list of input variable names.
+ * @returns 3D array of coverage
+ */
+function calculateAllCoverage(
+  terms: Term[],
+  rows: string[],
+  cols: string[],
+  functionType: FunctionType,
+  inputVars: string[]
+): boolean[][][] {
+  const coverage: boolean[][][] = [];
+
+  terms.forEach((term, termIndex) => {
+    coverage[termIndex] = [];
+    rows.forEach((rowCode, rowIndex) => {
+      coverage[termIndex]![rowIndex] = [];
+      cols.forEach((colCode, colIndex) => {
+        coverage[termIndex]![rowIndex]![colIndex] = isCovered(term, rowCode, colCode, functionType, inputVars);
+      });
+    });
+  });
+
+  return coverage;
+}
+
+/**
+ * Check if an entire row is covered by a term.
+ */
+function isEntireRowCovered(
+  coverage: boolean[][][],
+  termIndex: number,
+  rowIndex: number,
+  colCount: number,
+  isCNF: boolean
+): boolean {
+  for (let ci = 0; ci < colCount; ci++) {
+    if (coverage[termIndex]?.[rowIndex]?.[ci] === isCNF) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Check if an entire column is covered by a term.
+ */
+function isEntireColCovered(
+  coverage: boolean[][][],
+  termIndex: number,
+  colIndex: number,
+  rowCount: number,
+  isCNF: boolean
+): boolean {
+  for (let ri = 0; ri < rowCount; ri++) {
+    if (coverage[termIndex]?.[ri]?.[colIndex] === isCNF) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Infer visual highlight regions for a single cell by checking adjacency coverage for each term.
  *
  * Produces an array of Highlight objects describing background color and which cell edges
  * should be flush (no padding) to indicate grouping across neighboring cells.
  *
  * @param terms Array of terms (DNF or CNF) to consider.
+ * @param coverage Pre-calculated coverage map [termIndex][rowIndex][colIndex].
  * @param rows All row binary codes.
  * @param cols All column binary codes.
  * @param rowIndexRow index of the current cell.
  * @param colIndexColumn index of the current cell.
- * @param rowCodeBinary code for the current row.
- * @param colCodeBinary code for the current column.
- * @param inputVarsOrdered list of input variable names.
+ * @param functionType DNF or CNF mode.
  * @returns Array of Highlight descriptors for the cell.
  */
 function inferHighlightFromCoverage(
   terms: Term[],
+  coverage: boolean[][][],
   rows: string[],
   cols: string[],
   rowIndex: number,
   colIndex: number,
-  rowCode: string,
-  colCode: string,
-  functionType: FunctionType,
-  inputVars: string[]
+  functionType: FunctionType
 ): Highlight[] {
   const highlights: Highlight[] = [];
+  const isCNF = functionType === FunctionType.CNF;
 
   terms.forEach((term, index) => {
-    const covered = isCovered(term, rowCode, colCode, functionType, inputVars);
-    const isCNF = functionType === FunctionType.CNF;
-    if (covered === isCNF) return
+    const covered = coverage[index]?.[rowIndex]?.[colIndex];
+    if (covered === undefined || covered === isCNF) return
 
     const color = getTermColor(index);
 
-    const topRow = rows[(rowIndex - 1 + rows.length) % rows.length]!;
-    const bottomRow = rows[(rowIndex + 1) % rows.length]!;
-    const leftCol = cols[(colIndex - 1 + cols.length) % cols.length]!;
-    const rightCol = cols[(colIndex + 1) % cols.length]!;
+    const topRowIndex = (rowIndex - 1 + rows.length) % rows.length;
+    const bottomRowIndex = (rowIndex + 1) % rows.length;
+    const leftColIndex = (colIndex - 1 + cols.length) % cols.length;
+    const rightColIndex = (colIndex + 1) % cols.length;
 
-    const hasTop = isCovered(term, topRow, colCode, functionType, inputVars) !== isCNF;
-    const hasBottom = isCovered(term, bottomRow, colCode, functionType, inputVars) !== isCNF;
-    const hasLeft = isCovered(term, rowCode, leftCol, functionType, inputVars) !== isCNF;
-    const hasRight = isCovered(term, rowCode, rightCol, functionType, inputVars) !== isCNF;
+    let hasTop = coverage[index]?.[topRowIndex]?.[colIndex] !== isCNF;
+    let hasBottom = coverage[index]?.[bottomRowIndex]?.[colIndex] !== isCNF;
+    let hasLeft = coverage[index]?.[rowIndex]?.[leftColIndex] !== isCNF;
+    let hasRight = coverage[index]?.[rowIndex]?.[rightColIndex] !== isCNF;
+
+    // Check edge cases: if entire row/column is covered, show outer borders
+    if (rowIndex === 0 && isEntireColCovered(coverage, index, colIndex, rows.length, isCNF)) {
+      hasTop = false;
+    }
+    if (rowIndex === rows.length - 1 && isEntireColCovered(coverage, index, colIndex, rows.length, isCNF)) {
+      hasBottom = false;
+    }
+    if (colIndex === 0 && isEntireRowCovered(coverage, index, rowIndex, cols.length, isCNF)) {
+      hasLeft = false;
+    }
+    if (colIndex === cols.length - 1 && isEntireRowCovered(coverage, index, rowIndex, cols.length, isCNF)) {
+      hasRight = false;
+    }
 
     highlights.push({
       style: {
@@ -215,19 +294,24 @@ export function calculateHighlights(
       return [];
     }
 
+    // Pre-calculate coverage for CNF check
+    const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars);
+
     // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
     // A clause (sum) is FALSE when ALL its literals are false
     // So we highlight cells where at least one clause is completely false
-    const anyClauseFalse = terms.some(term => {
-      return !isCovered(term, rowCode, colCode, functionType, inputVars);
+    const anyClauseFalse = terms.some((_, termIndex) => {
+      return !coverage[termIndex]?.[rowIndex]?.[colIndex];
     });
 
     if (!anyClauseFalse) return []; // Cell doesn't contribute to making formula false
   }
 
+  // Pre-calculate coverage for all cells once
+  const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars);
+
   return inferHighlightFromCoverage(
-    terms, rowCodes, colCodes,
-    rowIndex, colIndex, rowCode, colCode,
-    functionType, inputVars
+    terms, coverage, rowCodes, colCodes,
+    rowIndex, colIndex, functionType
   );
 }
