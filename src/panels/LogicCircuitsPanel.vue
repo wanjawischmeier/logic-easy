@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, reactive, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, reactive } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
-import { useTruthTableState } from '@/states/truthTableState.ts'
-import { Formula, FunctionType, defaultFunctionType } from '@/utility/types.ts'
+import { TruthTableProject } from '@/projects/truth-table/TruthTableProject.ts'
+import { Formula } from '@/utility/types.ts'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
 import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
 // Access state from params
-const { state, inputVars, outputVars } = useTruthTableState()
+const state = TruthTableProject.useState()
+const { outputVars } = TruthTableProject.useState()
 
 const title = ref('')
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -147,7 +148,6 @@ watch(() => props.params.api.isVisible, (visible) => {
 })
 
 // formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
-const formulas = reactive<Record<string, Formula>>({})
 
 type LCMethodType = 'AND/OR' | 'NAND' | 'NOR' | undefined
 const lcMethodTypes: Array<LCMethodType> = ['AND/OR', 'NAND', 'NOR']
@@ -166,20 +166,20 @@ function updateFormulas() {
   let fileContent = ''
 
 
-  if (!state.value) {
+  if (!state) {
     console.error('No truth table state available')
     return
   }
 
   switch (selectedMethod.value) {
     case 'AND/OR':
-      fileContent = formulaToLC(state.value!).toString()
+      fileContent = formulaToLC(state).toString()
       break
     case 'NAND':
-      fileContent = formulaToLC(state.value!, 'dnf', 'nand').toString()
+      fileContent = formulaToLC(state, 'dnf', 'nand').toString()
       break
     case 'NOR':
-      fileContent = formulaToLC(state.value!, 'dnf','nor').toString()
+      fileContent = formulaToLC(state, 'dnf','nor').toString()
       break
   }
 
@@ -193,7 +193,7 @@ function updateFormulas() {
 }
 
 // Keep the plain object in sync with state and selection
-watch([() => state.value?.formulas, outputVars], updateFormulas, { immediate: true })
+watch([() => state.formulas, outputVars], updateFormulas, { immediate: true })
 
 // UI for floating round selector
 const showMethodPicker = ref(false)
