@@ -168,7 +168,7 @@ class DownloadRegistry {
         loadingService.show('Exporting LaTeX document...')
         console.log(`Exporting ${latexRegistrations.length} LaTeX sections...`)
 
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 500))
         const projectName = projectManager.currentProjectInfo?.name || 'project'
         const timestamp = new Date().toISOString().slice(0, 10)
 
@@ -180,7 +180,7 @@ class DownloadRegistry {
 \\geometry{margin=1in}
 
 \\title{${projectName.replace(/_/g, '\\_')}}
-\\date{${timestamp}}
+\\date{Exported: ${timestamp}}
 
 \\begin{document}
 \\maketitle
@@ -200,6 +200,9 @@ class DownloadRegistry {
             latexDocument += `\\section{${sectionName}}
 
 ${content}
+\\\\
+\\\\
+\\\\
 
 `
         }

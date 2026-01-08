@@ -9,8 +9,7 @@
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
         :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
       </MultiSelectSwitch>
-      <DownloadButton :target-ref="screenshotRef" filename="kv"
-        :latex-content="getLatexExpression(selectedOutputIndex)" />
+      <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="projectLatex" />
     </div>
 
     <div class="h-full" ref="screenshotRef">
@@ -146,6 +145,17 @@ const currentFormula = computed(() => {
   }
 
   return formulas.value[outputVar]?.[selectedType.value];
+});
+
+const projectLatex = computed(() => {
+  const expressions: string[] = [];
+
+  for (let i = 0; i < outputVars.value.length; i++) {
+    const expr = getLatexExpression(i);
+    expressions.push(`$$${expr}$$`);
+  }
+
+  return expressions.join('\n\n');
 });
 
 function getLatexExpression(outputVariableIndex: number) {
