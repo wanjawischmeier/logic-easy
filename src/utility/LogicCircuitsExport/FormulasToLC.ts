@@ -67,7 +67,7 @@ export function formulaToLC(
     lamp.addText(outputVar, 1) //add text label right to the lamp
     lampsByOutput.set(outputVar, lamp) //sadd lamp to map by output variable name
 
-    //special cases: always true for this output
+    //special case: always true for this output
     if (terms.length === 1 && terms[0]!.literals.length === 1) {
       //output always true
       lcFile
@@ -78,7 +78,7 @@ export function formulaToLC(
       return
     }
 
-    //special cases: always false for this output
+    //special case: always false for this output
     if (terms.length === 0) {
       //output always false
       lcFile
