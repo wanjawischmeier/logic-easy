@@ -23,7 +23,8 @@
           <FormulaRenderer :latex-expression="getLatexExpression(selectedOutputIndex)" />
         </div>
 
-        <QMCViewer></QMCViewer>
+        <QMCViewer :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
+          :selected-output-index="selectedOutputIndex"></QMCViewer>
       </div>
 
       <!-- Screenshot-only view -->

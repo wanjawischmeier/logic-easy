@@ -1,30 +1,127 @@
 <template>
     <div class="h-full text-on-surface flex flex-col p-2 overflow-auto">
-        <div>
+        <div class="flex flex-wrap gap-12">
             <QMCGroupingTable :iterations="iterations" :prime-implicants="pis" />
-        </div>
-
-        <div>
             <QMCPrimeImplicantChart :minterms="minterms" :prime-implicants="pis" :chart="chart" />
+            <FormulaRenderer :latex-expression="formulaLatex" v-if="formulaLatex"></FormulaRenderer>
         </div>
-
-        <FormulaRenderer :latex-expression="formulaLatex" v-if="formulaLatex"></FormulaRenderer>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { QMC, type QMCDetailedExpressionsObjects } from 'logi.js'
 import type { Operation } from 'logi.js'
 import QMCGroupingTable from './parts/QMCGroupingTable.vue'
 import QMCPrimeImplicantChart from './parts/QMCPrimeImplicantChart.vue'
 import FormulaRenderer from './FormulaRenderer.vue'
+import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
+
+interface Props {
+    inputVars: string[]
+    outputVars: string[]
+    values: TruthTableData
+    selectedOutputIndex?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    selectedOutputIndex: 0
+})
 
 const iterations = ref<any[]>([])
 const minterms = ref<number[]>([])
 const pis = ref<any[]>([])
 const chart = ref<Record<number, string[]> | null>(null)
 const expressions = ref<Operation[]>([])
+
+// Calculate minterms from truth table values for the selected output
+function calculateMinterms(values: TruthTableData, outputIndex: number): number[] {
+    console.log('=== calculateMinterms ===')
+    console.log('values:', values)
+    console.log('outputIndex:', outputIndex)
+    console.log('numInputs:', props.inputVars.length)
+    console.log('inputVars:', props.inputVars)
+    console.log('outputVars:', props.outputVars)
+
+    const mt: number[] = []
+
+    values.forEach((row, rowIndex) => {
+        console.log(`Row ${rowIndex}:`, row, `length: ${row.length}`)
+        const outputCell = row[outputIndex] // Row contains only output values
+        console.log(`  Looking at index ${outputIndex}, value:`, outputCell)
+
+        // If output is 1, this row is a minterm
+        if (outputCell === 1) {
+            console.log(`  -> Adding minterm ${rowIndex}`)
+            mt.push(rowIndex)
+        }
+    })
+
+    console.log('Final minterms:', mt)
+    return mt
+}
+
+// Run QMC when data changes
+function runQMC() {
+    console.log('=== runQMC called ===')
+    console.log('props.values:', props.values)
+    console.log('props.selectedOutputIndex:', props.selectedOutputIndex)
+    console.log('props.outputVars:', props.outputVars)
+
+    if (!props.values || props.values.length === 0) {
+        console.log('No values, returning')
+        return
+    }
+    if (props.selectedOutputIndex >= props.outputVars.length) {
+        console.log('Invalid output index, returning')
+        return
+    }
+
+    const qmc = new QMC()
+    const mt = calculateMinterms(props.values, props.selectedOutputIndex)
+    const dc: number[] = [] // Don't cares - could be extended later
+
+    console.log('Calculated minterms:', mt)
+
+    if (mt.length === 0) {
+        console.log('No minterms - clearing display')
+        // No minterms - clear the display
+        iterations.value = []
+        minterms.value = []
+        pis.value = []
+        chart.value = {}
+        expressions.value = []
+        return
+    }
+
+    console.log('Running QMC with minterms:', mt)
+    const detailedResult = qmc.solve(mt, dc, true, true) as QMCDetailedExpressionsObjects
+    const d = detailedResult.details
+    if (!d) {
+        console.log('No details from QMC')
+        return
+    }
+
+    console.log('QMC result:', detailedResult)
+
+    iterations.value = d.iterations
+    const sortedMinterms = (d.minterms || []).slice().sort((a: number, b: number) => a - b)
+    minterms.value = sortedMinterms
+    pis.value = d.primeImplicants || []
+    chart.value = d.chart || {}
+
+    // Get the minimized expressions
+    expressions.value = detailedResult.expressions
+
+    console.log('Set iterations:', iterations.value)
+    console.log('Set pis:', pis.value)
+    console.log('Set chart:', chart.value)
+}
+
+// Watch for changes in input data
+watch(() => [props.values, props.selectedOutputIndex, props.inputVars, props.outputVars], () => {
+    runQMC()
+}, { immediate: true, deep: true })
 
 // Convert Operation to custom LaTeX string (lowercase variables, no operators)
 function operationToLatex(op: Operation): string {
@@ -151,25 +248,7 @@ const formulaLatex = computed(() => {
     return signature + parts.join(' + ')
 })
 
-onMounted(() => {
-    const qmc = new QMC()
-    const mt = [0, 1, 2, 3, 5, 8, 10, 12, 13, 14, 15]
-    const dc: number[] = []
 
-    const detailedResult = qmc.solve(mt, dc, true, true) as QMCDetailedExpressionsObjects
-    const d = detailedResult.details
-    if (!d) return
-    console.log(detailedResult)
-
-    iterations.value = d.iterations
-    const sortedMinterms = (d.minterms || []).slice().sort((a: number, b: number) => a - b)
-    minterms.value = sortedMinterms
-    pis.value = d.primeImplicants || []
-    chart.value = d.chart || {}
-
-    // Get the minimized expressions
-    expressions.value = detailedResult.expressions
-})
 </script>
 
 <style scoped></style>

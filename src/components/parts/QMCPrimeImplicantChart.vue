@@ -5,14 +5,17 @@
             <table ref="tableRef" class="bg-surface-1 border border-primary table-fixed w-auto select-none relative">
                 <thead>
                     <tr>
-                        <th class="px-3 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1">Terms
+                        <th
+                            class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1">
+                            Terms
                         </th>
                         <th v-for="m in minterms" :key="m"
                             class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1">{{ m }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(pi, piIdx) in primeImplicants" :key="pi.term">
+                    <tr v-for="(pi, piIdx) in primeImplicants" :key="pi.term"
+                        class="hover:bg-surface-3 transition-color duration-100">
                         <td class="px-4 align-middle border-b border-r-4 border-primary relative"
                             :style="pi.isEssential ? { boxShadow: `inset 0 0 0 2px ${essentialColors[piIdx % essentialColors.length]}` } : {}">
                             <vue-latex :fontsize=14 :expression="pi.term" display-mode />
@@ -29,8 +32,8 @@
             <!-- Bounding boxes for essential prime implicants -->
             <svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 1;">
                 <rect v-for="(box, idx) in boundingBoxes" :key="idx" :x="box.x" :y="box.y" :width="box.width"
-                    :height="box.height" :rx="8" :ry="8" :stroke="box.color" stroke-width="3" fill="none"
-                    :style="{ strokeDasharray: '5,5' }" />
+                    :height="box.height" :rx="8" :ry="8" :stroke="box.color" stroke-width="2" fill="none"
+                    :style="{ strokeDasharray: '6,8' }" />
             </svg>
         </div>
     </div>
@@ -133,8 +136,8 @@ function calculateBoundingBoxes() {
         const piMinterms = pi.minterms || []
         if (piMinterms.length === 0) return
 
-        // Find all cells for this essential PI
-        const cells: HTMLElement[] = []
+        // Find all cells for this essential PI with their positions
+        const cellsWithPositions: Array<{ element: HTMLElement, minterm: number, x: number, width: number }> = []
         const rows = table.querySelectorAll('tbody tr')
 
         rows.forEach(row => {
@@ -144,32 +147,51 @@ function calculateBoundingBoxes() {
                 const cellMinterm = parseInt((cell as HTMLElement).getAttribute('data-minterm') || '-1')
 
                 if (cellPiIdx === piIdx && piMinterms.includes(cellMinterm)) {
-                    cells.push(cell as HTMLElement)
+                    const rect = (cell as HTMLElement).getBoundingClientRect()
+                    const x = rect.left - tableRect.left
+                    cellsWithPositions.push({
+                        element: cell as HTMLElement,
+                        minterm: cellMinterm,
+                        x: x,
+                        width: rect.width
+                    })
                 }
             })
         })
 
-        if (cells.length === 0) return
+        if (cellsWithPositions.length === 0) return
 
-        // Calculate bounding box
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        // Sort cells by x position
+        cellsWithPositions.sort((a, b) => a.x - b.x)
 
-        cells.forEach(cell => {
-            const rect = cell.getBoundingClientRect()
-            const x = rect.left - tableRect.left
-            const y = rect.top - tableRect.top
-            const right = x + rect.width
-            const bottom = y + rect.height
+        // Group contiguous cells (cells that are adjacent horizontally)
+        const groups: Array<typeof cellsWithPositions> = []
+        let currentGroup: typeof cellsWithPositions = [cellsWithPositions[0]!]
 
-            minX = Math.min(minX, x)
-            minY = Math.min(minY, y)
-            maxX = Math.max(maxX, right)
-            maxY = Math.max(maxY, bottom)
-        })
+        for (let i = 1; i < cellsWithPositions.length; i++) {
+            const prev = cellsWithPositions[i - 1]!
+            const curr = cellsWithPositions[i]!
 
-        // Expand to cover all rows
+            // Check if cells are adjacent (with small tolerance for rounding)
+            const gap = curr.x - (prev.x + prev.width)
+            const isAdjacent = gap < 5 // tolerance in pixels
+
+            if (isAdjacent) {
+                currentGroup.push(curr)
+            } else {
+                groups.push(currentGroup)
+                currentGroup = [curr]
+            }
+        }
+        groups.push(currentGroup)
+
+        // Create a bounding box for each group
+        const color = essentialColors[piIdx % essentialColors.length] || 'rgb(239, 68, 68)'
+
+        // Get Y coordinates that span all rows
         const firstRow = table.querySelector('tbody tr')
         const lastRow = table.querySelector('tbody tr:last-child')
+        let minY = 0, maxY = 0
         if (firstRow && lastRow) {
             const firstRowRect = firstRow.getBoundingClientRect()
             const lastRowRect = lastRow.getBoundingClientRect()
@@ -177,15 +199,20 @@ function calculateBoundingBoxes() {
             maxY = lastRowRect.bottom - tableRect.top
         }
 
-        // Add padding to make boxes smaller than cells
-        const color = essentialColors[piIdx % essentialColors.length] || 'rgb(239, 68, 68)'
+        groups.forEach(group => {
+            if (group.length === 0) return
 
-        boxes.push({
-            x: minX + BOUNDING_BOX_PADDING,
-            y: minY + BOUNDING_BOX_PADDING,
-            width: (maxX - minX) - (BOUNDING_BOX_PADDING * 2),
-            height: (maxY - minY) - (BOUNDING_BOX_PADDING * 2),
-            color: color
+            const minX = group[0]!.x
+            const lastCell = group[group.length - 1]!
+            const maxX = lastCell.x + lastCell.width
+
+            boxes.push({
+                x: minX + BOUNDING_BOX_PADDING,
+                y: minY + BOUNDING_BOX_PADDING,
+                width: (maxX - minX) - (BOUNDING_BOX_PADDING * 2),
+                height: (maxY - minY) - (BOUNDING_BOX_PADDING * 2),
+                color: color
+            })
         })
     })
 

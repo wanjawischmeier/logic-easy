@@ -5,7 +5,8 @@
             <table ref="tableRef" class="bg-surface-1 border border-primary table-auto select-none">
                 <thead>
                     <tr>
-                        <th class="px-3 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1">
+                        <th
+                            class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1">
                             Class</th>
                         <template v-for="(iter, idx) in iterations" :key="idx">
                             <th class="px-2 text-secondary-variant border-b-4 border-primary bg-surface-1 text-center">
@@ -26,12 +27,12 @@
                             </td>
                             <template v-for="(cell, cellIdx) in row.cells" :key="cellIdx">
                                 <td class="px-2 py-1 text-center align-middle border-b border-primary text-sm transition-all duration-150"
-                                    :class="[cell.bgColor, cell.isPrime ? 'border-2 border-orange-500' : '', { 'border-r': Number(cellIdx) < row.cells.length - 1 }, isHighlighted(cell.term) ? 'ring-2 ring-yellow-400 bg-yellow-200/50' : '']"
+                                    :class="[cell.bgColor, cell.isPrime ? 'border-2 border-orange-500' : '', { 'border-r': Number(cellIdx) < row.cells.length - 1 }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
                                     @mouseenter="hoveredTerm = cell.term" @mouseleave="hoveredTerm = null">
                                     {{ cell.index }}
                                 </td>
                                 <td class="px-3 text-center align-middle border-b border-primary font-mono transition-all duration-150"
-                                    :class="[cell.bgColor, cell.isPrime ? 'border-2 border-orange-500' : '', { 'border-r-4': Number(cellIdx) < row.cells.length - 1 }, isHighlighted(cell.term) ? 'ring-2 ring-yellow-400 bg-yellow-200/50' : '']"
+                                    :class="[cell.bgColor, cell.isPrime ? 'border-2 border-orange-500' : '', { 'border-r-4': Number(cellIdx) < row.cells.length - 1 }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
                                     @mouseenter="hoveredTerm = cell.term" @mouseleave="hoveredTerm = null">
                                     {{ cell.term }}
                                 </td>

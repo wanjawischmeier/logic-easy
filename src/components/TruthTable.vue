@@ -30,7 +30,7 @@
           </td>
           <!-- Editable Output Columns -->
           <td v-for="(cell, colIdx) in row" :key="'out-' + colIdx"
-            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-all duration-100"
+            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-color duration-100"
             :class="{
               'border-r': colIdx !== row.length - 1
             }" @click="toggleCell(rowIdx, colIdx)">
