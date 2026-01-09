@@ -11,18 +11,16 @@ import type { Formula } from '@/utility/types.ts'
  * @param outType
  */
 export function formulaToLC(
-  rawFormulas:  Record<string, Record<string, Formula>>,
+  rawFormulas: Record<string, Record<string, Formula>>,
   inputVars: string[],
   outputVars: string[],
-  minimizeForm: ('dnf' | 'cnf') = 'dnf',
-  outType: 'and-or' | 'nand' | 'nor' = 'and-or'
+  minimizeForm: 'dnf' | 'cnf' = 'dnf',
+  outType: 'and-or' | 'nand' | 'nor' = 'and-or',
 ): LCFile {
-
-
   console.log(rawFormulas)
 
   const formulas: Record<string, Formula> = {} as Record<string, Formula>
-  outputVars.forEach(ov => {
+  outputVars.forEach((ov) => {
     formulas[ov] = (minimizeForm === 'dnf' ? rawFormulas[ov]!.DNF : rawFormulas[ov]!.CNF) as Formula
   })
 
@@ -65,24 +63,42 @@ export function formulaToLC(
     }
 
     // create lamp for this output, aligned with OR gate
-    const lamp = lcFile.createLamp(
-      650,
-      orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2,
-      0
-    )
+    const lamp = lcFile.createLamp(650, orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2, 0)
     lamp.addText(outputVar, 1) //add text label right to the lamp
     lampsByOutput.set(outputVar, lamp) //sadd lamp to map by output variable name
 
-    //create or gate only if there are multiple terms, otherwise there is no "aggregation" via or needed
-    let termCollector: Element = lamp  //holds either the OR gate or the lamp directly if only one term
-    if (terms.length > 1) {
+    //special cases: always true for this output
+    if (terms.length === 1 && terms[0]!.literals.length === 1) {
+      //output always true
+      lcFile
+        .createHigh(lamp.xPOS - 100, lamp.yPOS)
+        .getOutConnectors()[0]!
+        .addTarget(lamp.getInConnectors()[0]!)
+      yOffset += termSpacing + LCFile.LAMP_SIZE + outputSpacing
+      return
+    }
 
-      let collectorGate:Element
+    //special cases: always false for this output
+    if (terms.length === 0) {
+      //output always false
+      lcFile
+        .createLow(lamp.xPOS - 100, lamp.yPOS)
+        .getOutConnectors()[0]!
+        .addTarget(lamp.getInConnectors()[0]!)
+      yOffset += termSpacing + LCFile.LAMP_SIZE + outputSpacing
+      return
+    }
+
+    //create or gate only if there are multiple terms, otherwise there is no "aggregation" via or needed
+    let termCollector: Element = lamp //holds either the OR gate or the lamp directly if only one term
+    if (terms.length > 1) {
+      let collectorGate: Element
       if (outType === 'and-or') {
         collectorGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'n')
-      }else if (outType === 'nand'){
+      } else if (outType === 'nand') {
         collectorGate = lcFile.createAndGate(450, orY, 0, 'n'.repeat(terms.length), 'i') //NAND gate
-      } else {//nor
+      } else {
+        //nor
         collectorGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'i') //NOR gate
         //negate again
         const negateNorGate = lcFile.createORGate(550, orY, 0, 'nn', 'i')
@@ -94,11 +110,12 @@ export function formulaToLC(
         negateNorGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
       }
 
-      if (outType !== 'nor') collectorGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
+      if (outType !== 'nor')
+        collectorGate.getOutConnectors()[0]!.addTarget(lamp.getInConnectors()[0]!)
       termCollector = collectorGate
     }
 
-    if(terms.length === 1 && outType === 'nand'){
+    if (terms.length === 1 && outType === 'nand') {
       //special case: single term with NAND output needs to be inverted
       termCollector.setInPortAt(0, 'i') //invert input
     }
@@ -110,27 +127,29 @@ export function formulaToLC(
       const termInputsNegated = term.literals.map((lit) => (lit.negated ? 'n' : 'i')).join('')
 
       let nextGate: Element = termCollector
-      if (termInputs.length > 1) { //just create AND gate if there are multiple inputs
-        if (outType === 'and-or'){
-            //normal AND gate
+      if (termInputs.length > 1) {
+        //just create AND gate if there are multiple inputs
+        if (outType === 'and-or') {
+          //normal AND gate
           nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'n')
-        }else if(outType === 'nand'){
+        } else if (outType === 'nand') {
           //NAND gate
           nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'i')
-        } else { //NOR
+        } else {
+          //NOR
           nextGate = lcFile.createORGate(300, currentRowY, 0, termInputsNegated, 'i')
         }
 
         nextGate.getOutConnectors()[0]!.addTarget(termCollector.getInConnectors()[termIndex]!) //connect AND output to OR input or directly to lamp
-      } else if (termInputs.length === 1 ){ //if we land here, this is gonna be connected to the OR or LAMP directly, so we have to check if it needs to be negated
+      } else if (termInputs.length === 1) {
+        //if we land here, this is gonna be connected to the OR or LAMP directly, so we have to check if it needs to be negated
         if (outType === 'and-or') {
           nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'i' : 'n')
-        } else if(outType === 'nand'){
+        } else if (outType === 'nand') {
           nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'n' : 'i') //inverted if NAND
         } else {
           nextGate.setInPortAt(termIndex, term.literals[0]!.negated ? 'i' : 'n')
         }
-
       }
 
       //build connections from buttons to term inputs
@@ -141,12 +160,11 @@ export function formulaToLC(
         //create connector node between button and input of AND/OR/lamp
         const connectorNode = lcFile.createNode(
           -5 + button.xPOS + LCFile.BUTTON_SIZE / 2,
-          nextGate.yPOS + LCFile.AND_SIZE / term.literals.length + i * 20
+          nextGate.yPOS + LCFile.AND_SIZE / term.literals.length + i * 20,
         )
 
         //if no AND was created and the collector is an OR, target the OR input for this termIndex
-        const targetIdx =
-          !(termInputs.length > 1) && termCollector !== lamp ? termIndex : i
+        const targetIdx = !(termInputs.length > 1) && termCollector !== lamp ? termIndex : i
 
         connectorNode.addTarget(nextGate.getInConnectors()[targetIdx]!)
         button.getOutConnectors()[0]!.addTarget(connectorNode)
@@ -161,15 +179,20 @@ export function formulaToLC(
 }
 
 export function formulaToLcFile(
-  projectName:string,
-  rawFormulas:  Record<string, Record<string, Formula>>,
+  projectName: string,
+  rawFormulas: Record<string, Record<string, Formula>>,
   inputVars: string[],
   outputVars: string[],
-  minimizeForm: ('dnf' | 'cnf') = 'dnf',
-  outType: 'and-or' | 'nand' | 'nor' = 'and-or'
-):void{
-
-  const content:string = formulaToLC(rawFormulas, inputVars, outputVars, minimizeForm, outType).toString()
+  minimizeForm: 'dnf' | 'cnf' = 'dnf',
+  outType: 'and-or' | 'nand' | 'nor' = 'and-or',
+): void {
+  const content: string = formulaToLC(
+    rawFormulas,
+    inputVars,
+    outputVars,
+    minimizeForm,
+    outType,
+  ).toString()
 
   const blob = new Blob([content], {
     type: 'text/lc',
@@ -178,7 +201,10 @@ export function formulaToLcFile(
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   link.setAttribute('href', url)
-  link.setAttribute('download', projectName.replace(/\s+/g, '_') + "_"+minimizeForm + "_"+outType + '.lc')
+  link.setAttribute(
+    'download',
+    projectName.replace(/\s+/g, '_') + '_' + minimizeForm + '_' + outType + '.lc',
+  )
   link.style.visibility = 'hidden'
 
   document.body.appendChild(link)
