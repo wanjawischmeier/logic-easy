@@ -6,12 +6,14 @@
       class="w-full min-h-[140px] font-mono bg-gray-900 text-white p-2 rounded border border-gray-700"></textarea>
 
     <div class="flex items-center gap-2">
-      <button @click="minify()" :disabled="running"
+      <button @click="minify([espArguments])" :disabled="running"
         class="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded">Run</button>
       <!-- A bit weird cause there is no -h option, but it does show the help -->
       <button @click="minify(['-h'])" :disabled="running"
         class="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 rounded">Run --help</button>
-      <span v-if="running" class="ml-2 text-sm">Running…</span>
+      <span>Arguments:</span>
+      <input v-model="espArguments" type="text" class="bg-surface-2">
+        <span v-if="running" class="ml-2 text-sm">Running…</span>
     </div>
 
     <div class="text-sm">
@@ -44,6 +46,7 @@ let disposable: { dispose?: () => void } | null = null
 
 // UI state
 const input = ref<string>('')
+const espArguments = ref<string>('')
 const stdout = ref<string>('')
 const stderr = ref<string>('')
 const exitCode = ref<number | null>(null)
