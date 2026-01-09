@@ -5,15 +5,24 @@
             <table ref="tableRef" class="bg-surface-1 border border-primary table-auto select-none">
                 <thead>
                     <tr>
-                        <th
+                        <th rowspan="2"
                             class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1">
                             Class</th>
-                        <template v-for="(iter, idx) in iterations" :key="idx">
+                        <template v-for="(iter, idx) in iterations" :key="`group-${idx}`">
+                            <th colspan="2"
+                                class="px-8 py-1 text-secondary-variant border-r border-primary bg-surface-1 text-center"
+                                :class="{ 'border-r-4': idx < iterations.length - 1 }">
+                                {{ idx === 0 ? 'Minterms' : `Iteration ${idx}` }}
+                            </th>
+                        </template>
+                    </tr>
+                    <tr>
+                        <template v-for="(iter, idx) in iterations" :key="`sub-${idx}`">
                             <th class="px-2 text-secondary-variant border-b-4 border-primary bg-surface-1 text-center">
                                 #</th>
                             <th class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1"
                                 :class="{ 'border-r-4': idx < iterations.length - 1 }">
-                                {{ idx === 0 ? 'Minterms' : `Iteration ${idx}` }}
+                                Term
                             </th>
                         </template>
                     </tr>
@@ -26,8 +35,8 @@
                                 <vue-latex :expression="`K_{${kClass.k}}`" display-mode />
                             </td>
                             <template v-for="(cell, cellIdx) in row.cells" :key="cellIdx">
-                                <td class="px-2 py-1 text-center align-middle border-b border-primary text-sm font-mono transition-all duration-150"
-                                    :class="[cell.bgColor, { 'border-r': Number(cellIdx) < row.cells.length - 1, 'prime-highlight-left': cell.isPrime }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
+                                <td class="px-2 py-1 text-center align-middle border-b border-r border-primary text-sm font-mono transition-all duration-150"
+                                    :class="[cell.bgColor, { 'prime-highlight-left': cell.isPrime }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
                                     @mouseenter="hoveredTerm = cell.term" @mouseleave="hoveredTerm = null">
                                     {{ cell.index }}
                                 </td>
