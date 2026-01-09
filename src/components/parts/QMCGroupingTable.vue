@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h3 class="text-lg font-semibold mb-2">QMC: Grouping & Join History (Table 1)</h3>
+        <h3 class="text-lg font-semibold mb-2">Grouping & Join History</h3>
         <div class="w-full overflow-auto">
             <table ref="tableRef" class="bg-surface-1 border border-primary table-auto select-none">
                 <thead>
@@ -22,10 +22,10 @@
                         <tr v-for="(row, rowIdx) in kClass.rows" :key="rowIdx">
                             <td v-if="rowIdx === 0" :rowspan="kClass.rows.length"
                                 class="px-3 text-center align-middle border-b border-r-4 border-primary font-semibold">
-                                K<sub>{{ kClass.k }}</sub>
+                                <vue-latex :expression="`K_{${kClass.k}}`" display-mode />
                             </td>
                             <template v-for="(cell, cellIdx) in row.cells" :key="cellIdx">
-                                <td class="px-2 text-center align-middle border-b border-primary text-sm transition-all duration-150"
+                                <td class="px-2 py-1 text-center align-middle border-b border-primary text-sm transition-all duration-150"
                                     :class="[cell.bgColor, cell.isPrime ? 'border-2 border-orange-500' : '', { 'border-r': Number(cellIdx) < row.cells.length - 1 }, isHighlighted(cell.term) ? 'ring-2 ring-yellow-400 bg-yellow-200/50' : '']"
                                     @mouseenter="hoveredTerm = cell.term" @mouseleave="hoveredTerm = null">
                                     {{ cell.index }}
@@ -192,7 +192,7 @@ function buildTableRows() {
             }
 
             kClassEntries.get(kClass)!.get(iterIdx)!.push({
-                index: join.minterms ? join.minterms.join(',') : '',
+                index: join.minterms ? join.minterms.join(', ') : '',
                 term: joinTerm,
                 bgColor: bgColor,
                 isPrime: piTerms.has(joinTerm)

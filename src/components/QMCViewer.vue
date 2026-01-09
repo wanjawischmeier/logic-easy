@@ -1,14 +1,14 @@
 <template>
     <div class="h-full text-on-surface flex flex-col p-2 overflow-auto">
-        <FormulaRenderer :latex-expression="formulaLatex" v-if="formulaLatex"></FormulaRenderer>
-
-        <div class="mb-4">
+        <div>
             <QMCGroupingTable :iterations="iterations" :prime-implicants="pis" />
         </div>
 
         <div>
             <QMCPrimeImplicantChart :minterms="minterms" :prime-implicants="pis" :chart="chart" />
         </div>
+
+        <FormulaRenderer :latex-expression="formulaLatex" v-if="formulaLatex"></FormulaRenderer>
     </div>
 </template>
 
@@ -147,7 +147,7 @@ const formulaLatex = computed(() => {
     }
 
     const vars = getVariables(expressions.value)
-    const signature = `f(${vars.join(', ')}) = `
+    const signature = `f_{DMF}(${vars.join(', ')}) = `
     return signature + parts.join(' + ')
 })
 

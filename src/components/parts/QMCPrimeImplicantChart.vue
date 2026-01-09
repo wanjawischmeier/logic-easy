@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h3 class="text-lg font-semibold mb-2">QMC: Prime Implicant Chart (Table 2)</h3>
+        <h3 class="text-lg font-semibold mb-2">Prime Implicant Chart</h3>
         <div class="w-full overflow-auto relative">
             <table ref="tableRef" class="bg-surface-1 border border-primary table-fixed w-auto select-none relative">
                 <thead>
@@ -13,14 +13,14 @@
                 </thead>
                 <tbody>
                     <tr v-for="(pi, piIdx) in primeImplicants" :key="pi.term">
-                        <td class="px-3 align-middle border-b border-r-4 border-primary relative"
+                        <td class="px-4 align-middle border-b border-r-4 border-primary relative"
                             :style="pi.isEssential ? { boxShadow: `inset 0 0 0 2px ${essentialColors[piIdx % essentialColors.length]}` } : {}">
-                            <vue-latex :expression="pi.term" display-mode />
+                            <vue-latex :fontsize=14 :expression="pi.term" display-mode />
                         </td>
                         <td v-for="m in minterms" :key="m"
-                            class="text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
+                            class="px-4 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
                             :data-minterm="m">
-                            <vue-latex :expression="getCellSymbol(pi, m)" display-mode />
+                            <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" display-mode />
                         </td>
                     </tr>
                 </tbody>
@@ -32,15 +32,6 @@
                     :height="box.height" :rx="8" :ry="8" :stroke="box.color" stroke-width="3" fill="none"
                     :style="{ strokeDasharray: '5,5' }" />
             </svg>
-        </div>
-
-        <div class="mt-4">
-            <div class="mb-2"><strong>Essential prime implicants (marked with outline above):</strong></div>
-            <div class="mb-2">{{ essentialList.length ? essentialList.join(', ') : '(none)' }}</div>
-
-            <div class="mb-1"><strong>Prime-implicant chart (minterm -> implicants):</strong></div>
-            <div v-for="m in minterms" :key="m" class="font-mono">{{ m }}: {{ (chart && chart[m]) ?
-                chart[m]!.join(',') : '' }}</div>
         </div>
     </div>
 </template>
@@ -126,7 +117,7 @@ function getCellSymbol(pi: any, minterm: number): string {
         }
     }
 
-    return 'x'
+    return '\\times'
 }
 
 function calculateBoundingBoxes() {
