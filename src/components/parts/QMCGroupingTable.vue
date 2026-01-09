@@ -26,13 +26,13 @@
                                 <vue-latex :expression="`K_{${kClass.k}}`" display-mode />
                             </td>
                             <template v-for="(cell, cellIdx) in row.cells" :key="cellIdx">
-                                <td class="px-2 py-1 text-center align-middle border-b border-primary text-sm transition-all duration-150"
-                                    :class="[cell.bgColor, cell.isPrime ? 'border-2 border-orange-500' : '', { 'border-r': Number(cellIdx) < row.cells.length - 1 }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
+                                <td class="px-2 py-1 text-center align-middle border-b border-primary text-sm font-mono transition-all duration-150"
+                                    :class="[cell.bgColor, { 'border-r': Number(cellIdx) < row.cells.length - 1, 'prime-highlight-left': cell.isPrime }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
                                     @mouseenter="hoveredTerm = cell.term" @mouseleave="hoveredTerm = null">
                                     {{ cell.index }}
                                 </td>
-                                <td class="px-3 text-center align-middle border-b border-primary font-mono transition-all duration-150"
-                                    :class="[cell.bgColor, cell.isPrime ? 'border-2 border-orange-500' : '', { 'border-r-4': Number(cellIdx) < row.cells.length - 1 }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
+                                <td class="px-2 py-1 text-center align-middle border-b border-primary text-sm font-mono transition-all duration-150"
+                                    :class="[cell.bgColor, { 'border-r-4': Number(cellIdx) < row.cells.length - 1, 'prime-highlight-right': cell.isPrime }, isHighlighted(cell.term) ? 'bg-yellow-200/50' : '']"
                                     @mouseenter="hoveredTerm = cell.term" @mouseleave="hoveredTerm = null">
                                     {{ cell.term }}
                                 </td>
@@ -153,6 +153,7 @@ function buildTableRows() {
                 bgColor: bgColor,
                 isPrime: piTerms.has(term)
             })
+            console.log(`IsPrime1: ${piTerms.has(term)}`)
         })
     })
 
@@ -198,6 +199,7 @@ function buildTableRows() {
                 bgColor: bgColor,
                 isPrime: piTerms.has(joinTerm)
             })
+            console.log(`IsPrime2: ${piTerms.has(joinTerm)}`)
         })
     }
 

@@ -1,7 +1,7 @@
 import { createPanel } from "@/utility/dockview/integration";
 import { Project, type BaseProjectProps } from "../Project";
 import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
-import type { Formula } from "@/utility/types";
+import type { Formula, FunctionType } from "@/utility/types";
 import { computed } from "vue";
 import { stateManager, type AppState } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
@@ -20,7 +20,7 @@ export interface TruthTableState {
   outputVars: string[];
   values: TruthTableData;
   minifiedValues: TruthTableData;
-  formulas: Record<string, Record<string, Formula>>;
+  formulas: Record<string, Record<FunctionType, Formula>>;
 }
 
 export class TruthTableProject extends Project {
