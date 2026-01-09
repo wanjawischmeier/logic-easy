@@ -239,45 +239,61 @@ function decimalFromBinary(binary: string): number {
     return parseInt(binary.replace(/-/g, '0'), 2)
 }
 
-function getAllAncestors(term: string, visited = new Set<string>()): Set<string> {
-    if (visited.has(term)) return visited
-    visited.add(term)
-
-    const rels = termRelationships.value.get(term)
-    if (rels && rels.parents.length > 0) {
-        rels.parents.forEach(parent => {
-            getAllAncestors(parent, visited)
-        })
+// Parse minterms from cell index (can be single number or comma-separated string)
+function getMinMaxTerms(indexValue: string | number): Set<number> {
+    if (typeof indexValue === 'number') {
+        return new Set([indexValue])
     }
-    return visited
+    if (!indexValue) return new Set()
+
+    const minterms = indexValue.toString().split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+    return new Set(minterms)
 }
 
-function getAllDescendants(term: string, visited = new Set<string>()): Set<string> {
-    if (visited.has(term)) return visited
-    visited.add(term)
-
-    const rels = termRelationships.value.get(term)
-    if (rels && rels.children.length > 0) {
-        rels.children.forEach(child => {
-            getAllDescendants(child, visited)
-        })
+// Check if set A is a subset of set B
+function isSubset(a: Set<number>, b: Set<number>): boolean {
+    if (a.size > b.size) return false
+    for (const item of a) {
+        if (!b.has(item)) return false
     }
-    return visited
+    return true
 }
 
 function isHighlighted(term: string): boolean {
     if (!term || !hoveredTerm.value) return false
     if (term === hoveredTerm.value) return true
 
-    // Check if this term is an ancestor (parent, grandparent, etc.)
-    const ancestors = getAllAncestors(hoveredTerm.value)
-    ancestors.delete(hoveredTerm.value) // Remove the hovered term itself
-    if (ancestors.has(term)) return true
+    // Find the hovered cell to get its minterms
+    let hoveredCell: any = null
+    let candidateCell: any = null
 
-    // Check if this term is a descendant (child, grandchild, etc.)
-    const descendants = getAllDescendants(hoveredTerm.value)
-    descendants.delete(hoveredTerm.value) // Remove the hovered term itself
-    if (descendants.has(term)) return true
+    for (const kClass of tableRows.value) {
+        for (const row of kClass.rows) {
+            for (const cell of row.cells) {
+                if (cell.term === hoveredTerm.value) {
+                    hoveredCell = cell
+                }
+                if (cell.term === term) {
+                    candidateCell = cell
+                }
+            }
+        }
+    }
+
+    if (!hoveredCell || !candidateCell) return false
+
+    const hoveredMinterms = getMinMaxTerms(hoveredCell.index)
+    const candidateMinterms = getMinMaxTerms(candidateCell.index)
+
+    // Highlight if hovered minterms are a subset of candidate (descendant)
+    if (isSubset(hoveredMinterms, candidateMinterms) && hoveredMinterms.size < candidateMinterms.size) {
+        return true
+    }
+
+    // Highlight if candidate minterms are a subset of hovered (ancestor)
+    if (isSubset(candidateMinterms, hoveredMinterms) && candidateMinterms.size < hoveredMinterms.size) {
+        return true
+    }
 
     return false
 }
