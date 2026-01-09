@@ -5,23 +5,28 @@
             <table ref="tableRef" class="bg-surface-1 border border-primary table-fixed w-auto select-none relative">
                 <thead>
                     <tr>
-                        <th
-                            class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1">
+                        <th colspan="2"
+                            class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1 text-center">
                             Terms
                         </th>
                         <th v-for="m in minterms" :key="m"
-                            class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1">{{ m }}</th>
+                            class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1">{{ m
+                            }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(pi, piIdx) in primeImplicants" :key="pi.term"
                         class="hover:bg-surface-3 transition-color duration-100">
+                        <td class="px-4 text-center align-middle border-b border-r border-primary font-mono relative"
+                            :style="pi.isEssential ? { boxShadow: `inset 2px 0 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 2px 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 -2px 0 0 ${essentialColors[piIdx % essentialColors.length]}` } : {}">
+                            {{ pi.term }}
+                        </td>
                         <td class="px-4 align-middle border-b border-r-4 border-primary relative"
-                            :style="pi.isEssential ? { boxShadow: `inset 0 0 0 2px ${essentialColors[piIdx % essentialColors.length]}` } : {}">
-                            <vue-latex :fontsize=14 :expression="pi.term" display-mode />
+                            :style="pi.isEssential ? { boxShadow: `inset -2px 0 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 2px 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 -2px 0 0 ${essentialColors[piIdx % essentialColors.length]}` } : {}">
+                            <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" display-mode />
                         </td>
                         <td v-for="m in minterms" :key="m"
-                            class="px-4 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
+                            class="px-2 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
                             :data-minterm="m">
                             <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" display-mode />
                         </td>
@@ -48,9 +53,12 @@ interface Props {
     minterms: number[]
     primeImplicants: any[]
     chart: Record<number, string[]> | null
+    inputVars?: string[]
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+    inputVars: () => []
+})
 
 const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<{ x: number, y: number, width: number, height: number, color: string }>>([])
@@ -107,6 +115,28 @@ const essentialMinterms = computed(() => {
 
     return result
 })
+
+function termToAlgebraic(term: string): string {
+    if (!term || !props.inputVars || props.inputVars.length === 0) return ''
+
+    const literals: string[] = []
+    // Reverse the term since rightmost bit corresponds to last variable
+    const reversedTerm = term.split('').reverse()
+
+    for (let i = 0; i < reversedTerm.length && i < props.inputVars.length; i++) {
+        const bit = reversedTerm[i]
+        const varName = props.inputVars[i]?.toLowerCase() || ''
+
+        if (bit === '1') {
+            literals.push(varName)
+        } else if (bit === '0') {
+            literals.push(`\\bar{${varName}}`)
+        }
+        // '-' (don't care) is omitted
+    }
+
+    return literals.length > 0 ? literals.join('') : '1'
+}
 
 function getCellSymbol(pi: any, minterm: number): string {
     const piMinterms = pi.minterms || []

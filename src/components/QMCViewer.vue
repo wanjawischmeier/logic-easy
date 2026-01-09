@@ -2,7 +2,8 @@
     <div class="h-full text-on-surface flex flex-col p-2 overflow-auto">
         <div class="flex flex-wrap justify-center gap-12">
             <QMCGroupingTable :iterations="iterations" :prime-implicants="pis" />
-            <QMCPrimeImplicantChart :minterms="minterms" :prime-implicants="pis" :chart="chart" />
+            <QMCPrimeImplicantChart :minterms="minterms" :prime-implicants="pis" :chart="chart"
+                :input-vars="inputVars" />
             <FormulaRenderer :latex-expression="formulaLatex" v-if="formulaLatex"></FormulaRenderer>
         </div>
     </div>
