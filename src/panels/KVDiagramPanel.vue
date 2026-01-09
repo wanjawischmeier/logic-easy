@@ -19,12 +19,12 @@
           :input-vars="inputVars" :output-vars="outputVars" :output-index="selectedOutputIndex"
           :minified-values="minifiedValues || []" :formula="currentFormula" :functionType="selectedType" />
 
-        <div class="mt-4 w-full hidden justify-center">
+        <div class="mt-4 w-full justify-center">
           <FormulaRenderer :latex-expression="getLatexExpression(selectedOutputIndex)" />
         </div>
 
         <QMCViewer :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
-          :selected-output-index="selectedOutputIndex"></QMCViewer>
+          :selected-output-index="selectedOutputIndex" :function-type="selectedType"></QMCViewer>
       </div>
 
       <!-- Screenshot-only view -->

@@ -22,10 +22,12 @@ interface Props {
     outputVars: string[]
     values: TruthTableData
     selectedOutputIndex?: number
+    functionType?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    selectedOutputIndex: 0
+    selectedOutputIndex: 0,
+    functionType: 'DNF'
 })
 
 const iterations = ref<any[]>([])
@@ -34,31 +36,51 @@ const pis = ref<any[]>([])
 const chart = ref<Record<number, string[]> | null>(null)
 const expressions = ref<Operation[]>([])
 
-// Calculate minterms from truth table values for the selected output
-function calculateMinterms(values: TruthTableData, outputIndex: number): number[] {
-    console.log('=== calculateMinterms ===')
-    console.log('values:', values)
-    console.log('outputIndex:', outputIndex)
-    console.log('numInputs:', props.inputVars.length)
-    console.log('inputVars:', props.inputVars)
-    console.log('outputVars:', props.outputVars)
-
+// Calculate minterms or maxterms from truth table values
+function calculateMinMaxTerms(values: TruthTableData, outputIndex: number): number[] {
     const mt: number[] = []
+    const isDMF = props.functionType === 'DNF'
 
     values.forEach((row, rowIndex) => {
-        console.log(`Row ${rowIndex}:`, row, `length: ${row.length}`)
         const outputCell = row[outputIndex] // Row contains only output values
-        console.log(`  Looking at index ${outputIndex}, value:`, outputCell)
 
-        // If output is 1, this row is a minterm
-        if (outputCell === 1) {
-            console.log(`  -> Adding minterm ${rowIndex}`)
+        // For DMF: collect minterms (where output is 1)
+        // For CMF: collect maxterms (where output is 0)
+        if ((isDMF && outputCell === 1) || (!isDMF && outputCell === 0)) {
             mt.push(rowIndex)
         }
     })
 
-    console.log('Final minterms:', mt)
     return mt
+}
+
+// Apply De Morgan's law to convert DNF to CNF
+function applyDeMorgan(op: Operation): Operation {
+    // If it's a VAR, negate it
+    if ((op as any).name !== undefined) {
+        return { priority: 15, args: [op] } as unknown as Operation
+    }
+
+    // If it's a NOT, remove the negation (double negative)
+    if ((op as any).priority === 15) {
+        return (op as any).args[0]
+    }
+
+    // If it's an AND, convert to OR and negate each arg
+    if ((op as any).priority === 8) {
+        const args = (op as any).args as Operation[]
+        const negatedArgs = args.map(arg => applyDeMorgan(arg))
+        return { priority: 6, args: negatedArgs } as unknown as Operation
+    }
+
+    // If it's an OR, convert to AND and negate each arg
+    if ((op as any).priority === 6) {
+        const args = (op as any).args as Operation[]
+        const negatedArgs = args.map(arg => applyDeMorgan(arg))
+        return { priority: 8, args: negatedArgs } as unknown as Operation
+    }
+
+    return op
 }
 
 // Run QMC when data changes
@@ -78,7 +100,7 @@ function runQMC() {
     }
 
     const qmc = new QMC()
-    const mt = calculateMinterms(props.values, props.selectedOutputIndex)
+    const mt = calculateMinMaxTerms(props.values, props.selectedOutputIndex)
     const dc: number[] = [] // Don't cares - could be extended later
 
     console.log('Calculated minterms:', mt)
@@ -111,7 +133,13 @@ function runQMC() {
     chart.value = d.chart || {}
 
     // Get the minimized expressions
-    expressions.value = detailedResult.expressions
+    // For CNF: QMC returns DNF of complement, so apply De Morgan's law
+    if (props.functionType === 'CNF') {
+        expressions.value = detailedResult.expressions.map(expr => applyDeMorgan(expr))
+        console.log('Applied De Morgan\'s law for CNF')
+    } else {
+        expressions.value = detailedResult.expressions
+    }
 
     console.log('Set iterations:', iterations.value)
     console.log('Set pis:', pis.value)
@@ -119,12 +147,12 @@ function runQMC() {
 }
 
 // Watch for changes in input data
-watch(() => [props.values, props.selectedOutputIndex, props.inputVars, props.outputVars], () => {
+watch(() => [props.values, props.selectedOutputIndex, props.inputVars, props.outputVars, props.functionType], () => {
     runQMC()
 }, { immediate: true, deep: true })
 
 // Convert Operation to custom LaTeX string (lowercase variables, no operators)
-function operationToLatex(op: Operation): string {
+function operationToLatex(op: Operation, isCNF: boolean = false): string {
     if ((op as any).name !== undefined) {
         // It's a VAR
         return (op as any).name.toLowerCase()
@@ -133,36 +161,58 @@ function operationToLatex(op: Operation): string {
     if ((op as any).priority === 15) {
         // It's a NOT
         const inner = (op as any).args[0]
-        return `\\bar{${operationToLatex(inner)}}`
+        return `\\bar{${operationToLatex(inner, isCNF)}}`
     }
 
     if ((op as any).priority === 8) {
-        // It's an AND - concatenate without operators
+        // It's an AND
         const args = (op as any).args as Operation[]
-        return args.map(arg => operationToLatex(arg)).join('')
+        if (isCNF) {
+            // For CNF: AND joins product terms (parentheses groups)
+            return args.map(arg => operationToLatex(arg, isCNF)).join('')
+        } else {
+            // For DNF: AND concatenates literals
+            return args.map(arg => operationToLatex(arg, isCNF)).join('')
+        }
     }
 
     if ((op as any).priority === 6) {
-        // It's an OR - separate with +
+        // It's an OR
         const args = (op as any).args as Operation[]
-        return args.map(arg => operationToLatex(arg)).join(' + ')
+        if (isCNF) {
+            // For CNF: OR creates sum terms (wrapped in parentheses)
+            const sum = args.map(arg => operationToLatex(arg, isCNF)).join(' + ')
+            // Wrap in parentheses if more than one literal
+            return args.length > 1 ? `(${sum})` : sum
+        } else {
+            // For DNF: OR separates product terms with +
+            return args.map(arg => operationToLatex(arg, isCNF)).join(' + ')
+        }
     }
 
     return ''
 }
 
-// Parse an expression into individual sum terms
-function getTerms(expr: Operation): string[] {
-    const latex = operationToLatex(expr)
-    return latex.split(' + ').map(t => t.trim())
+// Parse an expression into individual terms
+function getTerms(expr: Operation, isCNF: boolean): string[] {
+    const latex = operationToLatex(expr, isCNF)
+    if (isCNF) {
+        // For CNF: split by product terms (parentheses groups)
+        // Match parentheses groups or single variables
+        const matches = latex.match(/\([^)]+\)|[^()\s]+/g) || []
+        return matches.map(t => t.trim())
+    } else {
+        // For DNF: split by + for sum terms
+        return latex.split(' + ').map(t => t.trim())
+    }
 }
 
 // Analyze expressions to find common terms and variable positions
-function analyzeExpressions(exprs: Operation[]): { constantTerms: string[], variablePositions: string[][] } {
+function analyzeExpressions(exprs: Operation[], isCNF: boolean): { constantTerms: string[], variablePositions: string[][] } {
     if (exprs.length === 0) return { constantTerms: [], variablePositions: [] }
-    if (exprs.length === 1) return { constantTerms: getTerms(exprs[0]!), variablePositions: [] }
+    if (exprs.length === 1) return { constantTerms: getTerms(exprs[0]!, isCNF), variablePositions: [] }
 
-    const allTerms = exprs.map(expr => getTerms(expr))
+    const allTerms = exprs.map(expr => getTerms(expr, isCNF))
     const maxLength = Math.max(...allTerms.map(t => t.length))
 
     // Pad shorter expressions with empty strings
@@ -218,13 +268,17 @@ function getVariables(exprs: Operation[]): string[] {
 const formulaLatex = computed(() => {
     if (expressions.value.length === 0) return ''
 
-    const { constantTerms, variablePositions } = analyzeExpressions(expressions.value)
+    const isCNF = props.functionType === 'CNF'
+    const { constantTerms, variablePositions } = analyzeExpressions(expressions.value, isCNF)
 
     // If no variable positions, all expressions are identical
     if (variablePositions.length === 0) {
         const vars = getVariables(expressions.value)
-        const signature = `f(${vars.join(', ')}) = `
-        return signature + constantTerms.join(' + ')
+        const formType = props.functionType === 'DNF' ? 'DMF' : 'CMF'
+        const signature = `f_{${formType}}(${vars.join(', ')}) = `
+        // Join terms appropriately based on form
+        const termJoiner = isCNF ? '' : ' + '
+        return signature + constantTerms.join(termJoiner)
     }
 
     // Build formula: constant terms + matrices for each variable position
@@ -232,7 +286,8 @@ const formulaLatex = computed(() => {
 
     // Add constant terms
     if (constantTerms.length > 0) {
-        parts.push(constantTerms.join(' + '))
+        const termJoiner = isCNF ? '' : ' + '
+        parts.push(constantTerms.join(termJoiner))
     }
 
     // Add a matrix for each variable position
@@ -244,8 +299,10 @@ const formulaLatex = computed(() => {
     }
 
     const vars = getVariables(expressions.value)
-    const signature = `f_{DMF}(${vars.join(', ')}) = `
-    return signature + parts.join(' + ')
+    const formType = props.functionType === 'DNF' ? 'DMF' : 'CMF'
+    const signature = `f_{${formType}}(${vars.join(', ')}) = `
+    const termJoiner = isCNF ? '' : ' + '
+    return signature + parts.join(termJoiner)
 })
 
 
