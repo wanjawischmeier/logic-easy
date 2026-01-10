@@ -22,12 +22,49 @@ export class Minimizer {
     }
 
     // Calculate minterms or maxterms from truth table values
-    static calculateMinMaxTerms(values: TruthTableData, outputIndex: number, functionType: FunctionType): number[] {
+    static calculateMinMaxTerms(
+        values: TruthTableData,
+        outputIndex: number,
+        functionType: FunctionType,
+        inputSelection?: boolean[]
+    ): number[] {
         const mt: number[] = []
         const isDMF = functionType === 'DNF'
 
+        // If we have input selection, we need to map row indices to reduced variable space
+        if (inputSelection && inputSelection.some(selected => !selected)) {
+            values.forEach((row, rowIndex) => {
+                const outputCell = row[outputIndex]
+
+                // Only process rows where we care about the output
+                if ((isDMF && outputCell === 1) || (!isDMF && outputCell === 0)) {
+                    // Extract bits for selected variables only
+                    // Process from MSB to LSB (left to right in the variable order)
+                    const selectedBits: number[] = []
+                    const totalVars = inputSelection.length
+
+                    for (let i = totalVars - 1; i >= 0; i--) {
+                        if (inputSelection[i]) {
+                            const bit = (rowIndex >> i) & 1
+                            selectedBits.push(bit)
+                        }
+                    }
+
+                    // Convert selected bits to reduced index
+                    const reducedIndex = selectedBits.reduce((acc, bit) => (acc << 1) | bit, 0)
+
+                    if (!mt.includes(reducedIndex)) {
+                        mt.push(reducedIndex)
+                    }
+                }
+            })
+
+            return mt.sort((a, b) => a - b)
+        }
+
+        // Original behavior when all variables are selected
         values.forEach((row, rowIndex) => {
-            const outputCell = row[outputIndex] // Row contains only output values
+            const outputCell = row[outputIndex]
 
             // For DMF: collect minterms (where output is 1)
             // For CMF: collect maxterms (where output is 0)
@@ -88,7 +125,8 @@ export class Minimizer {
         const mt = this.calculateMinMaxTerms(
             truthTable.values,
             truthTable.outputVariableIndex,
-            truthTable.functionType
+            truthTable.functionType,
+            truthTable.inputSelection
         )
         const dc: number[] = [] // Don't cares - could be extended later
 

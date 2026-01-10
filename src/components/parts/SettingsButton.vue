@@ -14,8 +14,15 @@
         </div>
 
         <div v-if="showDropdown"
-            class="absolute right-0 mt-1 pr-8 p-2 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
+            class="absolute right-0 mt-1 p-2 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
             <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs opacity-70">Input Variables</label>
+                    <MultiToggleSwitch :values="inputVars" :initialSelected="inputSelection"
+                        :onToggle="handleInputSelectionChange" :min-selected="1">
+                    </MultiToggleSwitch>
+                </div>
+
                 <div v-if="showOutputVarSelector" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Output Variable</label>
                     <MultiSelectSwitch :values="outputVars" :initialSelected="selectedOutputIndex"
@@ -39,15 +46,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import MultiSelectSwitch from './MultiSelectSwitch.vue'
+import MultiToggleSwitch from './MultiToggleSwitch.vue'
 import { FunctionType } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
 import { updateTruthTable } from '@/utility/truthtable/interpreter'
 
 interface Props {
+    inputVars: string[]
     outputVars: string[]
     functionTypes: FunctionType[]
     selectedOutputIndex: number
     selectedFunctionType: FunctionType
+    inputSelection: boolean[]
 }
 
 interface Emits {
@@ -70,6 +80,12 @@ const toggleDropdown = () => {
 
 const closeDropdown = () => {
     showDropdown.value = false
+}
+
+const handleInputSelectionChange = (index: number, value: boolean, selected: boolean[]) => {
+    if (!stateManager.state.truthTable) return
+    stateManager.state.truthTable.inputSelection = [...selected];
+    updateTruthTable()
 }
 
 const handleOutputChange = (value: unknown, index: number) => {

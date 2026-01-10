@@ -105,13 +105,18 @@ const essentialMinterms = computed(() => {
 function termToAlgebraic(term: string): string {
     if (!term || !props.inputVars || props.inputVars.length === 0) return ''
 
-    const literals: string[] = []
-    // Reverse the term since rightmost bit corresponds to last variable
-    const reversedTerm = term.split('').reverse()
+    // Filter to only selected input variables
+    const selectedVars = props.inputSelection
+        ? props.inputVars.filter((_, idx) => props.inputSelection![idx])
+        : props.inputVars
 
-    for (let i = 0; i < reversedTerm.length && i < props.inputVars.length; i++) {
-        const bit = reversedTerm[i]
-        const varName = props.inputVars[i]?.toLowerCase() || ''
+    const literals: string[] = []
+
+    // In the reduced QMC space, leftmost bit corresponds to first selected variable
+    // So we don't reverse for selected variables
+    for (let i = 0; i < term.length && i < selectedVars.length; i++) {
+        const bit = term[i]
+        const varName = selectedVars[i]?.toLowerCase() || ''
 
         if (bit === '1') {
             literals.push(varName)

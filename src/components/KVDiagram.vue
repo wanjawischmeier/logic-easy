@@ -86,17 +86,47 @@ const emit = defineEmits<{
   (e: 'valuesChanged', value: TruthTableData): void
 }>();
 
-const variables = computed(() => props.inputVars || []);
+// Filter to only selected variables
+const selectedVars = computed(() => {
+  if (!props.inputSelection) return props.inputVars || [];
+  return props.inputVars.filter((_, idx) => props.inputSelection[idx]) || [];
+});
+
+const variables = computed(() => selectedVars.value);
 const leftVariables = computed(() => getLeftVariables(variables.value));
 const topVariables = computed(() => getTopVariables(variables.value));
 const rowCodes = computed(() => getRowCodes(variables.value.length));
 const colCodes = computed(() => getColCodes(variables.value.length));
 
+// Convert from reduced KV diagram index to full truth table row index
+const getFullRowIndex = (reducedIndex: number): number => {
+  if (!props.inputSelection || props.inputSelection.every(Boolean)) {
+    return reducedIndex;
+  }
+
+  // Extract bits for the reduced index and map them back to full row index
+  let fullIndex = 0;
+  let reducedBit = 0;
+
+  for (let i = props.inputVars.length - 1; i >= 0; i--) {
+    if (props.inputSelection[i]) {
+      // This variable is selected, use bit from reduced index
+      const bit = (reducedIndex >> reducedBit) & 1;
+      fullIndex |= (bit << i);
+      reducedBit++;
+    }
+    // If not selected, bit stays 0 in full index
+  }
+
+  return fullIndex;
+};
+
 const getValue = (rowCode: string, colCode: string) => {
   if (!props.values) return '-';
 
   const binaryString = getBinaryString(rowCode, colCode);
-  const rowIndex = parseInt(binaryString, 2);
+  const reducedIndex = parseInt(binaryString, 2);
+  const rowIndex = getFullRowIndex(reducedIndex);
   const outputIdx = props.outputVariableIndex ?? 0;
 
   if (rowIndex >= 0 && rowIndex < props.values.length) {
@@ -110,7 +140,8 @@ const toggleCell = (rowCode: string, colCode: string) => {
   if (!props.values) return;
 
   const binaryString = getBinaryString(rowCode, colCode);
-  const rowIndex = parseInt(binaryString, 2);
+  const reducedIndex = parseInt(binaryString, 2);
+  const rowIndex = getFullRowIndex(reducedIndex);
   const outputIdx = props.outputVariableIndex ?? 0;
 
   if (rowIndex >= 0 && rowIndex < props.values.length) {

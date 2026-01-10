@@ -2,9 +2,9 @@
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
-      <SettingsButton :output-vars="outputVars" :function-types="functionTypes"
+      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :function-types="functionTypes"
         :selected-output-index="outputVariableIndex" :selected-function-type="functionType"
-        @update:selected-output-index="" @update:selected-function-type="" />
+        :input-selection="inputSelection" />
 
       <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
     </div>
@@ -15,7 +15,8 @@
 
         <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
           :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-          :functionType="functionType" @values-changed="tableValues = $event" />
+          :functionType="functionType" :input-selection="inputSelection"
+          @values-changed="tableValues = $event" />
 
         <FormulaRenderer class="pt-8" v-if="couplingTermLatex" :latex-expression="couplingTermLatex">
         </FormulaRenderer>
@@ -27,7 +28,7 @@
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="index" :formulas="formulas" :functionType="functionType"
-            @values-changed="tableValues = $event" />
+            :input-selection="inputSelection" @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
           </FormulaRenderer>
@@ -91,7 +92,7 @@ const functionTypes = computed(() =>
 );
 
 // Access state from params
-const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, inputSelection, qmcResult, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false

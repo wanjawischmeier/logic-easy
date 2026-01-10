@@ -121,17 +121,26 @@ function getVariables(exprs: Operation[]): string[] {
   return Array.from(varSet).sort()
 }
 
-function getCouplingTermLatex(qmcResult: QMCResult, functionType: FunctionType): string {
+function getCouplingTermLatex(
+  qmcResult: QMCResult,
+  functionType: FunctionType,
+  inputVars: string[],
+  inputSelection?: boolean[]
+): string {
   if (qmcResult.expressions.length === 0) return ''
 
   const isCNF = functionType === 'CNF'
   const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF)
 
+  // Get selected variables for signature
+  const selectedVars = inputSelection
+    ? inputVars.filter((_, idx) => inputSelection[idx])
+    : inputVars
+  const formType = functionType === 'DNF' ? 'DMF' : 'CMF'
+  const signature = `f_{${formType}}(${selectedVars.join(', ')}) = `
+
   // If no variable positions, all expressions are identical
   if (variablePositions.length === 0) {
-    const vars = getVariables(qmcResult.expressions)
-    const formType = functionType === 'DNF' ? 'DMF' : 'CMF'
-    const signature = `f_{${formType}}(${vars.join(', ')}) = `
     // Join terms appropriately based on form
     const termJoiner = isCNF ? '' : ' + '
     return signature + constantTerms.join(termJoiner)
@@ -154,9 +163,6 @@ function getCouplingTermLatex(qmcResult: QMCResult, functionType: FunctionType):
     parts.push(`\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`)
   }
 
-  const vars = getVariables(qmcResult.expressions)
-  const formType = functionType === 'DNF' ? 'DMF' : 'CMF'
-  const signature = `f_{${formType}}(${vars.join(', ')}) = `
   const termJoiner = isCNF ? '' : ' + '
   return signature + parts.join(termJoiner)
 }
@@ -171,14 +177,21 @@ function getCouplingTermLatex(qmcResult: QMCResult, functionType: FunctionType):
  * Interprets a minified truth table into a logical function (list of terms).
  * @param data Rows of the minified truth table
  * @param inputVars List of input variable names
+ * @param inputSelection Boolean array indicating which input variables are selected
  */
 export function interpretMinifiedTable(
   data: TruthTableData,
   formulaType: FunctionType,
-  inputVars: string[]
+  inputVars: string[],
+  inputSelection?: boolean[]
 ): Formula {
   let terms: Term[] = [];
   const numInputs = inputVars.length;
+
+  // Filter input variables based on selection
+  const selectedInputVars = inputSelection
+    ? inputVars.filter((_, idx) => inputSelection[idx])
+    : inputVars;
 
   // We assume the first column after inputs is the output we care about.
   const outputColIndex = numInputs;
@@ -194,6 +207,9 @@ export function interpretMinifiedTable(
 
     const literals: Literal[] = [];
     for (let i = 0; i < numInputs; i++) {
+      // Skip if this input variable is not selected
+      if (inputSelection && !inputSelection[i]) continue;
+
       const val = row[i];
       const variable = inputVars[i];
       if (!variable) continue;
@@ -289,7 +305,12 @@ export const updateTruthTable = async () => {
   truthTable.qmcResult = qmcResult;
 
   if (qmcResult) {
-    truthTable.couplingTermLatex = getCouplingTermLatex(qmcResult, truthTable.functionType)
+    truthTable.couplingTermLatex = getCouplingTermLatex(
+      qmcResult,
+      truthTable.functionType,
+      truthTable.inputVars,
+      truthTable.inputSelection
+    )
   }
 
   // Calculate formulas for each output variable
@@ -341,8 +362,8 @@ export const updateTruthTable = async () => {
     }
 
     formulas[outputVar] = {
-      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, truthTable.inputVars),
-      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, truthTable.inputVars)
+      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, truthTable.inputVars, truthTable.inputSelection),
+      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, truthTable.inputVars, truthTable.inputSelection)
     }
   }
 
