@@ -4,7 +4,7 @@
     <div class="relative flex items-center gap-2">
       <!-- latex renderer -->
       <div class="flex-1">
-        <vue-latex :expression="latexExpression" display-mode />
+        <vue-latex :expression="latexExpression" />
       </div>
 
       <!-- TODO: Replace with proper button and checkmark -->

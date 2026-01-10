@@ -1,4 +1,3 @@
-import EspressoTestingPanel from '@/panels/EspressoTestingPanel.vue';
 import TruthTablePanel from '@/panels/TruthTablePanel.vue';
 import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue';
@@ -44,6 +43,7 @@ export const dockRegistry: DockEntry[] = [
     label: 'Truth Table',
     component: TruthTablePanel,
     projectType: 'truth-table',
+    minimumWidth: 500,
     requires: {
       view: ['TruthTable']
     }
@@ -53,7 +53,6 @@ export const dockRegistry: DockEntry[] = [
     label: 'Minimization',
     component: KVDiagramPanel,
     projectType: 'truth-table',
-    minimumWidth: 500,
     requires: {
       view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
     },
@@ -106,11 +105,6 @@ export const dockRegistry: DockEntry[] = [
     requires: {
       create: ['NotSupported']
     }
-  },
-  {
-    id: 'espresso-testing',
-    label: 'Espresso Testing Panel',
-    component: EspressoTestingPanel
   },
   {
     id: 'lc-iframe',

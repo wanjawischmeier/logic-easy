@@ -6,6 +6,8 @@
         :onSelect="(v, i) => selectedTabIndex = i">
       </MultiSelectSwitch>
 
+      <LegendButton :legend="currentLegend" :is-latex="true" />
+
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :function-types="functionTypes"
         :selected-output-index="outputVariableIndex" :selected-function-type="functionType"
         :input-selection="inputSelection" />
@@ -50,6 +52,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
+import LegendButton, { type LegendItem } from '@/components/parts/LegendButton.vue'
 import DownloadButton from '@/components/parts/DownloadButton.vue'
 import SettingsButton from '@/components/parts/SettingsButton.vue'
 import { FunctionType } from '@/utility/types';
@@ -71,9 +74,62 @@ const props = defineProps<Partial<IDockviewPanelProps>>()
 let disposable: { dispose?: () => void } | null = null
 
 const panelState = stateManager.getPanelState<QMCPanelState>(props.params.api.id)
-const viewTabs = ['Grouping Table', 'Prime Implicant Chart'];
+const viewTabs = ['Grouping Table', 'Prime Implicants'];
 const selectedTabIndex = ref(panelState?.selectedTabIndex ?? 0);
 const screenshotRef = ref<HTMLElement | null>(null)
+
+const legends: Record<string, LegendItem[]> = {
+  groupingTable: [
+    {
+      symbol: 'K_n',
+      symbolType: 'latex',
+      label: 'Term Class',
+      description: "Terms are classified based on the number of 1's (DMF) or 0's (CMF) they contain."
+    },
+    {
+      symbol: '#',
+      symbolType: 'text',
+      label: 'Term Index',
+      description: "The decimal equivalent of the term's binary representation."
+    },
+    {
+      symbol: 'bg-secondary-variant',
+      symbolType: 'bg-color',
+      label: 'Prime implicant',
+      description: 'An implicant that cannot be further combined or simplified in the grouping table.'
+    },
+    {
+      symbol: 'bg-yellow-200/75',
+      symbolType: 'bg-color',
+      label: 'Term hierarchy (on hover)',
+      description: 'Shows part of which terms the currently hovered over term is (across iterations).'
+    }
+  ],
+  primeImplicants: [
+    {
+      symbol: '\\times',
+      symbolType: 'latex',
+      label: 'Covered Minterm',
+      description: 'The respective prime implicant covers this minterm in the truth table.',
+    },
+    {
+      symbol: '\\oplus',
+      symbolType: 'latex',
+      label: 'Essential Minterm',
+      description: 'Can only be covered by one prime implicant. Meaning that has to be a part of the function.'
+    },
+    {
+      symbol: 'border-2 border-red-600 border-dashed rounded-lg',
+      symbolType: 'tailwind',
+      label: 'Essential prime implicant bounds',
+      description: "Shows which minterms the respective prime implicant already covers. Those no longer need to be considered."
+    }
+  ]
+}
+
+const currentLegend = computed(() =>
+  selectedTabIndex.value === 0 ? legends.groupingTable : legends.primeImplicants
+)
 
 onMounted(() => {
   const api = getDockviewApi()

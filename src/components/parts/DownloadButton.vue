@@ -3,7 +3,7 @@
         <div class="bg-surface-2 rounded border border-surface-3 p-0.5">
             <button @click="toggleDropdown" :disabled="isCapturing"
                 class="px-3 py-2 rounded-xs text-white hover:bg-primary transition-colors text-sm items-center gap-2"
-                title="Download">
+                :class="showDropdown ? 'bg-primary' : ''" title="Download">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -14,14 +14,14 @@
         </div>
 
         <div v-if="showDropdown"
-            class="absolute right-0 mt-1 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
+            class="absolute right-0 mt-2 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
             <button @click="handleScreenshot"
-                class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
+                class="w-full px-3 py-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
                 <span>Screenshot</span>
                 <span class="opacity-70">.png</span>
             </button>
             <button v-if="latexContent" @click="handleLatexDownload"
-                class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
+                class="w-full px-3 py-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
                 <span>LaTeX</span>
                 <span class="opacity-70">.tex</span>
             </button>

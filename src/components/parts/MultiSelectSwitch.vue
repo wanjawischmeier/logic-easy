@@ -1,13 +1,13 @@
 <template>
   <div class="inline-flex items-center gap-2 ">
     <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
-    <div class="inline-flex items-center rounded bg-surface-2 p-0.5 border border-surface-3 relative">
+    <div class="inline-flex items-center gap-0.5 rounded bg-surface-2 p-0.5 border border-surface-3 relative">
       <div class="slider absolute inset-y-0.5 rounded-xs transition-all duration-100 ease-in-out" :style="sliderStyle">
       </div>
       <button v-for="(item, idx) in values" :key="idx" :ref="el => buttonRefs[idx] = el as HTMLElement"
         @click="select(idx, item)" :aria-pressed="idx === selected"
-        class="px-3 py-1.5 rounded relative z-10 transition-colors duration-100"
-        :class="randomSelectMode && idx === selected ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]' : ''">
+        class="px-3 py-1.5 relative z-10 transition-colors duration-100 rounded-xs"
+        :class="idx === selected ? randomSelectMode ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]' : '' : 'hover:bg-surface-3'">
         {{ getLabel(item) }}
       </button>
     </div>
@@ -131,11 +131,14 @@ function checkRandomSelectMode() {
 onMounted(checkRandomSelectMode)
 watch(stateManager.state, checkRandomSelectMode)
 
-watch(initialSelected, (v) => {
-  selected.value = v ?? (values.value && values.value.length ? 0 : null)
-  nextTick(() => {
-    // Force slider style recalculation after button refs update
-  })
+watch(initialSelected, (newVal, oldVal) => {
+  const newIndex = newVal ?? (values.value && values.value.length ? 0 : null)
+  if (newIndex !== selected.value && newIndex !== null) {
+    selected.value = newIndex
+    nextTick(() => {
+      // Force slider style recalculation after button refs update
+    })
+  }
 })
 
 function getLabel(item: unknown) {

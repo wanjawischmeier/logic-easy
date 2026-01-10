@@ -3,7 +3,7 @@
         <div class="bg-surface-2 rounded border border-surface-3 p-0.5">
             <button @click="toggleDropdown"
                 class="px-2.5 py-1.5 rounded-xs text-white hover:bg-primary transition-colors text-sm items-center gap-2"
-                title="Settings">
+                :class="showDropdown ? 'bg-primary' : ''" title="Settings">
                 <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 24 24"
                     fill="white">
                     <path
@@ -14,7 +14,7 @@
         </div>
 
         <div v-if="showDropdown"
-            class="absolute right-0 mt-1 p-2 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
+            class="absolute right-0 mt-2 p-2 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
             <div class="flex flex-col gap-3">
                 <div class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Input Variables</label>

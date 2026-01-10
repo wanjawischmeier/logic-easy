@@ -63,18 +63,18 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
       children: newMenu.value
     },
     {
-      label: 'Open File',
+      label: 'Open',
       tooltip: 'Ctrl+O',
       action: openFile
     },
     {
-      label: 'Save Project',
+      label: 'Save',
       tooltip: 'Ctrl+S',
       action: projectManager.downloadProject,
       disabled: !hasCurrentProject.value,
     },
     {
-      label: 'Close Project',
+      label: 'Close',
       action: projectManager.closeCurrentProject,
       disabled: !hasCurrentProject.value,
     },

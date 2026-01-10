@@ -1,11 +1,11 @@
 <template>
     <div class="inline-flex items-center gap-2">
         <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
-        <div class="inline-flex items-center gap-1">
+        <div class="inline-flex items-center gap-0.5 rounded bg-surface-2 p-0.5 border border-surface-3">
             <button v-for="(item, idx) in values" :key="idx" @click="toggle(idx)"
-                class="px-3 py-1.5 rounded-xs border transition-colors duration-100" :class="isSelected[idx]
+                class="px-3 py-1.5 rounded-xs transition-colors duration-100" :class="isSelected[idx]
                     ? 'bg-primary border-primary text-white'
-                    : 'bg-surface-2 border-surface-3 text-on-surface-variant hover:bg-surface-3'">
+                    : 'bg-surface-2 text-on-surface-variant hover:bg-surface-3'">
                 {{ getLabel(item) }}
             </button>
         </div>

@@ -15,8 +15,7 @@
 
         <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
           :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-          :functionType="functionType" :input-selection="inputSelection"
-          @values-changed="tableValues = $event" />
+          :functionType="functionType" :input-selection="inputSelection" @values-changed="tableValues = $event" />
 
         <FormulaRenderer class="pt-8" v-if="couplingTermLatex" :latex-expression="couplingTermLatex">
         </FormulaRenderer>
