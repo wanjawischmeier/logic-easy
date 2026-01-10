@@ -119,13 +119,17 @@ let isUpdatingFromState = false
 // Watch for local changes and notify DockView
 watch(tableValues, (newVal) => {
   console.log('[KVDiagramPanel] Local tableValues changed:', newVal);
+  if (!stateManager.state.truthTable) return
+
   if (isUpdatingFromState) {
     isUpdatingFromState = false
     console.log('[KVDiagramPanel] Skipping update (isUpdatingFromState)');
     return
   }
+
   console.log('[KVDiagramPanel] Calling updateTruthTable');
-  updateTruthTable(newVal)
+  Object.assign(stateManager.state.truthTable.values, newVal);
+  updateTruthTable()
 }, { deep: true })
 
 // Watch for external changes from state (use getter so watcher tracks the computed ref)

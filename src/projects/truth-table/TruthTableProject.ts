@@ -21,6 +21,8 @@ export interface TruthTableState {
   values: TruthTableData;
   minifiedValues: TruthTableData;
   formulas: Record<string, Record<FunctionType, Formula>>;
+  outputVariableIndex: number;
+  functionType: FunctionType;
 }
 
 export class TruthTableProject extends Project {
@@ -85,9 +87,11 @@ export class TruthTableProject extends Project {
     stateManager.state.truthTable = {
       inputVars: inputVariables,
       outputVars: outputVariables,
-      formulas,
-      values,
+      values: values,
       minifiedValues: values,
+      formulas: formulas,
+      outputVariableIndex: 0,
+      functionType: 'DNF'
     }
 
     console.log('[TruthTableProject.createState] State initialized:', {

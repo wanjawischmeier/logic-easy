@@ -1,9 +1,9 @@
 <template>
     <div class="h-full text-on-surface flex flex-col p-2 overflow-auto">
         <div class="flex flex-wrap justify-center gap-12">
-            <QMCGroupingTable :iterations="iterations" :prime-implicants="pis" />
-            <QMCPrimeImplicantChart :minterms="minterms" :prime-implicants="pis" :chart="chart"
-                :input-vars="inputVars" />
+            <QMCGroupingTable :iterations="qmcResult?.iterations" :prime-implicants="qmcResult?.pis" />
+            <QMCPrimeImplicantChart :minterms="qmcResult?.minterms" :prime-implicants="qmcResult?.pis"
+                :chart="qmcResult?.chart" :input-vars="inputVars" />
             <FormulaRenderer :latex-expression="formulaLatex" v-if="formulaLatex"></FormulaRenderer>
         </div>
     </div>
@@ -11,13 +11,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { QMC, type QMCDetailedExpressionsObjects } from 'logi.js'
 import type { Operation } from 'logi.js'
 import QMCGroupingTable from './parts/QMCGroupingTable.vue'
 import QMCPrimeImplicantChart from './parts/QMCPrimeImplicantChart.vue'
 import FormulaRenderer from './FormulaRenderer.vue'
 import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
-import { Minimizer } from '@/utility/truthtable/minimizer'
+import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
 import type { FunctionType } from '@/utility/types'
 
 interface Props {
@@ -33,132 +32,16 @@ const props = withDefaults(defineProps<Props>(), {
     functionType: 'DNF'
 })
 
-const iterations = ref<any[]>([])
-const minterms = ref<number[]>([])
-const pis = ref<any[]>([])
-const chart = ref<Record<number, string[]> | null>(null)
-const expressions = ref<Operation[]>([])
-
-// Calculate minterms or maxterms from truth table values
-function calculateMinMaxTerms(values: TruthTableData, outputIndex: number): number[] {
-    const mt: number[] = []
-    const isDMF = props.functionType === 'DNF'
-
-    values.forEach((row, rowIndex) => {
-        const outputCell = row[outputIndex] // Row contains only output values
-
-        // For DMF: collect minterms (where output is 1)
-        // For CMF: collect maxterms (where output is 0)
-        if ((isDMF && outputCell === 1) || (!isDMF && outputCell === 0)) {
-            mt.push(rowIndex)
-        }
-    })
-
-    return mt
-}
-
-// Apply De Morgan's law to convert DNF to CNF
-function applyDeMorgan(op: Operation): Operation {
-    // If it's a VAR, negate it
-    if ((op as any).name !== undefined) {
-        return { priority: 15, args: [op] } as unknown as Operation
-    }
-
-    // If it's a NOT, remove the negation (double negative)
-    if ((op as any).priority === 15) {
-        return (op as any).args[0]
-    }
-
-    // If it's an AND, convert to OR and negate each arg
-    if ((op as any).priority === 8) {
-        const args = (op as any).args as Operation[]
-        const negatedArgs = args.map(arg => applyDeMorgan(arg))
-        return { priority: 6, args: negatedArgs } as unknown as Operation
-    }
-
-    // If it's an OR, convert to AND and negate each arg
-    if ((op as any).priority === 6) {
-        const args = (op as any).args as Operation[]
-        const negatedArgs = args.map(arg => applyDeMorgan(arg))
-        return { priority: 8, args: negatedArgs } as unknown as Operation
-    }
-
-    return op
-}
-
-// Run QMC when data changes
-function runQMC() {
-    console.log('=== runQMC called ===')
-    console.log('props.values:', props.values)
-    console.log('props.selectedOutputIndex:', props.selectedOutputIndex)
-    console.log('props.outputVars:', props.outputVars)
-
-    if (!props.values || props.values.length === 0) {
-        console.log('No values, returning')
-        return
-    }
-    if (props.selectedOutputIndex >= props.outputVars.length) {
-        console.log('Invalid output index, returning')
-        return
-    }
-
-    const qmc = new QMC()
-    const mt = calculateMinMaxTerms(props.values, props.selectedOutputIndex)
-    const dc: number[] = [] // Don't cares - could be extended later
-
-    console.log('Calculated minterms:', mt)
-
-    if (mt.length === 0) {
-        console.log('No minterms - clearing display')
-        // No minterms - clear the display
-        iterations.value = []
-        minterms.value = []
-        pis.value = []
-        chart.value = {}
-        expressions.value = []
-        return
-    }
-
-    console.log('Running QMC with minterms:', mt)
-    const detailedResult = qmc.solve(mt, dc, true, true) as QMCDetailedExpressionsObjects
-    const d = detailedResult.details
-    if (!d) {
-        console.log('No details from QMC')
-        return
-    }
-
-    console.log('QMC result:', detailedResult)
-
-    iterations.value = d.iterations
-    const sortedMinterms = (d.minterms || []).slice().sort((a: number, b: number) => a - b)
-    minterms.value = sortedMinterms
-    pis.value = d.primeImplicants || []
-    chart.value = d.chart || {}
-
-    // Get the minimized expressions
-    // For CNF: QMC returns DNF of complement, so apply De Morgan's law
-    if (props.functionType === 'CNF') {
-        expressions.value = detailedResult.expressions.map(expr => applyDeMorgan(expr))
-        console.log('Applied De Morgan\'s law for CNF')
-    } else {
-        expressions.value = detailedResult.expressions
-    }
-
-    console.log('Set iterations:', iterations.value)
-    console.log('Set pis:', pis.value)
-    console.log('Set chart:', chart.value)
-}
+const qmcResult = ref<QMCResult>()
 
 // Watch for changes in input data
 watch(() => [props.values, props.selectedOutputIndex, props.inputVars, props.outputVars, props.functionType], () => {
-    const result = Minimizer.runQMC(props.outputVars, props.values, props.selectedOutputIndex, props.functionType)
-    if (!result) return
-
-    iterations.value = result.iterations
-    minterms.value = result.minterms
-    pis.value = result.pis
-    chart.value = result.chart
-    expressions.value = result.expressions
+    qmcResult.value = Minimizer.runQMC(
+        props.outputVars,
+        props.values,
+        props.selectedOutputIndex,
+        props.functionType
+    )
 }, { immediate: true, deep: true })
 
 // Convert Operation to custom LaTeX string (lowercase variables, no operators)
@@ -276,14 +159,14 @@ function getVariables(exprs: Operation[]): string[] {
 }
 
 const formulaLatex = computed(() => {
-    if (expressions.value.length === 0) return ''
+    if (!qmcResult.value || qmcResult.value.expressions.length === 0) return ''
 
     const isCNF = props.functionType === 'CNF'
-    const { constantTerms, variablePositions } = analyzeExpressions(expressions.value, isCNF)
+    const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.value.expressions, isCNF)
 
     // If no variable positions, all expressions are identical
     if (variablePositions.length === 0) {
-        const vars = getVariables(expressions.value)
+        const vars = getVariables(qmcResult.value.expressions)
         const formType = props.functionType === 'DNF' ? 'DMF' : 'CMF'
         const signature = `f_{${formType}}(${vars.join(', ')}) = `
         // Join terms appropriately based on form
@@ -308,14 +191,12 @@ const formulaLatex = computed(() => {
         parts.push(`\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`)
     }
 
-    const vars = getVariables(expressions.value)
+    const vars = getVariables(qmcResult.value.expressions)
     const formType = props.functionType === 'DNF' ? 'DMF' : 'CMF'
     const signature = `f_{${formType}}(${vars.join(', ')}) = `
     const termJoiner = isCNF ? '' : ' + '
     return signature + parts.join(termJoiner)
 })
-
-
 </script>
 
 <style scoped></style>

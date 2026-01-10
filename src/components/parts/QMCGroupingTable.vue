@@ -11,7 +11,7 @@
                         <template v-for="(iter, idx) in iterations" :key="`group-${idx}`">
                             <th colspan="2"
                                 class="px-8 py-1 text-secondary-variant border-r border-primary bg-surface-1 text-center"
-                                :class="{ 'border-r-4': idx < iterations.length - 1 }">
+                                :class="{ 'border-r-4': idx < (iterations?.length ?? 0) - 1 }">
                                 {{ idx === 0 ? 'Minterms' : `Iteration ${idx}` }}
                             </th>
                         </template>
@@ -21,7 +21,7 @@
                             <th class="px-2 text-secondary-variant border-b-4 border-primary bg-surface-1 text-center">
                                 #</th>
                             <th class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1"
-                                :class="{ 'border-r-4': idx < iterations.length - 1 }">
+                                :class="{ 'border-r-4': idx < (iterations?.length ?? 0) - 1 }">
                                 Term
                             </th>
                         </template>
@@ -58,8 +58,8 @@
 import { ref, watch } from 'vue'
 
 interface Props {
-    iterations: any[]
-    primeImplicants: any[]
+    iterations?: any[]
+    primeImplicants?: any[]
 }
 
 const props = defineProps<Props>()
@@ -70,12 +70,13 @@ const hoveredTerm = ref<string | null>(null)
 const termRelationships = ref<Map<string, { parents: string[], children: string[] }>>(new Map())
 
 watch(() => [props.iterations, props.primeImplicants], () => {
-    if (props.iterations.length > 0) {
-        buildTableRows()
-    }
+    buildTableRows()
 }, { immediate: true, deep: true })
 
 function buildTableRows() {
+    if (!props.primeImplicants) return
+    if (!props.iterations || props.iterations.length === 0) return
+
     const piTerms = new Set(props.primeImplicants.map((p: any) => p.term))
 
     // Build group color assignments for each iteration
@@ -215,6 +216,7 @@ function buildTableRows() {
     // Build compact rows by filling columns vertically
     const sortedKs = Array.from(kClassEntries.keys()).sort((a, b) => a - b)
     tableRows.value = sortedKs.map(k => {
+        if (!props.iterations) return
         const iterMap = kClassEntries.get(k)!
 
         // Find max entries across all iterations for this K-class

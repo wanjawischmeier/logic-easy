@@ -4,6 +4,7 @@ import TruthTable from '@/components/TruthTable.vue'
 import DownloadButton from '@/components/parts/DownloadButton.vue'
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
+import { stateManager } from '@/projects/stateManager';
 
 // Access state from params
 const { inputVars, outputVars, values } = TruthTableProject.useState()
@@ -21,13 +22,16 @@ let isUpdatingFromState = false
 // Watch for local changes and notify DockView
 watch(tableValues, (newVal) => {
   console.log('[TruthTablePanel] Local tableValues changed:', newVal);
+  if (!stateManager.state.truthTable) return
+
   if (isUpdatingFromState) {
     isUpdatingFromState = false
     console.log('[TruthTablePanel] Skipping update (isUpdatingFromState)');
     return
   }
   console.log('[TruthTablePanel] Calling updateTruthTable');
-  updateTruthTable(newVal)
+  Object.assign(stateManager.state.truthTable.values, newVal);
+  updateTruthTable()
 }, { deep: true })
 
 // Watch for external changes from state

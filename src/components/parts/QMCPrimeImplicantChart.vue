@@ -50,9 +50,9 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 const BOUNDING_BOX_PADDING = 6
 
 interface Props {
-    minterms: number[]
-    primeImplicants: any[]
-    chart: Record<number, string[]> | null
+    minterms?: number[]
+    primeImplicants?: any[]
+    chart?: Record<number, string[]> | null
     inputVars?: string[]
 }
 
@@ -73,15 +73,10 @@ const essentialColors = [
     'rgb(20, 184, 166)',   // teal
 ]
 
-const essentialList = computed(() => {
-    return props.primeImplicants
-        .filter((p: any) => p.isEssential)
-        .map((p: any) => p.term)
-})
-
 // Find which minterms make each prime implicant essential
 const essentialMinterms = computed(() => {
     const result = new Map<string, number[]>()
+    if (!props.primeImplicants) return result
 
     // First, build a map of minterm -> all PIs that cover it
     const mintermToPIs = new Map<number, string[]>()
@@ -154,7 +149,7 @@ function getCellSymbol(pi: any, minterm: number): string {
 }
 
 function calculateBoundingBoxes() {
-    if (!tableRef.value) return
+    if (!tableRef.value || !props.primeImplicants) return
 
     const boxes: Array<{ x: number, y: number, width: number, height: number, color: string }> = []
     const table = tableRef.value
