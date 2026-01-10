@@ -16,27 +16,26 @@
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full flex flex-col items-center justify-center overflow-auto">
-        <KVDiagram class="" :key="`${selectedFunctionType}-${selectedOutputIndex}`" v-model="tableValues"
-          :input-vars="inputVars" :output-vars="outputVars" :output-index="selectedOutputIndex"
-          :minified-values="minifiedValues || []" :formula="currentFormula" :functionType="selectedFunctionType" />
+        <KVDiagram class="" :key="`${selectedFunctionType}-${selectedOutputIndex}`" :values="tableValues"
+          :input-vars="inputVars" :output-vars="outputVars" :outputVariableIndex="selectedOutputIndex"
+          :formulas="formulas" :functionType="selectedFunctionType" @values-changed="tableValues = $event" />
 
         <div class="mt-4 w-full justify-center">
           <FormulaRenderer :latex-expression="getLatexExpression(selectedOutputIndex)" />
         </div>
 
         <QMCViewer :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
-          :output-variable-index="selectedOutputIndex" :function-type="selectedFunctionType"
-          :minified-values="minifiedValues" :formulas="formulas"></QMCViewer>
+          :output-variable-index="selectedOutputIndex" :function-type="selectedFunctionType" :formulas="formulas"
+          :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex"></QMCViewer>
       </div>
 
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
         <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${selectedFunctionType}`"
           class="flex flex-col items-center gap-4">
-          <KVDiagram v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" :output-index="index"
-            :minified-values="minifiedValues || []"
-            :formula="formulas[outputVar]?.[selectedFunctionType] || Formula.empty"
-            :functionType="selectedFunctionType" />
+          <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
+            :outputVariableIndex="index" :formulas="formulas" :functionType="selectedFunctionType"
+            @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="getLatexExpression(index)" />
         </div>
@@ -100,7 +99,7 @@ const functionTypes = computed(() =>
 );
 
 // Access state from params
-const { inputVars, outputVars, values, minifiedValues, formulas, outputVariableIndex, functionType } = TruthTableProject.useState()
+const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
 
 const selectedOutputIndex = ref(outputVariableIndex.value);
 const selectedFunctionType = ref<FunctionType>(functionType.value);
@@ -123,6 +122,18 @@ watch(tableValues, (newVal) => {
   updateTruthTable()
 }, { deep: true })
 
+watch(() => selectedFunctionType.value, (functionType) => {
+  if (!stateManager.state.truthTable) return
+  stateManager.state.truthTable.functionType = functionType;
+  updateTruthTable()
+})
+
+watch(() => selectedOutputIndex.value, (ouputIndex) => {
+  if (!stateManager.state.truthTable) return
+  stateManager.state.truthTable.outputVariableIndex = ouputIndex;
+  updateTruthTable()
+})
+
 // Watch for external changes from state (use getter so watcher tracks the computed ref)
 watch(() => values.value, (newVal) => {
   console.log('[KVPanel] state.value.values changed:', newVal);
@@ -130,16 +141,6 @@ watch(() => values.value, (newVal) => {
   isUpdatingFromState = true
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
-
-watch(() => selectedFunctionType.value, (functionType) => {
-  if (!stateManager.state.truthTable) return
-  stateManager.state.truthTable.functionType = functionType;
-})
-
-watch(() => selectedOutputIndex.value, (ouputIndex) => {
-  if (!stateManager.state.truthTable) return
-  stateManager.state.truthTable.outputVariableIndex = ouputIndex;
-})
 
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];

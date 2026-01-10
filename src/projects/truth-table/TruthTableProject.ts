@@ -20,11 +20,11 @@ export interface TruthTableState {
   inputVars: string[];
   outputVars: string[];
   values: TruthTableData;
-  minifiedValues: TruthTableData;
   formulas: Record<string, Record<FunctionType, Formula>>;
   outputVariableIndex: number;
   functionType: FunctionType;
   qmcResult?: QMCResult;
+  couplingTermLatex?: string;
 }
 
 export class TruthTableProject extends Project {
@@ -42,12 +42,22 @@ export class TruthTableProject extends Project {
     const inputVars = computed(() => state.value?.inputVars ?? []);
     const outputVars = computed(() => state.value?.outputVars ?? []);
     const values = computed(() => stateManager.state.truthTable?.values ?? []);
-    const minifiedValues = computed(() => state.value?.minifiedValues ?? []);
     const formulas = computed(() => state.value?.formulas ?? {});
     const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0);
     const functionType = computed(() => state.value?.functionType ?? 'DNF');
+    const qmcResult = computed(() => state.value?.qmcResult);
+    const couplingTermLatex = computed(() => state.value?.couplingTermLatex);
 
-    return { inputVars, outputVars, values, minifiedValues, formulas, outputVariableIndex, functionType }
+    return {
+      inputVars,
+      outputVars,
+      values,
+      formulas,
+      outputVariableIndex,
+      functionType,
+      qmcResult,
+      couplingTermLatex
+    }
   }
 
   static override restoreDefaultPanelLayout(props: TruthTableProps) {
@@ -92,7 +102,6 @@ export class TruthTableProject extends Project {
       inputVars: inputVariables,
       outputVars: outputVariables,
       values: values,
-      minifiedValues: values,
       formulas: formulas,
       outputVariableIndex: 0,
       functionType: 'DNF'
