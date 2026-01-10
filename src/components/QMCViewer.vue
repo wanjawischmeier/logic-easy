@@ -17,13 +17,15 @@ import QMCGroupingTable from './parts/QMCGroupingTable.vue'
 import QMCPrimeImplicantChart from './parts/QMCPrimeImplicantChart.vue'
 import FormulaRenderer from './FormulaRenderer.vue'
 import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
+import { Minimizer } from '@/utility/truthtable/minimizer'
+import type { FunctionType } from '@/utility/types'
 
 interface Props {
     inputVars: string[]
     outputVars: string[]
     values: TruthTableData
     selectedOutputIndex?: number
-    functionType?: string
+    functionType?: FunctionType
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -149,7 +151,14 @@ function runQMC() {
 
 // Watch for changes in input data
 watch(() => [props.values, props.selectedOutputIndex, props.inputVars, props.outputVars, props.functionType], () => {
-    runQMC()
+    const result = Minimizer.runQMC(props.outputVars, props.values, props.selectedOutputIndex, props.functionType)
+    if (!result) return
+
+    iterations.value = result.iterations
+    minterms.value = result.minterms
+    pis.value = result.pis
+    chart.value = result.chart
+    expressions.value = result.expressions
 }, { immediate: true, deep: true })
 
 // Convert Operation to custom LaTeX string (lowercase variables, no operators)
