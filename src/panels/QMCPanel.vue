@@ -2,6 +2,10 @@
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
+      <MultiSelectSwitch :values="viewTabs" :initialSelected="selectedViewIndex"
+        :onSelect="(v, i) => selectedViewIndex = i">
+      </MultiSelectSwitch>
+
       <SettingsButton :output-vars="outputVars" :function-types="functionTypes"
         :selected-output-index="outputVariableIndex" :selected-function-type="functionType"
         @update:selected-output-index="" @update:selected-function-type="" />
@@ -12,13 +16,15 @@
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
+        <div class="flex-1 flex items-center justify-center overflow-auto w-full">
+          <QMCGroupingTable v-if="selectedViewIndex === 0" :values="tableValues" :input-vars="inputVars"
+            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
+            :functionType="functionType" :qmc-result="qmcResult" />
 
-        <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
-          :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-          :functionType="functionType" @values-changed="tableValues = $event" />
-
-        <FormulaRenderer class="pt-8" v-if="couplingTermLatex" :latex-expression="couplingTermLatex">
-        </FormulaRenderer>
+          <QMCPrimeImplicantChart v-else-if="selectedViewIndex === 1" :values="tableValues" :input-vars="inputVars"
+            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
+            :functionType="functionType" :qmc-result="qmcResult" />
+        </div>
       </div>
 
       <!-- Screenshot-only view -->
@@ -46,6 +52,9 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import DownloadButton from '@/components/parts/DownloadButton.vue'
 import SettingsButton from '@/components/parts/SettingsButton.vue'
 import { FunctionType } from '@/utility/types';
+import QMCGroupingTable from '@/components/parts/QMCGroupingTable.vue'
+import QMCPrimeImplicantChart from '@/components/parts/QMCPrimeImplicantChart.vue'
+import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
@@ -56,8 +65,6 @@ const props = defineProps<Partial<IDockviewPanelProps>>()
 
 let disposable: { dispose?: () => void } | null = null
 
-// Load saved panel state
-const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 const screenshotRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
@@ -70,7 +77,6 @@ onMounted(() => {
     if (props.params.api.isActive) {
       // Panel became active/visible - refresh latex rendering
       console.log('Refresh kv diagram')
-      kvDiagramRef.value?.refresh()
     }
   })
 
@@ -89,6 +95,9 @@ onBeforeUnmount(() => {
 const functionTypes = computed(() =>
   Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
 );
+
+const viewTabs = ['Grouping Table', 'Prime Implicant Chart'];
+const selectedViewIndex = ref(0);
 
 // Access state from params
 const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()

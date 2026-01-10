@@ -14,7 +14,7 @@
               class="w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm"
               :disabled="(!entry.action && !entry.panelId && !entry.children) || entry.disabled"
               @click="entry.children ? null : runAction(entry)"
-              @mouseenter="entry.children ? showSubmenu(idx) : hideSubmenu()" type="button">
+              @mouseenter="entry.children && !entry.disabled ? showSubmenu(idx) : hideSubmenu()" type="button">
               <span>{{ entry.label }}</span>
               <span v-if="entry.tooltip" class="opacity-70">{{ entry.tooltip }}</span>
               <span v-if="entry.children" class="opacity-70">›</span>

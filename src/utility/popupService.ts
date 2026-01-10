@@ -1,7 +1,7 @@
 import type { BaseProjectProps } from '@/projects/Project';
 import { projectManager } from '@/projects/projectManager';
 import { getProjectType } from '@/projects/projectRegistry';
-import { type MenuEntry, dockRegistry } from '@/router/dockRegistry';
+import { type MenuEntry, findDockEntry } from '@/router/dockRegistry';
 import { shallowRef, type Component } from 'vue';
 
 export type GenericPopupConfig = {
@@ -47,7 +47,7 @@ export const popupService = {
  * @returns Wether or not the project was sucessfully created.
  */
 export function showProjectCreationPopup(menuEntry: MenuEntry): boolean {
-  const registryEntry = dockRegistry.find(item => item.id === menuEntry.panelId);
+  const registryEntry = findDockEntry(menuEntry.panelId!);
   if (!registryEntry?.projectType) return false;
 
   const projectType = getProjectType(registryEntry.projectType);

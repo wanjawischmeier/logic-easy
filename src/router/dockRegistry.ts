@@ -7,6 +7,7 @@ import StateTablePanel from '@/panels/StateTablePanel.vue';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
 import { stateManager } from '@/projects/stateManager';
+import QMCPanel from '@/panels/QMCPanel.vue';
 
 export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
@@ -23,6 +24,7 @@ type DockEntry = {
   component: unknown;
   projectType?: ProjectType;
   requires?: Requirements;
+  children?: DockEntry[];
 };
 
 export type MenuEntry = {
@@ -47,12 +49,32 @@ export const dockRegistry: DockEntry[] = [
   },
   {
     id: 'kv-diagram',
-    label: 'Minimizer',
+    label: 'Minimization',
     component: KVDiagramPanel,
     projectType: 'truth-table',
     requires: {
       view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
-    }
+    },
+    children: [
+      {
+        id: 'kv-diagram',
+        label: 'KV Diagram',
+        component: KVDiagramPanel,
+        projectType: 'truth-table',
+        requires: {
+          view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+        },
+      },
+      {
+        id: 'qmc-visualization',
+        label: 'Quine McCluskey',
+        component: QMCPanel,
+        projectType: 'truth-table',
+        requires: {
+          view: ['TruthTable']
+        },
+      }
+    ]
   },
   {
     id: 'transition-table',
@@ -102,31 +124,74 @@ export const dockRegistry: DockEntry[] = [
   },
 ];
 
+const convertDockEntryToMenuEntry = (entry: DockEntry, requirementType: RequirementType, createProject = false): MenuEntry => {
+  const menuEntry: MenuEntry = {
+    label: entry.label,
+    panelId: entry.id,
+    disabled: !checkDockEntryRequirements(entry, requirementType)
+  };
+
+  if (createProject) {
+    menuEntry.createProject = true;
+  }
+
+  if (entry.children) {
+    menuEntry.children = entry.children.map(child => convertDockEntryToMenuEntry(child, requirementType, createProject));
+    delete menuEntry.panelId;
+  }
+
+  return menuEntry;
+};
+
 export const newMenu = computed<MenuEntry[]>(() =>
   dockRegistry
     .filter((menuEntry) => menuEntry.projectType !== undefined)
-    .map((menuEntry) => ({
-      label: menuEntry.label,
-      panelId: menuEntry.id,
-      createProject: true,
-      disabled: !checkDockEntryRequirements(menuEntry, 'CREATE')
-    }))
+    .map((menuEntry) => convertDockEntryToMenuEntry(menuEntry, 'CREATE', true))
     .sort((a, b) => Number(a.disabled) - Number(b.disabled))
 );
 
 export const viewMenu = computed<MenuEntry[]>(() => {
   return dockRegistry
-    .map((menuEntry) => ({
-      label: menuEntry.label,
-      panelId: menuEntry.id,
-      disabled: !checkDockEntryRequirements(menuEntry, 'VIEW')
-    }))
+    .map((menuEntry) => convertDockEntryToMenuEntry(menuEntry, 'VIEW'))
     .sort((a, b) => Number(a.disabled) - Number(b.disabled))
 });
 
+/**
+ * Recursively searches for a DockEntry by id, including nested children.
+ * @param id The id to search for.
+ * @param entries The entries to search through (defaults to top-level dockRegistry).
+ * @returns The found DockEntry or undefined.
+ */
+export function findDockEntry(id: string, entries: DockEntry[] = dockRegistry): DockEntry | undefined {
+  for (const entry of entries) {
+    if (entry.id === id) return entry;
+    if (entry.children) {
+      const found = findDockEntry(id, entry.children);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Recursively flattens all DockEntry entries including nested children.
+ * @param entries The entries to flatten (defaults to top-level dockRegistry).
+ * @returns A flat array of all DockEntry objects.
+ */
+function flattenDockEntries(entries: DockEntry[] = dockRegistry): DockEntry[] {
+  const result: DockEntry[] = [];
+  for (const entry of entries) {
+    result.push(entry);
+    if (entry.children) {
+      result.push(...flattenDockEntries(entry.children));
+    }
+  }
+  return result;
+}
+
 // mapping for :components prop consumed by dockview
 export const dockComponents: Record<string, unknown> = Object.fromEntries(
-  dockRegistry.map((e) => [e.id, e.component])
+  flattenDockEntries().map((e) => [e.id, e.component])
 ) as Record<string, unknown>;
 
 const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
