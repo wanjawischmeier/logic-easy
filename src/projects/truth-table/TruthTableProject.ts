@@ -5,6 +5,7 @@ import type { Formula, FunctionType } from "@/utility/types";
 import { computed } from "vue";
 import { stateManager, type AppState } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
+import type { QMCResult } from "@/utility/truthtable/minimizer";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
@@ -23,6 +24,7 @@ export interface TruthTableState {
   formulas: Record<string, Record<FunctionType, Formula>>;
   outputVariableIndex: number;
   functionType: FunctionType;
+  qmcResult?: QMCResult;
 }
 
 export class TruthTableProject extends Project {
@@ -42,8 +44,10 @@ export class TruthTableProject extends Project {
     const values = computed(() => stateManager.state.truthTable?.values ?? []);
     const minifiedValues = computed(() => state.value?.minifiedValues ?? []);
     const formulas = computed(() => state.value?.formulas ?? {});
+    const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0);
+    const functionType = computed(() => state.value?.functionType ?? 'DNF');
 
-    return { inputVars, outputVars, values, minifiedValues, formulas }
+    return { inputVars, outputVars, values, minifiedValues, formulas, outputVariableIndex, functionType }
   }
 
   static override restoreDefaultPanelLayout(props: TruthTableProps) {

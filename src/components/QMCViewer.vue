@@ -15,34 +15,11 @@ import type { Operation } from 'logi.js'
 import QMCGroupingTable from './parts/QMCGroupingTable.vue'
 import QMCPrimeImplicantChart from './parts/QMCPrimeImplicantChart.vue'
 import FormulaRenderer from './FormulaRenderer.vue'
-import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
-import type { FunctionType } from '@/utility/types'
 
-interface Props {
-    inputVars: string[]
-    outputVars: string[]
-    values: TruthTableData
-    selectedOutputIndex?: number
-    functionType?: FunctionType
-}
+const props = defineProps<TruthTableState>()
 
-const props = withDefaults(defineProps<Props>(), {
-    selectedOutputIndex: 0,
-    functionType: 'DNF'
-})
-
-const qmcResult = ref<QMCResult>()
-
-// Watch for changes in input data
-watch(() => [props.values, props.selectedOutputIndex, props.inputVars, props.outputVars, props.functionType], () => {
-    qmcResult.value = Minimizer.runQMC(
-        props.outputVars,
-        props.values,
-        props.selectedOutputIndex,
-        props.functionType
-    )
-}, { immediate: true, deep: true })
 
 // Convert Operation to custom LaTeX string (lowercase variables, no operators)
 function operationToLatex(op: Operation, isCNF: boolean = false): string {
@@ -159,14 +136,15 @@ function getVariables(exprs: Operation[]): string[] {
 }
 
 const formulaLatex = computed(() => {
-    if (!qmcResult.value || qmcResult.value.expressions.length === 0) return ''
+    console.log('Formula!!!!', props.qmcResult)
+    if (!props.qmcResult || props.qmcResult.expressions.length === 0) return ''
 
     const isCNF = props.functionType === 'CNF'
-    const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.value.expressions, isCNF)
+    const { constantTerms, variablePositions } = analyzeExpressions(props.qmcResult.expressions, isCNF)
 
     // If no variable positions, all expressions are identical
     if (variablePositions.length === 0) {
-        const vars = getVariables(qmcResult.value.expressions)
+        const vars = getVariables(props.qmcResult.expressions)
         const formType = props.functionType === 'DNF' ? 'DMF' : 'CMF'
         const signature = `f_{${formType}}(${vars.join(', ')}) = `
         // Join terms appropriately based on form
@@ -191,7 +169,7 @@ const formulaLatex = computed(() => {
         parts.push(`\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`)
     }
 
-    const vars = getVariables(qmcResult.value.expressions)
+    const vars = getVariables(props.qmcResult.expressions)
     const formType = props.functionType === 'DNF' ? 'DMF' : 'CMF'
     const signature = `f_{${formType}}(${vars.join(', ')}) = `
     const termJoiner = isCNF ? '' : ' + '

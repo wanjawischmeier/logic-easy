@@ -1,4 +1,4 @@
-import type { TruthTableData } from "@/projects/truth-table/TruthTableProject"
+import type { TruthTableData, TruthTableState } from "@/projects/truth-table/TruthTableProject"
 import type { FunctionType } from '@/utility/types'
 import { QMC, type Operation, type QMCDetailedExpressionsObjects } from "logi.js"
 
@@ -69,23 +69,27 @@ export class Minimizer {
     }
 
     // Run QMC when data changes
-    static runQMC(outputVars: string[], values: TruthTableData, selectedOutputIndex: number, functionType: FunctionType): QMCResult | undefined {
+    static runQMC(truthTable: TruthTableState): QMCResult | undefined {
         console.log('=== runQMC called ===')
-        console.log('props.values:', values)
-        console.log('props.selectedOutputIndex:', selectedOutputIndex)
-        console.log('props.outputVars:', outputVars)
+        console.log('props.values:', truthTable.values)
+        console.log('props.selectedOutputIndex:', truthTable.outputVariableIndex)
+        console.log('props.outputVars:', truthTable.outputVars)
 
-        if (values.length === 0) {
+        if (truthTable.values.length === 0) {
             console.log('No values, returning')
             return
         }
-        if (selectedOutputIndex >= outputVars.length) {
+        if (truthTable.outputVariableIndex >= truthTable.outputVars.length) {
             console.log('Invalid output index, returning')
             return
         }
 
         const qmc = new QMC()
-        const mt = this.calculateMinMaxTerms(values, selectedOutputIndex, functionType)
+        const mt = this.calculateMinMaxTerms(
+            truthTable.values,
+            truthTable.outputVariableIndex,
+            truthTable.functionType
+        )
         const dc: number[] = [] // Don't cares - could be extended later
 
         console.log('Calculated minterms:', mt)
@@ -112,7 +116,7 @@ export class Minimizer {
             minterms: sortedMinterms,
             pis: d.primeImplicants,
             chart: d.chart,
-            expressions: functionType === 'CNF'
+            expressions: truthTable.functionType === 'CNF'
                 ? detailedResult.expressions.map(expr => this.applyDeMorgan(expr))
                 : detailedResult.expressions
         }

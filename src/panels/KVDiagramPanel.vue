@@ -7,7 +7,8 @@
       </MultiSelectSwitch>
 
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
-        :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
+        :initialSelected="functionTypes.indexOf(selectedFunctionType)"
+        :onSelect="(v, i) => selectedFunctionType = v as FunctionType">
       </MultiSelectSwitch>
       <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="projectLatex" />
     </div>
@@ -15,25 +16,27 @@
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full flex flex-col items-center justify-center overflow-auto">
-        <KVDiagram class="hidden" :key="`${selectedType}-${selectedOutputIndex}`" v-model="tableValues"
+        <KVDiagram class="" :key="`${selectedFunctionType}-${selectedOutputIndex}`" v-model="tableValues"
           :input-vars="inputVars" :output-vars="outputVars" :output-index="selectedOutputIndex"
-          :minified-values="minifiedValues || []" :formula="currentFormula" :functionType="selectedType" />
+          :minified-values="minifiedValues || []" :formula="currentFormula" :functionType="selectedFunctionType" />
 
         <div class="mt-4 w-full justify-center">
           <FormulaRenderer :latex-expression="getLatexExpression(selectedOutputIndex)" />
         </div>
 
         <QMCViewer :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
-          :selected-output-index="selectedOutputIndex" :function-type="selectedType"></QMCViewer>
+          :output-variable-index="selectedOutputIndex" :function-type="selectedFunctionType"
+          :minified-values="minifiedValues" :formulas="formulas"></QMCViewer>
       </div>
 
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
-        <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${selectedType}`"
+        <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${selectedFunctionType}`"
           class="flex flex-col items-center gap-4">
           <KVDiagram v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars" :output-index="index"
-            :minified-values="minifiedValues || []" :formula="formulas[outputVar]?.[selectedType] || Formula.empty"
-            :functionType="selectedType" />
+            :minified-values="minifiedValues || []"
+            :formula="formulas[outputVar]?.[selectedFunctionType] || Formula.empty"
+            :functionType="selectedFunctionType" />
 
           <FormulaRenderer :latex-expression="getLatexExpression(index)" />
         </div>
@@ -49,7 +52,7 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import DownloadButton from '@/components/parts/DownloadButton.vue'
-import { defaultFunctionType, Formula, FunctionType } from '@/utility/types';
+import { Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
@@ -62,22 +65,9 @@ const props = defineProps<Partial<IDockviewPanelProps>>()
 
 let disposable: { dispose?: () => void } | null = null
 
-interface KVPanelState {
-  selectedType: FunctionType
-  selectedOutputIndex: number
-}
-
 // Load saved panel state
-const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
 const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 const screenshotRef = ref<HTMLElement | null>(null)
-
-const selectedType = ref<FunctionType>(
-  panelState?.selectedType ?? defaultFunctionType
-);
-const selectedOutputIndex = ref(
-  panelState?.selectedOutputIndex ?? 0
-);
 
 onMounted(() => {
   const api = getDockviewApi()
@@ -110,10 +100,11 @@ const functionTypes = computed(() =>
 );
 
 // Access state from params
-const { inputVars, outputVars, values, minifiedValues, formulas } = TruthTableProject.useState()
+const { inputVars, outputVars, values, minifiedValues, formulas, outputVariableIndex, functionType } = TruthTableProject.useState()
 
-// Local model for the component
-const tableValues = ref<TruthTableData>(values ? values.value.map((row: TruthTableCell[]) => [...row]) : [])
+const selectedOutputIndex = ref(outputVariableIndex.value);
+const selectedFunctionType = ref<FunctionType>(functionType.value);
+const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
@@ -140,11 +131,15 @@ watch(() => values.value, (newVal) => {
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
 
-// Auto-save panel state when values change
-stateManager.watchPanelState(props.params.api.id, () => ({
-  selectedType: selectedType.value,
-  selectedOutputIndex: selectedOutputIndex.value
-}))
+watch(() => selectedFunctionType.value, (functionType) => {
+  if (!stateManager.state.truthTable) return
+  stateManager.state.truthTable.functionType = functionType;
+})
+
+watch(() => selectedOutputIndex.value, (ouputIndex) => {
+  if (!stateManager.state.truthTable) return
+  stateManager.state.truthTable.outputVariableIndex = ouputIndex;
+})
 
 const currentFormula = computed(() => {
   const outputVar = outputVars.value[selectedOutputIndex.value];
@@ -152,7 +147,7 @@ const currentFormula = computed(() => {
     return Formula.empty;
   }
 
-  return formulas.value[outputVar]?.[selectedType.value];
+  return formulas.value[outputVar]?.[selectedFunctionType.value];
 });
 
 const projectLatex = computed(() => {

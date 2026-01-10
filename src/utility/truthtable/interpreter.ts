@@ -2,6 +2,7 @@ import { stateManager } from "@/projects/stateManager";
 import type { TruthTableData } from "@/projects/truth-table/TruthTableProject";
 import { minifyTruthTable } from "@/utility/truthtable/espresso";
 import { FunctionType, type Formula, type Literal, type Term } from "@/utility/types";
+import { Minimizer } from "./minimizer";
 
 /**
  * Interprets a minified truth table into a logical function (list of terms).
@@ -121,6 +122,14 @@ export const updateTruthTable = async () => {
   Object.assign(stateManager.state.truthTable.values, newValues);
   console.log('[updateTruthTable] State updated, values are now:', stateManager.state.truthTable.values);
   */
+  const qmcResult = Minimizer.runQMC(truthTable)
+  console.log('QMCCC!!' + qmcResult)
+  if (stateManager.state.truthTable.qmcResult) {
+    Object.assign(stateManager.state.truthTable.qmcResult, qmcResult);
+  } else {
+    stateManager.state.truthTable.qmcResult = qmcResult;
+  }
+
   // Calculate formulas for each output variable
   const formulas: Record<string, Record<string, Formula>> = {}
 

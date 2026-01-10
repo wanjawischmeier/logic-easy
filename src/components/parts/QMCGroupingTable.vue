@@ -163,7 +163,6 @@ function buildTableRows() {
                 bgColor: bgColor,
                 isPrime: piTerms.has(term)
             })
-            console.log(`IsPrime1: ${piTerms.has(term)}`)
         })
     })
 
@@ -209,7 +208,6 @@ function buildTableRows() {
                 bgColor: bgColor,
                 isPrime: piTerms.has(joinTerm)
             })
-            console.log(`IsPrime2: ${piTerms.has(joinTerm)}`)
         })
     }
 

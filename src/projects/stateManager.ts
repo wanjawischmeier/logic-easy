@@ -6,13 +6,13 @@ import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 /**
  * The current storage version
  */
-export const STORAGE_VERSION: number = 4
+export const STORAGE_VERSION: number = 5
 
 /**
  * All storage versions that are compatible with the current one
  */
 export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
-  3, 4
+  4, 5
 ]
 
 /**
