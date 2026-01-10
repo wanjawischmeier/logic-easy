@@ -1,45 +1,40 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
-    <div class="w-full flex flex-wrap text-sm justify-between items-center">
-      <div class="overflow-x-auto">
+    <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
 
-        <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
-        </FormulaRenderer>
-      </div>
-
-      <MultiSelectSwitch class="mt-4" :values="viewTabs" :initialSelected="selectedViewIndex"
+      <MultiSelectSwitch :values="viewTabs" :initialSelected="selectedViewIndex"
         :onSelect="(v, i) => selectedViewIndex = i">
       </MultiSelectSwitch>
 
-      <div class="flex flex-col items-end gap-2 pl-2">
-        <div class="flex gap-2">
-          <MultiSelectSwitch v-if="outputVars.length > 1" :values="outputVars" :initialSelected="selectedOutputIndex"
-            :onSelect="(v, i) => selectedOutputIndex = i">
-          </MultiSelectSwitch>
-          <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
-        </div>
+      <MultiSelectSwitch v-if="outputVars.length > 1" :values="outputVars" :initialSelected="selectedOutputIndex"
+        :onSelect="(v, i) => selectedOutputIndex = i">
+      </MultiSelectSwitch>
 
-        <MultiSelectSwitch :values="functionTypes" :initialSelected="functionTypes.indexOf(selectedFunctionType)"
-          :onSelect="(v, i) => selectedFunctionType = v as FunctionType">
-        </MultiSelectSwitch>
-      </div>
+      <MultiSelectSwitch :values="functionTypes" :initialSelected="functionTypes.indexOf(selectedFunctionType)"
+        :onSelect="(v, i) => selectedFunctionType = v as FunctionType">
+      </MultiSelectSwitch>
+
+      <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
     </div>
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
         <div class="flex-1 flex items-center justify-center overflow-auto w-full">
-          <KVDiagram v-if="selectedViewIndex === 0" class="" :key="`${selectedFunctionType}-${selectedOutputIndex}`"
+          <FormulaRenderer v-if="selectedViewIndex === 0 && couplingTermLatex" :latex-expression="couplingTermLatex">
+          </FormulaRenderer>
+
+          <KVDiagram v-if="selectedViewIndex === 1" class="" :key="`${selectedFunctionType}-${selectedOutputIndex}`"
             :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="selectedOutputIndex" :formulas="formulas" :functionType="selectedFunctionType"
             @values-changed="tableValues = $event" />
 
-          <QMCGroupingTable v-else-if="selectedViewIndex === 1" :values="tableValues" :input-vars="inputVars"
+          <QMCGroupingTable v-else-if="selectedViewIndex === 2" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="selectedOutputIndex" :formulas="formulas"
             :functionType="selectedFunctionType" :qmc-result="qmcResult" />
 
-          <QMCPrimeImplicantChart v-else-if="selectedViewIndex === 2" :values="tableValues" :input-vars="inputVars"
+          <QMCPrimeImplicantChart v-else-if="selectedViewIndex === 3" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="selectedOutputIndex" :formulas="formulas"
             :functionType="selectedFunctionType" :qmc-result="qmcResult" />
         </div>
@@ -116,7 +111,7 @@ const functionTypes = computed(() =>
   Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
 );
 
-const viewTabs = ['KV Diagram', 'Grouping Table', 'Prime Implicant Chart'];
+const viewTabs = ['Formula', 'KV Diagram', 'Grouping Table', 'Prime Implicant Chart'];
 const selectedViewIndex = ref(0);
 
 // Access state from params
@@ -162,13 +157,4 @@ watch(() => values.value, (newVal) => {
   isUpdatingFromState = true
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
-
-const currentFormula = computed(() => {
-  const outputVar = outputVars.value[selectedOutputIndex.value];
-  if (!outputVar) {
-    return Formula.empty;
-  }
-
-  return formulas.value[outputVar]?.[selectedFunctionType.value];
-});
 </script>

@@ -47,7 +47,7 @@ export const dockRegistry: DockEntry[] = [
   },
   {
     id: 'kv-diagram',
-    label: 'KV Diagram',
+    label: 'Minimizer',
     component: KVDiagramPanel,
     projectType: 'truth-table',
     requires: {

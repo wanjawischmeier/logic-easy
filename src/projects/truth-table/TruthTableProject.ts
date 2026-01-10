@@ -65,7 +65,7 @@ export class TruthTableProject extends Project {
 
     // Add KV diagram if input count is between 2 and 4
     if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
-      createPanel('kv-diagram', 'KV Diagram', {
+      createPanel('kv-diagram', 'Minimizer', {
         referencePanel: 'truth-table',
         direction: 'right'
       })

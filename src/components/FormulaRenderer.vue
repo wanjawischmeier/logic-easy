@@ -2,6 +2,11 @@
   <div class="text-xl text-primary-variant p-2">
     <!-- container: latex left, copy button right -->
     <div class="relative flex items-center gap-2">
+      <!-- latex renderer -->
+      <div class="flex-1">
+        <vue-latex :expression="latexExpression" display-mode />
+      </div>
+
       <!-- TODO: Replace with proper button and checkmark -->
       <!-- copy button -->
       <button id="copy-to-clipboard" type="button" @click="copyLatex" :aria-pressed="copied" title="Copy LaTeX" class="ml-2 p-2
@@ -15,11 +20,6 @@
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
         </svg>
       </button>
-
-      <!-- latex renderer -->
-      <div class="flex-1">
-        <vue-latex :expression="latexExpression" display-mode />
-      </div>
     </div>
   </div>
 </template>
