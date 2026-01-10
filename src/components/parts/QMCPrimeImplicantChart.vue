@@ -40,11 +40,14 @@
                     :style="{ strokeDasharray: '6,8' }" />
             </svg>
         </div>
+
+        <FormulaRenderer class="pt-8" v-if="props.couplingTermLatex" :latex-expression="props.couplingTermLatex" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { type TruthTableState } from '@/projects/truth-table/TruthTableProject'
+import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 
 const BOUNDING_BOX_PADDING = 6

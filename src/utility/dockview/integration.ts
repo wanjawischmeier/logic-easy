@@ -57,7 +57,8 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       id: panelId,
       component: panelId,
       title: label,
-      position: position
+      position: position,
+      minimumWidth: registryEntry.minimumWidth ?? 0
     });
     return true;
   } catch (err) {

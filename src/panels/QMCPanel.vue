@@ -1,9 +1,9 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
-    <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
-      <MultiSelectSwitch :values="viewTabs" :initialSelected="selectedViewIndex"
-        :onSelect="(v, i) => selectedViewIndex = i">
+    <div class="w-full flex flex-wrap text-sm justify-end items-center gap-2">
+      <MultiSelectSwitch :values="viewTabs" :initialSelected="selectedTabIndex"
+        :onSelect="(v, i) => selectedTabIndex = i">
       </MultiSelectSwitch>
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :function-types="functionTypes"
@@ -17,13 +17,14 @@
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
         <div class="flex-1 flex items-center justify-center overflow-auto w-full">
-          <QMCGroupingTable v-if="selectedViewIndex === 0" :values="tableValues" :input-vars="inputVars"
+          <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
             :functionType="functionType" :input-selection="inputSelection" :qmc-result="qmcResult" />
 
-          <QMCPrimeImplicantChart v-else-if="selectedViewIndex === 1" :values="tableValues" :input-vars="inputVars"
+          <QMCPrimeImplicantChart v-else-if="selectedTabIndex === 1" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-            :functionType="functionType" :input-selection="inputSelection" :qmc-result="qmcResult" />
+            :functionType="functionType" :input-selection="inputSelection" :qmc-result="qmcResult"
+            :coupling-term-latex="couplingTermLatex" />
         </div>
       </div>
 
@@ -61,10 +62,17 @@ import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { getDockviewApi } from '@/utility/dockview/integration';
 
+interface QMCPanelState {
+  selectedTabIndex: number
+}
+
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
 let disposable: { dispose?: () => void } | null = null
 
+const panelState = stateManager.getPanelState<QMCPanelState>(props.params.api.id)
+const viewTabs = ['Grouping Table', 'Prime Implicant Chart'];
+const selectedTabIndex = ref(panelState?.selectedTabIndex ?? 0);
 const screenshotRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
@@ -92,12 +100,14 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
+// Auto-save panel state when values change
+stateManager.watchPanelState(props.params.api.id, () => ({
+  selectedTabIndex: selectedTabIndex.value
+}))
+
 const functionTypes = computed(() =>
   Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
 );
-
-const viewTabs = ['Grouping Table', 'Prime Implicant Chart'];
-const selectedViewIndex = ref(0);
 
 // Access state from params
 const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, inputSelection, qmcResult, couplingTermLatex } = TruthTableProject.useState()

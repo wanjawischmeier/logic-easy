@@ -24,6 +24,7 @@ type DockEntry = {
   component: unknown;
   projectType?: ProjectType;
   requires?: Requirements;
+  minimumWidth?: number;
   children?: DockEntry[];
 };
 
@@ -52,6 +53,7 @@ export const dockRegistry: DockEntry[] = [
     label: 'Minimization',
     component: KVDiagramPanel,
     projectType: 'truth-table',
+    minimumWidth: 500,
     requires: {
       view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
     },
@@ -61,6 +63,7 @@ export const dockRegistry: DockEntry[] = [
         label: 'KV Diagram',
         component: KVDiagramPanel,
         projectType: 'truth-table',
+        minimumWidth: 400,
         requires: {
           view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
         },
@@ -70,6 +73,7 @@ export const dockRegistry: DockEntry[] = [
         label: 'Quine McCluskey',
         component: QMCPanel,
         projectType: 'truth-table',
+        minimumWidth: 400,
         requires: {
           view: ['TruthTable']
         },
