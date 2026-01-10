@@ -2,10 +2,10 @@
   <div class="inline-flex items-center gap-2 ">
     <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
     <div class="inline-flex items-center rounded bg-surface-2 p-0.5 border border-surface-3 relative">
-      <div class="slider absolute inset-y-0.5 rounded-xs transition-transform duration-100 ease-in-out"
-        :style="{ width: `calc((100% - 4px) / ${values.length})`, transform: `translateX(calc(${selected} * 100%))` }">
+      <div class="slider absolute inset-y-0.5 rounded-xs transition-all duration-100 ease-in-out" :style="sliderStyle">
       </div>
-      <button v-for="(item, idx) in values" :key="idx" @click="select(idx, item)" :aria-pressed="idx === selected"
+      <button v-for="(item, idx) in values" :key="idx" :ref="el => buttonRefs[idx] = el as HTMLElement"
+        @click="select(idx, item)" :aria-pressed="idx === selected"
         class="px-3 py-1.5 rounded relative z-10 transition-colors duration-100"
         :class="randomSelectMode && idx === selected ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]' : ''">
         {{ getLabel(item) }}
@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { stateManager } from '@/projects/stateManager';
-import { onMounted, ref, toRefs, watch } from 'vue'
+import { computed, onMounted, ref, toRefs, watch, nextTick } from 'vue'
 
 const props = defineProps<{
   values: unknown[]
@@ -53,6 +53,27 @@ const { values, initialSelected, labelKey, labelFn, onSelect, label } = toRefs(p
 const selected = ref<number | null>(
   initialSelected?.value ?? (values.value && values.value.length ? 0 : null)
 )
+
+const buttonRefs = ref<(HTMLElement | null)[]>([])
+
+const sliderStyle = computed(() => {
+  if (selected.value === null || !buttonRefs.value.length) {
+    return { width: '0px', transform: 'translateX(0px)' }
+  }
+
+  const selectedButton = buttonRefs.value[selected.value]
+  if (!selectedButton) {
+    return { width: '0px', transform: 'translateX(0px)' }
+  }
+
+  const width = selectedButton.offsetWidth
+  const left = selectedButton.offsetLeft
+
+  return {
+    width: `${width}px`,
+    transform: `translateX(${left - buttonRefs.value.length}px)`
+  }
+})
 
 // Animation state tracking
 let animationTimeout: number | null = null
@@ -112,6 +133,9 @@ watch(stateManager.state, checkRandomSelectMode)
 
 watch(initialSelected, (v) => {
   selected.value = v ?? (values.value && values.value.length ? 0 : null)
+  nextTick(() => {
+    // Force slider style recalculation after button refs update
+  })
 })
 
 function getLabel(item: unknown) {
@@ -144,7 +168,9 @@ function select(idx: number, item: unknown) {
   }
 
   selected.value = idx
-  emitSelection(idx, item)
+  nextTick(() => {
+    emitSelection(idx, item)
+  })
 }
 
 function selectRandom() {

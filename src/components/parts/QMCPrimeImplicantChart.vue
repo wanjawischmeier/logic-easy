@@ -1,6 +1,5 @@
 <template>
     <div>
-        <h3 class="text-lg font-semibold mb-2">Prime Implicant Chart</h3>
         <div class="w-full overflow-auto relative">
             <table ref="tableRef" class="bg-surface-1 border border-primary table-fixed w-auto select-none relative">
                 <thead>
@@ -9,13 +8,13 @@
                             class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1 text-center">
                             Terms
                         </th>
-                        <th v-for="m in minterms" :key="m"
+                        <th v-for="m in qmcResult?.minterms" :key="m"
                             class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1">{{ m
                             }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(pi, piIdx) in primeImplicants" :key="pi.term"
+                    <tr v-for="(pi, piIdx) in qmcResult?.pis" :key="pi.term"
                         class="hover:bg-surface-3 transition-color duration-100">
                         <td class="px-4 text-center align-middle border-b border-r border-primary font-mono relative"
                             :style="pi.isEssential ? { boxShadow: `inset 2px 0 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 2px 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 -2px 0 0 ${essentialColors[piIdx % essentialColors.length]}` } : {}">
@@ -25,7 +24,7 @@
                             :style="pi.isEssential ? { boxShadow: `inset -2px 0 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 2px 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 -2px 0 0 ${essentialColors[piIdx % essentialColors.length]}` } : {}">
                             <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" display-mode />
                         </td>
-                        <td v-for="m in minterms" :key="m"
+                        <td v-for="m in qmcResult?.minterms" :key="m"
                             class="px-2 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
                             :data-minterm="m">
                             <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" display-mode />
@@ -45,20 +44,12 @@
 </template>
 
 <script setup lang="ts">
+import { type TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 
 const BOUNDING_BOX_PADDING = 6
 
-interface Props {
-    minterms?: number[]
-    primeImplicants?: any[]
-    chart?: Record<number, string[]> | null
-    inputVars?: string[]
-}
-
-const props = withDefaults(defineProps<Props>(), {
-    inputVars: () => []
-})
+const props = defineProps<TruthTableState>()
 
 const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<{ x: number, y: number, width: number, height: number, color: string }>>([])
@@ -76,11 +67,11 @@ const essentialColors = [
 // Find which minterms make each prime implicant essential
 const essentialMinterms = computed(() => {
     const result = new Map<string, number[]>()
-    if (!props.primeImplicants) return result
+    if (!props.qmcResult?.pis) return result
 
     // First, build a map of minterm -> all PIs that cover it
     const mintermToPIs = new Map<number, string[]>()
-    props.primeImplicants.forEach(pi => {
+    props.qmcResult?.pis.forEach(pi => {
         const piMinterms = pi.minterms || []
         piMinterms.forEach((m: number) => {
             if (!mintermToPIs.has(m)) {
@@ -91,7 +82,7 @@ const essentialMinterms = computed(() => {
     })
 
     // Now find critical minterms for each essential PI
-    props.primeImplicants.forEach(pi => {
+    props.qmcResult?.pis.forEach(pi => {
         if (!pi.isEssential) return
 
         const critical: number[] = []
@@ -149,13 +140,13 @@ function getCellSymbol(pi: any, minterm: number): string {
 }
 
 function calculateBoundingBoxes() {
-    if (!tableRef.value || !props.primeImplicants) return
+    if (!tableRef.value || !props.qmcResult?.pis) return
 
     const boxes: Array<{ x: number, y: number, width: number, height: number, color: string }> = []
     const table = tableRef.value
     const tableRect = table.getBoundingClientRect()
 
-    props.primeImplicants.forEach((pi, piIdx) => {
+    props.qmcResult?.pis.forEach((pi, piIdx) => {
         if (!pi.isEssential) return
 
         const piMinterms = pi.minterms || []
@@ -250,7 +241,7 @@ onMounted(() => {
     })
 })
 
-watch(() => [props.primeImplicants, props.minterms], () => {
+watch(() => [props.qmcResult?.pis, props.qmcResult?.minterms], () => {
     nextTick(() => {
         calculateBoundingBoxes()
     })

@@ -1,32 +1,48 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
-    <div class="w-full flex gap-4 text-sm justify-end">
-      <MultiSelectSwitch v-if="outputVars.length > 1" :label="'Output Variable'" :values="outputVars"
-        :initialSelected="selectedOutputIndex" :onSelect="(v, i) => selectedOutputIndex = i">
+    <div class="w-full flex flex-wrap text-sm justify-between items-center">
+      <div class="overflow-x-auto">
+
+        <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
+        </FormulaRenderer>
+      </div>
+
+      <MultiSelectSwitch class="mt-4" :values="viewTabs" :initialSelected="selectedViewIndex"
+        :onSelect="(v, i) => selectedViewIndex = i">
       </MultiSelectSwitch>
 
-      <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
-        :initialSelected="functionTypes.indexOf(selectedFunctionType)"
-        :onSelect="(v, i) => selectedFunctionType = v as FunctionType">
-      </MultiSelectSwitch>
-      <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="projectLatex" />
+      <div class="flex flex-col items-end gap-2 pl-2">
+        <div class="flex gap-2">
+          <MultiSelectSwitch v-if="outputVars.length > 1" :values="outputVars" :initialSelected="selectedOutputIndex"
+            :onSelect="(v, i) => selectedOutputIndex = i">
+          </MultiSelectSwitch>
+          <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
+        </div>
+
+        <MultiSelectSwitch :values="functionTypes" :initialSelected="functionTypes.indexOf(selectedFunctionType)"
+          :onSelect="(v, i) => selectedFunctionType = v as FunctionType">
+        </MultiSelectSwitch>
+      </div>
     </div>
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center justify-center overflow-auto">
-        <KVDiagram class="" :key="`${selectedFunctionType}-${selectedOutputIndex}`" :values="tableValues"
-          :input-vars="inputVars" :output-vars="outputVars" :outputVariableIndex="selectedOutputIndex"
-          :formulas="formulas" :functionType="selectedFunctionType" @values-changed="tableValues = $event" />
+      <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
+        <div class="flex-1 flex items-center justify-center overflow-auto w-full">
+          <KVDiagram v-if="selectedViewIndex === 0" class="" :key="`${selectedFunctionType}-${selectedOutputIndex}`"
+            :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
+            :outputVariableIndex="selectedOutputIndex" :formulas="formulas" :functionType="selectedFunctionType"
+            @values-changed="tableValues = $event" />
 
-        <div class="mt-4 w-full justify-center">
-          <FormulaRenderer :latex-expression="getLatexExpression(selectedOutputIndex)" />
+          <QMCGroupingTable v-else-if="selectedViewIndex === 1" :values="tableValues" :input-vars="inputVars"
+            :output-vars="outputVars" :outputVariableIndex="selectedOutputIndex" :formulas="formulas"
+            :functionType="selectedFunctionType" :qmc-result="qmcResult" />
+
+          <QMCPrimeImplicantChart v-else-if="selectedViewIndex === 2" :values="tableValues" :input-vars="inputVars"
+            :output-vars="outputVars" :outputVariableIndex="selectedOutputIndex" :formulas="formulas"
+            :functionType="selectedFunctionType" :qmc-result="qmcResult" />
         </div>
-
-        <QMCViewer :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
-          :output-variable-index="selectedOutputIndex" :function-type="selectedFunctionType" :formulas="formulas"
-          :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex"></QMCViewer>
       </div>
 
       <!-- Screenshot-only view -->
@@ -37,7 +53,8 @@
             :outputVariableIndex="index" :formulas="formulas" :functionType="selectedFunctionType"
             @values-changed="tableValues = $event" />
 
-          <FormulaRenderer :latex-expression="getLatexExpression(index)" />
+          <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
+          </FormulaRenderer>
         </div>
       </div>
     </div>
@@ -53,12 +70,13 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import DownloadButton from '@/components/parts/DownloadButton.vue'
 import { Formula, FunctionType } from '@/utility/types';
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
+import QMCGroupingTable from '@/components/parts/QMCGroupingTable.vue'
+import QMCPrimeImplicantChart from '@/components/parts/QMCPrimeImplicantChart.vue'
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { getDockviewApi } from '@/utility/dockview/integration';
-import QMCViewer from '@/components/QMCViewer.vue';
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -97,6 +115,9 @@ onBeforeUnmount(() => {
 const functionTypes = computed(() =>
   Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
 );
+
+const viewTabs = ['KV Diagram', 'Grouping Table', 'Prime Implicant Chart'];
+const selectedViewIndex = ref(0);
 
 // Access state from params
 const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
@@ -150,45 +171,4 @@ const currentFormula = computed(() => {
 
   return formulas.value[outputVar]?.[selectedFunctionType.value];
 });
-
-const projectLatex = computed(() => {
-  const expressions: string[] = [];
-
-  for (let i = 0; i < outputVars.value.length; i++) {
-    const expr = getLatexExpression(i);
-    expressions.push(`$$${expr}$$`);
-  }
-
-  return expressions.join('\n\n');
-});
-
-function getLatexExpression(outputVariableIndex: number) {
-  const varName = outputVars.value[outputVariableIndex];
-  if (!varName || !currentFormula.value?.terms.length) return `f(${varName}) = ...`;
-
-  const terms = currentFormula.value.terms.map(term => {
-    if (term.literals.length === 0) return '1';
-
-    if (currentFormula.value?.type === FunctionType.DNF) {
-      // Product of literals
-      return term.literals.map(lit => {
-        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
-      }).join('');
-    } else {
-      // Sum of literals (CNF)
-      const sum = term.literals.map(lit => {
-        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
-      }).join(' + ');
-
-      if (term.literals.length === 1) {
-        return sum;
-      } else {
-        return `(${sum})`;
-      }
-    }
-  });
-
-  const result = currentFormula.value.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
-  return `f(${varName}) = ${result}`;
-}
 </script>
