@@ -3,8 +3,9 @@
     <div class="flex justify-end items-center h-10 mb-2 gap-2">
       <TruthTableSearch :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
         :show-all-output-vars="showAllOutputVars" :output-variable-index="outputVariableIndex"
-        @values-changed="tableValues = $event" @highlighted-row-changed="highlightedRow = $event"
-        @blink-green-row-changed="blinkGreenRow = $event"></TruthTableSearch>
+        :input-selection="inputSelection" @values-changed="tableValues = $event"
+        @highlighted-row-changed="highlightedRow = $event" @blink-green-row-changed="blinkGreenRow = $event">
+      </TruthTableSearch>
 
       <LegendButton :legend="legend" />
 
@@ -27,7 +28,7 @@
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
         :highlighted-row="highlightedRow" :blink-green-row="blinkGreenRow" :show-all-output-vars="showAllOutputVars"
-        :output-variable-index="outputVariableIndex" />
+        :output-variable-index="outputVariableIndex" :input-selection="inputSelection" />
     </div>
   </div>
 </template>
