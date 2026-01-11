@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { computed, watch, ref, nextTick } from 'vue'
-import { getAllMatchingRows } from '@/utility/truthtable/rowMatching'
 
 const props = defineProps<{
     inputVars: string[]
@@ -9,7 +8,6 @@ const props = defineProps<{
     values: TruthTableData
     showAllOutputVars?: boolean
     outputVariableIndex?: number
-    inputSelection?: boolean[]
 }>()
 
 const emit = defineEmits<{
@@ -31,22 +29,12 @@ const searchHint = computed(() => {
     return searchStep.value === 1 ? 'Search' : 'Edit'
 })
 
-const selectedInputCount = computed(() => {
-    if (!props.inputSelection) return props.inputVars.length
-    return props.inputSelection.filter(Boolean).length
-})
-
-const selectedInputIndices = computed(() => {
-    if (!props.inputSelection) return props.inputVars.map((_, idx) => idx)
-    return props.inputVars.map((_, idx) => idx).filter(idx => props.inputSelection![idx])
-})
-
 /**
  * Number of bits for current step
  */
 const numBits = computed(() => {
     if (searchStep.value === 1) {
-        return selectedInputCount.value
+        return props.inputVars.length
     }
     // Step 2: if showAllOutputVars is false, only edit the selected output variable
     return props.showAllOutputVars === false ? 1 : props.outputVars.length
@@ -178,21 +166,10 @@ function exit(e: MouseEvent) {
 
 // Auto-advance when input is complete
 watch(searchInput, (newValue, oldValue) => {
-    if (searchStep.value === 1 && newValue.length === selectedInputCount.value) {
+    if (searchStep.value === 1 && newValue.length === props.inputVars.length) {
         console.log('[watch searchInput] Step 1 complete, moving to step 2')
         // Step 1 complete: move to step 2
-        // Map the input bits to full input pattern based on selected inputs
-        let fullInputPattern = 0
-        for (let i = 0; i < newValue.length; i++) {
-            const char = newValue[i]
-            if (!char) continue
-            const bit = parseInt(char)
-            const actualInputIdx = selectedInputIndices.value[i]
-            if (bit === 1 && actualInputIdx !== undefined) {
-                fullInputPattern |= (1 << (props.inputVars.length - 1 - actualInputIdx))
-            }
-        }
-        const rowIndex = fullInputPattern
+        const rowIndex = parseInt(newValue, 2)
         if (rowIndex >= 0 && rowIndex < props.values.length) {
             highlightedRow.value = rowIndex
             emit('highlightedRowChanged', rowIndex)
@@ -205,42 +182,29 @@ watch(searchInput, (newValue, oldValue) => {
         const rowIdx = highlightedRow.value
         if (rowIdx !== null) {
             const newValues = props.values.map(row => [...row])
-
-            // Get all rows that match the selected input pattern
-            const rowsToUpdate = getAllMatchingRows(
-                rowIdx,
-                props.inputVars.length,
-                props.values.length,
-                props.inputSelection
-            )
-
-            // Update all matching rows
-            for (const matchingRowIdx of rowsToUpdate) {
-                const outputRow = newValues[matchingRowIdx]
-                if (outputRow) {
-                    if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
-                        // Only edit the selected output variable
-                        const char = newValue[0]
-                        outputRow[props.outputVariableIndex] = char === '1' ? 1 : char === '0' ? 0 : '-'
-                    } else {
-                        // Edit all output variables
-                        for (let i = 0; i < newValue.length; i++) {
-                            const char = newValue[i]
-                            outputRow[i] = char === '1' ? 1 : char === '0' ? 0 : '-'
-                        }
+            const outputRow = newValues[rowIdx]
+            if (outputRow) {
+                if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
+                    // Only edit the selected output variable
+                    const char = newValue[0]
+                    outputRow[props.outputVariableIndex] = char === '1' ? 1 : char === '0' ? 0 : '-'
+                } else {
+                    // Edit all output variables
+                    for (let i = 0; i < newValue.length; i++) {
+                        const char = newValue[i]
+                        outputRow[i] = char === '1' ? 1 : char === '0' ? 0 : '-'
                     }
                 }
+                emit('valuesChanged', newValues);
+
+                // Blink green
+                blinkGreenRow.value = rowIdx
+                emit('blinkGreenRowChanged', rowIdx)
+                setTimeout(() => {
+                    blinkGreenRow.value = null
+                    emit('blinkGreenRowChanged', null)
+                }, 300)
             }
-
-            emit('valuesChanged', newValues);
-
-            // Blink green
-            blinkGreenRow.value = rowIdx
-            emit('blinkGreenRowChanged', rowIdx)
-            setTimeout(() => {
-                blinkGreenRow.value = null
-                emit('blinkGreenRowChanged', null)
-            }, 300)
         }
         resetSearch()
     }
