@@ -8,9 +8,8 @@
 
       <LegendButton :legend="currentLegend" />
 
-      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :function-types="functionTypes"
-        :selected-output-index="outputVariableIndex" :selected-function-type="functionType"
-        :input-selection="inputSelection" />
+      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
+        :selected-function-type="functionType" :input-selection="inputSelection" />
 
       <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
     </div>
@@ -160,10 +159,6 @@ onBeforeUnmount(() => {
 stateManager.watchPanelState(props.params.api.id, () => ({
   selectedTabIndex: selectedTabIndex.value
 }))
-
-const functionTypes = computed(() =>
-  Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
-);
 
 // Access state from params
 const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, inputSelection, qmcResult, couplingTermLatex } = TruthTableProject.useState()
