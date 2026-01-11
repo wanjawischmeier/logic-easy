@@ -32,8 +32,8 @@ export class TruthTableProject extends Project {
   static override get defaultProps(): TruthTableProps {
     return {
       name: '',
-      inputVariableCount: 3,
-      outputVariableCount: 1,
+      inputVariableCount: 4,
+      outputVariableCount: 2,
     };
   }
 
@@ -68,7 +68,7 @@ export class TruthTableProject extends Project {
 
     // Add KV diagram if input count is between 2 and 4
     if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
-      createPanel('kv-diagram', 'Minimizer', {
+      createPanel('kv-diagram', 'KV Diagram', {
         referencePanel: 'truth-table',
         direction: 'right'
       })

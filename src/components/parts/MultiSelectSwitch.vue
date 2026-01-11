@@ -1,7 +1,9 @@
 <template>
   <div class="inline-flex items-center gap-2 ">
     <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
-    <div class="inline-flex items-center gap-0.5 rounded bg-surface-2 p-0.5 border border-surface-3 relative">
+    <div
+      class="inline-flex items-center gap-0.5 rounded bg-surface-2 p-0.5 border border-surface-3 transition-colors relative"
+      :class="highlightBorder ? 'hover:border-primary' : ''">
       <div class="slider absolute inset-y-0.5 rounded-xs transition-all duration-100 ease-in-out" :style="sliderStyle">
       </div>
       <button v-for="(item, idx) in values" :key="idx" :ref="el => buttonRefs[idx] = el as HTMLElement"
@@ -35,14 +37,17 @@
 import { stateManager } from '@/projects/stateManager';
 import { computed, onMounted, ref, toRefs, watch, nextTick } from 'vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   values: unknown[]
   initialSelected?: number
   onSelect?: (value: unknown, index: number) => void
   labelKey?: string
   labelFn?: (v: unknown) => string
   label?: string
-}>()
+  highlightBorder?: boolean
+}>(), {
+  highlightBorder: false
+})
 
 const emit = defineEmits<{
   (e: 'update:selected', value: number | null): void

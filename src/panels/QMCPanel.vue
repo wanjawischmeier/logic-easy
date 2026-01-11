@@ -3,7 +3,7 @@
 
     <div class="w-full flex flex-wrap text-sm justify-end items-center gap-2">
       <MultiSelectSwitch :values="viewTabs" :initialSelected="selectedTabIndex"
-        :onSelect="(v, i) => selectedTabIndex = i">
+        :onSelect="(v, i) => selectedTabIndex = i" :highlight-border="true">
       </MultiSelectSwitch>
 
       <LegendButton :legend="currentLegend" :is-latex="true" />

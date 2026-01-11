@@ -17,10 +17,16 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(row, rowIdx) in modelValue" :key="rowIdx">
+        <tr v-for="(row, rowIdx) in modelValue" :key="rowIdx"
+          :ref="el => { if (el) rowRefs[rowIdx] = el as HTMLElement }" :class="{
+            'bg-yellow-200/50': highlightedRow === rowIdx,
+            'bg-green-200/50': blinkGreenRow === rowIdx
+          }" class="transition-colors duration-300">
           <!-- Generated Input Columns -->
           <td v-for="(input, colIdx) in inputVars" :key="'in-' + colIdx"
-            class="text-lg font-mono text-center align-middle bg-surface-1 border-b border-primary" :class="{
+            class="text-lg font-mono text-center align-middle border-b border-primary transition-colors duration-300"
+            :class="{
+              'bg-surface-1': highlightedRow !== rowIdx && blinkGreenRow !== rowIdx,
               'border-r-4': colIdx === inputVars.length - 1,
               'border-r': colIdx !== inputVars.length - 1
             }">
@@ -30,8 +36,9 @@
           </td>
           <!-- Editable Output Columns -->
           <td v-for="(cell, colIdx) in row" :key="'out-' + colIdx"
-            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-color duration-100"
+            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-color duration-300"
             :class="{
+              'bg-surface-1': highlightedRow !== rowIdx && blinkGreenRow !== rowIdx,
               'border-r': colIdx !== row.length - 1
             }" @click="toggleCell(rowIdx, colIdx)">
             <div class="flex-1 flex items-center justify-center">
@@ -54,6 +61,8 @@ const props = defineProps<{
   inputVars: string[]
   outputVars: string[]
   modelValue: TruthTableData
+  highlightedRow?: number | null
+  blinkGreenRow?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -62,6 +71,7 @@ const emit = defineEmits<{
 
 const containerRef = ref<HTMLElement | null>(null)
 const tableRef = ref<HTMLElement | null>(null)
+const rowRefs = ref<Record<number, HTMLElement>>({})
 const centeredHorizontally = ref(true)
 const centeredVertically = ref(true)
 
@@ -128,4 +138,13 @@ watch(
   () => nextTick(updateCentered),
   { deep: true }
 )
+
+// Scroll highlighted row into view
+watch(() => props.highlightedRow, (rowIdx) => {
+  if (typeof rowIdx === 'number' && rowRefs.value[rowIdx]) {
+    nextTick(() => {
+      rowRefs.value[rowIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+})
 </script>
