@@ -6,7 +6,7 @@
         :onSelect="(v, i) => selectedTabIndex = i" :highlight-border="true">
       </MultiSelectSwitch>
 
-      <LegendButton :legend="currentLegend" :is-latex="true" />
+      <LegendButton :legend="currentLegend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :function-types="functionTypes"
         :selected-output-index="outputVariableIndex" :selected-function-type="functionType"
@@ -52,9 +52,9 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
-import LegendButton, { type LegendItem } from '@/components/parts/LegendButton.vue'
-import DownloadButton from '@/components/parts/DownloadButton.vue'
-import SettingsButton from '@/components/parts/SettingsButton.vue'
+import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
+import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
+import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import { FunctionType } from '@/utility/types';
 import QMCGroupingTable from '@/components/parts/QMCGroupingTable.vue'
 import QMCPrimeImplicantChart from '@/components/parts/QMCPrimeImplicantChart.vue'

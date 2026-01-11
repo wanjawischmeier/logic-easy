@@ -45,8 +45,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import MultiSelectSwitch from './MultiSelectSwitch.vue'
-import MultiToggleSwitch from './MultiToggleSwitch.vue'
+import MultiSelectSwitch from '../MultiSelectSwitch.vue'
+import MultiToggleSwitch from '../MultiToggleSwitch.vue'
 import { FunctionType } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
 import { updateTruthTable } from '@/utility/truthtable/interpreter'

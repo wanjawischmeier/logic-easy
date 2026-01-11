@@ -43,8 +43,8 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
-import DownloadButton from '@/components/parts/DownloadButton.vue'
-import SettingsButton from '@/components/parts/SettingsButton.vue'
+import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
+import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import { FunctionType } from '@/utility/types';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';

@@ -1,10 +1,26 @@
 <script setup lang="ts">
 import { ref, watch, computed, nextTick } from 'vue'
 import TruthTable from '@/components/TruthTable.vue'
-import DownloadButton from '@/components/parts/DownloadButton.vue'
+import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { stateManager } from '@/projects/stateManager';
+import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue';
+
+const legend: LegendItem[] = [
+  {
+    symbol: 'bg-secondary-variant',
+    symbolType: 'bg-color',
+    label: 'Input variables',
+    description: 'Independent boolean values that define each row of the truth table.'
+  },
+  {
+    symbol: 'bg-primary-variant',
+    symbolType: 'bg-color',
+    label: 'Output variables',
+    description: 'Dependent boolean results produced by the respective function for each combination of input variables.'
+  }
+]
 
 // Access state from params
 const { inputVars, outputVars, values } = TruthTableProject.useState()
@@ -280,6 +296,7 @@ function getTruthTableLatex(): string {
             @keydown.backspace.prevent="e => handleBackspace(index - 1, e)" />
         </div>
       </div>
+      <LegendButton :legend="legend" />
       <DownloadButton :target-ref="screenshotRef" filename="truth-table" :latex-content="getTruthTableLatex()" />
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">

@@ -27,7 +27,7 @@
                     </div>
                     <div class="flex-1 flex flex-col gap-0.5">
                         <div class="text-sm font-medium">{{ item.label }}</div>
-                        <div class="text-xs opacity-70">{{ item.description }}</div>
+                        <div v-if="item.description" class="text-xs opacity-70">{{ item.description }}</div>
                     </div>
                 </div>
             </div>
@@ -43,7 +43,7 @@ export type SymbolType = 'text' | 'latex' | 'bg-color' | 'tailwind'
 export interface LegendItem {
     symbol: string
     label: string
-    description: string
+    description?: string
     symbolType?: SymbolType
 }
 
