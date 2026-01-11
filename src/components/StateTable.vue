@@ -74,6 +74,7 @@ function addTransitionRow() {
     input: xBits,
     output: ''.padStart(outputBits.value, 'x'),
   })
+  setLastUpdateSource('table')
 }
 
 // Hilfsfunktion: Bits auf gegebene Länge mit x auffüllen
@@ -88,9 +89,7 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   const tr = transitions.value[idx]
   if (!tr) return
 
-  if (bit === 'x') {
-    alert('Please enter a bit') // TODO
-  }
+  // TODO: check if input is allowed (0 or 1 because state cannot be zero)
 
   setLastUpdateSource('table')
 
@@ -107,6 +106,32 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   if (!targetState) return
 
   tr.to = targetState.id
+}
+
+function sortTransitionsByZX() {
+  const automaton = getAutomaton()
+  const tr = automaton.transitions ?? []
+  if (!tr.length) return
+
+  const idToBinary = new Map<number | string, string>()
+  states.value.forEach((s, idx) => {
+    const bin = binaryIDs.value[idx] ?? '0'.padStart(bitNumber.value, '0')
+    idToBinary.set(s.id, bin)
+  })
+
+  automaton.transitions = [...tr].sort((a, b) => {
+    const zA = idToBinary.get(a.from) ?? '0'.padStart(bitNumber.value, '0')
+    const zB = idToBinary.get(b.from) ?? '0'.padStart(bitNumber.value, '0')
+
+    const xA = String(a.input ?? '')
+    const xB = String(b.input ?? '')
+
+    const keyA = zA + xA
+    const keyB = zB + xB
+    return keyA.localeCompare(keyB)
+  })
+
+  setLastUpdateSource('table')
 }
 </script>
 
@@ -320,7 +345,10 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
           </tr>
         </tbody>
       </table>
-      <button class="bg-primary text-xl" @click="addTransitionRow">+</button>
+      <button class="bg-primary text-sm px-3 mr-3 py-1 font-mono" @click="addTransitionRow">+</button>
+      <button class="bg-primary text-sm px-3 ml-3 py-1 font-mono" @click="sortTransitionsByZX">
+        sort
+      </button>
     </div>
     <div v-else class="text-sm font-mono text-gray-400 text-center">
       Please add more states to reveal the transition table.

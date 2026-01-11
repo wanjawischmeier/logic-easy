@@ -107,6 +107,7 @@ const listenerHandler = (event: MessageEvent) => {
     updateFromEditor = true
     stateManager.state.automaton = fsmData
     updateFromEditor = false
+    lastUpdateSource = null
   }
 }
 
