@@ -9,13 +9,13 @@
       <LegendButton :legend="legend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :input-selection="inputSelection"
+        :selected-function-type="functionType" :input-selection="inputSelection" :show-input-selection="false"
         :customSettingSlotLabels="{ 'show-all-ouput-vars': 'Show all ouput variables' }">
         <template #show-all-ouput-vars>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showAllOutputVars"></Checkbox>
-            <div class="text-xs">
-              <span v-if="showAllOutputVars">Showing all variables</span>
+            <div class="text-xs min-w-25">
+              <span v-if="showAllOutputVars">Showing all output variables</span>
               <span v-else="showAllOutputVars">Showing currently selected</span>
             </div>
           </div>
@@ -46,6 +46,7 @@ import { stateManager } from '@/projects/stateManager';
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import Checkbox from '@/components/parts/Checkbox.vue';
+import SearchIcon from '@/components/icons/SearchIcon.vue';
 
 const legend: LegendItem[] = [
   {
@@ -59,6 +60,11 @@ const legend: LegendItem[] = [
     symbolType: 'bg-color',
     label: 'Output variables',
     description: 'Dependent boolean results produced by the respective function for each combination of input variables.'
+  },
+  {
+    label: 'Search',
+    description: "Allows you to quickly search and/or edit the values for a specific row by entering that row's input variable values in binary representation.",
+    component: SearchIcon
   }
 ]
 

@@ -23,6 +23,7 @@
                         <div v-else-if="item.symbolType === 'bg-color'" class="w-6 h-6 rounded border border-surface-3"
                             :class="item.symbol"></div>
                         <div v-else-if="item.symbolType === 'tailwind'" class="w-6 h-6" :class="item.symbol"></div>
+                        <component v-else-if="item.component" :is="item.component" class="w-6 h-6" />
                         <span v-else>{{ item.symbol }}</span>
                     </div>
                     <div class="flex-1 flex flex-col gap-0.5">
@@ -41,10 +42,11 @@ import { ref, onMounted, onUnmounted } from 'vue'
 export type SymbolType = 'text' | 'latex' | 'bg-color' | 'tailwind'
 
 export interface LegendItem {
-    symbol: string
+    symbol?: string
     label: string
     description?: string
     symbolType?: SymbolType
+    component?: any
 }
 
 interface Props {

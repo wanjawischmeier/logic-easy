@@ -1,5 +1,37 @@
+<template>
+    <div v-if="inputVars.length && outputVars.length" ref="searchBarRef"
+        class="group flex items-center gap-2 p-0.5 border border-surface-3 hover:border-primary bg-surface-2 rounded transition-colors duration-100"
+        @blur.capture="handleBlur" @click.capture="focusFirstEmpty" @mousedown.stop>
+        <div
+            class="flex gap-2 px-2 py-1.5 group-hover:bg-primary group-focus-within:bg-primary transition-colors rounded-xs">
+            <!-- Icon: Search or Edit -->
+            <div class="translate-y-0.5">
+                <SearchIcon v-if="searchStep === 1" />
+                <PencilIcon v-else />
+            </div>
+
+            <!-- Hint Text -->
+            <span class="text-sm whitespace-nowrap select-none">{{ searchHint }}</span>
+        </div>
+
+        <!-- Individual Bit Boxes -->
+        <div class="flex gap-1 pr-1.5">
+            <input v-for="index in numBits" :key="index - 1" :ref="el => inputRefs[index - 1] = el as HTMLInputElement"
+                type="text" maxlength="1" :value="getValueAtIndex(index - 1)"
+                class="bit-box-input w-6 h-6 text-center bg-surface-1 border border-surface-3 rounded outline-none focus:border-primary font-mono text-shadow-2xs cursor-default"
+                @mousedown.prevent="focusFirstEmpty" @input="e => handleInput(index - 1, e)"
+                @keydown.enter.prevent="() => resetSearch(false)" @keydown.escape.prevent="() => resetSearch(false)"
+                @keydown.backspace.prevent="e => handleBackspace(index - 1, e)" />
+        </div>
+    </div>
+</template>
+
+<style scoped></style>
+
 <script setup lang="ts">
 import type { TruthTableData } from '@/projects/truth-table/TruthTableProject';
+import SearchIcon from '@/components/icons/SearchIcon.vue';
+import PencilIcon from '@/components/icons/PencilIcon.vue'
 import { computed, watch, ref, nextTick } from 'vue'
 
 const props = defineProps<{
@@ -215,39 +247,3 @@ watch(searchStep, () => {
     focusFirstEmpty()
 })
 </script>
-
-<template>
-    <div v-if="inputVars.length && outputVars.length" ref="searchBarRef"
-        class="group flex items-center gap-2 p-0.5 border border-surface-3 hover:border-primary bg-surface-2 rounded transition-colors duration-100"
-        @blur.capture="handleBlur" @click.capture="focusFirstEmpty" @mousedown.stop>
-        <div
-            class="flex gap-2 px-2 py-1.5 group-hover:bg-primary group-focus-within:bg-primary transition-colors rounded-xs">
-            <!-- Icon: Search or Edit -->
-            <div class="translate-y-0.5">
-                <svg v-if="searchStep === 1" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white shrink-0"
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white shrink-0" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-            </div>
-
-            <!-- Hint Text -->
-            <span class="text-sm whitespace-nowrap select-none">{{ searchHint }}</span>
-        </div>
-
-        <!-- Individual Bit Boxes -->
-        <div class="flex gap-1 pr-1.5">
-            <input v-for="index in numBits" :key="index - 1" :ref="el => inputRefs[index - 1] = el as HTMLInputElement"
-                type="text" maxlength="1" :value="getValueAtIndex(index - 1)"
-                class="bit-box-input w-6 h-6 text-center bg-surface-1 border border-surface-3 rounded outline-none focus:border-primary font-mono text-shadow-2xs cursor-default"
-                @mousedown.prevent="focusFirstEmpty" @input="e => handleInput(index - 1, e)"
-                @keydown.enter.prevent="() => resetSearch(false)" @keydown.escape.prevent="() => resetSearch(false)"
-                @keydown.backspace.prevent="e => handleBackspace(index - 1, e)" />
-        </div>
-    </div>
-</template>

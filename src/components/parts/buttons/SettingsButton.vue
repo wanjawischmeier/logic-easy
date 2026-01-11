@@ -16,21 +16,21 @@
         <div v-if="showDropdown"
             class="absolute right-0 mt-2 p-2 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
             <div class="flex flex-col gap-3">
-                <div class="flex flex-col gap-1">
+                <div v-if="showInputSelection" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Input Variables</label>
                     <MultiToggleSwitch :values="inputVars" :initialSelected="inputSelection"
                         :onToggle="handleInputSelectionChange" :min-selected="1">
                     </MultiToggleSwitch>
                 </div>
 
-                <div v-if="showOutputVarSelector" class="flex flex-col gap-1">
+                <div v-if="showOutputVarSelector && showOutputSelection" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Output Variable</label>
                     <MultiSelectSwitch :values="outputVars" :initialSelected="selectedOutputIndex"
                         :onSelect="handleOutputChange">
                     </MultiSelectSwitch>
                 </div>
 
-                <div class="flex flex-col gap-1">
+                <div v-if="showFunctionTypeSelection" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Function Type</label>
                     <MultiSelectSwitch :values="TruthTableProject.functionTypes.value"
                         :initialSelected="selectedFunctionTypeIndex" :onSelect="handleFunctionTypeChange">
@@ -65,6 +65,9 @@ interface Props {
     selectedFunctionType: FunctionType
     inputSelection: boolean[]
     customSettingSlotLabels?: Record<string, string>
+    showInputSelection?: boolean
+    showOutputSelection?: boolean
+    showFunctionTypeSelection?: boolean
 }
 
 interface Emits {
@@ -72,7 +75,11 @@ interface Emits {
     (e: 'update:selectedFunctionType', value: FunctionType): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+    showInputSelection: true,
+    showOutputSelection: true,
+    showFunctionTypeSelection: true
+})
 const emit = defineEmits<Emits>()
 
 const showDropdown = ref(false)
