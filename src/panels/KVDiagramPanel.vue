@@ -2,9 +2,8 @@
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
 
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
-      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :function-types="functionTypes"
-        :selected-output-index="outputVariableIndex" :selected-function-type="functionType"
-        :input-selection="inputSelection" />
+      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
+        :selected-function-type="functionType" :input-selection="inputSelection" />
 
       <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
     </div>
@@ -40,12 +39,11 @@
 <style scoped></style>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
-import { FunctionType } from '@/utility/types';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
@@ -86,12 +84,8 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-const functionTypes = computed(() =>
-  Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
-);
-
 // Access state from params
-const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, inputSelection, qmcResult, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, inputSelection, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false

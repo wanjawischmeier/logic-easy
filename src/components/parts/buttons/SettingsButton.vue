@@ -32,7 +32,7 @@
 
                 <div class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Function Type</label>
-                    <MultiSelectSwitch :values="functionTypes" :initialSelected="selectedFunctionTypeIndex"
+                    <MultiSelectSwitch :values="TruthTableProject.functionTypes.value" :initialSelected="selectedFunctionTypeIndex"
                         :onSelect="handleFunctionTypeChange">
                     </MultiSelectSwitch>
                 </div>
@@ -50,11 +50,11 @@ import MultiToggleSwitch from '../MultiToggleSwitch.vue'
 import { FunctionType } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
 import { updateTruthTable } from '@/utility/truthtable/interpreter'
+import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 interface Props {
     inputVars: string[]
     outputVars: string[]
-    functionTypes: FunctionType[]
     selectedOutputIndex: number
     selectedFunctionType: FunctionType
     inputSelection: boolean[]
@@ -72,7 +72,7 @@ const showDropdown = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
 
 const showOutputVarSelector = computed(() => props.outputVars.length > 1)
-const selectedFunctionTypeIndex = computed(() => props.functionTypes.indexOf(props.selectedFunctionType))
+const selectedFunctionTypeIndex = computed(() => TruthTableProject.functionTypes.value.indexOf(props.selectedFunctionType))
 
 const toggleDropdown = () => {
     showDropdown.value = !showDropdown.value

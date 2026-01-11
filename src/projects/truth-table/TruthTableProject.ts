@@ -121,6 +121,10 @@ export class TruthTableProject extends Project {
   static override validateState(state: AppState): boolean {
     return state.truthTable != undefined;
   }
+
+  static functionTypes = computed(() =>
+    Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
+  )
 }
 
 registerProjectType('truth-table', {

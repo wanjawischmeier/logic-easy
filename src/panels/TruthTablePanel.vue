@@ -1,8 +1,30 @@
+<template>
+  <div class="h-full text-white flex flex-col p-2 overflow-auto" @mousedown="searchBarRef?.exit">
+    <div class="flex justify-end items-center h-10 mb-2 gap-2">
+      <TruthTableSearch :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
+        @values-changed="tableValues = $event" @highlighted-row-changed="highlightedRow = $event"
+        @blink-green-row-changed="blinkGreenRow = $event"></TruthTableSearch>
+
+      <LegendButton :legend="legend" />
+      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
+        :selected-function-type="functionType" :input-selection="inputSelection" />
+      <DownloadButton :target-ref="screenshotRef" filename="truth-table" :latex-content="getTruthTableLatex()" />
+    </div>
+    <div ref="screenshotRef" class="flex-1 overflow-auto">
+      <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
+        :highlighted-row="highlightedRow" :blink-green-row="blinkGreenRow" />
+    </div>
+  </div>
+</template>
+
+<style scoped></style>
+
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import TruthTable from '@/components/TruthTable.vue'
 import TruthTableSearch from '@/components/parts/TruthTableSearch.vue';
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
+import SettingsButton from '@/components/parts/buttons/SettingsButton.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { stateManager } from '@/projects/stateManager';
@@ -24,7 +46,7 @@ const legend: LegendItem[] = [
 ]
 
 // Access state from params
-const { inputVars, outputVars, values } = TruthTableProject.useState()
+const { inputVars, outputVars, values, outputVariableIndex, functionType, inputSelection } = TruthTableProject.useState()
 
 // Local model for the table component
 const searchBarRef = ref<InstanceType<typeof TruthTableSearch>>()
@@ -100,22 +122,3 @@ function getTruthTableLatex(): string {
   return latex;
 }
 </script>
-
-<template>
-  <div class="h-full text-white flex flex-col p-2 overflow-auto" @mousedown="searchBarRef?.exit">
-    <div class="flex justify-end items-center h-10 mb-2 gap-2">
-      <TruthTableSearch :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
-        @values-changed="tableValues = $event" @highlighted-row-changed="highlightedRow = $event"
-        @blink-green-row-changed="blinkGreenRow = $event"></TruthTableSearch>
-
-      <LegendButton :legend="legend" />
-      <DownloadButton :target-ref="screenshotRef" filename="truth-table" :latex-content="getTruthTableLatex()" />
-    </div>
-    <div ref="screenshotRef" class="flex-1 overflow-auto">
-      <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-        :highlighted-row="highlightedRow" :blink-green-row="blinkGreenRow" />
-    </div>
-  </div>
-</template>
-
-<style scoped></style>
