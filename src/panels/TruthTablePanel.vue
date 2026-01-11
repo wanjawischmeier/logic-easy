@@ -6,8 +6,21 @@
         @blink-green-row-changed="blinkGreenRow = $event"></TruthTableSearch>
 
       <LegendButton :legend="legend" />
+
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :input-selection="inputSelection" />
+        :selected-function-type="functionType" :input-selection="inputSelection"
+        :customSettingSlotLabels="{ 'show-all-ouput-vars': 'Show all ouput variables' }">
+        <template #show-all-ouput-vars>
+          <div class="flex gap-2 items-center">
+            <Checkbox v-model="showAllOutputVars"></Checkbox>
+            <div class="text-xs">
+              <span v-if="showAllOutputVars">Showing all variables</span>
+              <span v-else="showAllOutputVars">Showing currently selected</span>
+            </div>
+          </div>
+        </template>
+      </SettingsButton>
+
       <DownloadButton :target-ref="screenshotRef" filename="truth-table" :latex-content="getTruthTableLatex()" />
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">
@@ -29,6 +42,8 @@ import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { stateManager } from '@/projects/stateManager';
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue';
+import type { IDockviewPanelProps } from 'dockview-vue';
+import Checkbox from '@/components/parts/Checkbox.vue';
 
 const legend: LegendItem[] = [
   {
@@ -45,15 +60,26 @@ const legend: LegendItem[] = [
   }
 ]
 
+interface TruthTablePanelState {
+  showAllOutputVars: boolean
+}
+
 // Access state from params
 const { inputVars, outputVars, values, outputVariableIndex, functionType, inputSelection } = TruthTableProject.useState()
 
-// Local model for the table component
+const props = defineProps<Partial<IDockviewPanelProps>>()
+const panelState = stateManager.getPanelState<TruthTablePanelState>(props.params.api.id)
 const searchBarRef = ref<InstanceType<typeof TruthTableSearch>>()
 const tableValues = ref<TruthTableData>(values ? values.value.map((row: TruthTableCell[]) => [...row]) : [])
 const highlightedRow = ref<number | null>(null)
 const blinkGreenRow = ref<number | null>(null)
+const showAllOutputVars = ref(panelState?.showAllOutputVars ?? true)
 let isUpdatingFromState = false
+
+// Auto-save panel state when values change
+stateManager.watchPanelState<TruthTablePanelState>(props.params.api.id, () => ({
+  showAllOutputVars: showAllOutputVars.value
+}))
 
 // Watch for local changes and notify DockView
 watch(tableValues, (newVal) => {

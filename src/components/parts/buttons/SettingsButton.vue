@@ -32,9 +32,15 @@
 
                 <div class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Function Type</label>
-                    <MultiSelectSwitch :values="TruthTableProject.functionTypes.value" :initialSelected="selectedFunctionTypeIndex"
-                        :onSelect="handleFunctionTypeChange">
+                    <MultiSelectSwitch :values="TruthTableProject.functionTypes.value"
+                        :initialSelected="selectedFunctionTypeIndex" :onSelect="handleFunctionTypeChange">
                     </MultiSelectSwitch>
+                </div>
+
+                <!-- Dynamic slots with labels from prop -->
+                <div v-for="(label, slotName) in customSettingSlotLabels" :key="slotName" class="flex flex-col gap-1">
+                    <h3 class="text-xs opacity-70">{{ label }}</h3>
+                    <slot v-if="$slots[slotName]" :name="slotName"></slot>
                 </div>
             </div>
         </div>
@@ -58,6 +64,7 @@ interface Props {
     selectedOutputIndex: number
     selectedFunctionType: FunctionType
     inputSelection: boolean[]
+    customSettingSlotLabels?: Record<string, string>
 }
 
 interface Emits {

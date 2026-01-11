@@ -68,10 +68,10 @@ interface QMCPanelState {
   selectedTabIndex: number
 }
 
-const props = defineProps<Partial<IDockviewPanelProps>>()
-
 let disposable: { dispose?: () => void } | null = null
 
+
+const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<QMCPanelState>(props.params.api.id)
 const viewTabs = ['Grouping Table', 'Prime Implicants'];
 const selectedTabIndex = ref(panelState?.selectedTabIndex ?? 0);
@@ -156,7 +156,7 @@ onBeforeUnmount(() => {
 })
 
 // Auto-save panel state when values change
-stateManager.watchPanelState(props.params.api.id, () => ({
+stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
   selectedTabIndex: selectedTabIndex.value
 }))
 

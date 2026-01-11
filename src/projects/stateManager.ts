@@ -82,7 +82,7 @@ export class StateManager {
   /**
    * Get panel state by panel ID
    */
-  getPanelState<T = Record<string, unknown>>(panelId: string): T | undefined {
+  getPanelState<T>(panelId: string): T | undefined {
     const panelState = this.state.panelStates?.[panelId]
     // Return a plain object copy to avoid reactivity issues
     return panelState ? JSON.parse(JSON.stringify(panelState)) as T : undefined
@@ -94,14 +94,14 @@ export class StateManager {
    * @param stateGetter Function that returns the current state object
    * @returns Cleanup function to stop watching
    */
-  watchPanelState(panelId: string, stateGetter: () => Record<string, unknown>) {
+  watchPanelState<T>(panelId: string, stateGetter: () => T) {
     const stopWatch = watch(
       stateGetter,
       (newState) => {
         if (!this.state.panelStates) {
           this.state.panelStates = {}
         }
-        this.state.panelStates[panelId] = newState
+        this.state.panelStates[panelId] = newState as Record<string, unknown>
       },
       { deep: true, flush: 'post' }
     )
