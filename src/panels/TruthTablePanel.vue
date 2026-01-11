@@ -2,6 +2,7 @@
   <div class="h-full text-white flex flex-col p-2 overflow-auto" @mousedown="searchBarRef?.exit">
     <div class="flex justify-end items-center h-10 mb-2 gap-2">
       <TruthTableSearch :input-vars="inputVars" :output-vars="outputVars" :values="tableValues"
+        :show-all-output-vars="showAllOutputVars" :output-variable-index="outputVariableIndex"
         @values-changed="tableValues = $event" @highlighted-row-changed="highlightedRow = $event"
         @blink-green-row-changed="blinkGreenRow = $event"></TruthTableSearch>
 
@@ -11,7 +12,7 @@
         :selected-function-type="functionType" :input-selection="inputSelection"
         :customSettingSlotLabels="{ 'show-all-ouput-vars': 'Show all ouput variables' }">
         <template #show-all-ouput-vars>
-          <div class="flex gap-2 items-center">
+          <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showAllOutputVars"></Checkbox>
             <div class="text-xs">
               <span v-if="showAllOutputVars">Showing all variables</span>
@@ -25,7 +26,8 @@
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-        :highlighted-row="highlightedRow" :blink-green-row="blinkGreenRow" />
+        :highlighted-row="highlightedRow" :blink-green-row="blinkGreenRow" :show-all-output-vars="showAllOutputVars"
+        :output-variable-index="outputVariableIndex" />
     </div>
   </div>
 </template>

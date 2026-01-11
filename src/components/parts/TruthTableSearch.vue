@@ -6,6 +6,8 @@ const props = defineProps<{
     inputVars: string[]
     outputVars: string[]
     values: TruthTableData
+    showAllOutputVars?: boolean
+    outputVariableIndex?: number
 }>()
 
 const emit = defineEmits<{
@@ -31,7 +33,11 @@ const searchHint = computed(() => {
  * Number of bits for current step
  */
 const numBits = computed(() => {
-    return searchStep.value === 1 ? props.inputVars.length : props.outputVars.length
+    if (searchStep.value === 1) {
+        return props.inputVars.length
+    }
+    // Step 2: if showAllOutputVars is false, only edit the selected output variable
+    return props.showAllOutputVars === false ? 1 : props.outputVars.length
 })
 
 /**
@@ -170,7 +176,7 @@ watch(searchInput, (newValue, oldValue) => {
             searchInput.value = ''
             searchStep.value = 2
         }
-    } else if (searchStep.value === 2 && newValue.length === props.outputVars.length) {
+    } else if (searchStep.value === 2 && newValue.length === numBits.value) {
         console.log('[watch searchInput] Step 2 complete, updating values')
         // Step 2 complete: update values and reset
         const rowIdx = highlightedRow.value
@@ -178,9 +184,16 @@ watch(searchInput, (newValue, oldValue) => {
             const newValues = props.values.map(row => [...row])
             const outputRow = newValues[rowIdx]
             if (outputRow) {
-                for (let i = 0; i < newValue.length; i++) {
-                    const char = newValue[i]
-                    outputRow[i] = char === '1' ? 1 : char === '0' ? 0 : '-'
+                if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
+                    // Only edit the selected output variable
+                    const char = newValue[0]
+                    outputRow[props.outputVariableIndex] = char === '1' ? 1 : char === '0' ? 0 : '-'
+                } else {
+                    // Edit all output variables
+                    for (let i = 0; i < newValue.length; i++) {
+                        const char = newValue[i]
+                        outputRow[i] = char === '1' ? 1 : char === '0' ? 0 : '-'
+                    }
                 }
                 emit('valuesChanged', newValues);
 
