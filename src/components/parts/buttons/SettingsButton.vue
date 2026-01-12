@@ -16,6 +16,12 @@
         <div v-if="showDropdown"
             class="absolute right-0 mt-2 p-2 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
             <div class="flex flex-col gap-3">
+                <!-- Dynamic slots with labels from prop -->
+                <div v-for="(label, slotName) in customSettingSlotLabels" :key="slotName" class="flex flex-col gap-1">
+                    <h3 class="text-xs opacity-70">{{ label }}</h3>
+                    <slot v-if="$slots[slotName]" :name="slotName"></slot>
+                </div>
+
                 <div v-if="showInputSelection" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Input Variables</label>
                     <MultiToggleSwitch :values="inputVars" :initialSelected="inputSelection"
@@ -35,12 +41,6 @@
                     <MultiSelectSwitch :values="TruthTableProject.functionTypes.value"
                         :initialSelected="selectedFunctionTypeIndex" :onSelect="handleFunctionTypeChange">
                     </MultiSelectSwitch>
-                </div>
-
-                <!-- Dynamic slots with labels from prop -->
-                <div v-for="(label, slotName) in customSettingSlotLabels" :key="slotName" class="flex flex-col gap-1">
-                    <h3 class="text-xs opacity-70">{{ label }}</h3>
-                    <slot v-if="$slots[slotName]" :name="slotName"></slot>
                 </div>
             </div>
         </div>

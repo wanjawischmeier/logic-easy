@@ -10,13 +10,14 @@
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType" :input-selection="inputSelection" :show-input-selection="false"
+        :show-output-selection="!showAllOutputVars" :show-function-type-selection="false"
         :customSettingSlotLabels="{ 'show-all-ouput-vars': 'Show all ouput variables' }">
         <template #show-all-ouput-vars>
           <div class="flex gap-2 items-center" @click.stop>
-            <Checkbox v-model="showAllOutputVars"></Checkbox>
+            <Checkbox v-model="showAllOutputVars" />
             <div class="text-xs min-w-25">
               <span v-if="showAllOutputVars">Showing all output variables</span>
-              <span v-else="showAllOutputVars">Showing currently selected</span>
+              <span v-else>Showing currently selected</span>
             </div>
           </div>
         </template>

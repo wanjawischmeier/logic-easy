@@ -59,7 +59,7 @@ export const dockRegistry: DockEntry[] = [
     children: [
       {
         id: 'kv-diagram',
-        label: 'KV Diagram',
+        label: 'Karnaugh-Veitch',
         component: KVDiagramPanel,
         projectType: 'truth-table',
         minimumWidth: 400,

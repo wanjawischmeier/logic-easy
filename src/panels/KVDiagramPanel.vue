@@ -3,7 +3,18 @@
 
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :input-selection="inputSelection" />
+        :selected-function-type="functionType" :input-selection="inputSelection"
+        :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
+        <template #show-formula>
+          <div class="flex gap-2 items-center" @click.stop>
+            <Checkbox v-model="showFormula" />
+            <div class="text-xs min-w-25">
+              <span v-if="showFormula">Showing respective formula</span>
+              <span v-else>Toggle to show formula</span>
+            </div>
+          </div>
+        </template>
+      </SettingsButton>
 
       <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
     </div>
@@ -16,7 +27,7 @@
           :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
           :functionType="functionType" :input-selection="inputSelection" @values-changed="tableValues = $event" />
 
-        <FormulaRenderer class="pt-8" v-if="couplingTermLatex" :latex-expression="couplingTermLatex">
+        <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex">
         </FormulaRenderer>
       </div>
 
@@ -44,19 +55,29 @@ import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
+import Checkbox from '@/components/parts/Checkbox.vue';
 import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { getDockviewApi } from '@/utility/dockview/integration';
 
+interface KVPanelState {
+  showFormula: boolean
+}
+
 const props = defineProps<Partial<IDockviewPanelProps>>()
-
-let disposable: { dispose?: () => void } | null = null
-
-// Load saved panel state
+const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
+const showFormula = ref(panelState?.showFormula ?? true)
 const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 const screenshotRef = ref<HTMLElement | null>(null)
+
+// Auto-save panel state when values change
+stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
+  showFormula: showFormula.value
+}))
+
+let disposable: { dispose?: () => void } | null = null
 
 onMounted(() => {
   const api = getDockviewApi()
