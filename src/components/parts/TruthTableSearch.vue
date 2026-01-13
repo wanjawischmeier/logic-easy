@@ -2,20 +2,20 @@
     <div v-if="inputVars.length && outputVars.length" ref="searchBarRef"
         class="group flex items-center gap-2 p-0.5 border border-surface-3 hover:border-primary bg-surface-2 rounded transition-colors duration-100"
         @blur.capture="handleBlur" @click.capture="focusFirstEmpty" @mousedown.stop>
-        <div class="flex gap-2 px-2 py-1.5 group-hover:bg-primary transition-colors rounded-xs"
+        <div class="flex gap-2 px-2.5 py-1.5 group-hover:bg-primary transition-colors rounded-xs"
             :class="isFocussed ? 'bg-primary' : ''">
             <!-- Icon: Search or Edit -->
-            <div class="translate-y-0.5">
+            <div class="p-0.5">
                 <SearchIcon v-if="searchStep === 1" />
                 <PencilIcon v-else />
             </div>
 
             <!-- Hint Text -->
-            <span class="text-sm whitespace-nowrap select-none">{{ searchHint }}</span>
+            <span v-if="isFocussed" class="text-sm whitespace-nowrap select-none">{{ searchHint }}</span>
         </div>
 
         <!-- Individual Bit Boxes -->
-        <div class="gap-1 pr-1.5" :class="isFocussed ? 'flex' : 'hidden'">
+        <div v-if="isFocussed" class="flex gap-1 pr-1.5">
             <input v-for="index in numBits" :key="index - 1" :ref="el => inputRefs[index - 1] = el as HTMLInputElement"
                 type="text" maxlength="1" :value="getValueAtIndex(index - 1)"
                 class="bit-box-input w-6 h-6 text-center bg-surface-1 border border-surface-3 rounded outline-none focus:border-primary font-mono text-shadow-2xs cursor-default"
