@@ -17,14 +17,20 @@
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
-        <div class="flex-1 flex items-center justify-center overflow-auto w-full">
+        <div v-if="(qmcResult?.iterations.length ?? 0) !== 0"
+          class="flex-1 flex items-center justify-center overflow-auto w-full">
           <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"
-            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
+            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
             :functionType="functionType" :qmc-result="qmcResult" />
 
           <QMCPrimeImplicantChart v-else-if="selectedTabIndex === 1" :values="tableValues" :input-vars="inputVars"
-            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
+            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
             :functionType="functionType" :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex" />
+
+        </div>
+        <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full">
+          <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
+          </FormulaRenderer>
         </div>
       </div>
 
@@ -33,7 +39,7 @@
         <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="index" :formulas="formulas" :functionType="functionType"
+            :outputVariableIndex="index" :formulas="{}" :functionType="functionType"
             @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
@@ -160,7 +166,7 @@ stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
 }))
 
 // Access state from params
-const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false

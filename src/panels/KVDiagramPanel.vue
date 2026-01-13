@@ -27,7 +27,6 @@
           :selected-formula="selectedFormula" :functionType="functionType" @values-changed="tableValues = $event" />
 
         <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex" />
-        <FormulaRenderer v-if="showFormula" class="pt-8" :latex-expression="getLatexExpression(selectedFormula)" />
       </div>
 
       <!-- Screenshot-only view -->
@@ -134,9 +133,8 @@ watch(() => values.value, (newVal) => {
   isUpdatingFromState = true
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
-
+/*
 function getLatexExpression(formula?: Formula) {
-  console.log(formula)
   if (!formula || !formula.terms.length) return `f = ...`;
 
   const terms = formula.terms.map(term => {
@@ -164,4 +162,5 @@ function getLatexExpression(formula?: Formula) {
   const result = formula.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
   return `f = ${result}`;
 }
+*/
 </script>

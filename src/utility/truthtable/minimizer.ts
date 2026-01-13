@@ -92,7 +92,7 @@ export class Minimizer {
     }
 
     // Run QMC when data changes
-    static runQMC(truthTable: TruthTableState): QMCResult | undefined {
+    static async runQMC(truthTable: TruthTableState): Promise<QMCResult | undefined> {
         console.log('=== runQMC called ===')
         console.log('props.values:', truthTable.values)
         console.log('props.selectedOutputIndex:', truthTable.outputVariableIndex)

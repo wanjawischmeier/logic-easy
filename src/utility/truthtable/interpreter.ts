@@ -138,6 +138,24 @@ function flattenCouplingTermsToFormula(
   functionType: FunctionType
 ): Formula {
   const terms: Term[] = []
+
+  // Check for constant expressions (tautology '1' or contradiction '0')
+  // QMC might return these as simple values or special priority values
+  if ((expression as any).value === 1 || ((expression as any).name === '1')) {
+    // Tautology: always true
+    return {
+      type: functionType,
+      terms: [{ literals: [{ variable: '1', negated: false }] }]
+    }
+  }
+  if ((expression as any).value === 0 || ((expression as any).name === '0')) {
+    // Contradiction: always false
+    return {
+      type: functionType,
+      terms: [{ literals: [{ variable: '0', negated: false }] }]
+    }
+  }
+
   // For CNF: top level is AND (priority 8), each arg is an OR clause (priority 6)
   // For DNF: top level is OR (priority 6), each arg is an AND term (priority 8)
 
@@ -252,13 +270,25 @@ function getCouplingTermLatex(
   functionType: FunctionType,
   inputVars: string[]
 ): string {
-  if (qmcResult.expressions.length === 0) return ''
+  const formType = functionType === 'DNF' ? 'DMF' : 'CMF'
+  const signature = `f_{${formType}}(${inputVars.join(', ')}) = `
+
+  // Handle edge case: no expressions (all 0's and don't-cares)
+  if (qmcResult.expressions.length === 0) {
+    return signature + '0'
+  }
+
+  // Handle edge case: tautology (expression is just '1')
+  const firstExpr = qmcResult.expressions[0]
+  if ((firstExpr as any).value === 1 || (firstExpr as any).name === '1') {
+    return signature + '1'
+  }
+  if ((firstExpr as any).value === 0 || (firstExpr as any).name === '0') {
+    return signature + '0'
+  }
 
   const isCNF = functionType === 'CNF'
   const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF)
-
-  const formType = functionType === 'DNF' ? 'DMF' : 'CMF'
-  const signature = `f_{${formType}}(${inputVars.join(', ')}) = `
 
   // If no variable positions, all expressions are identical
   if (variablePositions.length === 0) {
@@ -399,7 +429,7 @@ function getVariableValue(term: Term, variable: string): number {
   return literal.negated ? 0 : 1;
 }
 
-export const updateTruthTable = async () => {
+export async function updateTruthTable() {
   console.log('[updateTruthTable] Called with new values:', stateManager.state);
   if (!stateManager.state.truthTable) {
     console.warn('[updateTruthTable] No truth table state found');
@@ -419,7 +449,7 @@ export const updateTruthTable = async () => {
   Object.assign(stateManager.state.truthTable.values, newValues);
   console.log('[updateTruthTable] State updated, values are now:', stateManager.state.truthTable.values);
   */
-  const qmcResult = Minimizer.runQMC(truthTable)
+  const qmcResult = await Minimizer.runQMC(truthTable)
   truthTable.qmcResult = qmcResult;
 
   if (qmcResult) {
@@ -435,6 +465,13 @@ export const updateTruthTable = async () => {
         qmcResult.expressions[0]!,
         truthTable.functionType
       )
+    } else {
+      // Handle edge case: no expressions means all zeros/don't-cares (contradiction)
+      // For both DNF and CNF, empty expression set = always false
+      truthTable.selectedFormula = {
+        type: truthTable.functionType,
+        terms: [{ literals: [{ variable: '0', negated: false }] }]
+      }
     }
   }
   /*
