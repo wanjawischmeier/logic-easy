@@ -106,7 +106,6 @@ const getValue = (rowCode: string, colCode: string) => {
 };
 
 const toggleCell = (rowCode: string, colCode: string) => {
-  console.log('Toggle cell' + props.values)
   if (!props.values) return;
 
   const binaryString = getBinaryString(rowCode, colCode);
