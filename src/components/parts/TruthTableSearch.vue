@@ -2,8 +2,8 @@
     <div v-if="inputVars.length && outputVars.length" ref="searchBarRef"
         class="group flex items-center gap-2 p-0.5 border border-surface-3 hover:border-primary bg-surface-2 rounded transition-colors duration-100"
         @blur.capture="handleBlur" @click.capture="focusFirstEmpty" @mousedown.stop>
-        <div
-            class="flex gap-2 px-2 py-1.5 group-hover:bg-primary group-focus-within:bg-primary transition-colors rounded-xs">
+        <div class="flex gap-2 px-2 py-1.5 group-hover:bg-primary transition-colors rounded-xs"
+            :class="isFocussed ? 'bg-primary' : ''">
             <!-- Icon: Search or Edit -->
             <div class="translate-y-0.5">
                 <SearchIcon v-if="searchStep === 1" />
@@ -15,7 +15,7 @@
         </div>
 
         <!-- Individual Bit Boxes -->
-        <div class="flex gap-1 pr-1.5">
+        <div class="gap-1 pr-1.5" :class="isFocussed ? 'flex' : 'hidden'">
             <input v-for="index in numBits" :key="index - 1" :ref="el => inputRefs[index - 1] = el as HTMLInputElement"
                 type="text" maxlength="1" :value="getValueAtIndex(index - 1)"
                 class="bit-box-input w-6 h-6 text-center bg-surface-1 border border-surface-3 rounded outline-none focus:border-primary font-mono text-shadow-2xs cursor-default"
@@ -56,6 +56,7 @@ const highlightedRow = ref<number | null>(null)
 const blinkGreenRow = ref<number | null>(null)
 const inputRefs = ref<HTMLInputElement[]>([])
 const searchBarRef = ref<HTMLElement | null>(null)
+const isFocussed = ref<boolean>(false)
 
 const searchHint = computed(() => {
     return searchStep.value === 1 ? 'Search' : 'Edit'
@@ -95,6 +96,8 @@ function getValueAtIndex(index: number): string {
  * Focus the first empty input field
  */
 function focusFirstEmpty() {
+    console.log('foo')
+    isFocussed.value = true
     nextTick(() => {
         for (let i = 0; i < inputRefs.value.length; i++) {
             if (!getValueAtIndex(i)) {
@@ -164,6 +167,7 @@ function resetSearch(shouldRefocus: boolean = false) {
     } else {
         // Blur the currently focused input
         document.activeElement instanceof HTMLElement && document.activeElement.blur()
+        isFocussed.value = false
     }
 }
 

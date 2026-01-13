@@ -27,8 +27,8 @@
           :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
           :functionType="functionType" :input-selection="inputSelection" @values-changed="tableValues = $event" />
 
-        <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex">
-        </FormulaRenderer>
+        <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex" />
+        <FormulaRenderer v-if="showFormula" class="pt-8" :latex-expression="getLatexExpression(outputVariableIndex)" />
       </div>
 
       <!-- Screenshot-only view -->
@@ -50,7 +50,7 @@
 <style scoped></style>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
@@ -61,6 +61,7 @@ import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { getDockviewApi } from '@/utility/dockview/integration';
+import { Formula, FunctionType } from '@/utility/types';
 
 interface KVPanelState {
   showFormula: boolean
@@ -134,4 +135,43 @@ watch(() => values.value, (newVal) => {
   isUpdatingFromState = true
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
+
+const currentFormula = computed(() => {
+  const outputVar = outputVars.value[outputVariableIndex.value];
+  if (!outputVar) {
+    return Formula.empty;
+  }
+
+  return formulas.value[outputVar]?.[functionType.value];
+});
+
+function getLatexExpression(outputVariableIndex: number) {
+  const varName = outputVars.value[outputVariableIndex];
+  if (!varName || !currentFormula.value?.terms.length) return `f(${varName}) = ...`;
+
+  const terms = currentFormula.value.terms.map(term => {
+    if (term.literals.length === 0) return '1';
+
+    if (currentFormula.value?.type === FunctionType.DNF) {
+      // Product of literals
+      return term.literals.map(lit => {
+        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
+      }).join('');
+    } else {
+      // Sum of literals (CNF)
+      const sum = term.literals.map(lit => {
+        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
+      }).join(' + ');
+
+      if (term.literals.length === 1) {
+        return sum;
+      } else {
+        return `(${sum})`;
+      }
+    }
+  });
+
+  const result = currentFormula.value.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
+  return `f(${varName}) = ${result}`;
+}
 </script>

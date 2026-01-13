@@ -243,7 +243,7 @@ function decimalFromBinary(binary: string): number {
 }
 
 // Parse minterms from cell index (can be single number or comma-separated string)
-function getMinMaxTerms(indexValue: string | number): Set<number> {
+function getMinterms(indexValue: string | number): Set<number> {
     if (typeof indexValue === 'number') {
         return new Set([indexValue])
     }
@@ -285,8 +285,8 @@ function isHighlighted(term: string): boolean {
 
     if (!hoveredCell || !candidateCell) return false
 
-    const hoveredMinterms = getMinMaxTerms(hoveredCell.index)
-    const candidateMinterms = getMinMaxTerms(candidateCell.index)
+    const hoveredMinterms = getMinterms(hoveredCell.index)
+    const candidateMinterms = getMinterms(candidateCell.index)
 
     // Highlight if hovered minterms are a subset of candidate (descendant)
     if (isSubset(hoveredMinterms, candidateMinterms) && hoveredMinterms.size < candidateMinterms.size) {

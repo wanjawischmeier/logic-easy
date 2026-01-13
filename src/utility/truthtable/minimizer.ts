@@ -22,7 +22,7 @@ export class Minimizer {
     }
 
     // Calculate minterms or maxterms from truth table values
-    static calculateMinMaxTerms(
+    static calculateMinterms(
         values: TruthTableData,
         outputIndex: number,
         functionType: FunctionType,
@@ -122,7 +122,7 @@ export class Minimizer {
         }
 
         const qmc = new QMC()
-        const mt = this.calculateMinMaxTerms(
+        const mt = this.calculateMinterms(
             truthTable.values,
             truthTable.outputVariableIndex,
             truthTable.functionType,
