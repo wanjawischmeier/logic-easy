@@ -43,6 +43,25 @@ export class Minimizer {
         return mt
     }
 
+    // Calculate don't-cares from truth table values
+    static calculateDontCares(
+        values: TruthTableData,
+        outputIndex: number
+    ): number[] {
+        const dc: number[] = []
+
+        values.forEach((row, rowIndex) => {
+            const outputCell = row[outputIndex]
+
+            // Collect rows where output is '-' (don't care)
+            if (outputCell === '-') {
+                dc.push(rowIndex)
+            }
+        })
+
+        return dc
+    }
+
     // Apply De Morgan's law to convert DNF to CNF
     static applyDeMorgan(op: Operation): Operation {
         // If it's a VAR, negate it
@@ -94,9 +113,13 @@ export class Minimizer {
             truthTable.outputVariableIndex,
             truthTable.functionType
         )
-        const dc: number[] = [] // Don't cares - could be extended later
+        const dc = this.calculateDontCares(
+            truthTable.values,
+            truthTable.outputVariableIndex
+        )
 
         console.log('Calculated minterms:', mt)
+        console.log('Calculated don\'t-cares:', dc)
 
         if (mt.length === 0) {
             console.log('No minterms - clearing display')
