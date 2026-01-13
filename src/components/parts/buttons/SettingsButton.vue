@@ -22,12 +22,6 @@
                     <slot v-if="$slots[slotName]" :name="slotName"></slot>
                 </div>
 
-                <div v-if="showInputSelection" class="flex flex-col gap-1">
-                    <label class="text-xs opacity-70">Input Variables</label>
-                    <MultiToggleSwitch :values="inputVars" :initialSelected="inputSelection"
-                        :onToggle="handleInputSelectionChange" :min-selected="1">
-                    </MultiToggleSwitch>
-                </div>
 
                 <div v-if="showOutputVarSelector && showOutputSelection" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70">Output Variable</label>
@@ -63,9 +57,7 @@ interface Props {
     outputVars: string[]
     selectedOutputIndex: number
     selectedFunctionType: FunctionType
-    inputSelection: boolean[]
     customSettingSlotLabels?: Record<string, string>
-    showInputSelection?: boolean
     showOutputSelection?: boolean
     showFunctionTypeSelection?: boolean
 }
@@ -76,7 +68,6 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    showInputSelection: true,
     showOutputSelection: true,
     showFunctionTypeSelection: true
 })
@@ -94,12 +85,6 @@ const toggleDropdown = () => {
 
 const closeDropdown = () => {
     showDropdown.value = false
-}
-
-const handleInputSelectionChange = (index: number, value: boolean, selected: boolean[]) => {
-    if (!stateManager.state.truthTable) return
-    stateManager.state.truthTable.inputSelection = [...selected];
-    updateTruthTable()
 }
 
 const handleOutputChange = (value: unknown, index: number) => {

@@ -9,7 +9,7 @@
       <LegendButton :legend="currentLegend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :input-selection="inputSelection" />
+        :selected-function-type="functionType" />
 
       <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
     </div>
@@ -20,12 +20,11 @@
         <div class="flex-1 flex items-center justify-center overflow-auto w-full">
           <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-            :functionType="functionType" :input-selection="inputSelection" :qmc-result="qmcResult" />
+            :functionType="functionType" :qmc-result="qmcResult" />
 
           <QMCPrimeImplicantChart v-else-if="selectedTabIndex === 1" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-            :functionType="functionType" :input-selection="inputSelection" :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex" />
+            :functionType="functionType" :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex" />
         </div>
       </div>
 
@@ -35,7 +34,7 @@
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="index" :formulas="formulas" :functionType="functionType"
-            :input-selection="inputSelection" @values-changed="tableValues = $event" />
+            @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
           </FormulaRenderer>
@@ -161,7 +160,7 @@ stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
 }))
 
 // Access state from params
-const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, inputSelection, qmcResult, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false

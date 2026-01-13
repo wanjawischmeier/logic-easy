@@ -23,7 +23,6 @@ export interface TruthTableState {
   formulas: Record<string, Record<FunctionType, Formula>>;
   outputVariableIndex: number;
   functionType: FunctionType;
-  inputSelection: boolean[];
   qmcResult?: QMCResult;
   couplingTermLatex?: string;
 }
@@ -46,7 +45,6 @@ export class TruthTableProject extends Project {
     const formulas = computed(() => state.value?.formulas ?? {});
     const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0);
     const functionType = computed(() => state.value?.functionType ?? 'DNF');
-    const inputSelection = computed(() => state.value?.inputSelection ?? []);
     const qmcResult = computed(() => state.value?.qmcResult);
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex);
 
@@ -57,7 +55,6 @@ export class TruthTableProject extends Project {
       formulas,
       outputVariableIndex,
       functionType,
-      inputSelection,
       qmcResult,
       couplingTermLatex
     }
@@ -108,7 +105,6 @@ export class TruthTableProject extends Project {
       formulas: formulas,
       outputVariableIndex: 0,
       functionType: 'DNF',
-      inputSelection: Array(props.inputVariableCount).fill(true)
     }
 
     console.log('[TruthTableProject.createState] State initialized:', {

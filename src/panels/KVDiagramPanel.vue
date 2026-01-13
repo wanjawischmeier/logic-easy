@@ -3,8 +3,7 @@
 
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :input-selection="inputSelection"
-        :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
+        :selected-function-type="functionType" :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
         <template #show-formula>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showFormula" />
@@ -25,7 +24,7 @@
 
         <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
           :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-          :functionType="functionType" :input-selection="inputSelection" @values-changed="tableValues = $event" />
+          :functionType="functionType" @values-changed="tableValues = $event" />
 
         <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex" />
         <FormulaRenderer v-if="showFormula" class="pt-8" :latex-expression="getLatexExpression(outputVariableIndex)" />
@@ -37,7 +36,7 @@
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="index" :formulas="formulas" :functionType="functionType"
-            :input-selection="inputSelection" @values-changed="tableValues = $event" />
+            @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
           </FormulaRenderer>
@@ -107,7 +106,7 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, inputSelection, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false

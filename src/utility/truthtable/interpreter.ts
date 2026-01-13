@@ -121,50 +121,58 @@ function getVariables(exprs: Operation[]): string[] {
   return Array.from(varSet).sort()
 }
 
+// Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
+function getTermSortKey(term: string): string {
+  // Remove \bar{x} and replace with just x
+  // This regex matches \bar{letter} and captures just the letter
+  return term.replace(/\\bar\{([a-z])\}/g, '$1')
+}
+
 function getCouplingTermLatex(
   qmcResult: QMCResult,
   functionType: FunctionType,
-  inputVars: string[],
-  inputSelection?: boolean[]
+  inputVars: string[]
 ): string {
   if (qmcResult.expressions.length === 0) return ''
 
   const isCNF = functionType === 'CNF'
   const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF)
 
-  // Get selected variables for signature
-  const selectedVars = inputSelection
-    ? inputVars.filter((_, idx) => inputSelection[idx])
-    : inputVars
   const formType = functionType === 'DNF' ? 'DMF' : 'CMF'
-  const signature = `f_{${formType}}(${selectedVars.join(', ')}) = `
+  const signature = `f_{${formType}}(${inputVars.join(', ')}) = `
 
   // If no variable positions, all expressions are identical
   if (variablePositions.length === 0) {
-    // Join terms appropriately based on form
+    // Sort constant terms alphabetically by their sort key and join
     const termJoiner = isCNF ? '' : ' + '
-    return signature + constantTerms.join(termJoiner)
+    return signature + constantTerms.sort((a, b) =>
+      getTermSortKey(a).localeCompare(getTermSortKey(b))
+    ).join(termJoiner)
   }
 
-  // Build formula: constant terms + matrices for each variable position
-  const parts: string[] = []
+  // Build list of parts with their sort keys
+  const partsWithKeys: Array<{ sortKey: string, latex: string }> = []
 
   // Add constant terms
-  if (constantTerms.length > 0) {
-    const termJoiner = isCNF ? '' : ' + '
-    parts.push(constantTerms.join(termJoiner))
+  for (const term of constantTerms) {
+    partsWithKeys.push({ sortKey: getTermSortKey(term), latex: term })
   }
 
-  // Add a matrix for each variable position
+  // Add matrices for each variable position
   for (const variations of variablePositions) {
     // Get unique variations only
     const uniqueVars = Array.from(new Set(variations))
     const matrixRows = uniqueVars.join(' \\\\ ')
-    parts.push(`\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`)
+    const latex = `\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`
+    // Use first variation as sort key (with bars removed)
+    partsWithKeys.push({ sortKey: getTermSortKey(uniqueVars[0] || ''), latex })
   }
 
+  // Sort parts alphabetically by their sort key
+  partsWithKeys.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+
   const termJoiner = isCNF ? '' : ' + '
-  return signature + parts.join(termJoiner)
+  return signature + partsWithKeys.map(p => p.latex).join(termJoiner)
 }
 
 
@@ -177,21 +185,14 @@ function getCouplingTermLatex(
  * Interprets a minified truth table into a logical function (list of terms).
  * @param data Rows of the minified truth table
  * @param inputVars List of input variable names
- * @param inputSelection Boolean array indicating which input variables are selected
  */
 export function interpretMinifiedTable(
   data: TruthTableData,
   formulaType: FunctionType,
-  inputVars: string[],
-  inputSelection?: boolean[]
+  inputVars: string[]
 ): Formula {
   let terms: Term[] = [];
   const numInputs = inputVars.length;
-
-  // Filter input variables based on selection
-  const selectedInputVars = inputSelection
-    ? inputVars.filter((_, idx) => inputSelection[idx])
-    : inputVars;
 
   // We assume the first column after inputs is the output we care about.
   const outputColIndex = numInputs;
@@ -207,9 +208,6 @@ export function interpretMinifiedTable(
 
     const literals: Literal[] = [];
     for (let i = 0; i < numInputs; i++) {
-      // Skip if this input variable is not selected
-      if (inputSelection && !inputSelection[i]) continue;
-
       const val = row[i];
       const variable = inputVars[i];
       if (!variable) continue;
@@ -290,6 +288,7 @@ export const updateTruthTable = async () => {
   }
 
   const truthTable = stateManager.state.truthTable
+
   /*
   console.log('[updateTruthTable] Current state before update:', {
     hasValues: !!stateManager.state.truthTable.values,
@@ -308,8 +307,7 @@ export const updateTruthTable = async () => {
     truthTable.couplingTermLatex = getCouplingTermLatex(
       qmcResult,
       truthTable.functionType,
-      truthTable.inputVars,
-      truthTable.inputSelection
+      truthTable.inputVars
     )
   }
 
@@ -362,8 +360,8 @@ export const updateTruthTable = async () => {
     }
 
     formulas[outputVar] = {
-      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, truthTable.inputVars, truthTable.inputSelection),
-      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, truthTable.inputVars, truthTable.inputSelection)
+      DNF: interpretMinifiedTable(minifiedDNF, FunctionType.DNF, truthTable.inputVars),
+      CNF: interpretMinifiedTable(minifiedCNF, FunctionType.CNF, truthTable.inputVars)
     }
   }
 

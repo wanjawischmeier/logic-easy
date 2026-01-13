@@ -9,8 +9,8 @@
       <LegendButton :legend="legend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :input-selection="inputSelection" :show-input-selection="false"
-        :show-output-selection="!showAllOutputVars" :show-function-type-selection="false"
+        :selected-function-type="functionType" :show-output-selection="!showAllOutputVars"
+        :show-function-type-selection="false"
         :customSettingSlotLabels="{ 'show-all-ouput-vars': 'Show all ouput variables' }">
         <template #show-all-ouput-vars>
           <div class="flex gap-2 items-center" @click.stop>
@@ -74,7 +74,7 @@ interface TruthTablePanelState {
 }
 
 // Access state from params
-const { inputVars, outputVars, values, outputVariableIndex, functionType, inputSelection } = TruthTableProject.useState()
+const { inputVars, outputVars, values, outputVariableIndex, functionType } = TruthTableProject.useState()
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<TruthTablePanelState>(props.params.api.id)
