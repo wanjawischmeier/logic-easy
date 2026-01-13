@@ -9,7 +9,7 @@
       <MultiSelectSwitch :label="'Function Type'" :values="functionTypes"
         :initialSelected="functionTypes.indexOf(selectedType)" :onSelect="(v, i) => selectedType = v as FunctionType">
       </MultiSelectSwitch>
-      <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="projectLatex" />
+      <DownloadButton :target-ref="screenshotRef" :files="downloadFiles" />
     </div>
 
     <div class="h-full" ref="screenshotRef">
@@ -157,6 +157,17 @@ const projectLatex = computed(() => {
 
   return expressions.join('\n\n');
 });
+
+const downloadFiles = computed(() => [
+  {
+    label: 'LaTeX',
+    filename: 'kv-diagram',
+    extension: 'tex',
+    content: () => getLatexExpression(selectedOutputIndex.value),
+    mimeType: 'text/plain',
+    registerWith: 'latex' as const,
+  },
+])
 
 function getLatexExpression(outputVariableIndex: number) {
   const varName = outputVars.value[outputVariableIndex];
