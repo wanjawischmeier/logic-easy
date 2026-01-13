@@ -20,8 +20,7 @@
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
-
+      <div data-screenshot-ignore class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto">
         <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
           :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
           :selected-formula="selectedFormula" :functionType="functionType" @values-changed="tableValues = $event" />
