@@ -4,6 +4,7 @@ import { minifyTruthTable } from "@/utility/truthtable/espresso";
 import { FunctionType, type Formula, type Literal, type Term } from "@/utility/types";
 import { Minimizer, type QMCResult } from "./minimizer";
 import type { Operation } from "logi.js";
+import { truthTableWorkerManager } from "./truthTableWorkerManager";
 
 // ========== New Interpreter =========
 
@@ -430,6 +431,12 @@ function getVariableValue(term: Term, variable: string): number {
 }
 
 export async function updateTruthTable() {
+  console.log('[updateTruthTable] Delegating to worker manager');
+
+  // Delegate to the worker manager which handles debouncing and queuing
+  truthTableWorkerManager.updateTruthTable();
+
+  /*
   console.log('[updateTruthTable] Called with new values:', stateManager.state);
   if (!stateManager.state.truthTable) {
     console.warn('[updateTruthTable] No truth table state found');
@@ -449,6 +456,7 @@ export async function updateTruthTable() {
   Object.assign(stateManager.state.truthTable.values, newValues);
   console.log('[updateTruthTable] State updated, values are now:', stateManager.state.truthTable.values);
   */
+  /*
   const qmcResult = await Minimizer.runQMC(truthTable)
   truthTable.qmcResult = qmcResult;
 
@@ -474,6 +482,7 @@ export async function updateTruthTable() {
       }
     }
   }
+  */
   /*
   // Calculate formulas for each output variable
   const formulas: Record<string, Record<string, Formula>> = {}
@@ -531,5 +540,7 @@ export async function updateTruthTable() {
 
   Object.assign(truthTable.formulas, formulas);
   */
+  /*
   console.log('[updateTruthTable] Full stateManager.state:', stateManager.state);
+  */
 }
