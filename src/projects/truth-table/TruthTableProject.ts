@@ -25,6 +25,7 @@ export interface TruthTableState {
   functionType: FunctionType;
   qmcResult?: QMCResult;
   couplingTermLatex?: string;
+  selectedFormula?: Formula;
 }
 
 export class TruthTableProject extends Project {
@@ -47,6 +48,7 @@ export class TruthTableProject extends Project {
     const functionType = computed(() => state.value?.functionType ?? 'DNF');
     const qmcResult = computed(() => state.value?.qmcResult);
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex);
+    const selectedFormula = computed(() => state.value?.selectedFormula);
 
     return {
       inputVars,
@@ -56,7 +58,8 @@ export class TruthTableProject extends Project {
       outputVariableIndex,
       functionType,
       qmcResult,
-      couplingTermLatex
+      couplingTermLatex,
+      selectedFormula
     }
   }
 

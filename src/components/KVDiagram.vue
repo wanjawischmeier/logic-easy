@@ -130,22 +130,18 @@ const toggleCell = (rowCode: string, colCode: string) => {
 };
 
 const getHighlights = (rIdx: number, cIdx: number) => {
-  if (!props.formulas) return [];
+  if (!props.selectedFormula) return [];
 
-  const functionType = props.functionType || props.formulas?.type || defaultFunctionType;
+  const functionType = props.functionType || defaultFunctionType;
   const outputVar = props.outputVars[props.outputVariableIndex]
   if (!outputVar) return []
 
-  const formulas = props.formulas[outputVar]
-  if (!formulas) return []
-
-  const formula = formulas[props.functionType]
   return calculateHighlights(
     rIdx,
     cIdx,
     rowCodes.value,
     colCodes.value,
-    formula.terms,
+    props.selectedFormula.terms,
     functionType,
     props.inputVars
   );

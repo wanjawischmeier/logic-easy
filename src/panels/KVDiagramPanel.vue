@@ -23,11 +23,11 @@
       <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
 
         <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
-          :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="formulas"
-          :functionType="functionType" @values-changed="tableValues = $event" />
+          :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
+          :selected-formula="selectedFormula" :functionType="functionType" @values-changed="tableValues = $event" />
 
         <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex" />
-        <FormulaRenderer v-if="showFormula" class="pt-8" :latex-expression="getLatexExpression(outputVariableIndex)" />
+        <FormulaRenderer v-if="showFormula" class="pt-8" :latex-expression="getLatexExpression(selectedFormula)" />
       </div>
 
       <!-- Screenshot-only view -->
@@ -35,7 +35,7 @@
         <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="index" :formulas="formulas" :functionType="functionType"
+            :outputVariableIndex="index" :formulas="{}" :selected-formula="selectedFormula" :functionType="functionType"
             @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
@@ -106,7 +106,7 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { inputVars, outputVars, values, formulas, outputVariableIndex, functionType, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
@@ -135,23 +135,14 @@ watch(() => values.value, (newVal) => {
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
 
-const currentFormula = computed(() => {
-  const outputVar = outputVars.value[outputVariableIndex.value];
-  if (!outputVar) {
-    return Formula.empty;
-  }
+function getLatexExpression(formula?: Formula) {
+  console.log(formula)
+  if (!formula || !formula.terms.length) return `f = ...`;
 
-  return formulas.value[outputVar]?.[functionType.value];
-});
-
-function getLatexExpression(outputVariableIndex: number) {
-  const varName = outputVars.value[outputVariableIndex];
-  if (!varName || !currentFormula.value?.terms.length) return `f(${varName}) = ...`;
-
-  const terms = currentFormula.value.terms.map(term => {
+  const terms = formula.terms.map(term => {
     if (term.literals.length === 0) return '1';
 
-    if (currentFormula.value?.type === FunctionType.DNF) {
+    if (formula?.type === FunctionType.DNF) {
       // Product of literals
       return term.literals.map(lit => {
         return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
@@ -170,7 +161,7 @@ function getLatexExpression(outputVariableIndex: number) {
     }
   });
 
-  const result = currentFormula.value.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
-  return `f(${varName}) = ${result}`;
+  const result = formula.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
+  return `f = ${result}`;
 }
 </script>

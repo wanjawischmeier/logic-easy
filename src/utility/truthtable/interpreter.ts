@@ -7,7 +7,9 @@ import type { Operation } from "logi.js";
 
 // ========== New Interpreter =========
 
-// Convert Operation to custom LaTeX string (lowercase variables, no operators)
+/**
+ * Convert Operation to custom LaTeX string (lowercase variables, no operators)
+ */
 function operationToLatex(op: Operation, isCNF: boolean = false): string {
   if ((op as any).name !== undefined) {
     // It's a VAR
@@ -49,7 +51,9 @@ function operationToLatex(op: Operation, isCNF: boolean = false): string {
   return ''
 }
 
-// Parse an expression into individual terms
+/**
+ * Parse an expression into individual terms
+ */
 function getTerms(expr: Operation, isCNF: boolean): string[] {
   const latex = operationToLatex(expr, isCNF)
   if (isCNF) {
@@ -63,7 +67,9 @@ function getTerms(expr: Operation, isCNF: boolean): string[] {
   }
 }
 
-// Analyze expressions to find common terms and variable positions
+/**
+ * Analyze expressions to find common terms and variable positions
+ */
 function analyzeExpressions(exprs: Operation[], isCNF: boolean): { constantTerms: string[], variablePositions: string[][] } {
   if (exprs.length === 0) return { constantTerms: [], variablePositions: [] }
   if (exprs.length === 1) return { constantTerms: getTerms(exprs[0]!, isCNF), variablePositions: [] }
@@ -98,30 +104,143 @@ function analyzeExpressions(exprs: Operation[], isCNF: boolean): { constantTerms
   return { constantTerms, variablePositions }
 }
 
-// Get all unique variables from expressions
-function getVariables(exprs: Operation[]): string[] {
-  const varSet = new Set<string>()
-
-  function collectVars(op: Operation) {
-    if ((op as any).name !== undefined) {
-      varSet.add((op as any).name.toLowerCase())
-    }
-
-    if ((op as any).args && Array.isArray((op as any).args)) {
-      for (const arg of (op as any).args) {
-        collectVars(arg)
+/**
+ * Helper to parse a single literal (VAR or NOT(VAR))
+ */
+function parseLiteral(expression: Operation): Literal | null {
+  // Handle NOT
+  if ((expression as any).priority === 15) {
+    const inner = (expression as any).args?.[0]
+    if (inner && (inner as any).name !== undefined) {
+      return {
+        variable: (inner as any).name.toLowerCase(),
+        negated: true
       }
     }
   }
 
-  for (const expr of exprs) {
-    collectVars(expr)
+  // Handle VAR
+  if ((expression as any).name !== undefined) {
+    return {
+      variable: (expression as any).name.toLowerCase(),
+      negated: false
+    }
   }
 
-  return Array.from(varSet).sort()
+  return null
 }
 
-// Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
+/**
+ * Convert QMC expression to Formula, choosing first option when there are multiple
+ */
+function flattenCouplingTermsToFormula(
+  expression: Operation,
+  functionType: FunctionType
+): Formula {
+  const terms: Term[] = []
+  // For CNF: top level is AND (priority 8), each arg is an OR clause (priority 6)
+  // For DNF: top level is OR (priority 6), each arg is an AND term (priority 8)
+
+  if (functionType === 'CNF') {
+    // CNF: AND of OR clauses
+    if ((expression as any).priority === 8) {
+      // Top level AND - each arg is a clause (OR of literals)
+      const args = (expression as any).args as Operation[]
+
+      for (const clauseOp of args) {
+        const literals: Literal[] = []
+
+        if ((clauseOp as any).priority === 6) {
+          // OR clause - collect all literals
+          const orArgs = (clauseOp as any).args as Operation[]
+          for (const lit of orArgs) {
+            const literal = parseLiteral(lit)
+            if (literal) literals.push(literal)
+          }
+        } else {
+          // Single literal clause
+          const literal = parseLiteral(clauseOp)
+          if (literal) literals.push(literal)
+        }
+
+        if (literals.length > 0) {
+          terms.push({ literals })
+        }
+      }
+    } else if ((expression as any).priority === 6) {
+      // Single clause (OR of literals)
+      const literals: Literal[] = []
+      const args = (expression as any).args as Operation[]
+      for (const lit of args) {
+        const literal = parseLiteral(lit)
+        if (literal) literals.push(literal)
+      }
+      if (literals.length > 0) {
+        terms.push({ literals })
+      }
+    } else {
+      // Single literal
+      const literal = parseLiteral(expression)
+      if (literal) {
+        terms.push({ literals: [literal] })
+      }
+    }
+  } else {
+    // DNF: OR of AND terms
+    if ((expression as any).priority === 6) {
+      // Top level OR - each arg is a term (AND of literals)
+      const args = (expression as any).args as Operation[]
+
+      for (const termOp of args) {
+        const literals: Literal[] = []
+
+        if ((termOp as any).priority === 8) {
+          // AND term - collect all literals
+          const andArgs = (termOp as any).args as Operation[]
+          for (const lit of andArgs) {
+            const literal = parseLiteral(lit)
+            if (literal) literals.push(literal)
+          }
+        } else {
+          // Single literal term
+          const literal = parseLiteral(termOp)
+          if (literal) literals.push(literal)
+        }
+
+        if (literals.length > 0) {
+          terms.push({ literals })
+        }
+      }
+    } else if ((expression as any).priority === 8) {
+      // Single term (AND of literals)
+      const literals: Literal[] = []
+      const args = (expression as any).args as Operation[]
+      for (const lit of args) {
+        const literal = parseLiteral(lit)
+        if (literal) literals.push(literal)
+      }
+      if (literals.length > 0) {
+        terms.push({ literals })
+      }
+    } else {
+      // Single literal
+      const literal = parseLiteral(expression)
+      if (literal) {
+        terms.push({ literals: [literal] })
+      }
+    }
+  }
+
+  console.log('[qmcExpressionToFormula] Input:', expression, 'Output terms:', terms)
+  return {
+    type: functionType,
+    terms: terms
+  }
+}
+
+/**
+ * Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
+ */
 function getTermSortKey(term: string): string {
   // Remove \bar{x} and replace with just x
   // This regex matches \bar{letter} and captures just the letter
@@ -309,8 +428,16 @@ export const updateTruthTable = async () => {
       truthTable.functionType,
       truthTable.inputVars
     )
-  }
 
+    // Convert first QMC expression to Formula (flattened, choosing first option)
+    if (qmcResult.expressions && qmcResult.expressions.length > 0) {
+      truthTable.selectedFormula = flattenCouplingTermsToFormula(
+        qmcResult.expressions[0]!,
+        truthTable.functionType
+      )
+    }
+  }
+  /*
   // Calculate formulas for each output variable
   const formulas: Record<string, Record<string, Formula>> = {}
 
@@ -366,5 +493,6 @@ export const updateTruthTable = async () => {
   }
 
   Object.assign(truthTable.formulas, formulas);
+  */
   console.log('[updateTruthTable] Full stateManager.state:', stateManager.state);
 }
