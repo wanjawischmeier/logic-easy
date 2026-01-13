@@ -41,13 +41,13 @@ import TruthTable from '@/components/TruthTable.vue'
 import TruthTableSearch from '@/components/parts/TruthTableSearch.vue';
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue';
-import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { stateManager } from '@/projects/stateManager';
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import Checkbox from '@/components/parts/Checkbox.vue';
 import SearchIcon from '@/components/icons/SearchIcon.vue';
+import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager';
 
 const legend: LegendItem[] = [
   {
@@ -102,7 +102,7 @@ watch(tableValues, (newVal) => {
 
   console.log('[TruthTablePanel] Calling updateTruthTable');
   Object.assign(stateManager.state.truthTable.values, newVal);
-  updateTruthTable()
+  truthTableWorkerManager.update()
 }, { deep: true })
 
 // Watch for external changes from state

@@ -154,7 +154,7 @@ class TruthTableWorkerManager {
      * Request a truth table update.
      * This will respect cooldown periods and queue appropriately.
      */
-    public updateTruthTable() {
+    public update() {
         console.log('[TruthTableWorkerManager] Update requested');
 
         // If currently running, just mark that we have a queued update

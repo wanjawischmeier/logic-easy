@@ -59,15 +59,14 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
-import { FunctionType } from '@/utility/types';
 import QMCGroupingTable from '@/components/parts/QMCGroupingTable.vue'
 import QMCPrimeImplicantChart from '@/components/parts/QMCPrimeImplicantChart.vue'
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
-import { updateTruthTable } from '@/utility/truthtable/interpreter';
 import type { IDockviewPanelProps } from 'dockview-vue';
 import { stateManager } from '@/projects/stateManager';
 import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
 import { getDockviewApi } from '@/utility/dockview/integration';
+import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager';
 
 interface QMCPanelState {
   selectedTabIndex: number
@@ -184,7 +183,7 @@ watch(tableValues, (newVal) => {
 
   console.log('[KVDiagramPanel] Calling updateTruthTable');
   Object.assign(stateManager.state.truthTable.values, newVal);
-  updateTruthTable()
+  truthTableWorkerManager.update()
 }, { deep: true })
 
 // Watch for external changes from state (use getter so watcher tracks the computed ref)

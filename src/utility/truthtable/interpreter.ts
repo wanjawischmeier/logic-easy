@@ -434,7 +434,7 @@ export async function updateTruthTable() {
   console.log('[updateTruthTable] Delegating to worker manager');
 
   // Delegate to the worker manager which handles debouncing and queuing
-  truthTableWorkerManager.updateTruthTable();
+  truthTableWorkerManager.update();
 
   /*
   console.log('[updateTruthTable] Called with new values:', stateManager.state);

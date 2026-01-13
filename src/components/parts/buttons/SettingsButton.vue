@@ -46,11 +46,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import MultiSelectSwitch from '../MultiSelectSwitch.vue'
-import MultiToggleSwitch from '../MultiToggleSwitch.vue'
 import { FunctionType } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
-import { updateTruthTable } from '@/utility/truthtable/interpreter'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
+import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 
 interface Props {
     inputVars: string[]
@@ -90,13 +89,13 @@ const closeDropdown = () => {
 const handleOutputChange = (value: unknown, index: number) => {
     if (!stateManager.state.truthTable) return
     stateManager.state.truthTable.outputVariableIndex = index;
-    updateTruthTable()
+    truthTableWorkerManager.update()
 }
 
 const handleFunctionTypeChange = (value: unknown, index: number) => {
     if (!stateManager.state.truthTable) return
     stateManager.state.truthTable.functionType = value as FunctionType;
-    updateTruthTable()
+    truthTableWorkerManager.update()
 }
 
 // Close dropdown when clicking outside
