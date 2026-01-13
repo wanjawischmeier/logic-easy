@@ -57,7 +57,7 @@ import { exportTruthTableTOVHDLboolExpr, exportTruthTableTOVHDLcaseWhen } from '
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null);
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
-  File: [
+  Project: [
     {
       label: 'New',
       children: newMenu.value
