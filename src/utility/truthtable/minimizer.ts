@@ -127,8 +127,9 @@ export class Minimizer {
             return this.emptyQMQResult
         }
 
+        const numInputVars = truthTable.inputVars.length
         console.log('Running QMC with minterms:', mt)
-        const detailedResult = qmc.solve(mt, dc, true, true) as QMCDetailedExpressionsObjects
+        const detailedResult = qmc.solve(mt, dc, true, true, numInputVars) as QMCDetailedExpressionsObjects
         const d = detailedResult.details
         if (!d) {
             console.log('No details from QMC')
