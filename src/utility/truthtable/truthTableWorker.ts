@@ -52,13 +52,13 @@ function flattenCouplingTermsToFormula(
     const terms: Term[] = [];
 
     // Check for constant expressions (tautology '1' or contradiction '0')
-    if ((expression as any).value === 1 || ((expression as any).name === '1')) {
+    if ((expression as any).name === '1') {
         return {
             type: functionType,
             terms: [{ literals: [{ variable: '1', negated: false }] }]
         };
     }
-    if ((expression as any).value === 0 || ((expression as any).name === '0')) {
+    if ((expression as any).name === '0') {
         return {
             type: functionType,
             terms: [{ literals: [{ variable: '0', negated: false }] }]
@@ -247,10 +247,10 @@ function getCouplingTermLatex(
     }
 
     const firstExpr = qmcResult.expressions[0];
-    if ((firstExpr as any).value === 1 || (firstExpr as any).name === '1') {
+    if ((firstExpr as any).name === '1') {
         return signature + '1';
     }
-    if ((firstExpr as any).value === 0 || (firstExpr as any).name === '0') {
+    if ((firstExpr as any).name === '0') {
         return signature + '0';
     }
 
