@@ -11,12 +11,17 @@ import QMCPanel from '@/panels/QMCPanel.vue';
 export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
 
-// Create requirements propagate down
+/**
+ * Create requirements propagate down
+ */
 type Requirements = {
   create?: PanelRequirement[];
   view?: PanelRequirement[];
 }
 
+/**
+ * Dock panel entry
+ */
 type DockEntry = {
   id: string;
   label: string;
@@ -24,8 +29,35 @@ type DockEntry = {
   projectType?: ProjectType;
   requires?: Requirements;
   minimumWidth?: number;
-  children?: DockEntry[];
 };
+
+/**
+ * Menu node that groups dock entries
+ */
+type DockMenuNode = {
+  label: string;
+  children: DockRegistryEntry[];
+  requires?: Requirements;
+};
+
+/**
+ * Union type for registry entries
+ */
+type DockRegistryEntry = DockEntry | DockMenuNode;
+
+/**
+ * Type guard to check if an entry is a DockEntry
+ */
+function isDockEntry(entry: DockRegistryEntry): entry is DockEntry {
+  return 'id' in entry;
+}
+
+/**
+ * Type guard to check if an entry is a DockMenuNode
+ */
+function isDockMenuNode(entry: DockRegistryEntry): entry is DockMenuNode {
+  return 'children' in entry && !('id' in entry);
+}
 
 export type MenuEntry = {
   label: string;
@@ -37,7 +69,7 @@ export type MenuEntry = {
   disabled?: boolean;
 };
 
-export const dockRegistry: DockEntry[] = [
+export const dockRegistry: DockRegistryEntry[] = [
   {
     id: 'truth-table',
     label: 'Truth Table',
@@ -49,12 +81,9 @@ export const dockRegistry: DockEntry[] = [
     }
   },
   {
-    id: 'kv-diagram',
     label: 'Minimization',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
     requires: {
-      view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+      view: ['TruthTable']
     },
     children: [
       {
@@ -122,7 +151,21 @@ export const dockRegistry: DockEntry[] = [
   },
 ];
 
-const convertDockEntryToMenuEntry = (entry: DockEntry, requirementType: RequirementType, createProject = false): MenuEntry => {
+const convertRegistryEntryToMenuEntry = (entry: DockRegistryEntry, requirementType: RequirementType, createProject = false): MenuEntry => {
+  if (isDockMenuNode(entry)) {
+    // Menu node with children
+    const requirementsMet = checkDockMenuNodeRequirements(entry, requirementType);
+
+    return {
+      label: entry.label,
+      children: requirementsMet
+        ? entry.children.map(child => convertRegistryEntryToMenuEntry(child, requirementType, createProject))
+        : undefined,
+      disabled: !requirementsMet
+    };
+  }
+
+  // Actual dock entry
   const menuEntry: MenuEntry = {
     label: entry.label,
     panelId: entry.id,
@@ -133,25 +176,22 @@ const convertDockEntryToMenuEntry = (entry: DockEntry, requirementType: Requirem
     menuEntry.createProject = true;
   }
 
-  if (entry.children) {
-    menuEntry.children = entry.children.map(child => convertDockEntryToMenuEntry(child, requirementType, createProject));
-    delete menuEntry.panelId;
-  }
-
   return menuEntry;
 };
 
-export const newMenu = computed<MenuEntry[]>(() =>
-  dockRegistry
-    .filter((menuEntry) => menuEntry.projectType !== undefined)
-    .map((menuEntry) => convertDockEntryToMenuEntry(menuEntry, 'CREATE', true))
-    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
-);
+export const newMenu = computed<MenuEntry[]>(() => {
+  // Flatten the registry to get only DockEntries with projectType
+  const flatEntries = flattenDockEntries();
+  return flatEntries
+    .filter((entry) => entry.projectType !== undefined)
+    .map((entry) => convertRegistryEntryToMenuEntry(entry, 'CREATE', true))
+    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false));
+});
 
 export const viewMenu = computed<MenuEntry[]>(() => {
   return dockRegistry
-    .map((menuEntry) => convertDockEntryToMenuEntry(menuEntry, 'VIEW'))
-    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
+    .map((entry) => convertRegistryEntryToMenuEntry(entry, 'VIEW'))
+    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false));
 });
 
 /**
@@ -160,10 +200,11 @@ export const viewMenu = computed<MenuEntry[]>(() => {
  * @param entries The entries to search through (defaults to top-level dockRegistry).
  * @returns The found DockEntry or undefined.
  */
-export function findDockEntry(id: string, entries: DockEntry[] = dockRegistry): DockEntry | undefined {
+export function findDockEntry(id: string, entries: DockRegistryEntry[] = dockRegistry): DockEntry | undefined {
   for (const entry of entries) {
-    if (entry.id === id) return entry;
-    if (entry.children) {
+    if (isDockEntry(entry)) {
+      if (entry.id === id) return entry;
+    } else if (isDockMenuNode(entry)) {
       const found = findDockEntry(id, entry.children);
       if (found) return found;
     }
@@ -174,13 +215,14 @@ export function findDockEntry(id: string, entries: DockEntry[] = dockRegistry): 
 /**
  * Recursively flattens all DockEntry entries including nested children.
  * @param entries The entries to flatten (defaults to top-level dockRegistry).
- * @returns A flat array of all DockEntry objects.
+ * @returns A flat array of all DockEntry objects (excludes menu nodes).
  */
-function flattenDockEntries(entries: DockEntry[] = dockRegistry): DockEntry[] {
+function flattenDockEntries(entries: DockRegistryEntry[] = dockRegistry): DockEntry[] {
   const result: DockEntry[] = [];
   for (const entry of entries) {
-    result.push(entry);
-    if (entry.children) {
+    if (isDockEntry(entry)) {
+      result.push(entry);
+    } else if (isDockMenuNode(entry)) {
       result.push(...flattenDockEntries(entry.children));
     }
   }
@@ -247,4 +289,16 @@ export const checkDockEntryRequirements = (panel: DockEntry, requirementType: Re
 
   // Create requirements propagate down
   return createPanelRequirementsPassed && checkPanelRequirements(panel.requires.view);
+}
+
+export const checkDockMenuNodeRequirements = (node: DockMenuNode, requirementType: RequirementType): boolean => {
+  if (!node.requires) return true;
+
+  const createPanelRequirementsPassed = checkPanelRequirements(node.requires.create);
+  if (requirementType === 'CREATE') {
+    return createPanelRequirementsPassed;
+  }
+
+  // Create requirements propagate down
+  return createPanelRequirementsPassed && checkPanelRequirements(node.requires.view);
 }
