@@ -1,6 +1,5 @@
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject.ts'
 
-
 /**
  * Export truth table to VHDL using case when statements
  * @param truthTable
@@ -41,63 +40,81 @@ import type { TruthTableState } from '@/projects/truth-table/TruthTableProject.t
  */
 export function exportTruthTableTOVHDLcaseWhen(
   truthTable: TruthTableState | undefined,
-  project_name: string
+  project_name: string,
 ) {
-
   if (!truthTable) {
-    console.error('No truth table data to export.');
-    return;
+    console.error('No truth table data to export.')
+    return
   }
-  const vhdlLines: string[] = [];
+  const vhdlLines: string[] = []
 
-  const numInputs = truthTable.inputVars.length;
-  const numOutputs = truthTable.outputVars.length;
+  const numInputs = truthTable.inputVars.length
+  const numOutputs = truthTable.outputVars.length
 
-  const entityName = project_name.replace(/\s+/g, '_');
+  const entityName = project_name.replace(/\s+/g, '_')
 
   //vhdl header
-  vhdlLines.push('library IEEE;');
-  vhdlLines.push('use IEEE.STD_LOGIC_1164.ALL;\n');
-
+  vhdlLines.push('library IEEE;')
+  vhdlLines.push('use IEEE.STD_LOGIC_1164.ALL;\n')
 
   //add entity definition
-  vhdlLines.push(getVHDLEntity(truthTable.inputVars, truthTable.outputVars, entityName) + '\n');
-
+  vhdlLines.push(getVHDLEntity(truthTable.inputVars, truthTable.outputVars, entityName) + '\n')
 
   //entity behavioral architecture using case when
-  vhdlLines.push('architecture Behavioral of '+entityName+' is')
+  vhdlLines.push('architecture Behavioral of ' + entityName + ' is')
 
-  vhdlLines.push('signal inputs : STD_LOGIC_VECTOR('+(numInputs-1).toString()+' downto 0);')
-  vhdlLines.push('signal outputs : STD_LOGIC_VECTOR('+(numOutputs-1).toString()+' downto 0);');
+  vhdlLines.push('signal inputs : STD_LOGIC_VECTOR(' + (numInputs - 1).toString() + ' downto 0);')
+  vhdlLines.push('signal outputs : STD_LOGIC_VECTOR(' + (numOutputs - 1).toString() + ' downto 0);')
 
-  vhdlLines.push('begin');
+  vhdlLines.push('begin')
 
-  vhdlLines.push('inputs <= ' + truthTable.inputVars.map((inputVar) => 'in' + inputVar.toUpperCase()).join(' & ') + ';');
+  vhdlLines.push(
+    'inputs <= ' +
+      truthTable.inputVars.map((inputVar) => 'in' + inputVar.toUpperCase()).join(' & ') +
+      ';',
+  )
 
-  vhdlLines.push(truthTable.outputVars.map((outputVar, outputIdx) => 'Out'+outputVar.toUpperCase() + ' <= outputs(' + (numOutputs - 1 - outputIdx).toString() + ');').join('\n'));
+  vhdlLines.push(
+    truthTable.outputVars
+      .map(
+        (outputVar, outputIdx) =>
+          'Out' +
+          outputVar.toUpperCase() +
+          ' <= outputs(' +
+          (numOutputs - 1 - outputIdx).toString() +
+          ');',
+      )
+      .join('\n'),
+  )
 
-  vhdlLines.push('process(inputs)');
+  vhdlLines.push('process(inputs)')
 
-  vhdlLines.push('begin');
+  vhdlLines.push('begin')
 
-  vhdlLines.push('  case inputs is');
+  vhdlLines.push('  case inputs is')
 
   //when, basically the truth table
   truthTable.values.forEach((cell, i) => {
-
-    vhdlLines.push('    when "' + truthTable.inputVars.map((_, colIdx) => getInputValue(i, colIdx, numInputs).toString()).join('') + '" => outputs <="' + cell.map((outputVal) => outputVal.toString()).join('') + '";');
-
+    vhdlLines.push(
+      '    when "' +
+        truthTable.inputVars
+          .map((_, colIdx) => getInputValue(i, colIdx, numInputs).toString())
+          .join('') +
+        '" => outputs <="' +
+        cell.map((outputVal) => outputVal.toString()).join('') +
+        '";',
+    )
   })
 
-  vhdlLines.push('    when others => outputs <= "'+'0'.repeat(numOutputs)+'";');
+  vhdlLines.push('    when others => outputs <= "' + '0'.repeat(numOutputs) + '";')
 
-  vhdlLines.push('  end case;');
+  vhdlLines.push('  end case;')
 
-  vhdlLines.push('end process;');
+  vhdlLines.push('end process;')
 
-  vhdlLines.push('end Behavioral;');
+  vhdlLines.push('end Behavioral;')
 
-  downloadAsFile(vhdlLines.join('\n'), entityName + '.vhdl');
+  downloadAsFile(vhdlLines.join('\n'), project_name + '.vhdl')
 }
 
 /**
@@ -126,59 +143,66 @@ export function exportTruthTableTOVHDLcaseWhen(
  * OutC <= dnf or cnf expression;
  * end Behavioral;
  */
-export function exportTruthTableTOVHDLboolExpr(truthTable: TruthTableState | undefined, project_name: string, type:('dnf' | 'cnf') ='dnf') {
-
+export function exportTruthTableTOVHDLboolExpr(
+  truthTable: TruthTableState | undefined,
+  project_name: string,
+  type: 'dnf' | 'cnf' = 'dnf',
+) {
   if (!truthTable) {
-    console.error('No truth table data to export.');
-    return;
+    console.error('No truth table data to export.')
+    return
   }
-  const vhdlLines: string[] = [];
+  const vhdlLines: string[] = []
 
-  const entityName = project_name.replace(/\s+/g, '_');
+  const entityName = project_name.replace(/\s+/g, '_')
 
   //vhdl header
-  vhdlLines.push('library IEEE;');
-  vhdlLines.push('use IEEE.STD_LOGIC_1164.ALL;\n');
+  vhdlLines.push('library IEEE;')
+  vhdlLines.push('use IEEE.STD_LOGIC_1164.ALL;\n')
 
   //add entity definition
-  vhdlLines.push(getVHDLEntity(truthTable.inputVars, truthTable.outputVars, entityName) + '\n');
+  vhdlLines.push(getVHDLEntity(truthTable.inputVars, truthTable.outputVars, entityName) + '\n')
 
   //entity behavioral architecture using direct assignments
-  vhdlLines.push('architecture Behavioral of '+entityName+' is')
+  vhdlLines.push('architecture Behavioral of ' + entityName + ' is')
 
-  vhdlLines.push('begin');
+  vhdlLines.push('begin')
 
-  if (!truthTable.formulas){
-    console.error('No formulas to export.');
-    return;
+  if (!truthTable.formulas) {
+    console.error('No formulas to export.')
+    return
   }
 
   truthTable.outputVars.forEach((outputVar) => {
-    let formularLine = `  Out${outputVar.toUpperCase()} <= `;
-    const formular = type === 'dnf' ? truthTable.formulas?.[outputVar]?.DNF : truthTable.formulas?.[outputVar]?.CNF;
+    let formularLine = `  Out${outputVar.toUpperCase()} <= `
+    const formular =
+      type === 'dnf' ? truthTable.formulas?.[outputVar]?.DNF : truthTable.formulas?.[outputVar]?.CNF
     if (!formular || !Array.isArray(formular.terms)) {
-      console.warn(`No DNF terms for output ${outputVar}.`);
-      return; // continue to next outputVar
+      console.warn(`No DNF terms for output ${outputVar}.`)
+      return // continue to next outputVar
     }
-
 
     const termsExpr = formular.terms
       .map((term) => {
         const literalExpr = term.literals
-          .map((literal) => literal.variable != '0' ? literal.negated ? `not(In${literal.variable.toUpperCase()})` : `In${literal.variable.toUpperCase()}` : '0')
-          .join(' and ');
-        return term.literals.length > 1 ? `(${literalExpr})` : literalExpr;
+          .map((literal) =>
+            literal.variable != '0'
+              ? literal.negated
+                ? `not(In${literal.variable.toUpperCase()})`
+                : `In${literal.variable.toUpperCase()}`
+              : '0',
+          )
+          .join(' and ')
+        return term.literals.length > 1 ? `(${literalExpr})` : literalExpr
       })
-      .join(' or ');
-    formularLine += termsExpr;
-    vhdlLines.push(formularLine + ';');
+      .join(' or ')
+    formularLine += termsExpr
+    vhdlLines.push(formularLine + ';')
+  })
 
-  });
+  vhdlLines.push('end Behavioral;')
 
-  vhdlLines.push('end Behavioral;');
-
-  downloadAsFile(vhdlLines.join('\n'), entityName + '.vhdl');
-
+  downloadAsFile(vhdlLines.join('\n'), project_name + '.vhdl')
 }
 /**
  * Generate VHDL entity definition
@@ -197,57 +221,54 @@ export function exportTruthTableTOVHDLboolExpr(truthTable: TruthTableState | und
  * OutC : out STD_LOGIC);
  * end NAME;
  */
-function getVHDLEntity(inputVars: string[], outputVars: string[], name: string):string {
-  const entityLines: string[] = [];
+function getVHDLEntity(inputVars: string[], outputVars: string[], name: string): string {
+  const entityLines: string[] = []
 
-  entityLines.push('entity ' + name + ' is');
-  entityLines.push('Port (');
+  entityLines.push('entity ' + name + ' is')
+  entityLines.push('Port (')
 
-  const portLines: string[] = [];
+  const portLines: string[] = []
 
   inputVars.forEach((inputVar) => {
-    portLines.push('  In' + inputVar.toUpperCase() + ' : in STD_LOGIC;');
-  });
+    portLines.push('  In' + inputVar.toUpperCase() + ' : in STD_LOGIC;')
+  })
 
   outputVars.forEach((outputVar, idx) => {
-    const lineEnding = (idx === outputVars.length - 1) ? '' : ';';
-    portLines.push('  Out' + outputVar.toUpperCase() + ' : out STD_LOGIC' + lineEnding);
-  });
+    const lineEnding = idx === outputVars.length - 1 ? '' : ';'
+    portLines.push('  Out' + outputVar.toUpperCase() + ' : out STD_LOGIC' + lineEnding)
+  })
 
-  entityLines.push(portLines.join('\n'));
+  entityLines.push(portLines.join('\n'))
 
-  entityLines.push(');');
-  entityLines.push('end ' + name + ';');
+  entityLines.push(');')
+  entityLines.push('end ' + name + ';')
 
-  return entityLines.join('\n');
-
+  return entityLines.join('\n')
 }
-
 
 function getInputValue(rowIdx: number, colIdx: number, inputVarCount: number) {
   // MSB is at index 0
-  const shiftAmount = inputVarCount - 1 - colIdx;
-  return (rowIdx >> shiftAmount) & 1;
+  const shiftAmount = inputVarCount - 1 - colIdx
+  return (rowIdx >> shiftAmount) & 1
 }
-
 
 /**
  * Download content as a file
  * @param content
  * @param filename
  */
-const downloadAsFile = (content:string, filename:string) => {
+const downloadAsFile = (content: string, filename: string) => {
   const blob = new Blob([content], {
     type: 'text/vhdl',
-  });
+  })
 
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', filename)
+  link.style.visibility = 'hidden'
 
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}

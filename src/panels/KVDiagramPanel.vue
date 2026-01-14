@@ -15,7 +15,7 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" filename="kv" :latex-content="couplingTermLatex" />
+      <DownloadButton :target-ref="screenshotRef" :files="downloadFiles" />
     </div>
 
     <div class="h-full" ref="screenshotRef">
@@ -131,34 +131,15 @@ watch(() => values.value, (newVal) => {
   isUpdatingFromState = true
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
-/*
-function getLatexExpression(formula?: Formula) {
-  if (!formula || !formula.terms.length) return `f = ...`;
 
-  const terms = formula.terms.map(term => {
-    if (term.literals.length === 0) return '1';
-
-    if (formula?.type === FunctionType.DNF) {
-      // Product of literals
-      return term.literals.map(lit => {
-        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
-      }).join('');
-    } else {
-      // Sum of literals (CNF)
-      const sum = term.literals.map(lit => {
-        return lit.negated ? `\\overline{${lit.variable}}` : lit.variable;
-      }).join(' + ');
-
-      if (term.literals.length === 1) {
-        return sum;
-      } else {
-        return `(${sum})`;
-      }
-    }
-  });
-
-  const result = formula.type === FunctionType.DNF ? terms.join(' + ') : terms.join('');
-  return `f = ${result}`;
-}
-*/
+const downloadFiles = computed(() => [
+  {
+    label: 'LaTeX',
+    filename: 'kv-diagram',
+    extension: 'tex',
+    content: () => couplingTermLatex.value,
+    mimeType: 'text/plain',
+    registerWith: 'latex' as const,
+  },
+])
 </script>

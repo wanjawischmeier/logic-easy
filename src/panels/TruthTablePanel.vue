@@ -23,7 +23,7 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" filename="truth-table" :latex-content="getTruthTableLatex()" />
+      <DownloadButton :target-ref="screenshotRef" filename="truth-table" :files="downloadFiles" />
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
@@ -36,7 +36,7 @@
 <style scoped></style>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import TruthTable from '@/components/TruthTable.vue'
 import TruthTableSearch from '@/components/parts/TruthTableSearch.vue';
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
@@ -114,6 +114,17 @@ watch(() => values.value, (newVal) => {
 }, { deep: true })
 
 const screenshotRef = ref<HTMLElement | null>(null)
+
+const downloadFiles = computed(() => [
+  {
+    label: 'LaTeX',
+    filename: 'truth-table',
+    extension: 'tex',
+    content: () => getTruthTableLatex(),
+    mimeType: 'text/plain',
+    registerWith: 'latex' as const,
+  },
+])
 
 function getInputValue(rowIdx: number, colIdx: number, numInputs: number): number {
   // MSB is at index 0
