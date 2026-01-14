@@ -1,27 +1,9 @@
 import { type Term, FunctionType } from "@/utility/types";
+import type { TermColor } from "./colorGenerator";
 
 const CELL_PADDING = '6px'
 const BORDER_WIDTH = '2px'
 const BORDER_RADIUS = '1rem'
-
-interface TermColor {
-  border: string
-  fill: string
-}
-
-/**
- * Generate a semi-transparent HSLA color string for a term index.
- *
- * @param indexIndex of the term to generate a color for.
- * @returns HSLA color string (e.g. "hsla(120, 70%, 50%, 0.4)").
- */
-function getTermColor(index: number): TermColor {
-  const hue = (index * 137.508) % 360; // Golden angle approximation for distinct colors
-  return {
-    border: `hsla(${hue}, 70%, 50%, 0.6)`,
-    fill: `hsla(${hue}, 70%, 50%, 0.25)`
-  }
-}
 
 /**
  * Determine whether a given term "covers" the cell represented by rowCode+colCode.
@@ -203,6 +185,7 @@ function isEntireColCovered(
  * @param rowIndexRow index of the current cell.
  * @param colIndexColumn index of the current cell.
  * @param functionType DNF or CNF mode.
+ * @param termColors Array of colors for each term.
  * @returns Array of Highlight descriptors for the cell.
  */
 function inferHighlightFromCoverage(
@@ -212,7 +195,8 @@ function inferHighlightFromCoverage(
   cols: string[],
   rowIndex: number,
   colIndex: number,
-  functionType: FunctionType
+  functionType: FunctionType,
+  termColors: TermColor[]
 ): Highlight[] {
   const highlights: Highlight[] = [];
   const isCNF = functionType === FunctionType.CNF;
@@ -221,7 +205,8 @@ function inferHighlightFromCoverage(
     const covered = coverage[index]?.[rowIndex]?.[colIndex];
     if (covered === undefined || covered === isCNF) return
 
-    const color = getTermColor(index);
+    const color = termColors[index];
+    if (!color) return;
 
     const topRowIndex = (rowIndex - 1 + rows.length) % rows.length;
     const bottomRowIndex = (rowIndex + 1) % rows.length;
@@ -271,7 +256,7 @@ export interface Highlight {
  * @param colIndexColumn index of the cell to evaluate.
  * @param rowCodesAll row binary codes.
  * @param colCodesAll column binary codes.
- * @param inputVarsOrdered list of input variable names.
+ * @param termColors Array of colors for each term.
  * @returns Array of Highlight objects to render for the given cell.
  */
 export function calculateHighlights(
@@ -281,7 +266,8 @@ export function calculateHighlights(
   colCodes: string[],
   terms: Term[],
   functionType: FunctionType,
-  inputVars: string[]
+  inputVars: string[],
+  termColors: TermColor[]
 ): Highlight[] {
   const rowCode = rowCodes[rowIndex];
   const colCode = colCodes[colIndex];
@@ -295,7 +281,9 @@ export function calculateHighlights(
   if (functionType === FunctionType.DNF) {
     // DNF constant 1 (tautology): highlight all cells
     if (isConstant1) {
-      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, getTermColor(0))];
+      const color = termColors[0];
+      if (!color) return [];
+      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
     }
     // DNF constant 0 (contradiction): highlight no cells
     if (isConstant0) {
@@ -305,7 +293,9 @@ export function calculateHighlights(
     // CNF mode
     // CNF constant 0 (contradiction): highlight all cells
     if (isConstant0) {
-      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, getTermColor(0))];
+      const color = termColors[0];
+      if (!color) return [];
+      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
     }
     // CNF constant 1 (tautology): highlight no cells
     if (isConstant1) {
@@ -330,6 +320,6 @@ export function calculateHighlights(
 
   return inferHighlightFromCoverage(
     terms, coverage, rowCodes, colCodes,
-    rowIndex, colIndex, functionType
+    rowIndex, colIndex, functionType, termColors
   );
 }

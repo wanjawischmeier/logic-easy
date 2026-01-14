@@ -39,7 +39,7 @@
         <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="index" :formulas="{}" :functionType="functionType"
+            :outputVariableIndex="index" :formulas="{}" :functionType="functionType" :qmc-result="qmcResult"
             @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">

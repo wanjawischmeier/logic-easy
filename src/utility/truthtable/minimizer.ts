@@ -1,6 +1,7 @@
 import type { TruthTableData, TruthTableState } from "@/projects/truth-table/TruthTableProject"
 import type { FunctionType } from '@/utility/types'
 import { QMC, type Operation, type QMCDetailedExpressionsObjects } from "logi.js"
+import type { TermColor } from "./colorGenerator"
 
 export interface QMCResult {
     iterations: any[]
@@ -8,6 +9,7 @@ export interface QMCResult {
     pis: any[]
     chart: Record<number, string[]> | null
     expressions: Operation[]
+    termColors: TermColor[]
 }
 
 export class Minimizer {
@@ -17,7 +19,8 @@ export class Minimizer {
             minterms: [],
             pis: [],
             chart: [],
-            expressions: []
+            expressions: [],
+            termColors: []
         }
     }
 
@@ -146,7 +149,8 @@ export class Minimizer {
             chart: d.chart,
             expressions: truthTable.functionType === 'CNF'
                 ? detailedResult.expressions.map(expr => this.applyDeMorgan(expr))
-                : detailedResult.expressions
+                : detailedResult.expressions,
+            termColors: []
         }
     }
 }

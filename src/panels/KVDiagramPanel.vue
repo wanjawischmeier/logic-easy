@@ -23,7 +23,8 @@
       <div data-screenshot-ignore class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto">
         <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
           :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-          :selected-formula="selectedFormula" :functionType="functionType" @values-changed="tableValues = $event" />
+          :selected-formula="selectedFormula" :functionType="functionType" :qmc-result="qmcResult"
+          :formula-term-colors="formulaTermColors" @values-changed="tableValues = $event" />
 
         <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex" />
       </div>
@@ -34,7 +35,7 @@
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="index" :formulas="{}" :selected-formula="selectedFormula" :functionType="functionType"
-            @values-changed="tableValues = $event" />
+            :qmc-result="qmcResult" @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
           </FormulaRenderer>
@@ -103,7 +104,7 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, couplingTermLatex, qmcResult, formulaTermColors } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
