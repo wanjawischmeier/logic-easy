@@ -1,5 +1,5 @@
 import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
-import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry';
+import { checkDockEntryRequirements, findDockEntry } from '@/router/dockRegistry';
 import { dockviewService } from '@/utility/dockview/service';
 import { Toast } from '../toastService';
 
@@ -38,7 +38,7 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
     return false;
   }
 
-  const registryEntry = dockRegistry.find(item => item.id === panelId);
+  const registryEntry = findDockEntry(panelId);
   if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
     console.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`);
     return false;
@@ -57,7 +57,8 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       id: panelId,
       component: panelId,
       title: label,
-      position: position
+      position: position,
+      minimumWidth: registryEntry.minimumWidth ?? 0
     });
     return true;
   } catch (err) {

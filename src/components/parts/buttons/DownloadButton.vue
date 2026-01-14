@@ -1,23 +1,11 @@
 <template>
   <div class="relative" ref="dropdownContainer">
-    <div class="bg-surface-2 rounded border border-surface-3 p-0.5">
-      <button
-        @click="toggleDropdown"
-        :disabled="isCapturing || !hasDownloadOptions"
-        class="px-3 py-2 rounded-xs text-white hover:bg-primary transition-colors text-sm items-center gap-2"
-        title="Download"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+    <div class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5">
+      <button @click="toggleDropdown" :disabled="isCapturing || !hasDownloadOptions"
+        class="px-3 py-2 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
+        title="Download">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -25,16 +13,10 @@
       </button>
     </div>
 
-    <div
-      v-if="showDropdown"
-      class="absolute right-0 mt-1 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50"
-    >
-      <button
-        v-for="item in dropdownItems"
-        :key="item.key"
-        @click="selectItem(item)"
-        class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4"
-      >
+    <div v-if="showDropdown"
+      class="absolute right-0 mt-1 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
+      <button v-for="item in dropdownItems" :key="item.key" @click="selectItem(item)"
+        class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
         <span>{{ item.label }}</span>
         <span class="opacity-70">{{ item.extensionLabel }}</span>
       </button>
@@ -56,7 +38,7 @@ const SCREENSHOT_EXTENSION = 'png'
 const SCREENSHOT_LABEL = 'Screenshot'
 const textDecoder = new TextDecoder()
 
-type DownloadPrimitive = string | Blob | ArrayBuffer | Uint8Array
+type DownloadPrimitive = string | Blob | ArrayBuffer | Uint8Array | undefined
 type DownloadSource = DownloadPrimitive | (() => DownloadPrimitive | Promise<DownloadPrimitive>)
 
 interface DownloadFileDescriptor {

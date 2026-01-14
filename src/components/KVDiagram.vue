@@ -29,7 +29,7 @@
         <thead>
           <tr>
             <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
-              <vue-latex :expression="outputVars[outputIndex ?? 0] || 'f'" display-mode />
+              <vue-latex :expression="outputVars[outputVariableIndex ?? 0] || 'f'" display-mode />
             </th>
             <th v-for="(colCode, cIdx) in colCodes" :key="colCode"
               class="border border-b-4 border-primary bg-surface-1 text-primary-variant font-normal text-sm w-14 h-14 text-center"
@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
-import { type Formula, FunctionType, defaultFunctionType } from '../utility/types';
+import { Formula, FunctionType, defaultFunctionType } from '../utility/types';
 import {
   getLeftVariables,
   getTopVariables,
@@ -78,20 +78,12 @@ import {
   getBinaryString
 } from '@/utility/truthtable/kvDiagramLayout';
 import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights';
-import type { TruthTableData, TruthTableCell } from '@/projects/truth-table/TruthTableProject';
+import type { TruthTableData, TruthTableCell, TruthTableState } from '@/projects/truth-table/TruthTableProject';
 
-const props = defineProps<{
-  inputVars: string[];
-  outputVars: string[];
-  outputIndex?: number;
-  modelValue: TruthTableData;
-  minifiedValues?: TruthTableData;
-  formula?: Formula;
-  functionType?: FunctionType;
-}>();
+const props = defineProps<TruthTableState>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: TruthTableData): void
+  (e: 'valuesChanged', value: TruthTableData): void
 }>();
 
 const variables = computed(() => props.inputVars || []);
@@ -101,27 +93,27 @@ const rowCodes = computed(() => getRowCodes(variables.value.length));
 const colCodes = computed(() => getColCodes(variables.value.length));
 
 const getValue = (rowCode: string, colCode: string) => {
-  if (!props.modelValue) return '-';
+  if (!props.values) return '-';
 
   const binaryString = getBinaryString(rowCode, colCode);
   const rowIndex = parseInt(binaryString, 2);
-  const outputIdx = props.outputIndex ?? 0;
+  const outputIdx = props.outputVariableIndex ?? 0;
 
-  if (rowIndex >= 0 && rowIndex < props.modelValue.length) {
-    return props.modelValue[rowIndex]?.[outputIdx] ?? '-';
+  if (rowIndex >= 0 && rowIndex < props.values.length) {
+    return props.values[rowIndex]?.[outputIdx] ?? '-';
   }
   return '-';
 };
 
 const toggleCell = (rowCode: string, colCode: string) => {
-  if (!props.modelValue) return;
+  if (!props.values) return;
 
   const binaryString = getBinaryString(rowCode, colCode);
   const rowIndex = parseInt(binaryString, 2);
-  const outputIdx = props.outputIndex ?? 0;
+  const outputIdx = props.outputVariableIndex ?? 0;
 
-  if (rowIndex >= 0 && rowIndex < props.modelValue.length) {
-    const newValues = props.modelValue.map(row => [...row]);
+  if (rowIndex >= 0 && rowIndex < props.values.length) {
+    const newValues = props.values.map(row => [...row]);
     const row = newValues[rowIndex];
     if (row) {
       const current = row[outputIdx];
@@ -131,22 +123,24 @@ const toggleCell = (rowCode: string, colCode: string) => {
       else next = 0;
 
       row[outputIdx] = next;
-      emit('update:modelValue', newValues);
+      emit('valuesChanged', newValues);
     }
   }
 };
 
 const getHighlights = (rIdx: number, cIdx: number) => {
-  if (!props.formula) return [];
+  if (!props.selectedFormula) return [];
 
-  const functionType = props.functionType || props.formula?.type || defaultFunctionType;
+  const functionType = props.functionType || defaultFunctionType;
+  const outputVar = props.outputVars[props.outputVariableIndex]
+  if (!outputVar) return []
 
   return calculateHighlights(
     rIdx,
     cIdx,
     rowCodes.value,
     colCodes.value,
-    props.formula.terms,
+    props.selectedFormula.terms,
     functionType,
     props.inputVars
   );

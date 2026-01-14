@@ -1,13 +1,15 @@
 <template>
   <div class="inline-flex items-center gap-2 ">
     <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
-    <div class="inline-flex items-center rounded bg-surface-2 p-0.5 border border-surface-3 relative">
-      <div class="slider absolute inset-y-0.5 rounded-xs transition-transform duration-100 ease-in-out"
-        :style="{ width: `calc((100% - 4px) / ${values.length})`, transform: `translateX(calc(${selected} * 100%))` }">
+    <div ref="containerRef"
+      class="inline-flex items-center gap-0.5 rounded bg-surface-2 p-0.5 border border-surface-3 transition-colors relative"
+      :class="highlightBorder ? 'hover:border-primary' : ''">
+      <div class="slider absolute inset-y-0.5 rounded-xs transition-all duration-100 ease-in-out" :style="sliderStyle">
       </div>
-      <button v-for="(item, idx) in values" :key="idx" @click="select(idx, item)" :aria-pressed="idx === selected"
-        class="px-3 py-1.5 rounded relative z-10 transition-colors duration-100"
-        :class="randomSelectMode && idx === selected ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]' : ''">
+      <button v-for="(item, idx) in values" :key="idx" :ref="el => buttonRefs[idx] = el as HTMLElement"
+        @click="select(idx, item)" :aria-pressed="idx === selected"
+        class="px-3 py-1.5 relative z-10 transition-colors duration-100 rounded-xs"
+        :class="idx === selected ? randomSelectMode ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]' : '' : 'hover:bg-surface-3'">
         {{ getLabel(item) }}
       </button>
     </div>
@@ -33,16 +35,19 @@
 
 <script setup lang="ts">
 import { stateManager } from '@/projects/stateManager';
-import { onMounted, ref, toRefs, watch } from 'vue'
+import { computed, onMounted, ref, toRefs, watch, nextTick } from 'vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   values: unknown[]
   initialSelected?: number
   onSelect?: (value: unknown, index: number) => void
   labelKey?: string
   labelFn?: (v: unknown) => string
   label?: string
-}>()
+  highlightBorder?: boolean
+}>(), {
+  highlightBorder: false
+})
 
 const emit = defineEmits<{
   (e: 'update:selected', value: number | null): void
@@ -53,6 +58,63 @@ const { values, initialSelected, labelKey, labelFn, onSelect, label } = toRefs(p
 const selected = ref<number | null>(
   initialSelected?.value ?? (values.value && values.value.length ? 0 : null)
 )
+
+const containerRef = ref<HTMLElement | null>(null)
+const buttonRefs = ref<(HTMLElement | null)[]>([])
+const sliderStyleKey = ref(0)
+
+const sliderStyle = computed(() => {
+  // Access the key to make this reactive to manual triggers
+  sliderStyleKey.value
+
+  if (selected.value === null || !buttonRefs.value.length) {
+    return { width: '0px', transform: 'translateX(0px)' }
+  }
+
+  const selectedButton = buttonRefs.value[selected.value]
+  if (!selectedButton) {
+    return { width: '0px', transform: 'translateX(0px)' }
+  }
+
+  const width = selectedButton.offsetWidth
+  const left = selectedButton.offsetLeft
+
+  return {
+    width: `${width}px`,
+    transform: `translateX(${left - buttonRefs.value.length}px)`
+  }
+})
+
+// Sync internal selected state with initialSelected prop
+watch(initialSelected, (newVal) => {
+  if (newVal !== undefined && newVal !== selected.value) {
+    selected.value = newVal
+    nextTick(() => {
+      sliderStyleKey.value++
+    })
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  // Watch for when the component becomes visible using IntersectionObserver
+  if (containerRef.value) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0) {
+          nextTick(() => {
+            sliderStyleKey.value++
+          })
+        }
+      })
+    }, { threshold: [0, 0.1] })
+
+    observer.observe(containerRef.value)
+
+    // Cleanup observer on unmount
+    const cleanup = () => observer.disconnect()
+    return cleanup
+  }
+})
 
 // Animation state tracking
 let animationTimeout: number | null = null
@@ -110,10 +172,6 @@ function checkRandomSelectMode() {
 onMounted(checkRandomSelectMode)
 watch(stateManager.state, checkRandomSelectMode)
 
-watch(initialSelected, (v) => {
-  selected.value = v ?? (values.value && values.value.length ? 0 : null)
-})
-
 function getLabel(item: unknown) {
   if (labelFn?.value && typeof labelFn.value === 'function') {
     try {
@@ -144,7 +202,9 @@ function select(idx: number, item: unknown) {
   }
 
   selected.value = idx
-  emitSelection(idx, item)
+  nextTick(() => {
+    emitSelection(idx, item)
+  })
 }
 
 function selectRandom() {
