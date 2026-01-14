@@ -1,25 +1,13 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
-    <div
-      v-for="(items, menu) in menus"
-      :key="menu"
-      class="relative"
-      @mouseenter="maybeSwitch(menu)"
-    >
-      <button
-        class="border border-transparent hover:border-surface-3 hover:bg-surface-2"
-        @click.stop="toggleMenu(menu)"
-        :aria-expanded="activeMenu === menu"
-        :aria-haspopup="true"
-        type="button"
-      >
+    <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
+      <button class="border border-transparent hover:border-surface-3 hover:bg-surface-2" @click.stop="toggleMenu(menu)"
+        :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
         {{ menu }}
       </button>
 
-      <div
-        v-if="activeMenu === menu"
-        class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20"
-      >
+      <div v-if="activeMenu === menu"
+        class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
         <MenuList :items="items" :level="0" />
       </div>
     </div>
@@ -40,8 +28,12 @@ import {
   exportTruthTableTOVHDLboolExpr,
   exportTruthTableTOVHDLcaseWhen,
 } from '@/utility/VHDL/export.ts'
+import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
+
+const { state: truthTable, formulas, inputVars, outputVar } = TruthTableProject.useState()
+const outputVars = computed(() => outputVar.value ? [outputVar.value] : [])
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   Project: [
@@ -77,9 +69,9 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
           action: () => {
             formulaToLcFile(
               projectManager.getCurrentProject()?.name ?? 'no name provided',
-              stateManager.state.truthTable!.formulas,
-              stateManager.state.truthTable!.inputVars,
-              stateManager.state.truthTable!.outputVars,
+              formulas.value,
+              inputVars.value,
+              outputVars.value,
               'dnf',
             )
           },
@@ -89,9 +81,9 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
           action: () => {
             formulaToLcFile(
               projectManager.getCurrentProject()?.name ?? 'no name provided',
-              stateManager.state.truthTable!.formulas,
-              stateManager.state.truthTable!.inputVars,
-              stateManager.state.truthTable!.outputVars,
+              formulas.value,
+              inputVars.value,
+              outputVars.value,
               'dnf',
               'nand',
             )
@@ -102,9 +94,9 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
           action: () => {
             formulaToLcFile(
               projectManager.getCurrentProject()?.name ?? 'no name provided',
-              stateManager.state.truthTable!.formulas,
-              stateManager.state.truthTable!.inputVars,
-              stateManager.state.truthTable!.outputVars,
+              formulas.value,
+              inputVars.value,
+              outputVars.value,
               'dnf',
               'nor',
             )
@@ -120,7 +112,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
           label: 'Case-When',
           action: () => {
             exportTruthTableTOVHDLcaseWhen(
-              stateManager.state.truthTable,
+              truthTable.value,
               projectManager.getCurrentProject()?.name ?? 'no name provided',
             )
           },
@@ -132,7 +124,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               label: 'DNF',
               action: () => {
                 exportTruthTableTOVHDLboolExpr(
-                  stateManager.state.truthTable,
+                  truthTable.value,
                   projectManager.getCurrentProject()?.name ?? 'no name provided',
                 )
               },
@@ -141,7 +133,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               label: 'CNF',
               action: () => {
                 exportTruthTableTOVHDLboolExpr(
-                  stateManager.state.truthTable,
+                  truthTable.value,
                   projectManager.getCurrentProject()?.name ?? 'no name provided',
                   'cnf',
                 )
@@ -213,13 +205,13 @@ const MenuList = defineComponent<MenuListProps>({
               ),
               entry.children && isOpen(level.value, idx)
                 ? h(
-                    'div',
-                    {
-                      class:
-                        'absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
-                    },
-                    [h(MenuList, { items: entry.children, level: level.value + 1 })],
-                  )
+                  'div',
+                  {
+                    class:
+                      'absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
+                  },
+                  [h(MenuList, { items: entry.children, level: level.value + 1 })],
+                )
                 : null,
             ],
           ),

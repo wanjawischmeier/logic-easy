@@ -50,9 +50,13 @@ export class TruthTableProject extends Project {
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex);
     const selectedFormula = computed(() => state.value?.selectedFormula);
 
+    const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
+
     return {
+      state,
       inputVars,
       outputVars,
+      outputVar,
       values,
       formulas,
       outputVariableIndex,

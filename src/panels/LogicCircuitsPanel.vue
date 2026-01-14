@@ -144,13 +144,13 @@ function updateFormulas() {
 
   switch (selectedMethod.value) {
     case 'AND/OR':
-      fileContent = formulaToLC(formulas.value, inputVars.value, outputVars.value).toString()
+      fileContent = formulaToLC(formulas.value, inputVars.value, [outputVar]).toString()
       break
     case 'NAND':
       fileContent = formulaToLC(
         formulas.value,
         inputVars.value,
-        outputVars.value,
+        [outputVar],
         'dnf',
         'nand',
       ).toString()
@@ -159,7 +159,7 @@ function updateFormulas() {
       fileContent = formulaToLC(
         formulas.value,
         inputVars.value,
-        outputVars.value,
+        [outputVar],
         'dnf',
         'nor',
       ).toString()
