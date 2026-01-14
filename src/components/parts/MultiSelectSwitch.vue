@@ -1,7 +1,7 @@
 <template>
   <div class="inline-flex items-center gap-2 ">
     <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
-    <div
+    <div ref="containerRef"
       class="inline-flex items-center gap-0.5 rounded bg-surface-2 p-0.5 border border-surface-3 transition-colors relative"
       :class="highlightBorder ? 'hover:border-primary' : ''">
       <div class="slider absolute inset-y-0.5 rounded-xs transition-all duration-100 ease-in-out" :style="sliderStyle">
@@ -59,9 +59,14 @@ const selected = ref<number | null>(
   initialSelected?.value ?? (values.value && values.value.length ? 0 : null)
 )
 
+const containerRef = ref<HTMLElement | null>(null)
 const buttonRefs = ref<(HTMLElement | null)[]>([])
+const sliderStyleKey = ref(0)
 
 const sliderStyle = computed(() => {
+  // Access the key to make this reactive to manual triggers
+  sliderStyleKey.value
+
   if (selected.value === null || !buttonRefs.value.length) {
     return { width: '0px', transform: 'translateX(0px)' }
   }
@@ -77,6 +82,37 @@ const sliderStyle = computed(() => {
   return {
     width: `${width}px`,
     transform: `translateX(${left - buttonRefs.value.length}px)`
+  }
+})
+
+// Sync internal selected state with initialSelected prop
+watch(initialSelected, (newVal) => {
+  if (newVal !== undefined && newVal !== selected.value) {
+    selected.value = newVal
+    nextTick(() => {
+      sliderStyleKey.value++
+    })
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  // Watch for when the component becomes visible using IntersectionObserver
+  if (containerRef.value) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0) {
+          nextTick(() => {
+            sliderStyleKey.value++
+          })
+        }
+      })
+    }, { threshold: [0, 0.1] })
+
+    observer.observe(containerRef.value)
+
+    // Cleanup observer on unmount
+    const cleanup = () => observer.disconnect()
+    return cleanup
   }
 })
 
@@ -135,16 +171,6 @@ function checkRandomSelectMode() {
 
 onMounted(checkRandomSelectMode)
 watch(stateManager.state, checkRandomSelectMode)
-
-watch(initialSelected, (newVal, oldVal) => {
-  const newIndex = newVal ?? (values.value && values.value.length ? 0 : null)
-  if (newIndex !== selected.value && newIndex !== null) {
-    selected.value = newIndex
-    nextTick(() => {
-      // Force slider style recalculation after button refs update
-    })
-  }
-})
 
 function getLabel(item: unknown) {
   if (labelFn?.value && typeof labelFn.value === 'function') {
