@@ -32,8 +32,7 @@ import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
 
-const { state: truthTable, formulas, inputVars, outputVar } = TruthTableProject.useState()
-const outputVars = computed(() => outputVar.value ? [outputVar.value] : [])
+const { state: truthTable, formulas, inputVars, outputVars } = TruthTableProject.useState()
 
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   Project: [

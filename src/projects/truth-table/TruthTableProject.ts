@@ -20,7 +20,7 @@ export interface TruthTableState {
   inputVars: string[];
   outputVars: string[];
   values: TruthTableData;
-  formulas: Record<string, Record<FunctionType, Formula>>;
+  formulas: Record<string, Formula>;
   outputVariableIndex: number;
   functionType: FunctionType;
   qmcResult?: QMCResult;
@@ -91,10 +91,7 @@ export class TruthTableProject extends Project {
     const outputVariables = this.generateVariableNames(props.outputVariableCount, 112)
 
     // create formulas
-    const formulas: Record<string, Record<string, Formula>> = {}
-    outputVariables.forEach((name) => {
-      formulas[name] = {}
-    })
+    const formulas: Record<string, Formula> = {}
 
     // number of rows = 2^n
     const rows = 1 << props.inputVariableCount

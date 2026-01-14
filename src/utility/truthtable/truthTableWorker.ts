@@ -11,7 +11,8 @@ export interface WorkerRequest {
 
 export interface WorkerResponse {
     id: number;
-    qmcResult: QMCResult | undefined;
+    qmcResults: Record<string, QMCResult | undefined>;
+    formulas: Record<string, Formula | undefined>;
     couplingTermLatex: string | undefined;
     selectedFormula: Formula | undefined;
 }
@@ -290,34 +291,59 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     console.log('[TruthTableWorker] Processing request:', id);
 
     try {
-        const qmcResult = await Minimizer.runQMC(truthTable);
+        // Process all output variables in parallel
+        const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex];
+        const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
+            // Create a modified truth table state for this output variable
+            const modifiedTruthTable = {
+                ...truthTable,
+                outputVariableIndex: index
+            };
 
-        let couplingTermLatex: string | undefined;
-        let selectedFormula: Formula | undefined;
+            const result = await Minimizer.runQMC(modifiedTruthTable);
+            return { outputVar, result };
+        });
 
-        if (qmcResult) {
-            couplingTermLatex = getCouplingTermLatex(
-                qmcResult,
-                truthTable.functionType,
-                truthTable.inputVars
-            );
+        const qmcResultsArray = await Promise.all(qmcPromises);
 
-            if (qmcResult.expressions && qmcResult.expressions.length > 0) {
-                selectedFormula = flattenCouplingTermsToFormula(
-                    qmcResult.expressions[0]!,
+        // Build records from results
+        const qmcResults: Record<string, QMCResult | undefined> = {};
+        const formulas: Record<string, Formula | undefined> = {};
+
+        for (const { outputVar, result } of qmcResultsArray) {
+            qmcResults[outputVar] = result;
+
+            if (result && result.expressions && result.expressions.length > 0) {
+                formulas[outputVar] = flattenCouplingTermsToFormula(
+                    result.expressions[0]!,
                     truthTable.functionType
                 );
             } else {
-                selectedFormula = {
+                formulas[outputVar] = {
                     type: truthTable.functionType,
                     terms: [{ literals: [{ variable: '0', negated: false }] }]
                 };
             }
         }
 
+        // Get the selected output variable's data
+        const currentQmcResult = qmcResults[currentOutputVar!];
+        let couplingTermLatex: string | undefined;
+        let selectedFormula: Formula | undefined;
+
+        if (currentQmcResult) {
+            couplingTermLatex = getCouplingTermLatex(
+                currentQmcResult,
+                truthTable.functionType,
+                truthTable.inputVars
+            );
+            selectedFormula = formulas[currentOutputVar!];
+        }
+
         const response: WorkerResponse = {
             id,
-            qmcResult,
+            qmcResults,
+            formulas,
             couplingTermLatex,
             selectedFormula
         };
@@ -328,7 +354,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         // Send back empty response on error
         const response: WorkerResponse = {
             id,
-            qmcResult: undefined,
+            qmcResults: {},
+            formulas: {},
             couplingTermLatex: undefined,
             selectedFormula: undefined
         };

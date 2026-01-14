@@ -57,9 +57,22 @@ class TruthTableWorkerManager {
 
         // Update the state with the results
         if (stateManager.state.truthTable) {
-            if (response.qmcResult !== undefined) {
-                stateManager.state.truthTable.qmcResult = response.qmcResult;
+            // Update formulas for all output variables
+            for (const [outputVar, formula] of Object.entries(response.formulas)) {
+                if (formula !== undefined) {
+                    stateManager.state.truthTable.formulas[outputVar] = formula;
+                }
             }
+
+            // Update qmcResult for the currently selected output variable
+            const currentOutputVar = stateManager.state.truthTable.outputVars[
+                stateManager.state.truthTable.outputVariableIndex
+            ];
+            if (currentOutputVar && response.qmcResults[currentOutputVar] !== undefined) {
+                stateManager.state.truthTable.qmcResult = response.qmcResults[currentOutputVar];
+            }
+
+            // Update coupling term latex and selected formula for current output variable
             if (response.couplingTermLatex !== undefined) {
                 stateManager.state.truthTable.couplingTermLatex = response.couplingTermLatex;
             }

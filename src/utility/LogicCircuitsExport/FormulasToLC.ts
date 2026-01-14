@@ -11,19 +11,12 @@ import type { Formula } from '@/utility/types.ts'
  * @param outType
  */
 export function formulaToLC(
-  rawFormulas: Record<string, Record<string, Formula>>,
+  formulas: Record<string, Formula>,
   inputVars: string[],
   outputVars: string[],
   minimizeForm: 'dnf' | 'cnf' = 'dnf',
   outType: 'and-or' | 'nand' | 'nor' = 'and-or',
 ): LCFile {
-  console.log(rawFormulas)
-
-  const formulas: Record<string, Formula> = {} as Record<string, Formula>
-  outputVars.forEach((ov) => {
-    formulas[ov] = (minimizeForm === 'dnf' ? rawFormulas[ov]!.DNF : rawFormulas[ov]!.CNF) as Formula
-  })
-
   //create new lc File instance
   const lcFile = new LCFile()
 
@@ -180,14 +173,14 @@ export function formulaToLC(
 
 export function formulaToLcFile(
   projectName: string,
-  rawFormulas: Record<string, Record<string, Formula>>,
+  formulas: Record<string, Formula>,
   inputVars: string[],
   outputVars: string[],
   minimizeForm: 'dnf' | 'cnf' = 'dnf',
   outType: 'and-or' | 'nand' | 'nor' = 'and-or',
 ): void {
   const content: string = formulaToLC(
-    rawFormulas,
+    formulas,
     inputVars,
     outputVars,
     minimizeForm,

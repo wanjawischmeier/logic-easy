@@ -7,14 +7,10 @@ import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 import IframePanel from '@/components/IFramePanel.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import { projectManager } from '@/projects/projectManager'
-import type { Formula } from '@/utility/types'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
-const { outputVars, inputVars, selectedFormula, functionType, outputVariableIndex } = TruthTableProject.useState()
-
-// TODO: workaround
-const formulas = ref<Record<string, Record<string, Formula>>>({})
+const { inputVars, outputVars, formulas } = TruthTableProject.useState()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -128,29 +124,15 @@ function handleMethodSelect(idx: number | null) {
 function updateFormulas() {
   let fileContent = ''
 
-  // TODO: Workaround for now
-  const outputVar = outputVars.value[outputVariableIndex.value]
-  if (!outputVar) return
-
-  const sf = selectedFormula?.value
-  const ft = functionType?.value
-  if (!sf || !ft) return
-
-  formulas.value = {
-    [outputVar]: {
-      [ft]: sf
-    }
-  }
-
   switch (selectedMethod.value) {
     case 'AND/OR':
-      fileContent = formulaToLC(formulas.value, inputVars.value, [outputVar]).toString()
+      fileContent = formulaToLC(formulas.value, inputVars.value, outputVars.value).toString()
       break
     case 'NAND':
       fileContent = formulaToLC(
         formulas.value,
         inputVars.value,
-        [outputVar],
+        outputVars.value,
         'dnf',
         'nand',
       ).toString()
@@ -159,7 +141,7 @@ function updateFormulas() {
       fileContent = formulaToLC(
         formulas.value,
         inputVars.value,
-        [outputVar],
+        outputVars.value,
         'dnf',
         'nor',
       ).toString()
@@ -176,7 +158,7 @@ function updateFormulas() {
 }
 
 // Keep the plain object in sync with state and selection
-watch([() => selectedFormula.value], updateFormulas, { immediate: true, deep: true })
+watch([() => formulas.value], updateFormulas, { immediate: true, deep: true })
 
 // UI for floating round selector
 const showMethodPicker = ref(false)
