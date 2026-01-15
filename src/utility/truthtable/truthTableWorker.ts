@@ -77,7 +77,7 @@ function getTermSortKey(term: string): string {
     return term.replace(/\\bar\{([a-z])\}/g, '$1');
 }
 
-function getCouplingTermLatex(
+export function getCouplingTermLatex(
     qmcResult: QMCResult,
     functionType: FunctionType,
     inputVars: string[]
@@ -176,6 +176,8 @@ function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermCo
 // Web Worker message handler
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const { id, truthTable } = e.data;
+    if (!truthTable) return
+
     const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex];
     if (!currentOutputVar) return
 

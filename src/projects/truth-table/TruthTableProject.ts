@@ -5,8 +5,9 @@ import type { Formula, FunctionType } from "@/utility/types";
 import { computed } from "vue";
 import { stateManager, type AppState } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
-import type { QMCResult } from "@/utility/truthtable/minimizer";
+import { Minimizer, type QMCResult } from "@/utility/truthtable/minimizer";
 import type { TermColor } from "@/utility/truthtable/colorGenerator";
+import { getCouplingTermLatex } from "@/utility/truthtable/truthTableWorker";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
@@ -91,8 +92,8 @@ export class TruthTableProject extends Project {
     console.log('[TruthTableProject.createState] Initializing project state')
 
     // Generate variable names
-    const inputVariables = this.generateVariableNames(props.inputVariableCount, 97)
-    const outputVariables = this.generateVariableNames(props.outputVariableCount, 112)
+    const inputVars = this.generateVariableNames(props.inputVariableCount, 97)
+    const outputVars = this.generateVariableNames(props.outputVariableCount, 112)
 
     // create formulas
     const formulas: Record<string, Formula> = {}
@@ -105,19 +106,27 @@ export class TruthTableProject extends Project {
       Array.from({ length: props.outputVariableCount }, () => 0 as TruthTableCell)
     ) as TruthTableData
 
+    const functionType: FunctionType = 'DNF'
+    const couplingTermLatex = getCouplingTermLatex(
+      Minimizer.emptyQMQResult,
+      functionType,
+      inputVars
+    )
+
     // Initialize state
     stateManager.state.truthTable = {
-      inputVars: inputVariables,
-      outputVars: outputVariables,
+      inputVars: inputVars,
+      outputVars: outputVars,
       values: values,
       formulas: formulas,
       outputVariableIndex: 0,
-      functionType: 'DNF',
+      functionType: functionType,
+      couplingTermLatex: couplingTermLatex,
     }
 
     console.log('[TruthTableProject.createState] State initialized:', {
-      inputVars: inputVariables,
-      outputVars: outputVariables,
+      inputVars: inputVars,
+      outputVars: outputVars,
       hasValues: !!values
     })
   }
