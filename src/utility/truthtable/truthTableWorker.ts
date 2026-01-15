@@ -126,6 +126,53 @@ function getCouplingTermLatex(
     return signature + partsWithKeys.map(p => p.latex).join(termJoiner);
 }
 
+async function runMinimization(truthTable: TruthTableState, index: number): Promise<QMCResult | undefined> {
+    // Create a modified truth table state for this output variable
+    const modifiedTruthTable = {
+        ...truthTable,
+        outputVariableIndex: index
+    };
+
+    return await Minimizer.runQMC(modifiedTruthTable);
+}
+
+function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermColor[] {
+    // Generate colors for each prime implicant based on their term string
+    // This ensures consistent coloring between QMC chart and KV diagram
+    // Preserve existing colors by matching PI term strings for temporal consistency
+
+    // Get existing QMC result for this output variable to preserve colors
+    const existingQmcResult = truthTable.qmcResult;
+    const existingPIs = existingQmcResult?.pis || [];
+    const existingColors = existingQmcResult?.termColors || [];
+
+    // Build a map of term string -> color from existing results
+    const termColorMap = new Map<string, TermColor>();
+
+    existingPIs.forEach((pi: any, idx: number) => {
+        const color = existingColors[idx]
+        if (pi.term && color) {
+            termColorMap.set(pi.term, color);
+        }
+    });
+
+    // Accumulate all colors as we generate new ones
+    const allColors = Array.from(termColorMap.values());
+
+    return result.pis.map((pi: any) => {
+        // Try to reuse color for this term string if it existed before
+        const existingColor = termColorMap.get(pi.term);
+        if (existingColor) {
+            return existingColor;
+        }
+
+        // Generate a new color that's maximally different from all colors (including newly generated ones)
+        const newColor = generateTermColor(allColors);
+        allColors.push(newColor); // Add to accumulator for next iteration
+        return newColor;
+    });
+}
+
 // Web Worker message handler
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const { id, truthTable } = e.data;
@@ -165,11 +212,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                     formulas[outputVar] = edgeResult.formula;
                 } else {
                     // This output variable is not an edge case, run QMC normally
-                    const modifiedTruthTable = {
-                        ...truthTable,
-                        outputVariableIndex: outputIndex
-                    };
-                    const result = await Minimizer.runQMC(modifiedTruthTable);
+                    const result = await runMinimization(truthTable, outputIndex);
                     qmcResults[outputVar] = result;
 
                     if (result && result.expressions && result.expressions.length > 0) {
@@ -208,50 +251,12 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
         // Process all output variables in parallel
         const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
-            // Create a modified truth table state for this output variable
-            const modifiedTruthTable = {
-                ...truthTable,
-                outputVariableIndex: index
-            };
-
-            const result = await Minimizer.runQMC(modifiedTruthTable);
-
-            // Generate colors for each prime implicant based on their term string
-            // This ensures consistent coloring between QMC chart and KV diagram
-            // Preserve existing colors by matching PI term strings for temporal consistency
-            if (result && result.pis) {
-                // Get existing QMC result for this output variable to preserve colors
-                const existingQmcResult = truthTable.qmcResult;
-                const existingPIs = existingQmcResult?.pis || [];
-                const existingColors = existingQmcResult?.termColors || [];
-
-                // Build a map of term string -> color from existing results
-                const termColorMap = new Map<string, TermColor>();
-
-                existingPIs.forEach((pi: any, idx: number) => {
-                    const color = existingColors[idx]
-                    if (pi.term && color) {
-                        termColorMap.set(pi.term, color);
-                    }
-                });
-
-                // Accumulate all colors as we generate new ones
-                const allColors = Array.from(termColorMap.values());
-
-                result.termColors = result.pis.map((pi: any) => {
-                    // Try to reuse color for this term string if it existed before
-                    const existingColor = termColorMap.get(pi.term);
-                    if (existingColor) {
-                        return existingColor;
-                    }
-
-                    // Generate a new color that's maximally different from all colors (including newly generated ones)
-                    const newColor = generateTermColor(allColors);
-                    allColors.push(newColor); // Add to accumulator for next iteration
-                    return newColor;
-                });
+            const result = await runMinimization(truthTable, index)
+            if (!result || !result.pis) {
+                return { outputVar, result }
             }
 
+            result.termColors = mapResultColors(truthTable, result)
             return { outputVar, result };
         });
 
