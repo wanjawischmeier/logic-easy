@@ -17,11 +17,11 @@
                     <tr v-for="(pi, piIdx) in qmcResult?.pis" :key="pi.term"
                         class="hover:bg-surface-3 transition-color duration-100">
                         <td class="px-4 text-center align-middle border-b border-r border-primary font-mono relative"
-                            :style="pi.isEssential ? { boxShadow: `inset 2px 0 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 2px 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 -2px 0 0 ${essentialColors[piIdx % essentialColors.length]}` } : {}">
+                            :style="pi.isEssential && qmcResult?.termColors?.[piIdx] ? { boxShadow: `inset 2px 0 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 2px 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 -2px 0 0 ${qmcResult.termColors[piIdx].border}` } : {}">
                             {{ pi.term }}
                         </td>
                         <td class="px-4 align-middle border-b border-r-4 border-primary relative"
-                            :style="pi.isEssential ? { boxShadow: `inset -2px 0 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 2px 0 0 ${essentialColors[piIdx % essentialColors.length]}, inset 0 -2px 0 0 ${essentialColors[piIdx % essentialColors.length]}` } : {}">
+                            :style="pi.isEssential && qmcResult?.termColors?.[piIdx] ? { boxShadow: `inset -2px 0 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 2px 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 -2px 0 0 ${qmcResult.termColors[piIdx].border}` } : {}">
                             <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" display-mode />
                         </td>
                         <td v-for="m in qmcResult?.minterms" :key="m"
@@ -56,16 +56,6 @@ const props = defineProps<TruthTableState>()
 
 const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<{ x: number, y: number, width: number, height: number, color: string }>>([])
-
-const essentialColors = [
-    'rgb(239, 68, 68)',    // red
-    'rgb(59, 130, 246)',   // blue
-    'rgb(34, 197, 94)',    // green
-    'rgb(168, 85, 247)',   // purple
-    'rgb(234, 179, 8)',    // yellow
-    'rgb(236, 72, 153)',   // pink
-    'rgb(20, 184, 166)',   // teal
-]
 
 // Find which minterms make each prime implicant essential
 const essentialMinterms = computed(() => {
@@ -204,7 +194,8 @@ function calculateBoundingBoxes() {
         groups.push(currentGroup)
 
         // Create a bounding box for each group
-        const color = essentialColors[piIdx % essentialColors.length] || 'rgb(239, 68, 68)'
+        const color = props.qmcResult?.termColors?.[piIdx]?.border;
+        if (!color) return;
 
         // Get Y coordinates that span all rows
         const firstRow = table.querySelector('tbody tr')

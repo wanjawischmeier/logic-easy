@@ -1,6 +1,7 @@
 import type { TruthTableData, TruthTableState } from "@/projects/truth-table/TruthTableProject"
 import type { FunctionType } from '@/utility/types'
 import { QMC, type Operation, type QMCDetailedExpressionsObjects } from "logi.js"
+import type { TermColor } from "./colorGenerator"
 
 export interface QMCResult {
     iterations: any[]
@@ -8,6 +9,7 @@ export interface QMCResult {
     pis: any[]
     chart: Record<number, string[]> | null
     expressions: Operation[]
+    termColors: TermColor[]
 }
 
 export class Minimizer {
@@ -17,7 +19,8 @@ export class Minimizer {
             minterms: [],
             pis: [],
             chart: [],
-            expressions: []
+            expressions: [],
+            termColors: []
         }
     }
 
@@ -129,7 +132,16 @@ export class Minimizer {
 
         const numInputVars = truthTable.inputVars.length
         console.log('Running QMC with minterms:', mt)
-        const detailedResult = qmc.solve(mt, dc, true, true, numInputVars) as QMCDetailedExpressionsObjects
+
+        let detailedResult: QMCDetailedExpressionsObjects;
+        try {
+            detailedResult = qmc.solve(mt, dc, true, true, numInputVars) as QMCDetailedExpressionsObjects
+        } catch (error) {
+            console.error('QMC solve failed:', error)
+            // Return empty result on QMC library error
+            return this.emptyQMQResult
+        }
+
         const d = detailedResult.details
         if (!d) {
             console.log('No details from QMC')
@@ -146,7 +158,8 @@ export class Minimizer {
             chart: d.chart,
             expressions: truthTable.functionType === 'CNF'
                 ? detailedResult.expressions.map(expr => this.applyDeMorgan(expr))
-                : detailedResult.expressions
+                : detailedResult.expressions,
+            termColors: []
         }
     }
 }

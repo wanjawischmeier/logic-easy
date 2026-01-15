@@ -142,7 +142,8 @@ const getHighlights = (rIdx: number, cIdx: number) => {
     colCodes.value,
     props.selectedFormula.terms,
     functionType,
-    props.inputVars
+    props.inputVars,
+    props.formulaTermColors || []
   );
 };
 
