@@ -1,9 +1,8 @@
 import { Minimizer, type QMCResult } from './minimizer';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
-import type { FunctionType, Formula, Literal, Term } from '@/utility/types';
-import type { Operation } from 'logi.js';
+import type { FunctionType, Formula } from '@/utility/types';
 import { generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
-import { analyzeExpressions, flattenCouplingTermsToFormula } from './expressionParser';
+import { analyzeExpressions, detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
 
 // Message types for worker communication
 export interface WorkerRequest {
@@ -18,6 +17,57 @@ export interface WorkerResponse {
     couplingTermLatex: string | undefined;
     selectedFormula: Formula | undefined;
     formulaTermColors: TermColor[] | undefined;
+}
+
+/**
+ * Creates a QMC result for edge cases (tautology/contradiction)
+ */
+function createEdgeCaseResult(
+    type: 'tautology' | 'contradiction',
+    functionType: FunctionType,
+    inputVars: string[]
+): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
+    const isDNF = functionType === 'DNF';
+    const formType = isDNF ? 'DMF' : 'CMF';
+    const signature = `f_{${formType}}(${inputVars.join(', ')}) = `;
+
+    let constant: '0' | '1';
+
+    if (type === 'tautology') {
+        // Tautology: all 1s/don't cares
+        // DNF: f = 1
+        // CNF: f = 1
+        constant = '1';
+    } else {
+        // Contradiction: all 0s/don't cares
+        // DNF: f = 0
+        // CNF: f = 0
+        constant = '0';
+    }
+
+    const formula: Formula = {
+        type: functionType,
+        terms: [{ literals: [{ variable: constant, negated: false }] }]
+    };
+
+    // Create a default color for the edge case (used for highlighting all cells in KV diagram)
+    const defaultColor: TermColor = {
+        border: 'hsla(210, 100%, 50%, 0.8)',
+        fill: 'hsla(210, 100%, 50%, 0.3)'
+    };
+
+    const qmcResult: QMCResult = {
+        iterations: [],
+        minterms: [],
+        pis: [],
+        chart: null,
+        expressions: [{ name: constant } as any],
+        termColors: [defaultColor]
+    };
+
+    const couplingTermLatex = signature + constant;
+
+    return { qmcResult, formula, couplingTermLatex };
 }
 
 /**
@@ -79,12 +129,84 @@ function getCouplingTermLatex(
 // Web Worker message handler
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const { id, truthTable } = e.data;
+    const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex];
+    if (!currentOutputVar) return
 
     console.log('[TruthTableWorker] Processing request:', id);
 
     try {
+        // Early detection of tautology/contradiction for current output variable
+        const edgeCase = detectTautologyOrContradiction(
+            truthTable.values,
+            truthTable.outputVariableIndex
+        );
+
+        if (edgeCase !== null) {
+            console.log('[TruthTableWorker] Detected edge case:', edgeCase);
+
+            // Create edge case results for all output variables
+            const qmcResults: Record<string, QMCResult | undefined> = {};
+            const formulas: Record<string, Formula | undefined> = {};
+
+            for (const outputVar of truthTable.outputVars) {
+                const outputIndex = truthTable.outputVars.indexOf(outputVar);
+                const outputEdgeCase = detectTautologyOrContradiction(
+                    truthTable.values,
+                    outputIndex
+                );
+
+                if (outputEdgeCase !== null) {
+                    const edgeResult = createEdgeCaseResult(
+                        outputEdgeCase,
+                        truthTable.functionType,
+                        truthTable.inputVars
+                    );
+                    qmcResults[outputVar] = edgeResult.qmcResult;
+                    formulas[outputVar] = edgeResult.formula;
+                } else {
+                    // This output variable is not an edge case, run QMC normally
+                    const modifiedTruthTable = {
+                        ...truthTable,
+                        outputVariableIndex: outputIndex
+                    };
+                    const result = await Minimizer.runQMC(modifiedTruthTable);
+                    qmcResults[outputVar] = result;
+
+                    if (result && result.expressions && result.expressions.length > 0) {
+                        formulas[outputVar] = flattenCouplingTermsToFormula(
+                            result.expressions[0]!,
+                            truthTable.functionType
+                        );
+                    } else {
+                        formulas[outputVar] = {
+                            type: truthTable.functionType,
+                            terms: [{ literals: [{ variable: '0', negated: false }] }]
+                        };
+                    }
+                }
+            }
+
+            // Get the selected output variable's data
+            const currentEdgeResult = createEdgeCaseResult(
+                edgeCase,
+                truthTable.functionType,
+                truthTable.inputVars
+            );
+
+            const response: WorkerResponse = {
+                id,
+                qmcResults,
+                formulas,
+                couplingTermLatex: currentEdgeResult.couplingTermLatex,
+                selectedFormula: currentEdgeResult.formula,
+                formulaTermColors: currentEdgeResult.qmcResult.termColors
+            };
+
+            self.postMessage(response);
+            return;
+        }
+
         // Process all output variables in parallel
-        const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex];
         const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
             // Create a modified truth table state for this output variable
             const modifiedTruthTable = {
@@ -113,6 +235,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                     }
                 });
 
+                // Accumulate all colors as we generate new ones
+                const allColors = Array.from(termColorMap.values());
+
                 result.termColors = result.pis.map((pi: any) => {
                     // Try to reuse color for this term string if it existed before
                     const existingColor = termColorMap.get(pi.term);
@@ -120,9 +245,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                         return existingColor;
                     }
 
-                    // Generate a new color with a random index if not
-                    const randomIndex = Math.floor(Math.random() * 10000);
-                    return generateTermColor(randomIndex);
+                    // Generate a new color that's maximally different from all colors (including newly generated ones)
+                    const newColor = generateTermColor(allColors);
+                    allColors.push(newColor); // Add to accumulator for next iteration
+                    return newColor;
                 });
             }
 
@@ -152,7 +278,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         }
 
         // Get the selected output variable's data
-        const currentQmcResult = qmcResults[currentOutputVar!];
+        const currentQmcResult = qmcResults[currentOutputVar];
         let couplingTermLatex: string | undefined;
         let selectedFormula: Formula | undefined;
         let formulaTermColors: TermColor[] | undefined;
@@ -163,7 +289,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                 truthTable.functionType,
                 truthTable.inputVars
             );
-            selectedFormula = formulas[currentOutputVar!];
+            selectedFormula = formulas[currentOutputVar];
 
             // Map formula terms to prime implicant colors
             if (selectedFormula && currentQmcResult.pis && currentQmcResult.termColors) {

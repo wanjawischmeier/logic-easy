@@ -1,5 +1,40 @@
 import type { Operation } from "logi.js";
 import type { Formula, FunctionType, Literal, Term } from "../types";
+import type { TruthTableData } from "@/projects/truth-table/TruthTableProject";
+
+/**
+ * Detects if a truth table represents a tautology (all 1s/don't cares) or contradiction (all 0s/don't cares)
+ * @param values Truth table data
+ * @param outputIndex Index of the output column to check
+ * @returns 'tautology' if all values are 1 or '-', 'contradiction' if all are 0 or '-', null otherwise
+ */
+export function detectTautologyOrContradiction(
+    values: TruthTableData,
+    outputIndex: number
+): 'tautology' | 'contradiction' | null {
+    if (values.length === 0) return null;
+
+    let hasOne = false;
+    let hasZero = false;
+
+    for (const row of values) {
+        const cell = row[outputIndex];
+        if (cell === 1) hasOne = true;
+        if (cell === 0) hasZero = true;
+
+        // If we have both 1s and 0s, it's neither
+        if (hasOne && hasZero) return null;
+    }
+
+    // All are 1s or don't cares
+    if (hasOne && !hasZero) return 'tautology';
+
+    // All are 0s or don't cares
+    if (hasZero && !hasOne) return 'contradiction';
+
+    // All are don't cares (treat as contradiction for simplicity)
+    return 'contradiction';
+}
 
 /**
  * Parses a single literal (VAR or NOT(VAR))

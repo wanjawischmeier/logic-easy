@@ -281,8 +281,8 @@ export function calculateHighlights(
   if (functionType === FunctionType.DNF) {
     // DNF constant 1 (tautology): highlight all cells
     if (isConstant1) {
-      const color = termColors[0];
-      if (!color) return [];
+      // For tautology in DNF, we need a color - use a default one if none provided
+      const color = termColors[0] || { border: 'hsla(210, 100%, 50%, 0.8)', fill: 'hsla(210, 100%, 50%, 0.3)' };
       return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
     }
     // DNF constant 0 (contradiction): highlight no cells
@@ -291,15 +291,15 @@ export function calculateHighlights(
     }
   } else {
     // CNF mode
-    // CNF constant 0 (contradiction): highlight all cells
-    if (isConstant0) {
-      const color = termColors[0];
-      if (!color) return [];
-      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
-    }
-    // CNF constant 1 (tautology): highlight no cells
+    // CNF constant 1 (tautology): highlight no cells (because CNF highlights zeros)
     if (isConstant1) {
       return [];
+    }
+    // CNF constant 0 (contradiction): highlight all cells
+    if (isConstant0) {
+      // For contradiction in CNF, we need a color - use a default one if none provided
+      const color = termColors[0] || { border: 'hsla(210, 100%, 50%, 0.8)', fill: 'hsla(210, 100%, 50%, 0.3)' };
+      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
     }
 
     // Pre-calculate coverage for CNF check
