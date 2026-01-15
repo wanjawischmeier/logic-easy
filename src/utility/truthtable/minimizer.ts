@@ -1,13 +1,13 @@
 import type { TruthTableData, TruthTableState } from "@/projects/truth-table/TruthTableProject"
 import type { FunctionType } from '@/utility/types'
-import { QMC, type Operation, type QMCDetailedExpressionsObjects } from "logi.js"
+import { QMC, type IterationSnapshot, type Operation, type PrimeImplicantInfo, type QMCDetailedExpressionsObjects } from "logi.js"
 import type { TermColor } from "./colorGenerator"
 
 export interface QMCResult {
-    iterations: any[]
+    iterations: IterationSnapshot[]
     minterms: number[]
-    pis: any[]
-    chart: Record<number, string[]> | null
+    pis: PrimeImplicantInfo[]
+    chart: Record<string, string[]> | null
     expressions: Operation[]
     termColors: TermColor[]
 }
@@ -18,7 +18,7 @@ export class Minimizer {
             iterations: [],
             minterms: [],
             pis: [],
-            chart: [],
+            chart: null,
             expressions: [],
             termColors: []
         }
