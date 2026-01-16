@@ -25,8 +25,8 @@
                             <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" />
                         </td>
                         <td v-for="m in qmcResult?.minterms" :key="m"
-                            class="px-2 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
-                            :data-minterm="m">
+                            class="p-2 z-20 text-center align-middle border-b border-primary relative"
+                            :data-pi-idx="piIdx" :data-minterm="m">
                             <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" />
                         </td>
                     </tr>
@@ -34,7 +34,7 @@
             </table>
 
             <!-- Bounding boxes for essential prime implicants -->
-            <svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 1;">
+            <svg class="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
                 <rect v-for="(box, idx) in boundingBoxes" :key="idx" :x="box.x" :y="box.y" :width="box.width"
                     :height="box.height" :rx="8" :ry="8" :stroke="box.color.border" stroke-width="2"
                     :fill="box.color.fill" />
@@ -251,7 +251,7 @@ watch(() => [props.qmcResult?.pis, props.qmcResult?.minterms], () => {
     })
 }, { deep: true })
 
-function getBorderStyle(pi: PrimeImplicantInfo, piIdx: number, left: boolean, qmcResult?: QMCResult, borderWidth: string = '4px'): StyleValue {
+function getBorderStyle(pi: PrimeImplicantInfo, piIdx: number, left: boolean, qmcResult?: QMCResult, borderWidth: string = '2px'): StyleValue {
     if (!qmcResult || !pi.isEssential) return {}
 
     const termColor = qmcResult?.termColors?.[piIdx]
@@ -259,9 +259,11 @@ function getBorderStyle(pi: PrimeImplicantInfo, piIdx: number, left: boolean, qm
 
     return left ?
         {
-            boxShadow: `inset ${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`
+            boxShadow: `inset ${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`,
+            backgroundColor: termColor.fill
         } : {
-            boxShadow: `inset -${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`
+            boxShadow: `inset -${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`,
+            backgroundColor: termColor.fill
         }
 }
 </script>
