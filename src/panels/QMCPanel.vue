@@ -16,7 +16,7 @@
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
+      <div data-screenshot-ignore class="h-full flex flex-col items-center">
         <div v-if="(qmcResult?.iterations.length ?? 0) !== 0"
           class="flex-1 flex items-center justify-center overflow-auto w-full">
           <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"

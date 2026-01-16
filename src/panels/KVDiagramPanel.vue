@@ -21,12 +21,15 @@
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto">
-        <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
-          :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-          :selected-formula="selectedFormula" :functionType="functionType" :qmc-result="qmcResult"
-          :formula-term-colors="formulaTermColors" @values-changed="tableValues = $event" />
+        <div class="flex-1">
+          <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
+            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
+            :selected-formula="selectedFormula" :functionType="functionType" :qmc-result="qmcResult"
+            :formula-term-colors="formulaTermColors" @values-changed="tableValues = $event" />
+        </div>
 
-        <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8" :latex-expression="couplingTermLatex" />
+        <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8 flex-1"
+          :latex-expression="couplingTermLatex" />
       </div>
 
       <!-- Screenshot-only view -->
