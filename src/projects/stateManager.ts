@@ -2,6 +2,7 @@ import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
+import type { SerializedDockview } from 'dockview-vue'
 
 /**
  * The current storage version
@@ -24,7 +25,7 @@ export interface AppState {
   truthTable?: TruthTableState
   automaton?: AutomatonState
   panelStates?: Record<string, Record<string, unknown>>
-  dockviewLayout?: unknown // Stores the dockview panel layout
+  dockviewLayout?: SerializedDockview // Stores the dockview panel layout
 }
 
 /**
