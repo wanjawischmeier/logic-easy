@@ -22,12 +22,12 @@
                         </td>
                         <td class="px-4 align-middle border-b border-r-4 border-primary relative"
                             :style="getBorderStyle(pi, piIdx, false, qmcResult)">
-                            <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" display-mode />
+                            <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" />
                         </td>
                         <td v-for="m in qmcResult?.minterms" :key="m"
                             class="px-2 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
                             :data-minterm="m">
-                            <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" display-mode />
+                            <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" />
                         </td>
                     </tr>
                 </tbody>
