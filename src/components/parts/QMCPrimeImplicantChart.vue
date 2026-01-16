@@ -17,17 +17,17 @@
                     <tr v-for="(pi, piIdx) in qmcResult?.pis" :key="pi.term"
                         class="hover:bg-surface-3 transition-color duration-100">
                         <td class="px-4 text-center align-middle border-b border-r border-primary font-mono relative"
-                            :style="pi.isEssential && qmcResult?.termColors?.[piIdx] ? { boxShadow: `inset 2px 0 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 2px 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 -2px 0 0 ${qmcResult.termColors[piIdx].border}` } : {}">
+                            :style="getBorderStyle(pi, piIdx, true, qmcResult)">
                             {{ pi.term }}
                         </td>
                         <td class="px-4 align-middle border-b border-r-4 border-primary relative"
-                            :style="pi.isEssential && qmcResult?.termColors?.[piIdx] ? { boxShadow: `inset -2px 0 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 2px 0 0 ${qmcResult.termColors[piIdx].border}, inset 0 -2px 0 0 ${qmcResult.termColors[piIdx].border}` } : {}">
-                            <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" display-mode />
+                            :style="getBorderStyle(pi, piIdx, false, qmcResult)">
+                            <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" />
                         </td>
                         <td v-for="m in qmcResult?.minterms" :key="m"
                             class="px-2 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
                             :data-minterm="m">
-                            <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" display-mode />
+                            <vue-latex :fontsize=14 :expression="getCellSymbol(pi, m)" />
                         </td>
                     </tr>
                 </tbody>
@@ -36,8 +36,8 @@
             <!-- Bounding boxes for essential prime implicants -->
             <svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 1;">
                 <rect v-for="(box, idx) in boundingBoxes" :key="idx" :x="box.x" :y="box.y" :width="box.width"
-                    :height="box.height" :rx="8" :ry="8" :stroke="box.color" stroke-width="2" fill="none"
-                    :style="{ strokeDasharray: '6,8' }" />
+                    :height="box.height" :rx="8" :ry="8" :stroke="box.color.border" stroke-width="2"
+                    :fill="box.color.fill" />
             </svg>
         </div>
 
@@ -48,14 +48,25 @@
 <script setup lang="ts">
 import { type TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, type StyleValue } from 'vue'
+import type { TermColor } from '@/utility/truthtable/colorGenerator';
+import type { QMCResult } from '@/utility/truthtable/minimizer';
+import type { PrimeImplicantInfo } from 'logi.js';
 
 const BOUNDING_BOX_PADDING = 6
 
 const props = defineProps<TruthTableState>()
 
+interface BoundingBox {
+    x: number
+    y: number
+    width: number
+    height: number
+    color: TermColor
+}
+
 const tableRef = ref<HTMLElement | null>(null)
-const boundingBoxes = ref<Array<{ x: number, y: number, width: number, height: number, color: string }>>([])
+const boundingBoxes = ref<Array<BoundingBox>>([])
 
 // Find which minterms make each prime implicant essential
 const essentialMinterms = computed(() => {
@@ -134,7 +145,7 @@ function getCellSymbol(pi: any, minterm: number): string {
 function calculateBoundingBoxes() {
     if (!tableRef.value || !props.qmcResult?.pis) return
 
-    const boxes: Array<{ x: number, y: number, width: number, height: number, color: string }> = []
+    const boxes: Array<BoundingBox> = []
     const table = tableRef.value
     const tableRect = table.getBoundingClientRect()
 
@@ -194,8 +205,8 @@ function calculateBoundingBoxes() {
         groups.push(currentGroup)
 
         // Create a bounding box for each group
-        const color = props.qmcResult?.termColors?.[piIdx]?.border;
-        if (!color) return;
+        const termColor = props.qmcResult?.termColors?.[piIdx];
+        if (!termColor) return;
 
         // Get Y coordinates that span all rows
         const firstRow = table.querySelector('tbody tr')
@@ -220,7 +231,7 @@ function calculateBoundingBoxes() {
                 y: minY + BOUNDING_BOX_PADDING,
                 width: (maxX - minX) - (BOUNDING_BOX_PADDING * 2),
                 height: (maxY - minY) - (BOUNDING_BOX_PADDING * 2),
-                color: color
+                color: termColor
             })
         })
     })
@@ -239,6 +250,20 @@ watch(() => [props.qmcResult?.pis, props.qmcResult?.minterms], () => {
         calculateBoundingBoxes()
     })
 }, { deep: true })
+
+function getBorderStyle(pi: PrimeImplicantInfo, piIdx: number, left: boolean, qmcResult?: QMCResult, borderWidth: string = '4px'): StyleValue {
+    if (!qmcResult || !pi.isEssential) return {}
+
+    const termColor = qmcResult?.termColors?.[piIdx]
+    if (!termColor) return {}
+
+    return left ?
+        {
+            boxShadow: `inset ${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`
+        } : {
+            boxShadow: `inset -${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`
+        }
+}
 </script>
 
 <style scoped></style>

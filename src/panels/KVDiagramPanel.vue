@@ -15,7 +15,7 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" :files="downloadFiles" />
+      <DownloadButton :target-ref="screenshotRef" filename="kv" :files="downloadFiles" />
     </div>
 
     <div class="h-full" ref="screenshotRef">

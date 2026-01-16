@@ -3,7 +3,7 @@
     <div class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5">
       <button @click="toggleDropdown" :disabled="isCapturing || !hasDownloadOptions"
         class="px-3 py-2 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
-        title="Download">
+        :class="showDropdown ? 'bg-primary' : ''" title="Download">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>

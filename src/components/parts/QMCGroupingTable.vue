@@ -108,7 +108,7 @@ function buildTableRows() {
     termRelationships.value.clear()
     for (let iterIdx = 1; iterIdx < props.qmcResult?.iterations.length; iterIdx++) {
         const iter = props.qmcResult?.iterations[iterIdx]
-        const joins = iter.joins || []
+        const joins = iter?.joins || []
         joins.forEach((join: any) => {
             const joinTerm = join.term
             const parents = join.parents || []
@@ -140,6 +140,7 @@ function buildTableRows() {
     sortedK.forEach((k: string) => {
         const kNum = Number(k)
         const terms = iter0.groups[k]
+        if (!terms) return
 
         if (!kClassEntries.has(kNum)) {
             kClassEntries.set(kNum, new Map())
@@ -176,7 +177,7 @@ function buildTableRows() {
     // Process subsequent iterations' joins
     for (let iterIdx = 1; iterIdx < props.qmcResult?.iterations.length; iterIdx++) {
         const iter = props.qmcResult?.iterations[iterIdx]
-        const joins = iter.joins || []
+        const joins = iter?.joins || []
 
         joins.forEach((join: any) => {
             const joinTerm = join.term
