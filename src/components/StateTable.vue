@@ -4,6 +4,15 @@ import { stateManager } from '@/projects/stateManager'
 import { onMounted } from 'vue'
 
 /**
+ * aktuelle Probleme:
+ * - bei add state / transition in editor werden nur die neuen transitions auch angezeigt, nicht die volle tabelle
+ * - ... allerdings wird auch der reine table -> editor export etwas hässlich
+ * - die table kann mehr kanten erlauben als der editor, da dieser mit mehreren gleichen kanten überfordert ist
+ * - todo: in editor kanten mit x / x ausblenden können
+ * - todo: eingabeprüfungen
+ */
+
+/**
  * manage central data
  */
 
@@ -103,7 +112,7 @@ function addTransitionRow() {
     input: xBits,
     output: 'x'.repeat(outputBits.value),
   })
-    AutomatonProject.setLastUpdateSource('table')
+  AutomatonProject.setLastUpdateSource('table')
 }
 
 /**
