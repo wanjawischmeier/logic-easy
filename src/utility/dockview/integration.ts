@@ -1,8 +1,7 @@
-import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue'
-import { checkDockEntryRequirements, dockRegistry } from '@/router/dockRegistry'
-import { updateTruthTable } from '@/utility/truthtable/interpreter'
-import { stateManager } from '@/projects/stateManager'
-import { dockviewService } from '@/utility/dockview/service'
+import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
+import { checkDockEntryRequirements, findDockEntry } from '@/router/dockRegistry';
+import { dockviewService } from '@/utility/dockview/service';
+import { Toast } from '../toastService';
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -40,10 +39,10 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
     return false
   }
 
-  const registryEntry = dockRegistry.find((item) => item.id === panelId)
-  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) {
-    console.log(`Panel with id '${registryEntry}' :(`)
-    return false
+  const registryEntry = findDockEntry(panelId);
+  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
+    console.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`);
+    return false;
   }
 
   const existingPanel = getPanelByID(panelId)
@@ -59,15 +58,12 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       component: panelId,
       title: label,
       position: position,
-      // unspecific params possible for automaton, ppbly TODO: use same style for both state types
-      params: params ?? {
-        state: stateManager.state?.truthTable,
-        updateTruthTable,
-      },
-    })
-    return true
+      minimumWidth: registryEntry.minimumWidth ?? 0
+    });
+    return true;
   } catch (err) {
-    console.error('Failed to add panel', err)
-    return false
+    console.error('Failed to create panel', err);
+    Toast.error('Failed to create panel')
+    return false;
   }
 }

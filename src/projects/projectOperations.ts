@@ -3,7 +3,8 @@ import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { ProjectLifecycleManager } from '@/projects/projectLifecycle'
 import type { BaseProjectProps, StoredProject } from '@/projects/Project'
 import { projectTypes } from '@/projects/projectRegistry'
-import { stateManager, type AppState } from '@/projects/stateManager'
+import { StateManager, stateManager, type AppState } from '@/projects/stateManager'
+import { Toast } from '@/utility/toastService'
 
 /**
  * Handles CRUD operations on projects
@@ -24,8 +25,16 @@ export class ProjectOperations {
       lastModified: Date.now(),
       projectType,
       props: props || { name },
-      state: {
-        version: 1
+      state: StateManager.defaultState
+    }
+
+    // Initialize project state using the static createState method BEFORE saving
+    const projectTypeInfo = projectTypes[projectType]
+    if (projectTypeInfo?.projectClass) {
+      projectTypeInfo.projectClass.createState(project.props)
+      project.state = {
+        ...project.state,
+        ...stateManager.state
       }
     }
 
@@ -34,21 +43,13 @@ export class ProjectOperations {
       id: project.id,
       name: project.name,
       lastModified: project.lastModified,
-      projectType: project.projectType
+      projectType: project.projectType,
     })
 
-    // Open the created project (will load state into stateManager)
+    // Open the created project
     const opened = this.lifecycle.open(project.id)
     if (!opened) {
       throw new Error(`Failed to open created project: ${this.metadataManager.projectString(project)}`)
-    }
-
-    // Initialize project state using the static createState method
-    const projectTypeInfo = projectTypes[projectType]
-    if (projectTypeInfo?.projectClass) {
-      projectTypeInfo.projectClass.createState(project.props)
-      // Save the initialized state
-      this.updateState(project.id, stateManager.state)
     }
 
     // Call callback after everything is set up
@@ -66,6 +67,7 @@ export class ProjectOperations {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)
+      Toast.error('Failed to rename project')
       return false
     }
 
@@ -97,6 +99,7 @@ export class ProjectOperations {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
       console.error(`Project not found with id: ${projectId}`)
+      Toast.error('Failed to update project')
       return false
     }
 
@@ -112,23 +115,6 @@ export class ProjectOperations {
     })
 
     console.log('Saved project')
-    return true
-  }
-
-  /**
-   * Delete a project
-   */
-  delete(projectId: number): boolean {
-    const project = ProjectStorage.loadProject(projectId)
-    if (!project) {
-      console.error(`Project not found with id: ${projectId}`)
-      return false
-    }
-
-    ProjectStorage.removeProject(projectId)
-    this.metadataManager.remove(projectId)
-
-    console.log(`Deleted project: ${this.metadataManager.projectString(project)}`)
     return true
   }
 }

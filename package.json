@@ -8,13 +8,19 @@
   },
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run fsm:build && npm run docs:build",
     "build": "run-p type-check \"build-only {@}\" --",
+    "postbuild": "node scripts/copy-docs.js",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "fsm:build": "cd public/fsm-engine && npm ci && npm run build",
+    "fsm:dev": "cd public/fsm-engine && npm run dev",
+    "docs:build": "cd public/docs && npm ci && npm run build",
+    "docs:dev": "cd public/docs && npm run dev"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
@@ -23,9 +29,12 @@
     "buffer": "^6.0.3",
     "dagre": "^0.8.5",
     "dockview-vue": "^4.11.0",
+    "html2canvas-pro": "^1.6.4",
     "jotai": "^2.16.0",
+    "jszip": "^3.10.1",
     "katex": "^0.13.24",
     "konva": "^10.0.12",
+    "logi.js": "github:wanjawischmeier/logi.js",
     "lucide-react": "^0.556.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
@@ -33,7 +42,8 @@
     "tailwindcss": "^4.1.17",
     "vatex": "^0.1.0",
     "vue": "^3.5.25",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "vue-toastification": "^2.0.0-rc.5"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.3",

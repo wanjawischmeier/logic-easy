@@ -9,4 +9,6 @@
   --color-primary-variant: var(--color-blue-300);
   --color-secondary: var(--color-green-400);
   --color-secondary-variant: var(--color-green-300);
+  --color-error: #a51f1f;
+  --color-warning: #d3a210;
 }

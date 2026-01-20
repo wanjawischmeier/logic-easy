@@ -1,3 +1,4 @@
+import { Toast } from "@/utility/toastService"
 import type { ProjectMetadata, StoredProject } from "./Project"
 
 const PROJECT_METADATA_KEY = 'logic-easy-projects-metadata'
@@ -27,6 +28,7 @@ export class ProjectStorage {
       return JSON.parse(stored) as ProjectMetadata
     } catch (error) {
       console.error('Failed to load project metadata:', error)
+      Toast.error('Failed to load project metadata')
       return { projects: [] }
     }
   }
@@ -39,6 +41,7 @@ export class ProjectStorage {
       localStorage.setItem(PROJECT_METADATA_KEY, JSON.stringify(metadata))
     } catch (error) {
       console.error('Failed to save project metadata:', error)
+      Toast.error('Failed to save project metadata')
     }
   }
 
@@ -51,6 +54,7 @@ export class ProjectStorage {
       return stored ? parseInt(stored, 10) : null
     } catch (error) {
       console.error('Failed to load current project ID:', error)
+      Toast.error('Failed to load current project id')
       return null
     }
   }
@@ -67,6 +71,7 @@ export class ProjectStorage {
       }
     } catch (error) {
       console.error('Failed to save current project ID:', error)
+      Toast.error('Failed to save current project id')
     }
   }
 
@@ -83,6 +88,7 @@ export class ProjectStorage {
       return JSON.parse(stored) as StoredProject
     } catch (error) {
       console.error(`Failed to load project ${projectId}:`, error)
+      Toast.error('Failed to load project')
       return null
     }
   }
@@ -96,6 +102,7 @@ export class ProjectStorage {
       localStorage.setItem(key, JSON.stringify(project))
     } catch (error) {
       console.error(`Failed to save project ${project.id}:`, error)
+      Toast.error('Failed to save project')
     }
   }
 
@@ -108,6 +115,7 @@ export class ProjectStorage {
       localStorage.removeItem(key)
     } catch (error) {
       console.error(`Failed to remove project ${projectId}:`, error)
+      Toast.error('Failed to remove project')
     }
   }
 
@@ -129,6 +137,7 @@ export class ProjectStorage {
       }
     } catch (error) {
       console.error('Failed to scan projects in localStorage:', error)
+      Toast.error('Failed to scan projects')
     }
     return projectIds
   }

@@ -7,3 +7,6 @@
 	path = public/fsm-engine
 	url = https://github.com/aylinjosephine/fsm-engine.git
 	branch = main
+[submodule "public/docs"]
+	path = public/docs
+	url = https://github.com/wanjawischmeier/logic-easy-docs.git

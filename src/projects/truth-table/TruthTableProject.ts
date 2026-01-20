@@ -1,10 +1,13 @@
 import { createPanel } from "@/utility/dockview/integration";
 import { Project, type BaseProjectProps } from "../Project";
 import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
-import type { Formula } from "@/utility/types";
+import type { Formula, FunctionType } from "@/utility/types";
 import { computed } from "vue";
-import { stateManager } from "@/projects/stateManager";
+import { stateManager, type AppState } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
+import { Minimizer, type QMCResult } from "@/utility/truthtable/minimizer";
+import type { TermColor } from "@/utility/truthtable/colorGenerator";
+import { getCouplingTermLatex } from "@/utility/truthtable/truthTableWorker";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
@@ -19,16 +22,21 @@ export interface TruthTableState {
   inputVars: string[];
   outputVars: string[];
   values: TruthTableData;
-  minifiedValues: TruthTableData;
-  formulas: Record<string, Record<string, Formula>>;
+  formulas: Record<string, Formula>;
+  outputVariableIndex: number;
+  functionType: FunctionType;
+  qmcResult?: QMCResult;
+  couplingTermLatex?: string;
+  selectedFormula?: Formula;
+  formulaTermColors?: TermColor[];
 }
 
 export class TruthTableProject extends Project {
   static override get defaultProps(): TruthTableProps {
     return {
       name: '',
-      inputVariableCount: 3,
-      outputVariableCount: 1,
+      inputVariableCount: 4,
+      outputVariableCount: 2,
     };
   }
 
@@ -38,10 +46,30 @@ export class TruthTableProject extends Project {
     const inputVars = computed(() => state.value?.inputVars ?? []);
     const outputVars = computed(() => state.value?.outputVars ?? []);
     const values = computed(() => stateManager.state.truthTable?.values ?? []);
-    const minifiedValues = computed(() => state.value?.minifiedValues ?? []);
     const formulas = computed(() => state.value?.formulas ?? {});
+    const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0);
+    const functionType = computed(() => state.value?.functionType ?? 'DNF');
+    const qmcResult = computed(() => state.value?.qmcResult);
+    const couplingTermLatex = computed(() => state.value?.couplingTermLatex);
+    const selectedFormula = computed(() => state.value?.selectedFormula);
+    const formulaTermColors = computed(() => state.value?.formulaTermColors);
 
-    return { inputVars, outputVars, values, minifiedValues, formulas }
+    const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
+
+    return {
+      state,
+      inputVars,
+      outputVars,
+      outputVar,
+      values,
+      formulas,
+      outputVariableIndex,
+      functionType,
+      qmcResult,
+      couplingTermLatex,
+      selectedFormula,
+      formulaTermColors
+    }
   }
 
   static override restoreDefaultPanelLayout(props: TruthTableProps) {
@@ -64,14 +92,11 @@ export class TruthTableProject extends Project {
     console.log('[TruthTableProject.createState] Initializing project state')
 
     // Generate variable names
-    const inputVariables = this.generateVariableNames(props.inputVariableCount, 97)
-    const outputVariables = this.generateVariableNames(props.outputVariableCount, 112)
+    const inputVars = this.generateVariableNames(props.inputVariableCount, 97)
+    const outputVars = this.generateVariableNames(props.outputVariableCount, 112)
 
     // create formulas
-    const formulas: Record<string, Record<string, Formula>> = {}
-    outputVariables.forEach((name) => {
-      formulas[name] = {}
-    })
+    const formulas: Record<string, Formula> = {}
 
     // number of rows = 2^n
     const rows = 1 << props.inputVariableCount
@@ -81,21 +106,38 @@ export class TruthTableProject extends Project {
       Array.from({ length: props.outputVariableCount }, () => 0 as TruthTableCell)
     ) as TruthTableData
 
+    const functionType: FunctionType = 'DNF'
+    const couplingTermLatex = getCouplingTermLatex(
+      Minimizer.emptyQMQResult,
+      functionType,
+      inputVars
+    )
+
     // Initialize state
     stateManager.state.truthTable = {
-      inputVars: inputVariables,
-      outputVars: outputVariables,
-      formulas,
-      values,
-      minifiedValues: values,
+      inputVars: inputVars,
+      outputVars: outputVars,
+      values: values,
+      formulas: formulas,
+      outputVariableIndex: 0,
+      functionType: functionType,
+      couplingTermLatex: couplingTermLatex,
     }
 
     console.log('[TruthTableProject.createState] State initialized:', {
-      inputVars: inputVariables,
-      outputVars: outputVariables,
+      inputVars: inputVars,
+      outputVars: outputVars,
       hasValues: !!values
     })
   }
+
+  static override validateState(state: AppState): boolean {
+    return state.truthTable != undefined;
+  }
+
+  static functionTypes = computed(() =>
+    Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
+  )
 }
 
 registerProjectType('truth-table', {

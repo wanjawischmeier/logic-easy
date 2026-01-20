@@ -2,9 +2,9 @@ import { ref, type Ref } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { StoredProject } from '@/projects/Project'
-import { loadingService } from '@/utility/loadingService'
-import { stateManager } from '@/projects/stateManager'
+import { COMPATIBLE_STORAGE_VERSIONS, stateManager, STORAGE_VERSION } from '@/projects/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
+
 
 /**
  * Manages current project state (opening, closing, tracking current project)
@@ -20,7 +20,7 @@ export class ProjectLifecycleManager {
   }
 
   /**
-   * Get the saved project ID from storage (if any)
+   * Get the saved project ID from storage
    */
   getSavedProjectId(): number | null {
     return ProjectStorage.loadCurrentProjectId()
@@ -68,6 +68,9 @@ export class ProjectLifecycleManager {
     this.currentProjectId.value = null
   }
 
+  /**
+   * Clears all keys in the current state
+   */
   private clearState(): void {
     Object.keys(stateManager.state).forEach(
       (key) => delete (stateManager.state as Record<string, unknown>)[key],
@@ -75,25 +78,22 @@ export class ProjectLifecycleManager {
   }
 
   /**
-   * Set the current project (without opening)
-   */
-  setCurrent(projectId: number): boolean {
-    const projectInfo = this.metadataManager.findById(projectId)
-    if (!projectInfo) {
-      console.error(`Project not found with id: ${projectId}`)
-      return false
-    }
-
-    this.setCurrentId(projectId)
-    return true
-  }
-
-  /**
    * Open a project by ID (loads state into stateManager)
    */
   open(projectId: number): StoredProject | null {
     const project = ProjectStorage.loadProject(projectId)
-    if (!project) return null
+    if (!project) {
+      console.warn(`Failed to open project with id ${projectId}: Couldn't load from storage`)
+      return null
+    }
+
+    if (!COMPATIBLE_STORAGE_VERSIONS.includes(project.state.version)) {
+      console.warn(
+        `Failed to open project with id ${projectId}:
+Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}, compatible: [${COMPATIBLE_STORAGE_VERSIONS}])`
+      )
+      return null
+    }
 
     console.log('[ProjectLifecycle.open] Loaded project from storage:', {
       projectId,
@@ -107,7 +107,6 @@ export class ProjectLifecycleManager {
     const projectTypeInfo = projectTypes[project.projectType]
     if (!projectTypeInfo) {
       console.error(`No project type registered: ${project.projectType}`)
-      loadingService.hide()
       return null
     }
 
@@ -115,6 +114,11 @@ export class ProjectLifecycleManager {
     const hasState = project.state && Object.keys(project.state).length > 0
     if (!hasState) {
       console.warn('[ProjectLifecycle.open] Project has empty state - may need initialization')
+    }
+
+    if (!(projectTypeInfo.projectClass?.validateState(project.state) ?? false)) {
+      console.error('[ProjectLifecycle.open] Project state failed type specific validation')
+      return null
     }
 
     // Clear the state first

@@ -2,6 +2,10 @@ import { reactive, type UnwrapNestedRefs } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
 import type { ProjectMetadata, ProjectInfo, StoredProject } from './Project'
 
+/**
+ * Maximum number of projects that are kept in local storage
+ * and shown in recents.
+ */
 const MAX_PROJECTS = 5
 
 /**
@@ -105,7 +109,7 @@ export class ProjectMetadataManager {
       if (project) {
         projectInfos.push({
           id: project.id,
-          name: project.name,
+          name: project.props?.name || project.name || 'Untitled',
           lastModified: project.lastModified,
           projectType: project.projectType
         })

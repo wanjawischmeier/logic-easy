@@ -1,10 +1,14 @@
 <template>
   <div class="flex items-center relative h-[calc(100vh-40px-16px)] m-4 ml-12 text-on-surface">
     <!-- GitHub Logo-->
-    <div class="absolute flex justify-end items-end w-full h-full select-none">
+    <div class="absolute flex flex-row justify-end items-end gap-4 w-full h-full select-none">
       <a class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 rounded-full shadow-2xl"
         href="https://github.com/wanjawischmeier/logic-easy" target="_blank" rel="noopener noreferrer">
         <img src="/GithubLogo.png" alt="GitHub Logo" class="w-12 aspect-auto invert">
+      </a>
+      <a class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 w-12 aspect-square rounded-full shadow-2xl text-3xl font-semibold flex justify-center items-center"
+        href="/logic-easy/docs" target="_blank" rel="noopener noreferrer">
+        ?
       </a>
     </div>
 
@@ -27,7 +31,6 @@ import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import { projectManager } from '@/projects/projectManager';
 import { showProjectCreationPopup } from '@/utility/popupService';
-import { projectTypes } from '@/projects/projectRegistry';
 
 interface ListEntry {
   label: string;
@@ -95,9 +98,7 @@ export default defineComponent({
         const dateStr = formatDate(project.lastModified);
 
         // Get project type name
-        const projectTypeInfo = projectTypes[project.projectType];
-        const projectTypeName = projectTypeInfo?.name || project.projectType;
-        const subtitle = `${dateStr} · ${projectTypeName}`;
+        const subtitle = `${dateStr}`;
 
         return {
           label: displayName,

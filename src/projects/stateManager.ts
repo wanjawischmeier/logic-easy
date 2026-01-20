@@ -2,20 +2,34 @@ import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
+import type { SerializedDockview } from 'dockview-vue'
 
-const STORAGE_VERSION = 1
+/**
+ * The current storage version
+ */
+export const STORAGE_VERSION: number = 7
 
+/**
+ * All storage versions that are compatible with the current one
+ */
+export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
+  6, 7
+]
+
+/**
+ * Everything that describes the state of the app,
+ * can be stored in a project.
+ */
 export interface AppState {
   version: number
   truthTable?: TruthTableState
   automaton?: AutomatonState
   panelStates?: Record<string, Record<string, unknown>>
-  dockviewLayout?: unknown // Stores the dockview panel layout
+  dockviewLayout?: SerializedDockview // Stores the dockview panel layout
 }
 
 /**
- * Manages application state and syncs with project storage
- * This is now just a thin wrapper around the project manager's state
+ * Manages the application state
  */
 export class StateManager {
   public state: UnwrapNestedRefs<AppState>
@@ -24,10 +38,17 @@ export class StateManager {
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
    private isRestoring = false
 
-  constructor() {
-    this.state = reactive({
+  /**
+   * Empty default state
+   */
+  static get defaultState(): AppState {
+    return {
       version: STORAGE_VERSION,
-    }) as UnwrapNestedRefs<AppState>;
+    }
+  }
+
+  constructor() {
+    this.state = reactive(StateManager.defaultState) as UnwrapNestedRefs<AppState>;
 
     // Auto-save to localStorage whenever state changes
     // Debounce to avoid excessive writes
@@ -74,7 +95,7 @@ export class StateManager {
   /**
    * Get panel state by panel ID
    */
-  getPanelState<T = Record<string, unknown>>(panelId: string): T | undefined {
+  getPanelState<T>(panelId: string): T | undefined {
     const panelState = this.state.panelStates?.[panelId]
     // Return a plain object copy to avoid reactivity issues
     return panelState ? JSON.parse(JSON.stringify(panelState)) as T : undefined
@@ -86,26 +107,19 @@ export class StateManager {
    * @param stateGetter Function that returns the current state object
    * @returns Cleanup function to stop watching
    */
-  watchPanelState(panelId: string, stateGetter: () => Record<string, unknown>) {
+  watchPanelState<T>(panelId: string, stateGetter: () => T) {
     const stopWatch = watch(
       stateGetter,
       (newState) => {
         if (!this.state.panelStates) {
           this.state.panelStates = {}
         }
-        this.state.panelStates[panelId] = newState
+        this.state.panelStates[panelId] = newState as Record<string, unknown>
       },
       { deep: true, flush: 'post' }
     )
 
     return stopWatch
-  }
-
-  /**
-   * Close the current project
-   */
-  closeCurrentProject(): void {
-    projectManager.closeCurrentProject()
   }
 }
 

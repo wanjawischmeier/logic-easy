@@ -1,13 +1,13 @@
 import { Project } from '../Project'
 import { computed, onMounted, watch } from 'vue'
-import { stateManager } from '@/projects/stateManager'
+import { stateManager, type AppState } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
 import type { AutomatonProps, AutomatonState, AutomatonType } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
 /*
- * interfaces 
+ * interfaces
  */
 interface RawFsmTransition {
   id?: string | number
@@ -299,6 +299,10 @@ export class AutomatonProject extends Project {
     }
     console.log('[AutomatonProject.createState] State initialized')
   }
+
+    static override validateState(state: AppState): boolean {
+        return state.automaton != undefined;
+    }
 }
 
 registerProjectType('automaton', {
