@@ -2,11 +2,17 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
-import { ensureFsmListener } from '@/projects/automaton/AutomatonProject'
+import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
-ensureFsmListener()
+onMounted(() => {
+  AutomatonProject.attachFsmListener()  // ← korrekter Name
+})
+
+onBeforeUnmount(() => {
+  AutomatonProject.disposeFsmListener()  // Cleanup
+})
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -33,5 +39,3 @@ onBeforeUnmount(() => {
     />
   </div>
 </template>
-
-<style scoped></style>
