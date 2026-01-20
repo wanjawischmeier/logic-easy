@@ -285,7 +285,7 @@ export class AutomatonProject extends Project {
   }
 
   static override restoreDefaultPanelLayout(props: AutomatonProps) {
-    // TODO: create default panel, probably to chose between table & editor
+    // TODO: create default panel -> not really important since choosing is necessary to init project
 
     // create FSM editor panel as default
     console.log('[AutomatonProject.restoreDefaultPanelLayout] applying default layout')

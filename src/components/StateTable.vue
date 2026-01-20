@@ -30,7 +30,7 @@ if (!automaton.transitions || automaton.transitions.length === 0) {
       id: 0,
       from,
       to,
-      input: '',
+      input: '0',
       output: 'x',
     },
   ]
@@ -46,23 +46,53 @@ function addStateRow() {
     initial: nextId === 0,
     final: false,
   })
+  const combPerState = 1 << inputBits.value
+  const defaultState = automaton.states.find((s) => s.id === 0) ?? automaton.states[0]
+  const to = defaultState ? defaultState.id : 0
+
+  for (let xIndex = 0; xIndex < combPerState; xIndex++) {
+    const xBits = xIndex.toString(2).padStart(inputBits.value, '0')
+    const id = automaton.transitions?.length ?? 0
+
+    automaton.transitions ??= []
+    automaton.transitions.push({
+      id,
+      from: nextId,
+      to,
+      input: xBits,
+      output: ''.padStart(outputBits.value, 'x'),
+    })
+  }
+
+  setLastUpdateSource('table')
 }
 
 function addTransitionRow() {
   const automaton = getAutomaton()
   automaton.transitions ??= []
-  const nextId = automaton.transitions.length
+
+  const stateCount = automaton.states.length
+  if (stateCount === 0) return
 
   const totalBits = bitNumber.value + inputBits.value
   const maxComb = 1 << totalBits
+
+  const nextId = automaton.transitions.length
   if (nextId >= maxComb) return
 
   const global = nextId.toString(2).padStart(totalBits, '0')
+
   const zBits = global.slice(0, bitNumber.value)
   const xBits = global.slice(bitNumber.value)
-  const fromIndex = parseInt(zBits, 2) || 0
-  const fromState = automaton.states[fromIndex] ?? automaton.states[0]
-  const from = fromState?.id ?? 0
+
+  const fromIndex = parseInt(zBits, 2)
+  if (!Number.isInteger(fromIndex) || fromIndex < 0 || fromIndex >= stateCount) {
+    return
+  }
+
+  const fromState = automaton.states[fromIndex]
+  if (!fromState) return
+  const from = fromState.id
 
   const defaultState = automaton.states.find((s) => s.id === 0) ?? automaton.states[0]
   const to = defaultState ? defaultState.id : 0
@@ -77,14 +107,14 @@ function addTransitionRow() {
   setLastUpdateSource('table')
 }
 
-// Hilfsfunktion: Bits auf gegebene Länge mit x auffüllen
+// Bits auf gegebene Länge mit x auffüllen (nur für Anzeige / Fallback)
 function normalizeBitsToX(value: string | undefined, length: number): string {
   const v = value ?? ''
   if (v.length >= length) return v
   return v + 'x'.repeat(length - v.length)
 }
 
-// remap bits from Z^n+1 to "transition.to"
+// remap bits from Z^(n+1) to "transition.to"
 function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   const tr = transitions.value[idx]
   if (!tr) return
@@ -272,29 +302,14 @@ function sortTransitionsByZX() {
               {{ (transitionView.fromBinary ?? '').charAt(i) || '0' }}
             </td>
 
-            <!-- X^n bits (edit) -->
+            <!-- X^n bits (read only) -->
             <td
               v-for="(_, i) in inputBits"
               :key="transitionView.id + '-in-' + i"
               class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
               :class="i === inputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
             >
-              <input
-                v-if="transitions[idx]"
-                :value="normalizeBitsToX(transitions[idx]!.input, inputBits).charAt(i)"
-                class="bg-transparent text-center outline-none w-6"
-                @input="
-                  (e) => {
-                    const current = normalizeBitsToX(transitions[idx]!.input, inputBits)
-                    const chars = current.split('')
-                    const v = (e.target as HTMLInputElement).value
-                    const bit = v === '1' ? '1' : v === '0' ? '0' : 'x'
-                    chars[i] = bit
-                    transitions[idx]!.input = chars.join('')
-                    setLastUpdateSource('table')
-                  }
-                "
-              />
+              {{ normalizeBitsToX(transitions[idx]!.input, inputBits).charAt(i) }}
             </td>
 
             <!-- Z^(n+1) bits (edit) -->
@@ -345,7 +360,9 @@ function sortTransitionsByZX() {
           </tr>
         </tbody>
       </table>
-      <button class="bg-primary text-sm px-3 mr-3 py-1 font-mono" @click="addTransitionRow">+</button>
+      <button class="bg-primary text-sm px-3 mr-3 py-1 font-mono" @click="addTransitionRow">
+        +
+      </button>
       <button class="bg-primary text-sm px-3 ml-3 py-1 font-mono" @click="sortTransitionsByZX">
         sort
       </button>
