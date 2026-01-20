@@ -78,8 +78,6 @@ function addStateRow() {
 
 function addTransitionRow() {
   const automaton = getAutomaton()
-  const stateCount = automaton.states.length
-  if (stateCount === 0) return
 
   const totalBits = bitNumber.value + inputBits.value // = |Z^n x X^n|
   const nextId = automaton.transitions.length
@@ -90,7 +88,7 @@ function addTransitionRow() {
   const xBits = global.slice(bitNumber.value)
 
   const fromIndex = parseInt(zBits, 2)
-  if (fromIndex < 0 || fromIndex >= stateCount) return
+  if (fromIndex < 0 || fromIndex >= automaton.states.length) return
 
   const fromState = automaton.states[fromIndex]
   if (!fromState) return
@@ -105,7 +103,7 @@ function addTransitionRow() {
     input: xBits,
     output: 'x'.repeat(outputBits.value),
   })
-  AutomatonProject.setLastUpdateSource('table')
+    AutomatonProject.setLastUpdateSource('table')
 }
 
 /**

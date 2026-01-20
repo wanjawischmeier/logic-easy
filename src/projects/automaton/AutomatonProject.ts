@@ -100,9 +100,11 @@ export class AutomatonProject extends Project {
         automatonType: this.setAutomatonType(raw.automatonType),
       }
 
+      const oldData = this.lastImportedFsmData
       if (
-        this.lastImportedFsmData &&
-        JSON.stringify(this.lastImportedFsmData) === JSON.stringify(fsmData)
+        oldData &&
+        JSON.stringify(oldData.states || []) === JSON.stringify(fsmData.states || []) &&
+        JSON.stringify(oldData.transitions || []) === JSON.stringify(fsmData.transitions || [])
       ) {
         return
       }
