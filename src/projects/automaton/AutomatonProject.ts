@@ -1,23 +1,14 @@
 import { Project } from '../Project'
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch} from 'vue'
 import { stateManager } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
 import type { AutomatonProps, AutomatonState, AutomatonType } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
-// flag for edit dominance
-export type UpdateSource = 'automatoneditor' | 'table' | null
-export let lastUpdateSource: UpdateSource = null
-export function getLastUpdateSource(): UpdateSource {
-  return lastUpdateSource
-}
-export function setLastUpdateSource(source: UpdateSource) {
-  lastUpdateSource = source
-}
-
-
-// types to avoid "any" type and validate types
+/*
+ ** interfaces
+ */
 interface RawFsmTransition {
   id?: string | number
   from?: string | number
@@ -32,140 +23,166 @@ interface RawFsmState {
   final?: boolean | null
 }
 
-// set fixed automaton type
-function setAutomatonType(value: unknown): AutomatonType {
-  return value === 'moore' ? 'moore' : 'mealy'
-}
-
 interface RawFsmData {
   states?: unknown
   transitions?: unknown
   automatonType?: unknown
 }
 
-// according to interfaces above: parsing to really use correct types in this module (depending less on fsm engine)
-const parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
-  const tr = raw as RawFsmTransition
-  const label = String(tr.label ?? '')
-  const parts = label.split('/')
-
-  return {
-    id: Number(tr.id ?? 0),
-    from: Number(tr.from ?? 0),
-    to: Number(tr.to ?? 0),
-    input: parts[0] || '0',
-    output: parts[1] || '0',
-  }
-}
-
-const parseRawState = (raw: unknown): AutomatonState['states'][number] => {
-  const s = raw as RawFsmState
-
-  const id = Number(s.id ?? 0)
-
-  return {
-    id,
-    name: s.name ?? `q${id}`,
-    initial: s.initial ?? false,
-    final: s.final ?? false,
-  }
-}
-
 /*
- * export fsm <-> table variables and functions
+ ** export type definitions
  */
 export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
-let updateFromEditor = false
-// prevention flags: no double one-way export without exchange
-let lastImportedFsmData: AutomatonState | null = null
-let lastSentFsmData: AutomatonState | null = null
 
-// message listener + handler for export fsm editor <-> state table
-const listenerHandler = (event: MessageEvent) => {
-  if (event.data?.action === 'export') {
-    const raw = event.data.fsm as RawFsmData
+// flag: which component is editing at the moment
+export type UpdateSource = 'automatoneditor' | 'table' | null
 
-    const states = Array.isArray(raw.states) ? raw.states.map(parseRawState) : []
-
-    const transitions = Array.isArray(raw.transitions)
-      ? raw.transitions.map(parseRawTransition)
-      : []
-
-    const fsmData: AutomatonState = {
-      states,
-      transitions,
-      automatonType: setAutomatonType(raw.automatonType),
-    }
-
-    if (lastImportedFsmData && JSON.stringify(lastImportedFsmData) === JSON.stringify(fsmData)) {
-      return
-    }
-    lastImportedFsmData = fsmData
-
-    lastUpdateSource = 'automatoneditor'
-
-    updateFromEditor = true
-    stateManager.state.automaton = fsmData
-    updateFromEditor = false
-    lastUpdateSource = null
-  }
-}
-
-let listenerAttached = false
-
-function ensureFsmListener() {
-  if (!listenerAttached) {
-    window.addEventListener('message', listenerHandler)
-    listenerAttached = true
-  }
-}
-
-function disposeFsmListener() {
-  if (listenerAttached) {
-    window.removeEventListener('message', listenerHandler)
-    listenerAttached = false
-  }
-}
-
-// helper function to get iframe
-function getFsmIframe(): HTMLIFrameElement | undefined {
-  return (window as unknown as Window & { __fsm_preloaded_iframe?: HTMLIFrameElement })
-    .__fsm_preloaded_iframe
-}
-
+/*
+ ** class including all export functions and variables
+ */
 export class AutomatonProject extends Project {
+  // static attributes / flags
+  private static lastUpdateSource: UpdateSource = null
+  private static updateFromEditor = false
+  private static lastImportedFsmData: AutomatonState | null = null
+  private static lastSentFsmData: AutomatonState | null = null
+  private static listenerAttached = false
+  private static fsmiFrameReady = false
+
+  // getter / setter for other components
+  static getLastUpdateSource(): UpdateSource {
+    return this.lastUpdateSource
+  }
+
+  static setLastUpdateSource(source: UpdateSource) {
+    this.lastUpdateSource = source
+  }
+
+  private static setAutomatonType(value: unknown): AutomatonType {
+    return value === 'moore' ? 'moore' : ''
+  }
+
+  // import parser -> save data in predefined types, independent from fsm engine
+  private static parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
+    const tr = raw as RawFsmTransition
+    const label = String(tr.label ?? '')
+    const parts = label.split('/')
+    return {
+      id: Number(tr.id ?? 0),
+      from: Number(tr.from ?? 0),
+      to: Number(tr.to ?? 0),
+      input: parts[0] || '0',
+      output: parts[1] || '0',
+    }
+  }
+
+  private static parseRawState = (raw: unknown): AutomatonState['states'][number] => {
+    const s = raw as RawFsmState
+    const id = Number(s.id ?? 0)
+    return {
+      id,
+      name: s.name ?? `q${id}`,
+      initial: s.initial ?? false,
+      final: s.final ?? false,
+    }
+  }
+
+  // iframe access
+  static getFsmIframe(): HTMLIFrameElement | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (window as any).__fsm_preloaded_iframe as HTMLIFrameElement | undefined
+  }
+
+  // event listener setup for export / import fsm-engine<->state
+  private static handleMessage(event: MessageEvent) {
+    if (event.data?.action === 'export') {
+      const raw = event.data.fsm as RawFsmData
+      const states = Array.isArray(raw.states) ? raw.states.map((r) => this.parseRawState(r)) : []
+      const transitions = Array.isArray(raw.transitions) ? raw.transitions.map((r) => this.parseRawTransition(r)) : []
+      const fsmData: AutomatonState = {
+        states,
+        transitions,
+        automatonType: this.setAutomatonType(raw.automatonType),
+      }
+
+      if (
+        this.lastImportedFsmData &&
+        JSON.stringify(this.lastImportedFsmData) === JSON.stringify(fsmData)
+      ) {
+        return
+      }
+
+      this.lastImportedFsmData = fsmData
+      this.lastUpdateSource = 'automatoneditor'
+      this.updateFromEditor = true
+      stateManager.state.automaton = fsmData
+      this.updateFromEditor = false
+      this.lastUpdateSource = null
+    }
+  }
+
+  private static handleMessageRef = (event: MessageEvent) => AutomatonProject.handleMessage(event)
+
+  static attachFsmListener() {
+    if (this.listenerAttached) return
+    window.addEventListener('message', this.handleMessageRef)
+    window.addEventListener('__fsm_preloaded_iframe-ready', () => {
+      this.fsmiFrameReady = true
+    })
+    this.listenerAttached = true
+  }
+
+  static disposeFsmListener() {
+    if (this.listenerAttached) {
+      window.removeEventListener('message', this.handleMessageRef)
+      window.removeEventListener('__fsm_preloaded_iframe-ready', () => {
+        this.fsmiFrameReady = true
+      })
+      this.listenerAttached = false
+    }
+  }
+
+  // vue API functions
   static override get defaultProps(): AutomatonProps {
     return {
       name: '',
-      automatonType: 'mealy',
+      automatonType: '',
     }
   }
 
   static override useState() {
-    onMounted(ensureFsmListener)
-
-    const automaton = computed(
-      () => stateManager.state.automaton || { states: [], transitions: [], automatonType: 'mealy' },
-    )
-
-    let fsmiFrameReady = false
-    function markFsmiFrameReady() {
-      fsmiFrameReady = true
-    }
-
-    window.addEventListener('__fsm_preloaded_iframe-ready', () => {
-      markFsmiFrameReady()
+    onMounted(() => {
+      AutomatonProject.attachFsmListener()
     })
 
-    // debouncing
+    const automaton = computed(
+      () =>
+        stateManager.state.automaton || {
+          states: [],
+          transitions: [],
+          automatonType: '',
+        },
+    )
+
+    // amount of bits for binary state coding
+    const bitNumber = computed(() => {
+      return Math.max(states.value.length.toString(2).length, 1)
+    })
+
     let automatonDebounce: number | null = null
 
     watch(
       () => stateManager.state.automaton,
       (val) => {
         console.log('watch in automatonproject activated')
-        if (!val || updateFromEditor || !fsmiFrameReady || lastUpdateSource !== 'table') return
-
+        if (
+          !val ||
+          AutomatonProject.updateFromEditor ||
+          !AutomatonProject.fsmiFrameReady ||
+          AutomatonProject.getLastUpdateSource() !== 'table'
+        ) {
+          return
+        }
         if (automatonDebounce !== null) {
           clearTimeout(automatonDebounce)
         }
@@ -185,15 +202,17 @@ export class AutomatonProject extends Project {
               input: t.input,
               output: t.output,
             })),
-            automatonType: setAutomatonType(val.automatonType),
+            automatonType: AutomatonProject.setAutomatonType(val.automatonType),
           }
 
-          if (lastSentFsmData && JSON.stringify(lastSentFsmData) === JSON.stringify(actualState)) {
+          if (
+            AutomatonProject.lastSentFsmData &&
+            JSON.stringify(AutomatonProject.lastSentFsmData) === JSON.stringify(actualState)
+          ) {
             return
           }
-          lastSentFsmData = actualState
-
-          const fsmIframe = getFsmIframe()
+          AutomatonProject.lastSentFsmData = actualState
+          const fsmIframe = AutomatonProject.getFsmIframe()
           if (!fsmIframe || !fsmIframe.contentWindow) return
 
           fsmIframe.contentWindow.postMessage(
@@ -208,26 +227,10 @@ export class AutomatonProject extends Project {
       { deep: true },
     )
 
-    //basic attributes
+    // basic attributes
     const states = computed(() => automaton.value.states || [])
     const transitions = computed(() => automaton.value.transitions || [])
-    const automatonType = computed(() => automaton.value.automatonType || 'mealy')
-
-    // amount of bits for binary state coding
-    const bitNumber = computed(() => {
-      const n = states.value.length
-      return n === 0 ? 1 : Math.ceil(Math.log2(Math.max(n, 1)))
-    })
-
-    // binary ids of states
-    const binaryIDs = computed(() => {
-      return states.value.map((state) => {
-        const idNum = Number(state.id)
-        return isNaN(idNum)
-          ? '0'.padStart(bitNumber.value, '0')
-          : idNum.toString(2).padStart(bitNumber.value, '0')
-      })
-    })
+    const automatonType = computed(() => automaton.value.automatonType || '')
 
     // state index map for quick lookup
     const stateIndexMap = computed(() => {
@@ -238,10 +241,20 @@ export class AutomatonProject extends Project {
       return map
     })
 
+    // binary ids of states
+    const binaryIDs = computed(() => {
+      return states.value.map((state) => {
+        const idNum = Number(state.id)
+        return Number.isNaN(idNum)
+          ? '0'.padStart(bitNumber.value, '0')
+          : idNum.toString(2).padStart(bitNumber.value, '0')
+      })
+    })
+
     // binary ids of states in transitions
     const binaryTransitions = computed(() => {
       return transitions.value.map((tr) => {
-        const fromIndex = stateIndexMap.value.get(tr.from) ?? 0 // same coding
+        const fromIndex = stateIndexMap.value.get(tr.from) ?? 0
         const toIndex = stateIndexMap.value.get(tr.to) ?? 0
 
         return {
@@ -286,30 +299,23 @@ export class AutomatonProject extends Project {
 
   static override restoreDefaultPanelLayout(props: AutomatonProps) {
     // TODO: create default panel -> not really important since choosing is necessary to init project
-
     // create FSM editor panel as default
     console.log('[AutomatonProject.restoreDefaultPanelLayout] applying default layout')
-
     createPanel('fsm-engine', 'FSM Engine', undefined, {
       automatonType: props.automatonType,
     })
   }
 
   static override createState(props: AutomatonProps) {
-    console.log('[AutomatonProject.createState] Initializing project state')
-
     // Initialize empty automaton state
     stateManager.state.automaton = {
       states: [],
       transitions: [],
       automatonType: props.automatonType,
     }
-
     console.log('[AutomatonProject.createState] State initialized')
   }
 }
-
-export { disposeFsmListener, ensureFsmListener }
 
 registerProjectType('automaton', {
   name: 'State Machine', // TODO: not really used!

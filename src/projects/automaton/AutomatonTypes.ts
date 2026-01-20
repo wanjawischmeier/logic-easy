@@ -1,7 +1,7 @@
 import type { BaseProjectProps } from '../Project'
 
 // define automaton type
-export type AutomatonType = 'mealy' | 'moore'
+export type AutomatonType = 'mealy' | 'moore' | ''
 
 // Default values for AutomatonProps
 export interface AutomatonProps extends BaseProjectProps {
