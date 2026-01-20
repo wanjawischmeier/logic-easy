@@ -1,5 +1,5 @@
 import { Project } from '../Project'
-import { computed, onMounted, watch} from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { stateManager } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
@@ -7,7 +7,7 @@ import type { AutomatonProps, AutomatonState, AutomatonType } from './AutomatonT
 import { createPanel } from '@/utility/dockview/integration'
 
 /*
- ** interfaces
+ * interfaces 
  */
 interface RawFsmTransition {
   id?: string | number
@@ -30,18 +30,16 @@ interface RawFsmData {
 }
 
 /*
- ** export type definitions
+ * export type definitions
  */
 export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
 
-// flag: which component is editing at the moment
 export type UpdateSource = 'automatoneditor' | 'table' | null
 
 /*
- ** class including all export functions and variables
+ * automaton project class including export / import functions
  */
 export class AutomatonProject extends Project {
-  // static attributes / flags
   private static lastUpdateSource: UpdateSource = null
   private static updateFromEditor = false
   private static lastImportedFsmData: AutomatonState | null = null
@@ -49,7 +47,6 @@ export class AutomatonProject extends Project {
   private static listenerAttached = false
   private static fsmiFrameReady = false
 
-  // getter / setter for other components
   static getLastUpdateSource(): UpdateSource {
     return this.lastUpdateSource
   }
@@ -62,7 +59,6 @@ export class AutomatonProject extends Project {
     return value === 'moore' ? 'moore' : ''
   }
 
-  // import parser -> save data in predefined types, independent from fsm engine
   private static parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
     const tr = raw as RawFsmTransition
     const label = String(tr.label ?? '')
@@ -87,13 +83,11 @@ export class AutomatonProject extends Project {
     }
   }
 
-  // iframe access
   static getFsmIframe(): HTMLIFrameElement | undefined {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (window as any).__fsm_preloaded_iframe as HTMLIFrameElement | undefined
   }
 
-  // event listener setup for export / import fsm-engine<->state
   private static handleMessage(event: MessageEvent) {
     if (event.data?.action === 'export') {
       const raw = event.data.fsm as RawFsmData
@@ -142,7 +136,6 @@ export class AutomatonProject extends Project {
     }
   }
 
-  // vue API functions
   static override get defaultProps(): AutomatonProps {
     return {
       name: '',
@@ -156,17 +149,65 @@ export class AutomatonProject extends Project {
     })
 
     const automaton = computed(
-      () =>
-        stateManager.state.automaton || {
-          states: [],
-          transitions: [],
-          automatonType: '',
-        },
+      () => stateManager.state.automaton || {
+        states: [],
+        transitions: [],
+        automatonType: '',
+      },
     )
 
-    // amount of bits for binary state coding
+    const states = computed(() => automaton.value.states || [])
+    const transitions = computed(() => automaton.value.transitions || [])
+    const automatonType = computed(() => automaton.value.automatonType || '')
+
+    // bitNumber (definiert vor binaryIDs)
     const bitNumber = computed(() => {
       return Math.max(states.value.length.toString(2).length, 1)
+    })
+
+    const stateIndexMap = computed(() => {
+      const map = new Map<string | number, number>()
+      states.value.forEach((state, index) => {
+        map.set(state.id, index)
+      })
+      return map
+    })
+
+    const binaryIDs = computed(() => {
+      return states.value.map((state) => {
+        const idNum = Number(state.id)
+        return Number.isNaN(idNum)
+          ? '0'.padStart(bitNumber.value, '0')
+          : idNum.toString(2).padStart(bitNumber.value, '0')
+      })
+    })
+
+    const binaryTransitions = computed(() => {
+      return transitions.value.map((tr) => {
+        const fromIndex = stateIndexMap.value.get(tr.from) ?? 0
+        const toIndex = stateIndexMap.value.get(tr.to) ?? 0
+
+        return {
+          ...tr,
+          fromBinary: binaryIDs.value[fromIndex],
+          toBinary: binaryIDs.value[toIndex],
+        }
+      })
+    })
+
+    const inputSymbols = computed(() => {
+      const symbols = new Set(transitions.value.map((tr) => tr.input).filter(Boolean))
+      return symbols.size === 0 ? ['0'] : Array.from(symbols).sort()
+    })
+
+    const inputBits = computed(() => {
+      const first = inputSymbols.value[0]
+      return first ? first.length : 1
+    })
+
+    const outputBits = computed(() => {
+      const lengths = transitions.value.map((tr) => (tr.output || '').length)
+      return Math.max(...lengths, 1)
     })
 
     let automatonDebounce: number | null = null
@@ -227,60 +268,6 @@ export class AutomatonProject extends Project {
       { deep: true },
     )
 
-    // basic attributes
-    const states = computed(() => automaton.value.states || [])
-    const transitions = computed(() => automaton.value.transitions || [])
-    const automatonType = computed(() => automaton.value.automatonType || '')
-
-    // state index map for quick lookup
-    const stateIndexMap = computed(() => {
-      const map = new Map<string | number, number>()
-      states.value.forEach((state, index) => {
-        map.set(state.id, index)
-      })
-      return map
-    })
-
-    // binary ids of states
-    const binaryIDs = computed(() => {
-      return states.value.map((state) => {
-        const idNum = Number(state.id)
-        return Number.isNaN(idNum)
-          ? '0'.padStart(bitNumber.value, '0')
-          : idNum.toString(2).padStart(bitNumber.value, '0')
-      })
-    })
-
-    // binary ids of states in transitions
-    const binaryTransitions = computed(() => {
-      return transitions.value.map((tr) => {
-        const fromIndex = stateIndexMap.value.get(tr.from) ?? 0
-        const toIndex = stateIndexMap.value.get(tr.to) ?? 0
-
-        return {
-          ...tr,
-          fromBinary: binaryIDs.value[fromIndex],
-          toBinary: binaryIDs.value[toIndex],
-        }
-      })
-    })
-
-    // unique inputs from transitions
-    const inputSymbols = computed(() => {
-      const symbols = new Set(transitions.value.map((tr) => tr.input).filter(Boolean))
-      return symbols.size === 0 ? ['0'] : Array.from(symbols).sort()
-    })
-
-    const inputBits = computed(() => {
-      const first = inputSymbols.value[0]
-      return first ? first.length : 1
-    })
-
-    const outputBits = computed(() => {
-      const lengths = transitions.value.map((tr) => (tr.output || '').length)
-      return Math.max(...lengths, 1)
-    })
-
     return {
       state: automaton,
       automaton,
@@ -298,8 +285,6 @@ export class AutomatonProject extends Project {
   }
 
   static override restoreDefaultPanelLayout(props: AutomatonProps) {
-    // TODO: create default panel -> not really important since choosing is necessary to init project
-    // create FSM editor panel as default
     console.log('[AutomatonProject.restoreDefaultPanelLayout] applying default layout')
     createPanel('fsm-engine', 'FSM Engine', undefined, {
       automatonType: props.automatonType,
@@ -307,7 +292,6 @@ export class AutomatonProject extends Project {
   }
 
   static override createState(props: AutomatonProps) {
-    // Initialize empty automaton state
     stateManager.state.automaton = {
       states: [],
       transitions: [],

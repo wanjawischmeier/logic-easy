@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import {
-  AutomatonProject,
-  type AutomatonState,
-} from '@/projects/automaton/AutomatonProject'
+import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
 import { stateManager } from '@/projects/stateManager'
 import { onMounted } from 'vue'
 
-const {
-  states, transitions, binaryIDs, binaryTransitions,
-  bitNumber, inputBits, outputBits
-} = AutomatonProject.useState()
+/**
+ * manage central data
+ */
 
-// single source of truth
+// bundle all reactive data of automaton
+const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits, outputBits } =
+  AutomatonProject.useState()
+
+// access to global automaton state
 const getAutomaton = (): AutomatonState => {
   if (!stateManager.state.automaton) {
     stateManager.state.automaton = {
@@ -29,30 +29,48 @@ onMounted(() => {
   if (automaton.transitions?.length === 0) {
     const from = automaton.states?.[0]?.id ?? 0
     const to = automaton.states?.[0]?.id ?? 0
-    automaton.transitions = [{
-      id: 0, from, to, input: '0', output: 'x'
-    }]
+    automaton.transitions = [
+      {
+        id: 0,
+        from,
+        to,
+        input: '0',
+        output: 'x',
+      },
+    ]
     AutomatonProject.setLastUpdateSource('table')
   }
 })
 
+/**
+ * helper functions to edit table in table panel
+ */
+
 function addStateRow() {
   const automaton = getAutomaton()
   const nextId = automaton.states.length
+  // set attributes and add new state
   automaton.states.push({
-    id: nextId, name: `q${nextId}`, initial: nextId === 0, final: false
+    id: nextId,
+    name: `q${nextId}`,
+    initial: nextId === 0,
+    final: false,
   })
-
-  const combPerState = 1 << inputBits.value
-  const defaultState = automaton.states.find(s => s.id === 0) ?? automaton.states[0]
+  const defaultState = automaton.states.find((s) => s.id === 0) ?? automaton.states[0]
   const to = defaultState?.id ?? 0
+
+  // compute amount of possible transitions (2^n) per state
+  const combPerState = 1 << inputBits.value
 
   for (let xIndex = 0; xIndex < combPerState; xIndex++) {
     const xBits = xIndex.toString(2).padStart(inputBits.value, '0')
     const id = automaton.transitions.length
     automaton.transitions.push({
-      id, from: nextId, to, input: xBits,
-      output: 'x'.repeat(outputBits.value)
+      id,
+      from: nextId,
+      to,
+      input: xBits,
+      output: 'x'.repeat(outputBits.value),
     })
   }
   AutomatonProject.setLastUpdateSource('table')
@@ -63,9 +81,9 @@ function addTransitionRow() {
   const stateCount = automaton.states.length
   if (stateCount === 0) return
 
-  const totalBits = bitNumber.value + inputBits.value
+  const totalBits = bitNumber.value + inputBits.value // = |Z^n x X^n|
   const nextId = automaton.transitions.length
-  if (nextId >= (1 << totalBits)) return
+  if (nextId >= 1 << totalBits) return
 
   const global = nextId.toString(2).padStart(totalBits, '0')
   const zBits = global.slice(0, bitNumber.value)
@@ -77,20 +95,28 @@ function addTransitionRow() {
   const fromState = automaton.states[fromIndex]
   if (!fromState) return
 
-  const defaultState = automaton.states.find(s => s.id === 0) ?? automaton.states[0]
+  const defaultState = automaton.states.find((s) => s.id === 0) ?? automaton.states[0]
   const to = defaultState?.id ?? 0
 
   automaton.transitions.push({
-    id: nextId, from: fromState.id, to, input: xBits,
-    output: 'x'.repeat(outputBits.value)
+    id: nextId,
+    from: fromState.id,
+    to,
+    input: xBits,
+    output: 'x'.repeat(outputBits.value),
   })
   AutomatonProject.setLastUpdateSource('table')
 }
 
+/**
+ * helper functions to display automaton data correctly in table
+ */
+// compute amount of necessary bits (x) to be displayed
 function normalizeBitsToX(value: string | undefined, length: number): string {
   return (value ?? '').padEnd(length, 'x')
 }
 
+// remap "to" if Z^n+1 is edited
 function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   const tr = transitions.value[idx]
   if (!tr) return
@@ -111,6 +137,7 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   tr.to = targetState.id
 }
 
+// sort whole table based on [Z^nX]
 function sortTransitionsByZX() {
   const automaton = getAutomaton()
   const tr = automaton.transitions ?? []
