@@ -45,7 +45,6 @@ export class AutomatonProject extends Project {
   private static lastImportedFsmData: AutomatonState | null = null
   private static lastSentFsmData: AutomatonState | null = null
   private static listenerAttached = false
-  private static fsmiFrameReady = false
 
   static getLastUpdateSource(): UpdateSource {
     return this.lastUpdateSource
@@ -92,7 +91,9 @@ export class AutomatonProject extends Project {
     if (event.data?.action === 'export') {
       const raw = event.data.fsm as RawFsmData
       const states = Array.isArray(raw.states) ? raw.states.map((r) => this.parseRawState(r)) : []
-      const transitions = Array.isArray(raw.transitions) ? raw.transitions.map((r) => this.parseRawTransition(r)) : []
+      const transitions = Array.isArray(raw.transitions)
+        ? raw.transitions.map((r) => this.parseRawTransition(r))
+        : []
       const fsmData: AutomatonState = {
         states,
         transitions,
@@ -106,12 +107,12 @@ export class AutomatonProject extends Project {
         return
       }
 
-      this.lastImportedFsmData = fsmData
-      this.lastUpdateSource = 'automatoneditor'
+      const wasTable = this.getLastUpdateSource() === 'table'
       this.updateFromEditor = true
       stateManager.state.automaton = fsmData
       this.updateFromEditor = false
-      this.lastUpdateSource = null
+      if (wasTable) this.setLastUpdateSource('table')
+      else this.lastUpdateSource = null
     }
   }
 
@@ -120,18 +121,12 @@ export class AutomatonProject extends Project {
   static attachFsmListener() {
     if (this.listenerAttached) return
     window.addEventListener('message', this.handleMessageRef)
-    window.addEventListener('__fsm_preloaded_iframe-ready', () => {
-      this.fsmiFrameReady = true
-    })
     this.listenerAttached = true
   }
 
   static disposeFsmListener() {
     if (this.listenerAttached) {
       window.removeEventListener('message', this.handleMessageRef)
-      window.removeEventListener('__fsm_preloaded_iframe-ready', () => {
-        this.fsmiFrameReady = true
-      })
       this.listenerAttached = false
     }
   }
@@ -149,11 +144,12 @@ export class AutomatonProject extends Project {
     })
 
     const automaton = computed(
-      () => stateManager.state.automaton || {
-        states: [],
-        transitions: [],
-        automatonType: '',
-      },
+      () =>
+        stateManager.state.automaton || {
+          states: [],
+          transitions: [],
+          automatonType: '',
+        },
     )
 
     const states = computed(() => automaton.value.states || [])
@@ -219,8 +215,7 @@ export class AutomatonProject extends Project {
         if (
           !val ||
           AutomatonProject.updateFromEditor ||
-          !AutomatonProject.fsmiFrameReady ||
-          AutomatonProject.getLastUpdateSource() !== 'table'
+          AutomatonProject.getLastUpdateSource() === 'automatoneditor'
         ) {
           return
         }
@@ -300,9 +295,9 @@ export class AutomatonProject extends Project {
     console.log('[AutomatonProject.createState] State initialized')
   }
 
-    static override validateState(state: AppState): boolean {
-        return state.automaton != undefined;
-    }
+  static override validateState(state: AppState): boolean {
+    return state.automaton != undefined
+  }
 }
 
 registerProjectType('automaton', {
