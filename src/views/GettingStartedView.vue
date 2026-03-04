@@ -31,7 +31,6 @@ import { newMenu, type MenuEntry } from '@/router/dockRegistry';
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue';
 import { projectManager } from '@/projects/projectManager';
 import { showProjectCreationPopup } from '@/utility/popupService';
-import { projectTypes } from '@/projects/projectRegistry';
 
 interface ListEntry {
   label: string;
@@ -99,9 +98,7 @@ export default defineComponent({
         const dateStr = formatDate(project.lastModified);
 
         // Get project type name
-        const projectTypeInfo = projectTypes[project.projectType];
-        const projectTypeName = projectTypeInfo?.name || project.projectType;
-        const subtitle = `${dateStr} · ${projectTypeName}`;
+        const subtitle = `${dateStr}`;
 
         return {
           label: displayName,

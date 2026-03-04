@@ -16,7 +16,7 @@
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center overflow-auto">
+      <div data-screenshot-ignore class="h-full flex flex-col items-center">
         <div v-if="(qmcResult?.iterations.length ?? 0) !== 0"
           class="flex-1 flex items-center justify-center overflow-auto w-full">
           <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"
@@ -38,12 +38,15 @@
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
         <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4">
-          <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="index" :formulas="{}" :functionType="functionType"
-            @values-changed="tableValues = $event" />
+          <vue-latex :fontsize="14" :expression="`\\text{Output Variable:}${outputVar}`" />
 
-          <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
-          </FormulaRenderer>
+          <QMCGroupingTable :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
+            :qmc-result="qmcResult" />
+
+          <QMCPrimeImplicantChart :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
+            :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex" />
         </div>
       </div>
     </div>
@@ -54,7 +57,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import KVDiagram from '@/components/KVDiagram.vue';
 import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'

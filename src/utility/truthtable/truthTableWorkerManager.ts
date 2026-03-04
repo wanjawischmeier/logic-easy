@@ -79,6 +79,9 @@ class TruthTableWorkerManager {
             if (response.selectedFormula !== undefined) {
                 stateManager.state.truthTable.selectedFormula = response.selectedFormula;
             }
+            if (response.formulaTermColors !== undefined) {
+                stateManager.state.truthTable.formulaTermColors = response.formulaTermColors;
+            }
         }
 
         // Mark as no longer running and record completion time

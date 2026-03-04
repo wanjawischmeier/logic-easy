@@ -1,7 +1,8 @@
 import { Minimizer, type QMCResult } from './minimizer';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
-import type { FunctionType, Formula, Literal, Term } from '@/utility/types';
-import type { Operation } from 'logi.js';
+import type { FunctionType, Formula } from '@/utility/types';
+import { generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
+import { analyzeExpressions, detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
 
 // Message types for worker communication
 export interface WorkerRequest {
@@ -15,217 +16,58 @@ export interface WorkerResponse {
     formulas: Record<string, Formula | undefined>;
     couplingTermLatex: string | undefined;
     selectedFormula: Formula | undefined;
+    formulaTermColors: TermColor[] | undefined;
 }
 
 /**
- * Helper to parse a single literal (VAR or NOT(VAR))
+ * Creates a QMC result for edge cases (tautology/contradiction)
  */
-function parseLiteral(expression: Operation): Literal | null {
-    // Handle NOT
-    if ((expression as any).priority === 15) {
-        const inner = (expression as any).args?.[0];
-        if (inner && (inner as any).name !== undefined) {
-            return {
-                variable: (inner as any).name.toLowerCase(),
-                negated: true
-            };
-        }
-    }
+function createEdgeCaseResult(
+    type: 'tautology' | 'contradiction',
+    functionType: FunctionType,
+    inputVars: string[]
+): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
+    const isDNF = functionType === 'DNF';
+    const formType = isDNF ? 'DMF' : 'CMF';
+    const signature = `f_{${formType}}(${inputVars.join(', ')}) = `;
 
-    // Handle VAR
-    if ((expression as any).name !== undefined) {
-        return {
-            variable: (expression as any).name.toLowerCase(),
-            negated: false
-        };
-    }
+    let constant: '0' | '1';
 
-    return null;
-}
-
-/**
- * Convert QMC expression to Formula, choosing first option when there are multiple
- */
-function flattenCouplingTermsToFormula(
-    expression: Operation,
-    functionType: FunctionType
-): Formula {
-    const terms: Term[] = [];
-
-    // Check for constant expressions (tautology '1' or contradiction '0')
-    if ((expression as any).name === '1') {
-        return {
-            type: functionType,
-            terms: [{ literals: [{ variable: '1', negated: false }] }]
-        };
-    }
-    if ((expression as any).name === '0') {
-        return {
-            type: functionType,
-            terms: [{ literals: [{ variable: '0', negated: false }] }]
-        };
-    }
-
-    if (functionType === 'CNF') {
-        // CNF: AND of OR clauses
-        if ((expression as any).priority === 8) {
-            const args = (expression as any).args as Operation[];
-            for (const clauseOp of args) {
-                const literals: Literal[] = [];
-                if ((clauseOp as any).priority === 6) {
-                    const orArgs = (clauseOp as any).args as Operation[];
-                    for (const lit of orArgs) {
-                        const literal = parseLiteral(lit);
-                        if (literal) literals.push(literal);
-                    }
-                } else {
-                    const literal = parseLiteral(clauseOp);
-                    if (literal) literals.push(literal);
-                }
-                if (literals.length > 0) {
-                    terms.push({ literals });
-                }
-            }
-        } else if ((expression as any).priority === 6) {
-            const literals: Literal[] = [];
-            const args = (expression as any).args as Operation[];
-            for (const lit of args) {
-                const literal = parseLiteral(lit);
-                if (literal) literals.push(literal);
-            }
-            if (literals.length > 0) {
-                terms.push({ literals });
-            }
-        } else {
-            const literal = parseLiteral(expression);
-            if (literal) {
-                terms.push({ literals: [literal] });
-            }
-        }
+    if (type === 'tautology') {
+        // Tautology: all 1s/don't cares
+        // DNF: f = 1
+        // CNF: f = 1
+        constant = '1';
     } else {
-        // DNF: OR of AND terms
-        if ((expression as any).priority === 6) {
-            const args = (expression as any).args as Operation[];
-            for (const termOp of args) {
-                const literals: Literal[] = [];
-                if ((termOp as any).priority === 8) {
-                    const andArgs = (termOp as any).args as Operation[];
-                    for (const lit of andArgs) {
-                        const literal = parseLiteral(lit);
-                        if (literal) literals.push(literal);
-                    }
-                } else {
-                    const literal = parseLiteral(termOp);
-                    if (literal) literals.push(literal);
-                }
-                if (literals.length > 0) {
-                    terms.push({ literals });
-                }
-            }
-        } else if ((expression as any).priority === 8) {
-            const literals: Literal[] = [];
-            const args = (expression as any).args as Operation[];
-            for (const lit of args) {
-                const literal = parseLiteral(lit);
-                if (literal) literals.push(literal);
-            }
-            if (literals.length > 0) {
-                terms.push({ literals });
-            }
-        } else {
-            const literal = parseLiteral(expression);
-            if (literal) {
-                terms.push({ literals: [literal] });
-            }
-        }
+        // Contradiction: all 0s/don't cares
+        // DNF: f = 0
+        // CNF: f = 0
+        constant = '0';
     }
 
-    console.log('[qmcExpressionToFormula] Input:', expression, 'Output terms:', terms);
-    return {
+    const formula: Formula = {
         type: functionType,
-        terms: terms
+        terms: [{ literals: [{ variable: constant, negated: false }] }]
     };
-}
 
-/**
- * Convert Operation to custom LaTeX string (lowercase variables, no operators)
- */
-function operationToLatex(op: Operation, isCNF: boolean = false): string {
-    if ((op as any).name !== undefined) {
-        return (op as any).name.toLowerCase();
-    }
+    // Create a default color for the edge case (used for highlighting all cells in KV diagram)
+    const defaultColor: TermColor = {
+        border: 'hsla(210, 100%, 50%, 0.8)',
+        fill: 'hsla(210, 100%, 50%, 0.3)'
+    };
 
-    if ((op as any).priority === 15) {
-        const inner = (op as any).args[0];
-        return `\\bar{${operationToLatex(inner, isCNF)}}`;
-    }
+    const qmcResult: QMCResult = {
+        iterations: [],
+        minterms: [],
+        pis: [],
+        chart: null,
+        expressions: [{ name: constant } as any],
+        termColors: [defaultColor]
+    };
 
-    if ((op as any).priority === 8) {
-        const args = (op as any).args as Operation[];
-        if (isCNF) {
-            return args.map(arg => operationToLatex(arg, isCNF)).join('');
-        } else {
-            return args.map(arg => operationToLatex(arg, isCNF)).join('');
-        }
-    }
+    const couplingTermLatex = signature + constant;
 
-    if ((op as any).priority === 6) {
-        const args = (op as any).args as Operation[];
-        if (isCNF) {
-            const sum = args.map(arg => operationToLatex(arg, isCNF)).join(' + ');
-            return args.length > 1 ? `(${sum})` : sum;
-        } else {
-            return args.map(arg => operationToLatex(arg, isCNF)).join(' + ');
-        }
-    }
-
-    return '';
-}
-
-/**
- * Parse an expression into individual terms
- */
-function getTerms(expr: Operation, isCNF: boolean): string[] {
-    const latex = operationToLatex(expr, isCNF);
-    if (isCNF) {
-        const matches = latex.match(/\([^)]+\)|[^()\s]+/g) || [];
-        return matches.map(t => t.trim());
-    } else {
-        return latex.split(' + ').map(t => t.trim());
-    }
-}
-
-/**
- * Analyze expressions to find common terms and variable positions
- */
-function analyzeExpressions(exprs: Operation[], isCNF: boolean): { constantTerms: string[], variablePositions: string[][] } {
-    if (exprs.length === 0) return { constantTerms: [], variablePositions: [] };
-    if (exprs.length === 1) return { constantTerms: getTerms(exprs[0]!, isCNF), variablePositions: [] };
-
-    const allTerms = exprs.map(expr => getTerms(expr, isCNF));
-    const maxLength = Math.max(...allTerms.map(t => t.length));
-
-    const paddedTerms = allTerms.map(terms => {
-        const padded = [...terms];
-        while (padded.length < maxLength) padded.push('');
-        return padded;
-    });
-
-    const constantTerms: string[] = [];
-    const variablePositions: string[][] = [];
-
-    for (let pos = 0; pos < maxLength; pos++) {
-        const termsAtPos = paddedTerms.map(terms => terms[pos]!).filter(t => t !== '');
-        const uniqueTerms = Array.from(new Set(termsAtPos));
-
-        if (uniqueTerms.length === 1) {
-            constantTerms.push(uniqueTerms[0]!);
-        } else if (uniqueTerms.length > 1) {
-            variablePositions.push(termsAtPos);
-        }
-    }
-
-    return { constantTerms, variablePositions };
+    return { qmcResult, formula, couplingTermLatex };
 }
 
 /**
@@ -235,7 +77,7 @@ function getTermSortKey(term: string): string {
     return term.replace(/\\bar\{([a-z])\}/g, '$1');
 }
 
-function getCouplingTermLatex(
+export function getCouplingTermLatex(
     qmcResult: QMCResult,
     functionType: FunctionType,
     inputVars: string[]
@@ -284,23 +126,139 @@ function getCouplingTermLatex(
     return signature + partsWithKeys.map(p => p.latex).join(termJoiner);
 }
 
+async function runMinimization(truthTable: TruthTableState, index: number): Promise<QMCResult | undefined> {
+    // Create a modified truth table state for this output variable
+    const modifiedTruthTable = {
+        ...truthTable,
+        outputVariableIndex: index
+    };
+
+    return await Minimizer.runQMC(modifiedTruthTable);
+}
+
+function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermColor[] {
+    // Generate colors for each prime implicant based on their term string
+    // This ensures consistent coloring between QMC chart and KV diagram
+    // Preserve existing colors by matching PI term strings for temporal consistency
+
+    // Get existing QMC result for this output variable to preserve colors
+    const existingQmcResult = truthTable.qmcResult;
+    const existingPIs = existingQmcResult?.pis || [];
+    const existingColors = existingQmcResult?.termColors || [];
+
+    // Build a map of term string -> color from existing results
+    const termColorMap = new Map<string, TermColor>();
+
+    existingPIs.forEach((pi: any, idx: number) => {
+        const color = existingColors[idx]
+        if (pi.term && color) {
+            termColorMap.set(pi.term, color);
+        }
+    });
+
+    // Accumulate all colors as we generate new ones
+    const allColors = Array.from(termColorMap.values());
+
+    return result.pis.map((pi: any) => {
+        // Try to reuse color for this term string if it existed before
+        const existingColor = termColorMap.get(pi.term);
+        if (existingColor) {
+            return existingColor;
+        }
+
+        // Generate a new color that's maximally different from all colors (including newly generated ones)
+        const newColor = generateTermColor(allColors);
+        allColors.push(newColor); // Add to accumulator for next iteration
+        return newColor;
+    });
+}
+
 // Web Worker message handler
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const { id, truthTable } = e.data;
+    if (!truthTable) return
+
+    const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex];
+    if (!currentOutputVar) return
 
     console.log('[TruthTableWorker] Processing request:', id);
 
     try {
-        // Process all output variables in parallel
-        const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex];
-        const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
-            // Create a modified truth table state for this output variable
-            const modifiedTruthTable = {
-                ...truthTable,
-                outputVariableIndex: index
+        // Early detection of tautology/contradiction for current output variable
+        const edgeCase = detectTautologyOrContradiction(
+            truthTable.values,
+            truthTable.outputVariableIndex
+        );
+
+        if (edgeCase !== null) {
+            console.log('[TruthTableWorker] Detected edge case:', edgeCase);
+
+            // Create edge case results for all output variables
+            const qmcResults: Record<string, QMCResult | undefined> = {};
+            const formulas: Record<string, Formula | undefined> = {};
+
+            for (const outputVar of truthTable.outputVars) {
+                const outputIndex = truthTable.outputVars.indexOf(outputVar);
+                const outputEdgeCase = detectTautologyOrContradiction(
+                    truthTable.values,
+                    outputIndex
+                );
+
+                if (outputEdgeCase !== null) {
+                    const edgeResult = createEdgeCaseResult(
+                        outputEdgeCase,
+                        truthTable.functionType,
+                        truthTable.inputVars
+                    );
+                    qmcResults[outputVar] = edgeResult.qmcResult;
+                    formulas[outputVar] = edgeResult.formula;
+                } else {
+                    // This output variable is not an edge case, run QMC normally
+                    const result = await runMinimization(truthTable, outputIndex);
+                    qmcResults[outputVar] = result;
+
+                    if (result && result.expressions && result.expressions.length > 0) {
+                        formulas[outputVar] = flattenCouplingTermsToFormula(
+                            result.expressions[0]!,
+                            truthTable.functionType
+                        );
+                    } else {
+                        formulas[outputVar] = {
+                            type: truthTable.functionType,
+                            terms: [{ literals: [{ variable: '0', negated: false }] }]
+                        };
+                    }
+                }
+            }
+
+            // Get the selected output variable's data
+            const currentEdgeResult = createEdgeCaseResult(
+                edgeCase,
+                truthTable.functionType,
+                truthTable.inputVars
+            );
+
+            const response: WorkerResponse = {
+                id,
+                qmcResults,
+                formulas,
+                couplingTermLatex: currentEdgeResult.couplingTermLatex,
+                selectedFormula: currentEdgeResult.formula,
+                formulaTermColors: currentEdgeResult.qmcResult.termColors
             };
 
-            const result = await Minimizer.runQMC(modifiedTruthTable);
+            self.postMessage(response);
+            return;
+        }
+
+        // Process all output variables in parallel
+        const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
+            const result = await runMinimization(truthTable, index)
+            if (!result || !result.pis) {
+                return { outputVar, result }
+            }
+
+            result.termColors = mapResultColors(truthTable, result)
             return { outputVar, result };
         });
 
@@ -327,9 +285,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         }
 
         // Get the selected output variable's data
-        const currentQmcResult = qmcResults[currentOutputVar!];
+        const currentQmcResult = qmcResults[currentOutputVar];
         let couplingTermLatex: string | undefined;
         let selectedFormula: Formula | undefined;
+        let formulaTermColors: TermColor[] | undefined;
 
         if (currentQmcResult) {
             couplingTermLatex = getCouplingTermLatex(
@@ -337,7 +296,17 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                 truthTable.functionType,
                 truthTable.inputVars
             );
-            selectedFormula = formulas[currentOutputVar!];
+            selectedFormula = formulas[currentOutputVar];
+
+            // Map formula terms to prime implicant colors
+            if (selectedFormula && currentQmcResult.pis && currentQmcResult.termColors) {
+                formulaTermColors = mapFormulaTermsToPIColors(
+                    selectedFormula,
+                    currentQmcResult.pis,
+                    currentQmcResult.termColors,
+                    truthTable.inputVars
+                );
+            }
         }
 
         const response: WorkerResponse = {
@@ -345,7 +314,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
             qmcResults,
             formulas,
             couplingTermLatex,
-            selectedFormula
+            selectedFormula,
+            formulaTermColors
         };
 
         self.postMessage(response);
@@ -357,7 +327,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
             qmcResults: {},
             formulas: {},
             couplingTermLatex: undefined,
-            selectedFormula: undefined
+            selectedFormula: undefined,
+            formulaTermColors: undefined
         };
         self.postMessage(response);
     }
