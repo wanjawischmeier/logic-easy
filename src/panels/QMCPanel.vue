@@ -11,7 +11,7 @@
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType" />
 
-      <DownloadButton :target-ref="screenshotRef" filename="qmc" />
+      <DownloadButton :target-ref="screenshotRef" filename="qmc" :files="downloadFiles" />
     </div>
 
     <div class="h-full" ref="screenshotRef">
@@ -195,4 +195,15 @@ watch(() => values.value, (newVal) => {
   isUpdatingFromState = true
   tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
 }, { deep: true })
+
+const downloadFiles = computed(() => [
+  {
+    label: 'LaTeX',
+    filename: 'kv',
+    extension: 'tex',
+    content: () => couplingTermLatex.value,
+    mimeType: 'text/plain',
+    registerWith: 'latex' as const,
+  },
+])
 </script>
