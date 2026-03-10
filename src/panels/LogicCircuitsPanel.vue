@@ -12,7 +12,7 @@ import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
-const { inputVars, outputVars, formulas } = TruthTableProject.useState()
+const { inputVars, outputVars, formulas, functionType } = TruthTableProject.useState()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
@@ -175,10 +175,11 @@ const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, u
     <teleport to="body">
       <div id="lc-download-button" class="fixed z-50 flex items-center gap-2 text-sm" :style="downloadButtonStyle">
         <SettingsButton
+        :selected-function-type="functionType"
           :input-vars="inputVars"
           :output-vars="outputVars"
           :show-output-selection="false"
-          :show-function-type-selection="false"
+          :show-function-type-selection="true"
           :custom-setting-slot-labels="{ method: 'Gate Type' }"
         >
           <template #method>
