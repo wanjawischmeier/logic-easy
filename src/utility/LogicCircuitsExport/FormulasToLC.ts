@@ -24,7 +24,7 @@ export function formulaToLC(
   const termSpacing = 20
   const outputSpacing = 30 //min space between lamps
   let yOffset = 30 + LCFile.AND_SIZE //start all the logic below the lamps
-  const xOffset = 100 //start all the logic a bit to the right
+  const xOffset = 0 //start all the logic a bit to the right
 
   //create buttons + labels for each input variable
   const buttonsByVar = new Map<string, Element>() //button map input variablename -> button element
