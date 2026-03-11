@@ -9,7 +9,7 @@ import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import { projectManager } from '@/projects/projectManager'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
-import Checkbox from '@/components/parts/Checkbox.vue';
+import Checkbox from '@/components/parts/Checkbox.vue'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -26,7 +26,8 @@ type IframePanelExpose = {
 const iframePanelRef = ref<IframePanelExpose | null>(null)
 const downloadButtonStyle = ref<{ right?: string; top?: string }>({})
 let positionObserver: ResizeObserver | null = null
-let allowEdits = ref(false)
+const allowEdits = ref(false)
+const showLCSidebar = ref(false)
 let detachIframeGuards: (() => void) | null = null
 let iframeReadyRebindHandler: EventListener | null = null
 
@@ -40,7 +41,10 @@ function installIframeInteractionGuards() {
   const stopEvent = (event: Event) => {
     event.preventDefault()
     event.stopPropagation()
-    if (typeof (event as Event & { stopImmediatePropagation?: () => void }).stopImmediatePropagation === 'function') {
+    if (
+      typeof (event as Event & { stopImmediatePropagation?: () => void })
+        .stopImmediatePropagation === 'function'
+    ) {
       ;(event as Event & { stopImmediatePropagation: () => void }).stopImmediatePropagation()
     }
   }
@@ -57,7 +61,7 @@ function installIframeInteractionGuards() {
       if (event.buttons !== 0) stopEvent(event)
     }
 
-    const onWheel = (event: WheelEvent) => {
+    const onWheel = () => {
       if (allowEdits.value) return
       // Keep zoom interactions enabled in locked mode.
       return
@@ -291,10 +295,13 @@ function updateFormulas() {
 
 // Keep the plain object in sync with state and selection
 watch([() => formulas.value], updateFormulas, { immediate: true, deep: true })
-watch(() => allowEdits.value, () => {
-  // Rebind guards to the current iframe document and keep handlers in sync.
-  installIframeInteractionGuards()
-})
+watch(
+  () => allowEdits.value,
+  () => {
+    // Rebind guards to the current iframe document and keep handlers in sync.
+    installIframeInteractionGuards()
+  },
+)
 
 const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, undefined>>
 </script>
@@ -312,23 +319,32 @@ const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, u
     </div>
 
     <teleport to="body">
-      <div id="lc-download-button" class="fixed z-50 flex items-center gap-2 text-sm" :style="downloadButtonStyle">
+      <div
+        id="lc-download-button"
+        class="fixed z-50 flex items-center gap-2 text-sm"
+        :style="downloadButtonStyle"
+      >
         <SettingsButton
-        :selected-function-type="functionType"
+          :selected-function-type="functionType"
           :input-vars="inputVars"
           :output-vars="outputVars"
           :show-output-selection="false"
           :show-function-type-selection="true"
-          :custom-setting-slot-labels="{ 'allow-edits': 'Allow manual edits', method: 'Gate Type'}"
+          :custom-setting-slot-labels="{ 'allow-edits': 'Allow manual edits', method: 'Gate Type' }"
         >
           <template #allow-edits>
-          <div class="flex gap-2 items-center text-white" @click.stop>
-            <Checkbox v-model="allowEdits" @update:model-value="updateFormulas"/>
-            <div class="text-xs min-w-25">
-              <span v-if="allowEdits">manual edits enabled, automatic sync disabled. <p class="text-red-200">Your Edits in LogicCircuits will never be synched to LogicEasy!</p></span>
-              <span v-else>manual edits locked, automatic sync enabled</span>
+            <div class="flex gap-2 items-center text-white" @click.stop>
+              <Checkbox v-model="allowEdits" @update:model-value="updateFormulas" />
+              <div class="text-xs min-w-25">
+                <span v-if="allowEdits"
+                  >manual edits enabled, automatic sync disabled.
+                  <p class="text-red-200">
+                    Your Edits in LogicCircuits will never be synched to LogicEasy!
+                  </p></span
+                >
+                <span v-else>manual edits locked, automatic sync enabled</span>
+              </div>
             </div>
-          </div>
           </template>
           <template #method>
             <MultiSelectSwitch
