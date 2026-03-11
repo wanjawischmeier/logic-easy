@@ -24,11 +24,12 @@ export function formulaToLC(
   const termSpacing = 20
   const outputSpacing = 30 //min space between lamps
   let yOffset = 30 + LCFile.AND_SIZE //start all the logic below the lamps
+  const xOffset = 100 //start all the logic a bit to the right
 
   //create buttons + labels for each input variable
   const buttonsByVar = new Map<string, Element>() //button map input variablename -> button element
   inputVars.forEach((v, i) => {
-    const button = lcFile.createButton(i * (termSpacing + LCFile.BUTTON_SIZE), 30, 1) // create button, rotated by 90°
+    const button = lcFile.createButton(xOffset + i * (termSpacing + LCFile.BUTTON_SIZE), 30, 1) // create button, rotated by 90°
     buttonsByVar.set(v, button) //add button to map by input variable name
     button.addText(v, 0) //add text label above button
   })
@@ -56,7 +57,11 @@ export function formulaToLC(
     }
 
     // create lamp for this output, aligned with OR gate
-    const lamp = lcFile.createLamp(650, orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2, 0)
+    const lamp = lcFile.createLamp(
+      xOffset + 650,
+      orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2,
+      0,
+    )
     lamp.addText(outputVar, 1) //add text label right to the lamp
     lampsByOutput.set(outputVar, lamp) //sadd lamp to map by output variable name
 
@@ -87,14 +92,14 @@ export function formulaToLC(
     if (terms.length > 1) {
       let collectorGate: Element
       if (outType === 'and-or') {
-        collectorGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'n')
+        collectorGate = lcFile.createORGate(xOffset + 450, orY, 0, 'n'.repeat(terms.length), 'n')
       } else if (outType === 'nand') {
-        collectorGate = lcFile.createAndGate(450, orY, 0, 'n'.repeat(terms.length), 'i') //NAND gate
+        collectorGate = lcFile.createAndGate(xOffset + 450, orY, 0, 'n'.repeat(terms.length), 'i') //NAND gate
       } else {
         //nor
-        collectorGate = lcFile.createORGate(450, orY, 0, 'n'.repeat(terms.length), 'i') //NOR gate
+        collectorGate = lcFile.createORGate(xOffset + 450, orY, 0, 'n'.repeat(terms.length), 'i') //NOR gate
         //negate again
-        const negateNorGate = lcFile.createORGate(550, orY, 0, 'nn', 'i')
+        const negateNorGate = lcFile.createORGate(xOffset + 550, orY, 0, 'nn', 'i')
 
         collectorGate.getOutConnectors()[0]!.addTarget(negateNorGate.getInConnectors()[0]!)
         collectorGate.getOutConnectors()[0]!.addTarget(negateNorGate.getInConnectors()[1]!)
@@ -124,13 +129,13 @@ export function formulaToLC(
         //just create AND gate if there are multiple inputs
         if (outType === 'and-or') {
           //normal AND gate
-          nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'n')
+          nextGate = lcFile.createAndGate(xOffset + 300, currentRowY, 0, termInputs, 'n')
         } else if (outType === 'nand') {
           //NAND gate
-          nextGate = lcFile.createAndGate(300, currentRowY, 0, termInputs, 'i')
+          nextGate = lcFile.createAndGate(xOffset + 300, currentRowY, 0, termInputs, 'i')
         } else {
           //NOR
-          nextGate = lcFile.createORGate(300, currentRowY, 0, termInputsNegated, 'i')
+          nextGate = lcFile.createORGate(xOffset + 300, currentRowY, 0, termInputsNegated, 'i')
         }
 
         nextGate.getOutConnectors()[0]!.addTarget(termCollector.getInConnectors()[termIndex]!) //connect AND output to OR input or directly to lamp
