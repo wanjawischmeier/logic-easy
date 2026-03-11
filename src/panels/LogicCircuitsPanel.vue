@@ -242,6 +242,7 @@ const logicCircuitDownloadFiles = computed(() => {
 function handleMethodSelect(value: unknown, idx: number) {
   if (idx === null || idx < 0) return
   selectedMethod.value = (value as LCMethodType) ?? lcMethodTypes[idx]
+  updateFormulas()
 }
 
 let lastFileContent = ''
