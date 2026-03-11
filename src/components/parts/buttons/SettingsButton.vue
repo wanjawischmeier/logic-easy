@@ -24,14 +24,14 @@
 
 
                 <div v-if="showOutputVarSelector && showOutputSelection" class="flex flex-col gap-1">
-                    <label class="text-xs opacity-70">Output Variable</label>
+                    <label class="text-xs opacity-70 text-white">Output Variable</label>
                     <MultiSelectSwitch :values="outputVars" :initialSelected="selectedOutputIndex"
                         :onSelect="handleOutputChange">
                     </MultiSelectSwitch>
                 </div>
 
                 <div v-if="showFunctionTypeSelection" class="flex flex-col gap-1">
-                    <label class="text-xs opacity-70">Function Type</label>
+                    <label class="text-xs opacity-70 text-white">Function Type</label>
                     <MultiSelectSwitch :values="TruthTableProject.functionTypes.value"
                         :initialSelected="selectedFunctionTypeIndex" :onSelect="handleFunctionTypeChange">
                     </MultiSelectSwitch>
