@@ -19,6 +19,7 @@ import { ref, onMounted, onBeforeUnmount, computed, defineComponent, h, type Pro
 import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry'
 import { createPanel } from '@/utility/dockview/integration'
 import { popupService, showProjectCreationPopup } from '@/utility/popupService'
+import { dropdownService } from '@/utility/dropdownService'
 import CreditPopup from './popups/CreditPopup.vue'
 import { projectManager } from '@/projects/projectManager'
 import { stateManager } from '@/projects/stateManager'
@@ -220,7 +221,18 @@ const MenuList = defineComponent<MenuListProps>({
 })
 
 function toggleMenu(name: string): void {
-  activeMenu.value = activeMenu.value === name ? '' : name
+  const isOpening = activeMenu.value !== name
+
+  if (isOpening) {
+    // When opening, notify the dropdown service to close others
+    dropdownService.open(closeMenu)
+    activeMenu.value = name
+  } else {
+    // When closing, notify the service
+    dropdownService.close()
+    activeMenu.value = ''
+  }
+
   openPath.value = []
 }
 
@@ -248,6 +260,7 @@ function runAction(entry: MenuEntry): void {
     entry.action()
     activeMenu.value = ''
     openPath.value = []
+    dropdownService.close()
     return
   }
 
@@ -260,9 +273,16 @@ function runAction(entry: MenuEntry): void {
 
     activeMenu.value = ''
     openPath.value = []
+    dropdownService.close()
     return
   }
 
+  activeMenu.value = ''
+  openPath.value = []
+  dropdownService.close()
+}
+
+function closeMenu(): void {
   activeMenu.value = ''
   openPath.value = []
 }
@@ -272,16 +292,14 @@ function handleDocClick(e: MouseEvent): void {
   if (!root) return
   const target = e.target as Node | null
   if (!target || !root.contains(target)) {
-    activeMenu.value = ''
-    openPath.value = []
+    closeMenu()
   }
 }
 
 async function openFile() {
   await stateManager.openFile()
 
-  activeMenu.value = ''
-  openPath.value = []
+  closeMenu()
 }
 
 onMounted(() => {
@@ -290,5 +308,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocClick)
+  dropdownService.close()
 })
 </script>
