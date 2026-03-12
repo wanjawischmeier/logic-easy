@@ -1,7 +1,7 @@
 <template>
   <div class="relative" ref="dropdownContainer">
     <div class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5">
-      <button @click="handleClick" :disabled="isCapturing || !hasDownloadOptions"
+      <button @click.stop="handleClick" :disabled="isCapturing || !hasDownloadOptions"
         class="px-3 py-2 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
         :class="showDropdown ? 'bg-primary' : ''" title="Download">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -14,7 +14,7 @@
     </div>
 
     <div v-if="showDropdown && !shouldDirectDownload"
-      class="absolute right-0 mt-1 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
+      class="absolute right-0 mt-2 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
       <button v-for="item in dropdownItems" :key="item.key" @click="selectItem(item)"
         class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
         <span>{{ item.label }}</span>
@@ -30,6 +30,7 @@
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { downloadRegistry } from '@/utility/downloadRegistry'
 import { loadingService } from '@/utility/loadingService'
+import { dropdownService } from '@/utility/dropdownService'
 import { Toast } from '@/utility/toastService'
 
 const SCREENSHOT_COLOR_BG = 'transparent'
@@ -171,7 +172,16 @@ const toggleDropdown = () => {
   if (!hasDownloadOptions.value || isCapturing.value) {
     return
   }
-  showDropdown.value = !showDropdown.value
+  if (showDropdown.value) {
+    // Closing
+    dropdownService.close()
+  } else {
+    // Opening
+    showDropdown.value = true
+    dropdownService.open(() => {
+      showDropdown.value = false
+    })
+  }
 }
 
 const handleClick = async () => {
@@ -191,6 +201,7 @@ const handleClick = async () => {
 }
 
 const closeDropdown = () => {
+  console.log('closing download')
   showDropdown.value = false
 }
 

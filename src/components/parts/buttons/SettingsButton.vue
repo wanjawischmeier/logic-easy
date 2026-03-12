@@ -1,7 +1,7 @@
 <template>
     <div class="relative" ref="dropdownContainer">
         <div class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5">
-            <button @click="toggleDropdown"
+            <button @click.stop="toggleDropdown"
                 class="px-2.5 py-1.5 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
                 :class="showDropdown ? 'bg-primary' : ''" title="Settings">
                 <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 24 24"
@@ -50,6 +50,7 @@ import { FunctionType } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { dropdownService } from '@/utility/dropdownService'
 
 interface Props {
     inputVars: string[]
@@ -81,7 +82,16 @@ const selectedFunctionTypeIndex = computed(() =>
 )
 
 const toggleDropdown = () => {
-    showDropdown.value = !showDropdown.value
+    if (showDropdown.value) {
+        // Closing
+        dropdownService.close()
+    } else {
+        // Opening
+        showDropdown.value = true
+        dropdownService.open(() => {
+            showDropdown.value = false
+        })
+    }
 }
 
 const closeDropdown = () => {
