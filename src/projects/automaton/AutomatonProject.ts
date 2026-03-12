@@ -184,11 +184,16 @@ export class AutomatonProject extends Project {
       return transitions.value.map((tr) => {
         const fromIndex = stateIndexMap.value.get(tr.from) ?? 0
         const toIndex = stateIndexMap.value.get(tr.to) ?? 0
+        const toBinary = tr.toPattern?.length
+          ? tr.toPattern.padStart(bitNumber.value, 'x')
+          : tr.to < 0
+            ? 'x'.repeat(bitNumber.value)
+            : binaryIDs.value[toIndex]
 
         return {
           ...tr,
           fromBinary: binaryIDs.value[fromIndex],
-          toBinary: binaryIDs.value[toIndex],
+          toBinary,
         }
       })
     })
@@ -237,6 +242,7 @@ export class AutomatonProject extends Project {
               id: t.id,
               from: t.from,
               to: t.to,
+              toPattern: t.toPattern,
               input: t.input,
               output: t.output,
             })),

@@ -20,6 +20,7 @@ export interface AutomatonState {
     id: number
     from: number
     to: number
+    toPattern?: string
     input: string
     output: string
   }>

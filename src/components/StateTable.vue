@@ -16,6 +16,17 @@ import { onMounted } from 'vue'
  * manage central data
  */
 
+/**
+ * TODO:
+ * 1. bei add state automatisch 2^|x| tabellenspalten je mit allen möglichen inputs des zustands hinzufügen,
+ * hier per default für next state don´t care
+ * 2. bei add new state in editor ebenfalls dies hinzufügen
+ * 3. add neue kante in tabelle entfernen (automatisch hinzufügen)
+ * 4. bei neuer kante in table a) direktes benennen nötig machen und b) nicht 2x selben input erlauben
+ * 5. auto layout button unten in editor setzen
+ * 6. initial state wechselbar machen
+ */
+
 // bundle all reactive data of automaton
 const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits, outputBits } =
   AutomatonProject.useState()
@@ -32,17 +43,17 @@ const getAutomaton = (): AutomatonState => {
   return stateManager.state.automaton as AutomatonState
 }
 
-// initial default transition (einmalig)
+// initial default transition
 onMounted(() => {
   const automaton = getAutomaton()
   if (automaton.transitions?.length === 0) {
     const from = automaton.states?.[0]?.id ?? 0
-    const to = automaton.states?.[0]?.id ?? 0
     automaton.transitions = [
       {
         id: 0,
         from,
-        to,
+        to: -1,
+        toPattern: 'x',
         input: '0',
         output: 'x',
       },
@@ -58,6 +69,9 @@ onMounted(() => {
 function addStateRow() {
   const automaton = getAutomaton()
   const nextId = automaton.states.length
+  const nextBitNumber = Math.max((nextId + 1).toString(2).length, 1)
+  const nextStatePattern = 'x'.repeat(nextBitNumber)
+
   // set attributes and add new state
   automaton.states.push({
     id: nextId,
@@ -65,8 +79,6 @@ function addStateRow() {
     initial: nextId === 0,
     final: false,
   })
-  const defaultState = automaton.states.find((s) => s.id === 0) ?? automaton.states[0]
-  const to = defaultState?.id ?? 0
 
   // compute amount of possible transitions (2^n) per state
   const combPerState = 1 << inputBits.value
@@ -77,41 +89,12 @@ function addStateRow() {
     automaton.transitions.push({
       id,
       from: nextId,
-      to,
+      to: -1,
+      toPattern: nextStatePattern,
       input: xBits,
       output: 'x'.repeat(outputBits.value),
     })
   }
-  AutomatonProject.setLastUpdateSource('table')
-}
-
-function addTransitionRow() {
-  const automaton = getAutomaton()
-
-  const totalBits = bitNumber.value + inputBits.value // = |Z^n x X^n|
-  const nextId = automaton.transitions.length
-  if (nextId >= 1 << totalBits) return
-
-  const global = nextId.toString(2).padStart(totalBits, '0')
-  const zBits = global.slice(0, bitNumber.value)
-  const xBits = global.slice(bitNumber.value)
-
-  const fromIndex = parseInt(zBits, 2)
-  if (fromIndex < 0 || fromIndex >= automaton.states.length) return
-
-  const fromState = automaton.states[fromIndex]
-  if (!fromState) return
-
-  const defaultState = automaton.states.find((s) => s.id === 0) ?? automaton.states[0]
-  const to = defaultState?.id ?? 0
-
-  automaton.transitions.push({
-    id: nextId,
-    from: fromState.id,
-    to,
-    input: xBits,
-    output: 'x'.repeat(outputBits.value),
-  })
   AutomatonProject.setLastUpdateSource('table')
 }
 
@@ -130,25 +113,36 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
 
   AutomatonProject.setLastUpdateSource('table')
 
-  const current = (binaryTransitions.value[idx]?.toBinary ?? '').padStart(bitNumber.value, '0')
+  const current = (binaryTransitions.value[idx]?.toBinary ?? '').padStart(bitNumber.value, 'x')
   const chars = current.split('')
   chars[i] = bit
   const newBits = chars.join('')
+
+  if (newBits.includes('x')) {
+    tr.to = -1
+    tr.toPattern = newBits
+    return
+  }
 
   const newIndex = parseInt(newBits, 2)
   if (Number.isNaN(newIndex)) return
 
   const targetState = states.value[newIndex]
-  if (!targetState) return
+  if (!targetState) {
+    tr.to = -1
+    tr.toPattern = newBits
+    return
+  }
 
   tr.to = targetState.id
+  tr.toPattern = undefined
 }
 
 function toggleToBit(idx: number, i: number) {
   const current = (binaryTransitions.value[idx]?.toBinary ?? '')
-    .padStart(bitNumber.value, '0')
+    .padStart(bitNumber.value, 'x')
     .charAt(i)
-  const nextBit = current === '1' ? '0' : '1'
+  const nextBit = current === 'x' ? '0' : current === '0' ? '1' : 'x'
   updateToFromBits(idx, i, nextBit)
 }
 
@@ -333,18 +327,18 @@ function sortTransitionsByZX() {
             <td
               v-for="(_, i) in bitNumber"
               :key="transitionView.id + '-to-' + i"
-              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0  select-none hover:bg-gray-700 transition-colors duration-100"
+              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 transition-colors duration-100"
               :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
               @click="toggleToBit(idx, i)"
             >
-              {{ (transitionView.toBinary ?? '').padStart(bitNumber, '0').charAt(i) || '0' }}
+              {{ (transitionView.toBinary ?? '').padStart(bitNumber, 'x').charAt(i) || 'x' }}
             </td>
 
             <!-- Y^n bits (edit) -->
             <td
               v-for="(_, i) in outputBits"
               :key="transitionView.id + '-out-' + i"
-              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0  select-none hover:bg-gray-700 transition-colors duration-100"
+              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 transition-colors duration-100"
               :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
               @click="toggleOutputBit(idx, i)"
             >
@@ -353,9 +347,6 @@ function sortTransitionsByZX() {
           </tr>
         </tbody>
       </table>
-      <button class="bg-primary text-sm px-3 mr-3 py-1 font-mono" @click="addTransitionRow">
-        +
-      </button>
       <button class="bg-primary text-sm px-3 ml-3 py-1 font-mono" @click="sortTransitionsByZX">
         sort
       </button>
