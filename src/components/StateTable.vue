@@ -144,6 +144,27 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
   tr.to = targetState.id
 }
 
+function toggleToBit(idx: number, i: number) {
+  const current = (binaryTransitions.value[idx]?.toBinary ?? '')
+    .padStart(bitNumber.value, '0')
+    .charAt(i)
+  const nextBit = current === '1' ? '0' : '1'
+  updateToFromBits(idx, i, nextBit)
+}
+
+function toggleOutputBit(idx: number, i: number) {
+  const transition = transitions.value[idx]
+  if (!transition) return
+
+  const current = normalizeBitsToX(transition.output, outputBits.value)
+  const chars = current.split('')
+  const bit = chars[i]
+
+  chars[i] = bit === '0' ? '1' : bit === '1' ? 'x' : '0'
+  transition.output = chars.join('')
+  AutomatonProject.setLastUpdateSource('table')
+}
+
 // sort whole table based on [Z^nX]
 function sortTransitionsByZX() {
   const automaton = getAutomaton()
@@ -312,46 +333,22 @@ function sortTransitionsByZX() {
             <td
               v-for="(_, i) in bitNumber"
               :key="transitionView.id + '-to-' + i"
-              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0  select-none hover:bg-gray-700 transition-colors duration-100"
               :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
+              @click="toggleToBit(idx, i)"
             >
-              <input
-                v-if="transitions[idx]"
-                :value="(transitionView.toBinary ?? '').padStart(bitNumber, '0').charAt(i)"
-                class="bg-transparent text-center outline-none w-6"
-                @input="
-                  (e) => {
-                    const v = (e.target as HTMLInputElement).value
-                    const bit = v === '1' ? '1' : v === '0' ? '0' : 'x'
-                    updateToFromBits(idx, i, bit)
-                  }
-                "
-              />
+              {{ (transitionView.toBinary ?? '').padStart(bitNumber, '0').charAt(i) || '0' }}
             </td>
 
             <!-- Y^n bits (edit) -->
             <td
               v-for="(_, i) in outputBits"
               :key="transitionView.id + '-out-' + i"
-              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0  select-none hover:bg-gray-700 transition-colors duration-100"
               :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
+              @click="toggleOutputBit(idx, i)"
             >
-              <input
-                v-if="transitions[idx]"
-                :value="normalizeBitsToX(transitions[idx]!.output, outputBits).charAt(i)"
-                class="bg-transparent text-center outline-none w-6"
-                @input="
-                  (e) => {
-                    const current = normalizeBitsToX(transitions[idx]!.output, outputBits)
-                    const chars = current.split('')
-                    const v = (e.target as HTMLInputElement).value
-                    const bit = v === '1' ? '1' : v === '0' ? '0' : 'x'
-                    chars[i] = bit
-                    transitions[idx]!.output = chars.join('')
-                    AutomatonProject.setLastUpdateSource('table')
-                  }
-                "
-              />
+              {{ normalizeBitsToX(transitions[idx]!.output, outputBits).charAt(i) }}
             </td>
           </tr>
         </tbody>
