@@ -251,12 +251,12 @@ const MenuList = defineComponent<MenuListProps>({
                   entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
                 ],
               ),
-              submenuOpen
+              submenuOpen && entry.children
                 ? h(
                   'div',
                   {
                     class:
-                      'absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
+                      'absolute left-full top-0 -mt-0.5 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
                   },
                   [h(MenuList, { items: entry.children, level: level.value + 1 })],
                 )
