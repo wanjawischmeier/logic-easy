@@ -145,12 +145,22 @@ const setupPendingProjectLoad = (api: DockviewApi) => {
 
 const setupProjectChangeWatcher = (api: DockviewApi) => {
   watch(
-    () => projectManager.currentProjectInfo,
-    (newProjectInfo, oldProjectInfo) => {
-      // Trigger when project changes or opens (null -> ID)
-      if (newProjectInfo?.id && newProjectInfo?.id !== oldProjectInfo?.id) {
-        const isProjectChange = oldProjectInfo?.id !== null && oldProjectInfo?.id !== undefined
-        console.log(isProjectChange ? `Project changed to: ${projectManager.projectString(newProjectInfo)}` : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`)
+    () => ({
+      projectId: projectManager.currentProjectInfo?.id,
+      projectOpenedCounter: projectManager.lifecycle.projectOpened.value
+    }),
+    (newVal, oldVal) => {
+      // Trigger when either:
+      // 1. Project ID changes (first load, project change)
+      // 2. projectOpened counter changes (reload of same project)
+      if (newVal.projectId &&
+        (newVal.projectId !== oldVal?.projectId || newVal.projectOpenedCounter !== oldVal?.projectOpenedCounter)) {
+        const newProjectInfo = projectManager.currentProjectInfo
+        const isProjectChange = oldVal?.projectId !== null && oldVal?.projectId !== undefined && newVal.projectId !== oldVal?.projectId
+
+        if (newProjectInfo) {
+          console.log(isProjectChange ? `Project changed to: ${projectManager.projectString(newProjectInfo)}` : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`)
+        }
 
         restoreLayout(api, isProjectChange).then(() => {
           // Hide loading screen after layout is fully restored

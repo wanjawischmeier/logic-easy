@@ -102,3 +102,5 @@ const handleFunctionRepresentationChange = (value: unknown, index: number) => {
     truthTableWorkerManager.update()
 }
 </script>
+
+<style scoped></style>
