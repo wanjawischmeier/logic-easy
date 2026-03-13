@@ -26,8 +26,16 @@
 
                 <div v-if="showFunctionTypeSelection" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70 text-white">Function Type</label>
-                    <MultiSelectSwitch :values="TruthTableProject.functionTypes.value"
+                    <MultiSelectSwitch :values="Object.values(FunctionType)"
                         :initialSelected="selectedFunctionTypeIndex" :onSelect="handleFunctionTypeChange">
+                    </MultiSelectSwitch>
+                </div>
+
+                <div v-if="showFunctionRepresentationSelection" class="flex flex-col gap-1">
+                    <label class="text-xs opacity-70 text-white">Representation</label>
+                    <MultiSelectSwitch :values="Object.values(FunctionRepresentation)"
+                        :initialSelected="selectedFunctionRepresentationIndex"
+                        :onSelect="handleFunctionRepresentationChange">
                     </MultiSelectSwitch>
                 </div>
             </div>
@@ -39,9 +47,8 @@
 import { computed } from 'vue'
 import BaseDropdownButton from './BaseDropdownButton.vue'
 import MultiSelectSwitch from '../MultiSelectSwitch.vue'
-import { FunctionType } from '@/utility/types'
+import { defaultFunctionRepresentation, defaultFunctionType, FunctionRepresentation, FunctionType } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
-import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 
 interface Props {
@@ -49,25 +56,32 @@ interface Props {
     outputVars: string[]
     selectedOutputIndex?: number
     selectedFunctionType?: FunctionType
+    selectedFunctionRepresentation?: FunctionRepresentation
     customSettingSlotLabels?: Record<string, string>
     showOutputSelection?: boolean
     showFunctionTypeSelection?: boolean
+    showFunctionRepresentationSelection?: boolean
 }
 
 interface Emits {
     (e: 'update:selectedOutputIndex', value: number): void
     (e: 'update:selectedFunctionType', value: FunctionType): void
+    (e: 'update:selectedFunctionRepresentation', value: FunctionRepresentation): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
     showOutputSelection: true,
-    showFunctionTypeSelection: true
+    showFunctionTypeSelection: true,
+    showFunctionRepresentationSelection: true
 })
 const emit = defineEmits<Emits>()
 
 const showOutputVarSelector = computed(() => props.outputVars.length > 1)
 const selectedFunctionTypeIndex = computed(() =>
-    TruthTableProject.functionTypes.value.indexOf(props.selectedFunctionType as FunctionType),
+    Object.values(FunctionType).indexOf(props.selectedFunctionType ?? defaultFunctionType),
+)
+const selectedFunctionRepresentationIndex = computed(() =>
+    Object.values(FunctionRepresentation).indexOf(props.selectedFunctionRepresentation ?? defaultFunctionRepresentation),
 )
 
 const handleOutputChange = (value: unknown, index: number) => {
@@ -81,6 +95,10 @@ const handleFunctionTypeChange = (value: unknown, index: number) => {
     stateManager.state.truthTable.functionType = value as FunctionType;
     truthTableWorkerManager.update()
 }
-</script>
 
-<style scoped></style>
+const handleFunctionRepresentationChange = (value: unknown, index: number) => {
+    if (!stateManager.state.truthTable) return
+    stateManager.state.truthTable.functionRepresentation = value as FunctionRepresentation;
+    truthTableWorkerManager.update()
+}
+</script>

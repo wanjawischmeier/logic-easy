@@ -9,7 +9,7 @@
       <LegendButton :legend="currentLegend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" />
+        :selected-function-type="functionType" :selected-function-representation="functionRepresentation" />
 
       <DownloadButton :target-ref="screenshotRef" filename="qmc" :files="downloadFiles" />
     </div>
@@ -21,11 +21,12 @@
           class="flex-1 flex items-center justify-center overflow-auto w-full">
           <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :functionType="functionType" :qmc-result="qmcResult" />
+            :functionType="functionType" :function-representation="functionRepresentation" :qmc-result="qmcResult" />
 
           <QMCPrimeImplicantChart v-else-if="selectedTabIndex === 1" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :functionType="functionType" :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex" />
+            :functionType="functionType" :function-representation="functionRepresentation" :qmc-result="qmcResult"
+            :coupling-term-latex="couplingTermLatex" />
 
         </div>
         <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full">
@@ -42,11 +43,12 @@
 
           <QMCGroupingTable :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
-            :qmc-result="qmcResult" />
+            :function-representation="functionRepresentation" :qmc-result="qmcResult" />
 
           <QMCPrimeImplicantChart :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
-            :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex" />
+            :function-representation="functionRepresentation" :qmc-result="qmcResult"
+            :coupling-term-latex="couplingTermLatex" />
         </div>
       </div>
     </div>
@@ -167,7 +169,7 @@ stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
 }))
 
 // Access state from params
-const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, outputVariableIndex, functionType, functionRepresentation, qmcResult, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
