@@ -32,8 +32,16 @@
 
                 <div v-if="showFunctionTypeSelection" class="flex flex-col gap-1">
                     <label class="text-xs opacity-70 text-white">Function Type</label>
-                    <MultiSelectSwitch :values="TruthTableProject.functionTypes.value"
+                    <MultiSelectSwitch :values="Object.values(FunctionType)"
                         :initialSelected="selectedFunctionTypeIndex" :onSelect="handleFunctionTypeChange">
+                    </MultiSelectSwitch>
+                </div>
+
+                <div v-if="showFunctionRepresentationSelection" class="flex flex-col gap-1">
+                    <label class="text-xs opacity-70 text-white">Representation</label>
+                    <MultiSelectSwitch :values="Object.values(FunctionRepresentation)"
+                        :initialSelected="selectedFunctionRepresentationIndex"
+                        :onSelect="handleFunctionRepresentationChange">
                     </MultiSelectSwitch>
                 </div>
             </div>
@@ -46,9 +54,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import MultiSelectSwitch from '../MultiSelectSwitch.vue'
-import { FunctionType } from '@/utility/types'
+import { defaultFunctionRepresentation, defaultFunctionType, FunctionRepresentation, FunctionType } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
-import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 import { dropdownService } from '@/utility/dropdownService'
 
@@ -57,19 +64,23 @@ interface Props {
     outputVars: string[]
     selectedOutputIndex?: number
     selectedFunctionType?: FunctionType
+    selectedFunctionRepresentation?: FunctionRepresentation
     customSettingSlotLabels?: Record<string, string>
     showOutputSelection?: boolean
     showFunctionTypeSelection?: boolean
+    showFunctionRepresentationSelection?: boolean
 }
 
 interface Emits {
     (e: 'update:selectedOutputIndex', value: number): void
     (e: 'update:selectedFunctionType', value: FunctionType): void
+    (e: 'update:selectedFunctionRepresentation', value: FunctionRepresentation): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
     showOutputSelection: true,
-    showFunctionTypeSelection: true
+    showFunctionTypeSelection: true,
+    showFunctionRepresentationSelection: true
 })
 const emit = defineEmits<Emits>()
 
@@ -78,7 +89,10 @@ const dropdownContainer = ref<HTMLElement | null>(null)
 
 const showOutputVarSelector = computed(() => props.outputVars.length > 1)
 const selectedFunctionTypeIndex = computed(() =>
-    TruthTableProject.functionTypes.value.indexOf(props.selectedFunctionType as FunctionType),
+    Object.values(FunctionType).indexOf(props.selectedFunctionType ?? defaultFunctionType),
+)
+const selectedFunctionRepresentationIndex = computed(() =>
+    Object.values(FunctionRepresentation).indexOf(props.selectedFunctionRepresentation ?? defaultFunctionRepresentation),
 )
 
 const toggleDropdown = () => {
@@ -88,9 +102,7 @@ const toggleDropdown = () => {
     } else {
         // Opening
         showDropdown.value = true
-        dropdownService.open(() => {
-            showDropdown.value = false
-        })
+        dropdownService.open(closeDropdown)
     }
 }
 
@@ -110,18 +122,9 @@ const handleFunctionTypeChange = (value: unknown, index: number) => {
     truthTableWorkerManager.update()
 }
 
-// Close dropdown when clicking outside
-const handleClickOutside = (event: MouseEvent) => {
-    if (dropdownContainer.value && !dropdownContainer.value.contains(event.target as Node)) {
-        closeDropdown()
-    }
+const handleFunctionRepresentationChange = (value: unknown, index: number) => {
+    if (!stateManager.state.truthTable) return
+    stateManager.state.truthTable.functionRepresentation = value as FunctionRepresentation;
+    truthTableWorkerManager.update()
 }
-
-onMounted(() => {
-    document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside)
-})
 </script>

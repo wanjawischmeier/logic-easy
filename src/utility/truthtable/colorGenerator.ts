@@ -67,7 +67,7 @@ export function mapFormulaTermsToPIColors(
     piColors: TermColor[],
     inputVars: string[]
 ): TermColor[] {
-    const isCNF = formula.type === 'CNF';
+    const isCNF = formula.type === 'Conjunctive';
 
     return formula.terms.map((term, termIdx) => {
         // Handle constant terms (0 or 1) - just generate a color for them

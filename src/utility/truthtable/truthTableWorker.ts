@@ -1,6 +1,6 @@
 import { Minimizer, type QMCResult } from './minimizer';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
-import type { FunctionType, Formula } from '@/utility/types';
+import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types';
 import { generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
 import { analyzeExpressions, detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
 
@@ -19,17 +19,26 @@ export interface WorkerResponse {
     formulaTermColors: TermColor[] | undefined;
 }
 
+function getFunctionSignature(
+    functionType: FunctionType,
+    functionRepresentation: FunctionRepresentation,
+    inputVars: string[]
+): string {
+    const formType = functionType === 'Disjunctive' ? 'D' : 'C';
+    const formRepresentation = functionRepresentation === 'Normal' ? 'N' : 'M';
+    return `f_{${formType}${formRepresentation}F}(${inputVars.join(', ')}) = `;
+}
+
 /**
  * Creates a QMC result for edge cases (tautology/contradiction)
  */
 function createEdgeCaseResult(
     type: 'tautology' | 'contradiction',
     functionType: FunctionType,
+    functionRepresentation: FunctionRepresentation,
     inputVars: string[]
 ): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
-    const isDNF = functionType === 'DNF';
-    const formType = isDNF ? 'DMF' : 'CMF';
-    const signature = `f_{${formType}}(${inputVars.join(', ')}) = `;
+    const signature = getFunctionSignature(functionType, functionRepresentation, inputVars);
 
     let constant: '0' | '1';
 
@@ -80,10 +89,10 @@ function getTermSortKey(term: string): string {
 export function getCouplingTermLatex(
     qmcResult: QMCResult,
     functionType: FunctionType,
+    functionRepresentation: FunctionRepresentation,
     inputVars: string[]
 ): string {
-    const formType = functionType === 'DNF' ? 'DMF' : 'CMF';
-    const signature = `f_{${formType}}(${inputVars.join(', ')}) = `;
+    const signature = getFunctionSignature(functionType, functionRepresentation, inputVars);
 
     if (qmcResult.expressions.length === 0) {
         return signature + '0';
@@ -97,7 +106,7 @@ export function getCouplingTermLatex(
         return signature + '0';
     }
 
-    const isCNF = functionType === 'CNF';
+    const isCNF = functionType === 'Conjunctive';
     const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF);
 
     if (variablePositions.length === 0) {
@@ -208,6 +217,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                     const edgeResult = createEdgeCaseResult(
                         outputEdgeCase,
                         truthTable.functionType,
+                        truthTable.functionRepresentation,
                         truthTable.inputVars
                     );
                     qmcResults[outputVar] = edgeResult.qmcResult;
@@ -235,6 +245,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
             const currentEdgeResult = createEdgeCaseResult(
                 edgeCase,
                 truthTable.functionType,
+                truthTable.functionRepresentation,
                 truthTable.inputVars
             );
 
@@ -294,6 +305,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
             couplingTermLatex = getCouplingTermLatex(
                 currentQmcResult,
                 truthTable.functionType,
+                truthTable.functionRepresentation,
                 truthTable.inputVars
             );
             selectedFormula = formulas[currentOutputVar];
