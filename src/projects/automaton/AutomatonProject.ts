@@ -50,10 +50,6 @@ export class AutomatonProject extends Project {
   private static lastSentFsmData: AutomatonState | null = null
   private static listenerAttached = false
 
-  private static getTrustedOrigin(): string {
-    return window.location.origin
-  }
-
   private static areStatesEqual(
     left: AutomatonState['states'] | undefined,
     right: AutomatonState['states'] | undefined,
@@ -123,40 +119,31 @@ export class AutomatonProject extends Project {
 
   private static isTrustedMessage(event: MessageEvent): boolean {
     const iframe = this.getFsmIframe()
-    const trustedOrigin = this.getTrustedOrigin()
-    return event.origin === trustedOrigin && event.source === iframe?.contentWindow
+    return event.origin === window.location.origin && event.source === iframe?.contentWindow
   }
 
-  private static normalizeInput(value: string | undefined, length: number): string {
-    return (value ?? '').padStart(length, '0').slice(-length)
-  }
-
-  private static normalizeOutput(value: string | undefined, length: number): string {
-    return (value ?? '').padEnd(length, 'x').slice(0, length)
-  }
-
-  private static getInputBitLength(
+  private static getBitLength(
     currentState: AutomatonState,
+    selector: (transition: AutomatonState['transitions'][number]) => unknown,
     previousState?: AutomatonState | null,
   ): number {
     const lengths = [
       ...(previousState?.transitions || []),
       ...(currentState.transitions || []),
-    ].map((transition) => String(transition.input ?? '').length)
+    ].map((transition) => String(selector(transition) ?? '').length)
 
     return Math.max(...lengths, 1)
   }
 
-  private static getOutputBitLength(
-    currentState: AutomatonState,
-    previousState?: AutomatonState | null,
-  ): number {
-    const lengths = [
-      ...(previousState?.transitions || []),
-      ...(currentState.transitions || []),
-    ].map((transition) => String(transition.output ?? '').length)
-
-    return Math.max(...lengths, 1)
+  private static normalizeBits(
+    value: string | undefined,
+    length: number,
+    direction: 'left' | 'right',
+    fill: string,
+  ): string {
+    const normalized =
+      direction === 'left' ? (value ?? '').padStart(length, fill) : (value ?? '').padEnd(length, fill)
+    return direction === 'left' ? normalized.slice(-length) : normalized.slice(0, length)
   }
 
   private static normalizeState(
@@ -169,8 +156,16 @@ export class AutomatonProject extends Project {
 
     const stateIds = new Set(states.map((state) => state.id))
     const bitNumber = Math.max(states.length.toString(2).length, 1)
-    const inputBitLength = this.getInputBitLength(currentState, previousState)
-    const outputBitLength = this.getOutputBitLength(currentState, previousState)
+    const inputBitLength = this.getBitLength(
+      currentState,
+      (transition) => transition.input,
+      previousState,
+    )
+    const outputBitLength = this.getBitLength(
+      currentState,
+      (transition) => transition.output,
+      previousState,
+    )
     const defaultToPattern = 'x'.repeat(bitNumber)
     const defaultOutput = 'x'.repeat(outputBitLength)
     const transitionByKey = new Map<string, AutomatonState['transitions'][number]>()
@@ -178,8 +173,8 @@ export class AutomatonProject extends Project {
     const registerTransition = (transition: AutomatonState['transitions'][number]) => {
       if (!stateIds.has(transition.from)) return
 
-      const input = this.normalizeInput(transition.input, inputBitLength)
-      const output = this.normalizeOutput(transition.output, outputBitLength)
+      const input = this.normalizeBits(transition.input, inputBitLength, 'left', '0')
+      const output = this.normalizeBits(transition.output, outputBitLength, 'right', 'x')
       const hasConcreteTarget = stateIds.has(transition.to)
       const hasPattern = typeof transition.toPattern === 'string' && transition.toPattern.length > 0
 
@@ -231,8 +226,7 @@ export class AutomatonProject extends Project {
       }
     }
 
-    // Keep transition IDs unique. Duplicate IDs cause editor imports to overwrite
-    // one transition with another in sparse ID-indexed arrays.
+    // Keep transition IDs unique
     const usedTransitionIds = new Set<number>()
     let nextUniqueId = Math.max(-1, ...normalizedTransitions.map((transition) => transition.id)) + 1
 
@@ -487,7 +481,7 @@ export class AutomatonProject extends Project {
               action: 'automatonimport',
               fsm: actualState,
             },
-            AutomatonProject.getTrustedOrigin(),
+            window.location.origin,
           )
         }, 50)
       },

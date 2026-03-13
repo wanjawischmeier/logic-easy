@@ -108,18 +108,19 @@ function addStateRow() {
 
   // compute amount of possible transitions (2^n) per state
   const combPerState = 1 << inputBits.value
+  let nextTransitionId = getNextTransitionId()
 
   for (let xIndex = 0; xIndex < combPerState; xIndex++) {
     const xBits = xIndex.toString(2).padStart(inputBits.value, '0')
-    const id = getNextTransitionId()
     automaton.transitions.push({
-      id,
+      id: nextTransitionId,
       from: nextId,
       to: -1,
       toPattern: nextStatePattern,
       input: xBits,
       output: 'x'.repeat(outputBits.value),
     })
+    nextTransitionId += 1
   }
   AutomatonProject.setLastUpdateSource('table')
 }
@@ -138,10 +139,7 @@ function removeStateRow(stateId: number) {
   const remainingStates = automaton.states.filter((state) => state.id !== stateId)
   const defaultToPattern = getDefaultToPatternForStateCount(remainingStates.length)
 
-  automaton.states = remainingStates.map((state) => ({
-    ...state,
-    initial: state.initial,
-  }))
+  automaton.states = remainingStates
 
   automaton.transitions = automaton.transitions
     .filter((transition) => transition.from !== stateId)
