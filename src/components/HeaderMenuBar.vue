@@ -36,12 +36,56 @@ const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== n
 
 const { state: truthTable, formulas, inputVars, outputVars } = TruthTableProject.useState()
 
+const recentProjectEntries = computed<MenuEntry[]>(() => {
+  const projects = projectManager.listProjects()
+
+  // Group projects by name to identify duplicates
+  const projectsByName = new Map<string, typeof projects>()
+  projects.forEach((project) => {
+    const existing = projectsByName.get(project.name) || []
+    existing.push(project)
+    projectsByName.set(project.name, existing)
+  })
+
+  // For each group with duplicates, sort by ID and assign numbers
+  const nameNumbers = new Map<number, number>()
+  projectsByName.forEach((group) => {
+    if (group.length > 1) {
+      // Sort by ID to get consistent numbering
+      const sorted = [...group].sort((a, b) => a.id - b.id)
+      sorted.forEach((project, index) => {
+        nameNumbers.set(project.id, index + 1)
+      })
+    }
+  })
+
+  return projects.map((project) => {
+    const number = nameNumbers.get(project.id)
+    const displayName = number ? `${project.name} (${number})` : project.name
+
+    return {
+      label: displayName,
+      action: () => {
+        projectManager.openProject(project.id)
+      },
+    }
+  })
+})
+
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   Project: [
     {
       label: 'New',
       children: newMenu.value,
     },
+    ...(recentProjectEntries.value.length > 0
+      ? [
+        {
+          label: 'Recents',
+          children: recentProjectEntries.value,
+        },
+      ]
+      : []),
     {
       label: 'Open',
       tooltip: 'Ctrl+O',
