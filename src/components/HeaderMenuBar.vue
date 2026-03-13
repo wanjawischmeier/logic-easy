@@ -225,16 +225,19 @@ const MenuList = defineComponent<MenuListProps>({
       h(
         'ul',
         { class: 'pr-1' },
-        props.items.map((entry, idx) =>
-          h(
+        props.items.map((entry, idx) => {
+          const submenuOpen = isOpen(level.value, idx)
+          return h(
             'li',
             { class: 'relative', key: idx },
             [
               h(
                 'button',
                 {
-                  class:
+                  class: [
                     'w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm',
+                    { 'bg-surface-3': submenuOpen }
+                  ],
                   disabled: (!entry.action && !entry.panelId && !entry.children) || entry.disabled,
                   onClick: entry.children ? undefined : () => runAction(entry),
                   onMouseenter: entry.children
@@ -244,23 +247,25 @@ const MenuList = defineComponent<MenuListProps>({
                 },
                 [
                   h('span', entry.label),
-                  entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
-                  entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                  (entry.tooltip || entry.children) ? h('span', { class: 'flex items-center gap-2' }, [
+                    entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
+                    entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                  ]) : null,
                 ],
               ),
-              entry.children && isOpen(level.value, idx)
+              submenuOpen && entry.children
                 ? h(
                   'div',
                   {
                     class:
-                      'absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
+                      'absolute left-full top-0 -mt-0.5 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
                   },
                   [h(MenuList, { items: entry.children, level: level.value + 1 })],
                 )
                 : null,
             ],
-          ),
-        ),
+          )
+        }),
       )
   },
 })
