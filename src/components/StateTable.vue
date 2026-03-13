@@ -46,14 +46,15 @@ const getAutomaton = (): AutomatonState => {
 // initial default transition
 onMounted(() => {
   const automaton = getAutomaton()
-  if (automaton.transitions?.length === 0) {
+  if (automaton.states.length > 0 && automaton.transitions?.length === 0) {
     const from = automaton.states?.[0]?.id ?? 0
+    const toPattern = getDefaultToPatternForStateCount(automaton.states.length)
     automaton.transitions = [
       {
         id: 0,
         from,
         to: -1,
-        toPattern: 'x',
+        toPattern,
         input: '0',
         output: 'x',
       },
@@ -62,21 +63,46 @@ onMounted(() => {
   }
 })
 
+function getNextStateId(): number {
+  const usedIds = new Set(states.value.map((state) => state.id))
+  let nextId = 0
+
+  while (usedIds.has(nextId)) {
+    nextId += 1
+  }
+
+  return nextId
+}
+
+function getDefaultToPatternForStateCount(stateCount: number): string {
+  return 'x'.repeat(Math.max(stateCount.toString(2).length, 1))
+}
+
+function getNextTransitionId(): number {
+  const automaton = getAutomaton()
+  const maxTransitionId = Math.max(
+    -1,
+    ...(automaton.transitions || []).map((transition) => transition.id),
+  )
+  return maxTransitionId + 1
+}
+
 /**
  * helper functions to edit table in table panel
  */
 
 function addStateRow() {
   const automaton = getAutomaton()
-  const nextId = automaton.states.length
-  const nextBitNumber = Math.max((nextId + 1).toString(2).length, 1)
+  const nextId = getNextStateId()
+  const nextBitNumber = Math.max((automaton.states.length + 1).toString(2).length, 1)
   const nextStatePattern = 'x'.repeat(nextBitNumber)
+  const hasInitialState = automaton.states.some((state) => state.initial)
 
   // set attributes and add new state
   automaton.states.push({
     id: nextId,
     name: `q${nextId}`,
-    initial: nextId === 0,
+    initial: !hasInitialState,
     final: false,
   })
 
@@ -85,7 +111,7 @@ function addStateRow() {
 
   for (let xIndex = 0; xIndex < combPerState; xIndex++) {
     const xBits = xIndex.toString(2).padStart(inputBits.value, '0')
-    const id = automaton.transitions.length
+    const id = getNextTransitionId()
     automaton.transitions.push({
       id,
       from: nextId,
@@ -95,6 +121,50 @@ function addStateRow() {
       output: 'x'.repeat(outputBits.value),
     })
   }
+  AutomatonProject.setLastUpdateSource('table')
+}
+
+function setInitialState(stateId: number) {
+  const automaton = getAutomaton()
+  automaton.states = automaton.states.map((state) => ({
+    ...state,
+    initial: state.id === stateId,
+  }))
+  AutomatonProject.setLastUpdateSource('table')
+}
+
+function removeStateRow(stateId: number) {
+  const automaton = getAutomaton()
+  const remainingStates = automaton.states.filter((state) => state.id !== stateId)
+  const defaultToPattern = getDefaultToPatternForStateCount(remainingStates.length)
+
+  automaton.states = remainingStates.map((state) => ({
+    ...state,
+    initial: state.initial,
+  }))
+
+  automaton.transitions = automaton.transitions
+    .filter((transition) => transition.from !== stateId)
+    .map((transition) => {
+      if (transition.to !== stateId) {
+        return transition
+      }
+
+      return {
+        ...transition,
+        to: -1,
+        toPattern: defaultToPattern,
+      }
+    })
+
+  if (automaton.states.length > 0 && !automaton.states.some((state) => state.initial)) {
+    const firstRemainingState = automaton.states[0]!
+    automaton.states[0] = {
+      ...firstRemainingState,
+      initial: true,
+    }
+  }
+
   AutomatonProject.setLastUpdateSource('table')
 }
 
@@ -158,22 +228,6 @@ function toggleOutputBit(idx: number, i: number) {
   transition.output = chars.join('')
   AutomatonProject.setLastUpdateSource('table')
 }
-
-// sort whole table based on [Z^nX]
-function sortTransitionsByZX() {
-  const automaton = getAutomaton()
-  const tr = automaton.transitions ?? []
-  if (!tr.length) return
-
-  const idToBinary = new Map(states.value.map((s, idx) => [s.id, binaryIDs.value[idx]]))
-
-  automaton.transitions = [...tr].sort((a, b) => {
-    const zA = idToBinary.get(a.from) ?? '0'.padStart(bitNumber.value, '0')
-    const zB = idToBinary.get(b.from) ?? '0'.padStart(bitNumber.value, '0')
-    return (zA + (a.input ?? '')).localeCompare(zB + (b.input ?? ''))
-  })
-  AutomatonProject.setLastUpdateSource('table')
-}
 </script>
 
 <template>
@@ -186,12 +240,20 @@ function sortTransitionsByZX() {
           <th
             class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
           >
+            initial
+          </th>
+          <th
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
+          >
             name of state
           </th>
           <th
             class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
           >
             binary index
+          </th>
+          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono">
+            actions
           </th>
         </tr>
       </thead>
@@ -204,10 +266,24 @@ function sortTransitionsByZX() {
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           />
+          <td
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
+          />
+          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary px-2 py-0" />
         </tr>
 
         <!-- normal rows -->
         <tr v-else v-for="(state, index) in states" :key="state.id">
+          <td
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
+          >
+            <button
+              class="w-full px-2 py-0 select-none hover:bg-gray-700 transition-colors duration-100"
+              @click="setInitialState(state.id)"
+            >
+              {{ state.initial ? '1' : '0' }}
+            </button>
+          </td>
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           >
@@ -218,13 +294,21 @@ function sortTransitionsByZX() {
           >
             {{ binaryIDs[index] }}
           </td>
+          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary px-2 py-0">
+            <button
+              class="w-full px-2 py-0 select-none hover:bg-red-800 transition-colors duration-100"
+              @click="removeStateRow(state.id)"
+            >
+              x
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
     <button class="bg-primary text-xl" @click="addStateRow">+</button>
 
     <!-- TRANSITIONS TABLE-->
-    <div v-if="states.length >= 2" class="gap-4 items-center text-center">
+    <div v-if="states.length >= 1" class="gap-4 items-center text-center">
       <h1 class="text-center py-4 mt-6 text-xl font-mono">Transitions</h1>
 
       <table
@@ -347,12 +431,9 @@ function sortTransitionsByZX() {
           </tr>
         </tbody>
       </table>
-      <button class="bg-primary text-sm px-3 ml-3 py-1 font-mono" @click="sortTransitionsByZX">
-        sort
-      </button>
     </div>
     <div v-else class="text-sm font-mono text-gray-400 text-center">
-      Please add more states to reveal the transition table.
+      Please add states to reveal the transition table.
     </div>
   </div>
 </template>

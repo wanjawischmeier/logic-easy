@@ -13,6 +13,10 @@ interface RawFsmTransition {
   id?: string | number
   from?: string | number
   to?: string | number
+  input?: string | unknown
+  output?: string | unknown
+  mealy_output?: string | unknown
+  toPattern?: string | unknown
   label?: string | unknown
 }
 
@@ -46,6 +50,220 @@ export class AutomatonProject extends Project {
   private static lastSentFsmData: AutomatonState | null = null
   private static listenerAttached = false
 
+  private static getTrustedOrigin(): string {
+    return window.location.origin
+  }
+
+  private static areStatesEqual(
+    left: AutomatonState['states'] | undefined,
+    right: AutomatonState['states'] | undefined,
+  ): boolean {
+    const a = left || []
+    const b = right || []
+    if (a.length !== b.length) return false
+
+    for (let index = 0; index < a.length; index++) {
+      const stateA = a[index]
+      const stateB = b[index]
+      if (
+        !stateA ||
+        !stateB ||
+        stateA.id !== stateB.id ||
+        stateA.name !== stateB.name ||
+        stateA.initial !== stateB.initial ||
+        stateA.final !== stateB.final
+      ) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  private static areTransitionsEqual(
+    left: AutomatonState['transitions'] | undefined,
+    right: AutomatonState['transitions'] | undefined,
+  ): boolean {
+    const a = left || []
+    const b = right || []
+    if (a.length !== b.length) return false
+
+    for (let index = 0; index < a.length; index++) {
+      const transitionA = a[index]
+      const transitionB = b[index]
+      if (
+        !transitionA ||
+        !transitionB ||
+        transitionA.id !== transitionB.id ||
+        transitionA.from !== transitionB.from ||
+        transitionA.to !== transitionB.to ||
+        transitionA.toPattern !== transitionB.toPattern ||
+        transitionA.input !== transitionB.input ||
+        transitionA.output !== transitionB.output
+      ) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  private static isSameAutomatonState(
+    left: AutomatonState | null | undefined,
+    right: AutomatonState | null | undefined,
+  ): boolean {
+    if (!left || !right) return false
+
+    return (
+      left.automatonType === right.automatonType &&
+      this.areStatesEqual(left.states, right.states) &&
+      this.areTransitionsEqual(left.transitions, right.transitions)
+    )
+  }
+
+  private static isTrustedMessage(event: MessageEvent): boolean {
+    const iframe = this.getFsmIframe()
+    const trustedOrigin = this.getTrustedOrigin()
+    return event.origin === trustedOrigin && event.source === iframe?.contentWindow
+  }
+
+  private static normalizeInput(value: string | undefined, length: number): string {
+    return (value ?? '').padStart(length, '0').slice(-length)
+  }
+
+  private static normalizeOutput(value: string | undefined, length: number): string {
+    return (value ?? '').padEnd(length, 'x').slice(0, length)
+  }
+
+  private static getInputBitLength(
+    currentState: AutomatonState,
+    previousState?: AutomatonState | null,
+  ): number {
+    const lengths = [
+      ...(previousState?.transitions || []),
+      ...(currentState.transitions || []),
+    ].map((transition) => String(transition.input ?? '').length)
+
+    return Math.max(...lengths, 1)
+  }
+
+  private static getOutputBitLength(
+    currentState: AutomatonState,
+    previousState?: AutomatonState | null,
+  ): number {
+    const lengths = [
+      ...(previousState?.transitions || []),
+      ...(currentState.transitions || []),
+    ].map((transition) => String(transition.output ?? '').length)
+
+    return Math.max(...lengths, 1)
+  }
+
+  private static normalizeState(
+    currentState: AutomatonState,
+    previousState?: AutomatonState | null,
+  ): AutomatonState {
+    const states = [...(currentState.states || [])]
+      .filter((state) => state && typeof state.id === 'number' && !Number.isNaN(state.id))
+      .sort((left, right) => left.id - right.id)
+
+    const stateIds = new Set(states.map((state) => state.id))
+    const bitNumber = Math.max(states.length.toString(2).length, 1)
+    const inputBitLength = this.getInputBitLength(currentState, previousState)
+    const outputBitLength = this.getOutputBitLength(currentState, previousState)
+    const defaultToPattern = 'x'.repeat(bitNumber)
+    const defaultOutput = 'x'.repeat(outputBitLength)
+    const transitionByKey = new Map<string, AutomatonState['transitions'][number]>()
+
+    const registerTransition = (transition: AutomatonState['transitions'][number]) => {
+      if (!stateIds.has(transition.from)) return
+
+      const input = this.normalizeInput(transition.input, inputBitLength)
+      const output = this.normalizeOutput(transition.output, outputBitLength)
+      const hasConcreteTarget = stateIds.has(transition.to)
+      const hasPattern = typeof transition.toPattern === 'string' && transition.toPattern.length > 0
+
+      transitionByKey.set(`${transition.from}:${input}`, {
+        id: transition.id,
+        from: transition.from,
+        to: hasConcreteTarget && !hasPattern ? transition.to : -1,
+        toPattern: hasPattern
+          ? transition.toPattern?.padStart(bitNumber, 'x')
+          : hasConcreteTarget
+            ? undefined
+            : defaultToPattern,
+        input,
+        output,
+      })
+    }
+
+    ;(previousState?.transitions || []).forEach(registerTransition)
+    ;(currentState.transitions || []).forEach(registerTransition)
+
+    let nextId =
+      Math.max(
+        -1,
+        ...(previousState?.transitions || []).map((transition) => transition.id),
+        ...(currentState.transitions || []).map((transition) => transition.id),
+      ) + 1
+
+    const normalizedTransitions: AutomatonState['transitions'] = []
+
+    for (const state of states) {
+      for (let inputIndex = 0; inputIndex < 1 << inputBitLength; inputIndex++) {
+        const input = inputIndex.toString(2).padStart(inputBitLength, '0')
+        const key = `${state.id}:${input}`
+        const existingTransition = transitionByKey.get(key)
+
+        if (existingTransition) {
+          normalizedTransitions.push(existingTransition)
+          continue
+        }
+
+        normalizedTransitions.push({
+          id: nextId++,
+          from: state.id,
+          to: -1,
+          toPattern: defaultToPattern,
+          input,
+          output: defaultOutput,
+        })
+      }
+    }
+
+    // Keep transition IDs unique. Duplicate IDs cause editor imports to overwrite
+    // one transition with another in sparse ID-indexed arrays.
+    const usedTransitionIds = new Set<number>()
+    let nextUniqueId = Math.max(-1, ...normalizedTransitions.map((transition) => transition.id)) + 1
+
+    const transitionsWithUniqueIds = normalizedTransitions.map((transition) => {
+      const id = Number(transition.id)
+      if (!Number.isInteger(id) || usedTransitionIds.has(id)) {
+        while (usedTransitionIds.has(nextUniqueId)) {
+          nextUniqueId += 1
+        }
+
+        const reassignedId = nextUniqueId
+        usedTransitionIds.add(reassignedId)
+        nextUniqueId += 1
+
+        return {
+          ...transition,
+          id: reassignedId,
+        }
+      }
+
+      usedTransitionIds.add(id)
+      return transition
+    })
+
+    return {
+      states,
+      transitions: transitionsWithUniqueIds,
+      automatonType: this.setAutomatonType(currentState.automatonType),
+    }
+  }
+
   static getLastUpdateSource(): UpdateSource {
     return this.lastUpdateSource
   }
@@ -55,19 +273,26 @@ export class AutomatonProject extends Project {
   }
 
   private static setAutomatonType(value: unknown): AutomatonType {
-    return value === 'moore' ? 'moore' : ''
+    return value === 'moore' || value === 'mealy' ? value : 'mealy'
   }
 
   private static parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
     const tr = raw as RawFsmTransition
-    const label = String(tr.label ?? '')
+    const hasLabel = typeof tr.label === 'string'
+    const label = hasLabel ? String(tr.label ?? '') : ''
     const parts = label.split('/')
+    const input = hasLabel ? parts[0] || '0' : String(tr.input ?? '0')
+    const output = hasLabel ? parts[1] || '0' : String(tr.output ?? tr.mealy_output ?? '0')
+    const toPattern = typeof tr.toPattern === 'string' ? tr.toPattern : undefined
+    const to = tr.to == null || String(tr.to) === '' ? -1 : Number(tr.to)
+
     return {
       id: Number(tr.id ?? 0),
       from: Number(tr.from ?? 0),
-      to: Number(tr.to ?? 0),
-      input: parts[0] || '0',
-      output: parts[1] || '0',
+      to: Number.isNaN(to) ? -1 : to,
+      toPattern,
+      input,
+      output,
     }
   }
 
@@ -88,34 +313,34 @@ export class AutomatonProject extends Project {
   }
 
   private static handleMessage(event: MessageEvent) {
-    if (event.data?.action === 'export') {
-      const raw = event.data.fsm as RawFsmData
-      const states = Array.isArray(raw.states) ? raw.states.map((r) => this.parseRawState(r)) : []
-      const transitions = Array.isArray(raw.transitions)
-        ? raw.transitions.map((r) => this.parseRawTransition(r))
-        : []
-      const fsmData: AutomatonState = {
+    if (event.data?.action !== 'export' && event.data?.action !== 'editorToTableExport') return
+    if (!this.isTrustedMessage(event)) return
+
+    const raw = event.data.fsm as RawFsmData
+    const states = Array.isArray(raw.states) ? raw.states.map((r) => this.parseRawState(r)) : []
+    const transitions = Array.isArray(raw.transitions)
+      ? raw.transitions.map((r) => this.parseRawTransition(r))
+      : []
+    const fsmData = this.normalizeState(
+      {
         states,
         transitions,
         automatonType: this.setAutomatonType(raw.automatonType),
-      }
+      },
+      stateManager.state.automaton as AutomatonState | undefined,
+    )
 
-      const oldData = this.lastImportedFsmData
-      if (
-        oldData &&
-        JSON.stringify(oldData.states || []) === JSON.stringify(fsmData.states || []) &&
-        JSON.stringify(oldData.transitions || []) === JSON.stringify(fsmData.transitions || [])
-      ) {
-        return
-      }
-
-      const wasTable = this.getLastUpdateSource() === 'table'
-      this.updateFromEditor = true
-      stateManager.state.automaton = fsmData
-      this.updateFromEditor = false
-      if (wasTable) this.setLastUpdateSource('table')
-      else this.lastUpdateSource = null
+    if (this.isSameAutomatonState(this.lastImportedFsmData, fsmData)) {
+      return
     }
+
+    const wasTable = this.getLastUpdateSource() === 'table'
+    this.updateFromEditor = true
+    this.lastImportedFsmData = fsmData
+    stateManager.state.automaton = fsmData
+    this.updateFromEditor = false
+    if (wasTable) this.setLastUpdateSource('table')
+    else this.lastUpdateSource = null
   }
 
   private static handleMessageRef = (event: MessageEvent) => AutomatonProject.handleMessage(event)
@@ -136,7 +361,7 @@ export class AutomatonProject extends Project {
   static override get defaultProps(): AutomatonProps {
     return {
       name: '',
-      automatonType: '',
+      automatonType: 'mealy',
     }
   }
 
@@ -150,13 +375,13 @@ export class AutomatonProject extends Project {
         stateManager.state.automaton || {
           states: [],
           transitions: [],
-          automatonType: '',
+          automatonType: 'mealy',
         },
     )
 
     const states = computed(() => automaton.value.states || [])
     const transitions = computed(() => automaton.value.transitions || [])
-    const automatonType = computed(() => automaton.value.automatonType || '')
+    const automatonType = computed(() => automaton.value.automatonType || 'mealy')
 
     // bitNumber (definiert vor binaryIDs)
     const bitNumber = computed(() => {
@@ -218,7 +443,6 @@ export class AutomatonProject extends Project {
     watch(
       () => stateManager.state.automaton,
       (val) => {
-        console.log('watch in automatonproject activated')
         if (
           !val ||
           AutomatonProject.updateFromEditor ||
@@ -231,7 +455,7 @@ export class AutomatonProject extends Project {
         }
 
         automatonDebounce = window.setTimeout(() => {
-          const actualState: AutomatonState = {
+          const actualState = AutomatonProject.normalizeState({
             states: (val.states || []).map((s) => ({
               id: s.id,
               name: s.name,
@@ -247,11 +471,10 @@ export class AutomatonProject extends Project {
               output: t.output,
             })),
             automatonType: AutomatonProject.setAutomatonType(val.automatonType),
-          }
+          })
 
           if (
-            AutomatonProject.lastSentFsmData &&
-            JSON.stringify(AutomatonProject.lastSentFsmData) === JSON.stringify(actualState)
+            AutomatonProject.isSameAutomatonState(AutomatonProject.lastSentFsmData, actualState)
           ) {
             return
           }
@@ -264,7 +487,7 @@ export class AutomatonProject extends Project {
               action: 'automatonimport',
               fsm: actualState,
             },
-            '*',
+            AutomatonProject.getTrustedOrigin(),
           )
         }, 50)
       },
