@@ -391,11 +391,6 @@ function toggleOutputBit(idx: number, i: number) {
           <th
             class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
           >
-            initial
-          </th>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
-          >
             name of state
           </th>
           <th
@@ -414,23 +409,10 @@ function toggleOutputBit(idx: number, i: number) {
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           />
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
-          />
         </tr>
 
         <!-- normal rows -->
         <tr v-else v-for="(state, index) in states" :key="state.id">
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
-          >
-            <button
-              class="w-full px-2 py-0 select-none hover:bg-gray-700 transition-colors duration-100"
-              @click="setInitialState(state.id)"
-            >
-              {{ state.initial ? '1' : '0' }}
-            </button>
-          </td>
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           >
@@ -451,10 +433,10 @@ function toggleOutputBit(idx: number, i: number) {
       </tbody>
     </table>
     <!-- Toolbar -->
-    <div class="flex items-start mb-1 text-sm gap-6">
+    <div class="flex items-start mb-0.5 text-xs gap-3 flex-wrap">
       <!-- States pill group -->
-      <div class="flex flex-col items-center gap-1 text-on-surface-variant text-xs select-none mr-4">
-        <span class="text-gray-400 font-mono">states</span>
+      <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
+        <span class="text-gray-500 font-mono text-[11px] leading-none">states</span>
         <div
           class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
         >
@@ -480,8 +462,8 @@ function toggleOutputBit(idx: number, i: number) {
       </div>
 
       <!-- Input bits pill group -->
-      <div class="flex flex-col items-center gap-1 text-on-surface-variant text-xs select-none mr-4">
-        <span class="text-gray-400 font-mono">input bits</span>
+      <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
+        <span class="text-gray-500 font-mono text-[11px] leading-none">input bits</span>
         <div
           class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
         >
@@ -507,8 +489,8 @@ function toggleOutputBit(idx: number, i: number) {
       </div>
 
       <!-- Output bits pill group -->
-      <div class="flex flex-col items-center gap-1 text-on-surface-variant text-xs select-none">
-        <span class="text-gray-400 font-mono">output bits</span>
+      <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
+        <span class="text-gray-500 font-mono text-[11px] leading-none">output bits</span>
         <div
           class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
         >
@@ -531,6 +513,21 @@ function toggleOutputBit(idx: number, i: number) {
             +
           </button>
         </div>
+      </div>
+
+      <!-- Initial state select -->
+      <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
+        <span class="text-gray-500 font-mono text-[11px] leading-none">initial state</span>
+        <select
+          class="rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors px-2 py-1.5 font-mono text-white text-xs cursor-pointer outline-none disabled:opacity-30"
+          :disabled="states.length === 0"
+          :value="states.find((s) => s.initial)?.id ?? ''"
+          @change="setInitialState(Number(($event.target as HTMLSelectElement).value))"
+        >
+          <option v-for="state in states" :key="state.id" :value="state.id">
+            {{ state.name }}
+          </option>
+        </select>
       </div>
     </div>
     <!-- TRANSITIONS TABLE-->
