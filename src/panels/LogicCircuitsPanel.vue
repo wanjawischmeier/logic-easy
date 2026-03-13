@@ -45,7 +45,7 @@ function installIframeInteractionGuards() {
       typeof (event as Event & { stopImmediatePropagation?: () => void })
         .stopImmediatePropagation === 'function'
     ) {
-      ;(event as Event & { stopImmediatePropagation: () => void }).stopImmediatePropagation()
+      ; (event as Event & { stopImmediatePropagation: () => void }).stopImmediatePropagation()
     }
   }
 
@@ -310,57 +310,35 @@ const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, u
 <template>
   <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2 p-2">
     <div ref="iframeContainer" class="relative flex-1">
-      <IframePanel
-        ref="iframePanelRef"
-        iframe-key="__lc_preloaded_iframe"
-        src="/logic-easy/logic-circuits/index.html"
-        :visible="params.api.isVisible"
-        class="flex-1"
-      />
+      <IframePanel ref="iframePanelRef" iframe-key="__lc_preloaded_iframe" src="/logic-easy/logic-circuits/index.html"
+        :visible="params.api.isVisible" class="flex-1" />
     </div>
 
     <teleport to="body">
-      <div
-        id="lc-download-button"
-        class="fixed z-50 flex items-center gap-2 text-sm"
-        :style="downloadButtonStyle"
-      >
-        <SettingsButton
-          :selected-function-type="functionType"
-          :input-vars="inputVars"
-          :output-vars="outputVars"
-          :show-output-selection="false"
-          :show-function-type-selection="true"
-          :custom-setting-slot-labels="{ 'allow-edits': 'Allow manual edits', method: 'Gate Type' }"
-        >
+      <div id="lc-download-button" class="fixed z-50 flex items-center gap-2 text-sm" :style="downloadButtonStyle">
+        <SettingsButton :selected-function-type="functionType" :input-vars="inputVars" :output-vars="outputVars"
+          :show-output-selection="false" :show-function-representation-selection="false"
+          :custom-setting-slot-labels="{ 'allow-edits': 'Allow manual edits', method: 'Gate Type' }">
           <template #allow-edits>
             <div class="flex gap-2 items-center text-white" @click.stop>
               <Checkbox v-model="allowEdits" @update:model-value="updateFormulas" />
               <div class="text-xs min-w-25">
-                <span v-if="allowEdits"
-                  >manual edits enabled, automatic sync disabled.
+                <span v-if="allowEdits">manual edits enabled, automatic sync disabled.
                   <p class="text-red-200">
                     Your Edits in LogicCircuits will never be synched to LogicEasy!
-                  </p></span
-                >
+                  </p>
+                </span>
                 <span v-else>manual edits locked, automatic sync enabled</span>
               </div>
             </div>
           </template>
           <template #method>
-            <MultiSelectSwitch
-              :values="methodOptions"
-              :initial-selected="selectedMethodIndex"
-              :onSelect="handleMethodSelect"
-            />
+            <MultiSelectSwitch :values="methodOptions" :initial-selected="selectedMethodIndex"
+              :onSelect="handleMethodSelect" />
           </template>
         </SettingsButton>
-        <DownloadButton
-          :target-ref="iframeContainer"
-          :screenshot="{ enabled: false }"
-          :files="logicCircuitDownloadFiles"
-          :direct-download="true"
-        />
+        <DownloadButton :target-ref="iframeContainer" :screenshot="{ enabled: false }"
+          :files="logicCircuitDownloadFiles" :direct-download="true" />
       </div>
     </teleport>
   </div>

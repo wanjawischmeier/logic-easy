@@ -85,7 +85,7 @@ export function flattenCouplingTermsToFormula(
         };
     }
 
-    if (functionType === 'CNF') {
+    if (functionType === 'Conjunctive') {
         // CNF: AND of OR clauses
         if ((expression as any).priority === 8) {
             const args = (expression as any).args as Operation[];

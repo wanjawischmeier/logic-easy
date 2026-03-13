@@ -1,8 +1,9 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
     <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
-      <button class="border border-transparent hover:border-surface-3 hover:bg-surface-2" @click.stop="toggleMenu(menu)"
-        :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
+      <button class="border hover:border-surface-3 hover:bg-surface-2"
+        :class="activeMenu === menu ? 'border-surface-3 bg-surface-2' : 'border-transparent'"
+        @click.stop="toggleMenu(menu)" :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
         {{ menu }}
       </button>
 
@@ -19,6 +20,7 @@ import { ref, onMounted, onBeforeUnmount, computed, defineComponent, h, type Pro
 import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry'
 import { createPanel } from '@/utility/dockview/integration'
 import { popupService, showProjectCreationPopup } from '@/utility/popupService'
+import { dropdownService } from '@/utility/dropdownService'
 import CreditPopup from './popups/CreditPopup.vue'
 import { projectManager } from '@/projects/projectManager'
 import { stateManager } from '@/projects/stateManager'
@@ -34,12 +36,56 @@ const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== n
 
 const { state: truthTable, formulas, inputVars, outputVars } = TruthTableProject.useState()
 
+const recentProjectEntries = computed<MenuEntry[]>(() => {
+  const projects = projectManager.listProjects()
+
+  // Group projects by name to identify duplicates
+  const projectsByName = new Map<string, typeof projects>()
+  projects.forEach((project) => {
+    const existing = projectsByName.get(project.name) || []
+    existing.push(project)
+    projectsByName.set(project.name, existing)
+  })
+
+  // For each group with duplicates, sort by ID and assign numbers
+  const nameNumbers = new Map<number, number>()
+  projectsByName.forEach((group) => {
+    if (group.length > 1) {
+      // Sort by ID to get consistent numbering
+      const sorted = [...group].sort((a, b) => a.id - b.id)
+      sorted.forEach((project, index) => {
+        nameNumbers.set(project.id, index + 1)
+      })
+    }
+  })
+
+  return projects.map((project) => {
+    const number = nameNumbers.get(project.id)
+    const displayName = number ? `${project.name} (${number})` : project.name
+
+    return {
+      label: displayName,
+      action: () => {
+        projectManager.openProject(project.id)
+      },
+    }
+  })
+})
+
 const menus = computed<Record<string, MenuEntry[]>>(() => ({
   Project: [
     {
       label: 'New',
       children: newMenu.value,
     },
+    ...(recentProjectEntries.value.length > 0
+      ? [
+        {
+          label: 'Recents',
+          children: recentProjectEntries.value,
+        },
+      ]
+      : []),
     {
       label: 'Open',
       tooltip: 'Ctrl+O',
@@ -120,7 +166,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
           label: 'Boolean expressions',
           children: [
             {
-              label: 'DNF',
+              label: 'Disjunctive',
               action: () => {
                 exportTruthTableTOVHDLboolExpr(
                   truthTable.value,
@@ -129,7 +175,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               },
             },
             {
-              label: 'CNF',
+              label: 'Conjunctive',
               action: () => {
                 exportTruthTableTOVHDLboolExpr(
                   truthTable.value,
@@ -179,16 +225,19 @@ const MenuList = defineComponent<MenuListProps>({
       h(
         'ul',
         { class: 'pr-1' },
-        props.items.map((entry, idx) =>
-          h(
+        props.items.map((entry, idx) => {
+          const submenuOpen = isOpen(level.value, idx)
+          return h(
             'li',
             { class: 'relative', key: idx },
             [
               h(
                 'button',
                 {
-                  class:
+                  class: [
                     'w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm',
+                    { 'bg-surface-3': submenuOpen }
+                  ],
                   disabled: (!entry.action && !entry.panelId && !entry.children) || entry.disabled,
                   onClick: entry.children ? undefined : () => runAction(entry),
                   onMouseenter: entry.children
@@ -198,29 +247,42 @@ const MenuList = defineComponent<MenuListProps>({
                 },
                 [
                   h('span', entry.label),
-                  entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
-                  entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                  (entry.tooltip || entry.children) ? h('span', { class: 'flex items-center gap-2' }, [
+                    entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
+                    entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                  ]) : null,
                 ],
               ),
-              entry.children && isOpen(level.value, idx)
+              submenuOpen && entry.children
                 ? h(
                   'div',
                   {
                     class:
-                      'absolute left-full top-0 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
+                      'absolute left-full top-0 -mt-0.5 ml-1 w-48 bg-surface-2 border border-surface-3 rounded z-20',
                   },
                   [h(MenuList, { items: entry.children, level: level.value + 1 })],
                 )
                 : null,
             ],
-          ),
-        ),
+          )
+        }),
       )
   },
 })
 
 function toggleMenu(name: string): void {
-  activeMenu.value = activeMenu.value === name ? '' : name
+  const isOpening = activeMenu.value !== name
+
+  if (isOpening) {
+    // When opening, notify the dropdown service to close others
+    dropdownService.open(closeMenu)
+    activeMenu.value = name
+  } else {
+    // When closing, notify the service
+    dropdownService.close()
+    activeMenu.value = ''
+  }
+
   openPath.value = []
 }
 
@@ -248,6 +310,7 @@ function runAction(entry: MenuEntry): void {
     entry.action()
     activeMenu.value = ''
     openPath.value = []
+    dropdownService.close()
     return
   }
 
@@ -260,9 +323,16 @@ function runAction(entry: MenuEntry): void {
 
     activeMenu.value = ''
     openPath.value = []
+    dropdownService.close()
     return
   }
 
+  activeMenu.value = ''
+  openPath.value = []
+  dropdownService.close()
+}
+
+function closeMenu(): void {
   activeMenu.value = ''
   openPath.value = []
 }
@@ -272,16 +342,14 @@ function handleDocClick(e: MouseEvent): void {
   if (!root) return
   const target = e.target as Node | null
   if (!target || !root.contains(target)) {
-    activeMenu.value = ''
-    openPath.value = []
+    closeMenu()
   }
 }
 
 async function openFile() {
   await stateManager.openFile()
 
-  activeMenu.value = ''
-  openPath.value = []
+  closeMenu()
 }
 
 onMounted(() => {
@@ -290,5 +358,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocClick)
+  dropdownService.close()
 })
 </script>

@@ -7,13 +7,13 @@ import type { SerializedDockview } from 'dockview-vue'
 /**
  * The current storage version
  */
-export const STORAGE_VERSION: number = 7
+export const STORAGE_VERSION: number = 8
 
 /**
  * All storage versions that are compatible with the current one
  */
 export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
-  6, 7
+  8
 ]
 
 /**

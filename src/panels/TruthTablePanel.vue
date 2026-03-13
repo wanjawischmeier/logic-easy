@@ -9,8 +9,9 @@
       <LegendButton :legend="legend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :show-output-selection="!showAllOutputVars"
-        :show-function-type-selection="false"
+        :selected-function-type="functionType" :selected-function-representation="functionRepresentation"
+        :show-output-selection="!showAllOutputVars" :show-function-type-selection="false"
+        :show-function-representation-selection="false"
         :customSettingSlotLabels="{ 'show-all-ouput-vars': 'Show all ouput variables' }">
         <template #show-all-ouput-vars>
           <div class="flex gap-2 items-center" @click.stop>
@@ -48,6 +49,7 @@ import type { IDockviewPanelProps } from 'dockview-vue';
 import Checkbox from '@/components/parts/Checkbox.vue';
 import SearchIcon from '@/components/icons/SearchIcon.vue';
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager';
+import { FunctionRepresentation } from '@/utility/types';
 
 const legend: LegendItem[] = [
   {
@@ -74,7 +76,7 @@ interface TruthTablePanelState {
 }
 
 // Access state from params
-const { inputVars, outputVars, values, outputVariableIndex, functionType } = TruthTableProject.useState()
+const { inputVars, outputVars, values, outputVariableIndex, functionType, functionRepresentation } = TruthTableProject.useState()
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<TruthTablePanelState>(props.params.api.id)

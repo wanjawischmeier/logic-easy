@@ -12,6 +12,8 @@ import { projectTypes } from '@/projects/projectRegistry'
 export class ProjectLifecycleManager {
   private currentProjectId: Ref<number | null>
   private metadataManager: ProjectMetadataManager
+  // Signal that increments every time a project is successfully opened
+  public readonly projectOpened = ref<number>(0)
 
   constructor(metadataManager: ProjectMetadataManager) {
     this.metadataManager = metadataManager
@@ -136,6 +138,9 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
       stateManagerState: stateManager.state,
     })
+
+    // Emit signal that project was opened
+    this.projectOpened.value++
 
     return project
   }
