@@ -15,7 +15,7 @@
 
     <div v-if="showDropdown && !shouldDirectDownload"
       class="absolute right-0 mt-2 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
-      <button v-for="item in dropdownItems" :key="item.key" @click="selectItem(item)"
+      <button v-for="item in dropdownItems" :key="item.key" @click.stop="selectItem(item)"
         class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
         <span>{{ item.label }}</span>
         <span class="opacity-70">{{ item.extensionLabel }}</span>
@@ -220,7 +220,7 @@ const selectItem = async (item: DropdownItem) => {
 // Close dropdown when clicking outside
 const handleClickOutside = (event: MouseEvent) => {
   if (dropdownContainer.value && !dropdownContainer.value.contains(event.target as Node)) {
-    closeDropdown()
+    dropdownService.close()
   }
 }
 
