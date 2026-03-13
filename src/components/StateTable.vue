@@ -6,27 +6,7 @@ import { onMounted, reactive } from 'vue'
 const editingNames = reactive<Record<number, string | undefined>>({})
 
 /**
- * aktuelle Probleme:
- * - bei add state / transition in editor werden nur die neuen transitions auch angezeigt, nicht die volle tabelle
- * - ... allerdings wird auch der reine table -> editor export etwas hässlich
- * - die table kann mehr kanten erlauben als der editor, da dieser mit mehreren gleichen kanten überfordert ist
- * - todo: in editor kanten mit x / x ausblenden können
- * - todo: eingabeprüfungen
- */
-
-/**
  * manage central data
- */
-
-/**
- * TODO:
- * 1. bei add state automatisch 2^|x| tabellenspalten je mit allen möglichen inputs des zustands hinzufügen,
- * hier per default für next state don´t care
- * 2. bei add new state in editor ebenfalls dies hinzufügen
- * 3. add neue kante in tabelle entfernen (automatisch hinzufügen)
- * 4. bei neuer kante in table a) direktes benennen nötig machen und b) nicht 2x selben input erlauben
- * 5. auto layout button unten in editor setzen
- * 6. initial state wechselbar machen
  */
 
 // bundle all reactive data of automaton
@@ -432,9 +412,9 @@ function toggleOutputBit(idx: number, i: number) {
         </tr>
       </tbody>
     </table>
-    <!-- Toolbar -->
+    <!-- toolbar -->
     <div class="flex items-start mb-0.5 text-xs gap-3 flex-wrap">
-      <!-- States pill group -->
+      <!-- state number select -->
       <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
         <span class="text-gray-500 font-mono text-[11px] leading-none">states</span>
         <div
@@ -461,7 +441,7 @@ function toggleOutputBit(idx: number, i: number) {
         </div>
       </div>
 
-      <!-- Input bits pill group -->
+      <!-- input bits select -->
       <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
         <span class="text-gray-500 font-mono text-[11px] leading-none">input bits</span>
         <div
@@ -488,7 +468,7 @@ function toggleOutputBit(idx: number, i: number) {
         </div>
       </div>
 
-      <!-- Output bits pill group -->
+      <!-- output bits select -->
       <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
         <span class="text-gray-500 font-mono text-[11px] leading-none">output bits</span>
         <div
