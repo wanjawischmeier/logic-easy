@@ -18,20 +18,20 @@
             <div class="flex flex-col gap-3">
                 <!-- Dynamic slots with labels from prop -->
                 <div v-for="(label, slotName) in customSettingSlotLabels" :key="slotName" class="flex flex-col gap-1">
-                    <h3 class="text-xs opacity-70">{{ label }}</h3>
+                    <h3 class="text-xs opacity-70 text-white">{{ label }}</h3>
                     <slot v-if="$slots[slotName]" :name="slotName"></slot>
                 </div>
 
 
                 <div v-if="showOutputVarSelector && showOutputSelection" class="flex flex-col gap-1">
-                    <label class="text-xs opacity-70">Output Variable</label>
+                    <label class="text-xs opacity-70 text-white">Output Variable</label>
                     <MultiSelectSwitch :values="outputVars" :initialSelected="selectedOutputIndex"
                         :onSelect="handleOutputChange">
                     </MultiSelectSwitch>
                 </div>
 
                 <div v-if="showFunctionTypeSelection" class="flex flex-col gap-1">
-                    <label class="text-xs opacity-70">Function Type</label>
+                    <label class="text-xs opacity-70 text-white">Function Type</label>
                     <MultiSelectSwitch :values="TruthTableProject.functionTypes.value"
                         :initialSelected="selectedFunctionTypeIndex" :onSelect="handleFunctionTypeChange">
                     </MultiSelectSwitch>
@@ -54,8 +54,8 @@ import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerMa
 interface Props {
     inputVars: string[]
     outputVars: string[]
-    selectedOutputIndex: number
-    selectedFunctionType: FunctionType
+    selectedOutputIndex?: number
+    selectedFunctionType?: FunctionType
     customSettingSlotLabels?: Record<string, string>
     showOutputSelection?: boolean
     showFunctionTypeSelection?: boolean
@@ -76,7 +76,9 @@ const showDropdown = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
 
 const showOutputVarSelector = computed(() => props.outputVars.length > 1)
-const selectedFunctionTypeIndex = computed(() => TruthTableProject.functionTypes.value.indexOf(props.selectedFunctionType))
+const selectedFunctionTypeIndex = computed(() =>
+    TruthTableProject.functionTypes.value.indexOf(props.selectedFunctionType as FunctionType),
+)
 
 const toggleDropdown = () => {
     showDropdown.value = !showDropdown.value

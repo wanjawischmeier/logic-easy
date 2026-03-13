@@ -1,7 +1,7 @@
 <template>
   <div class="relative" ref="dropdownContainer">
     <div class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5">
-      <button @click="toggleDropdown" :disabled="isCapturing || !hasDownloadOptions"
+      <button @click="handleClick" :disabled="isCapturing || !hasDownloadOptions"
         class="px-3 py-2 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
         :class="showDropdown ? 'bg-primary' : ''" title="Download">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -13,7 +13,7 @@
       </button>
     </div>
 
-    <div v-if="showDropdown"
+    <div v-if="showDropdown && !shouldDirectDownload"
       class="absolute right-0 mt-1 p-0.5 bg-surface-2 rounded shadow-lg border border-surface-3 z-50">
       <button v-for="item in dropdownItems" :key="item.key" @click="selectItem(item)"
         class="w-full p-2 text-left text-sm rounded-xs hover:bg-surface-3 flex justify-between gap-4">
@@ -65,6 +65,7 @@ interface Props {
   filename?: string
   screenshot?: ScreenshotOptions
   files?: DownloadFileDescriptor[]
+  directDownload?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -78,6 +79,7 @@ const props = withDefaults(defineProps<Props>(), {
     padding: SCEENSHOT_PADDING,
   }),
   files: () => [],
+  directDownload: false,
 })
 
 interface DropdownItem {
@@ -107,6 +109,9 @@ const latexFiles = computed(() =>
 )
 
 const hasScreenshotOption = computed(() => screenshotConfig.value.enabled && !!targetElement.value)
+const shouldDirectDownload = computed(
+  () => props.directDownload && !hasScreenshotOption.value && normalizedFiles.value.length === 1,
+)
 const dropdownItems = computed<DropdownItem[]>(() => {
   const items: DropdownItem[] = []
 
@@ -167,6 +172,22 @@ const toggleDropdown = () => {
     return
   }
   showDropdown.value = !showDropdown.value
+}
+
+const handleClick = async () => {
+  if (!hasDownloadOptions.value || isCapturing.value) {
+    return
+  }
+
+  if (shouldDirectDownload.value) {
+    const [file] = normalizedFiles.value
+    if (file) {
+      await handleFileDownload(file)
+    }
+    return
+  }
+
+  toggleDropdown()
 }
 
 const closeDropdown = () => {
