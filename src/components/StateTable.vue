@@ -166,8 +166,15 @@ function commitStateName(stateId: number) {
   const buffered = editingNames[stateId]
   delete editingNames[stateId]
 
-  const name = buffered?.trim() ? buffered : `q${stateId}`
   const automaton = getAutomaton()
+  const previousName = automaton.states.find((state) => state.id === stateId)?.name ?? `q${stateId}`
+  const requestedName = buffered?.trim() ? buffered.trim() : `q${stateId}`
+  const duplicateExists = automaton.states.some(
+    (state) =>
+      state.id !== stateId && state.name.trim().toLowerCase() === requestedName.toLowerCase(),
+  )
+  const name = duplicateExists ? previousName : requestedName
+
   automaton.states = automaton.states.map((state) =>
     state.id === stateId ? { ...state, name } : state,
   )
