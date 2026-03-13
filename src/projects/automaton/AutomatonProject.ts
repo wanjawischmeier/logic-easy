@@ -142,7 +142,9 @@ export class AutomatonProject extends Project {
     fill: string,
   ): string {
     const normalized =
-      direction === 'left' ? (value ?? '').padStart(length, fill) : (value ?? '').padEnd(length, fill)
+      direction === 'left'
+        ? (value ?? '').padStart(length, fill)
+        : (value ?? '').padEnd(length, fill)
     return direction === 'left' ? normalized.slice(-length) : normalized.slice(0, length)
   }
 
@@ -155,7 +157,8 @@ export class AutomatonProject extends Project {
       .sort((left, right) => left.id - right.id)
 
     const stateIds = new Set(states.map((state) => state.id))
-    const bitNumber = Math.max(states.length.toString(2).length, 1)
+    const maxIndex = Math.max(states.length - 1, 0)
+    const bitNumber = Math.max(maxIndex.toString(2).length, 1)
     const inputBitLength = this.getBitLength(
       currentState,
       (transition) => transition.input,
@@ -379,7 +382,8 @@ export class AutomatonProject extends Project {
 
     // bitNumber (definiert vor binaryIDs)
     const bitNumber = computed(() => {
-      return Math.max(states.value.length.toString(2).length, 1)
+      const maxIndex = Math.max(states.value.length - 1, 0)
+      return Math.max(maxIndex.toString(2).length, 1)
     })
 
     const stateIndexMap = computed(() => {

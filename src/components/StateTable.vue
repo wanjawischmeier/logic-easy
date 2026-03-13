@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
 import { stateManager } from '@/projects/stateManager'
-import { onMounted } from 'vue'
+import { onMounted, reactive } from 'vue'
+
+const editingNames = reactive<Record<number, string | undefined>>({})
 
 /**
  * aktuelle Probleme:
@@ -74,8 +76,13 @@ function getNextStateId(): number {
   return nextId
 }
 
+function getRequiredStateBitsFromCount(stateCount: number): number {
+  const maxIndex = Math.max(stateCount - 1, 0)
+  return Math.max(maxIndex.toString(2).length, 1)
+}
+
 function getDefaultToPatternForStateCount(stateCount: number): string {
-  return 'x'.repeat(Math.max(stateCount.toString(2).length, 1))
+  return 'x'.repeat(getRequiredStateBitsFromCount(stateCount))
 }
 
 function getNextTransitionId(): number {
@@ -94,8 +101,7 @@ function getNextTransitionId(): number {
 function addStateRow() {
   const automaton = getAutomaton()
   const nextId = getNextStateId()
-  const nextBitNumber = Math.max((automaton.states.length + 1).toString(2).length, 1)
-  const nextStatePattern = 'x'.repeat(nextBitNumber)
+  const nextStatePattern = getDefaultToPatternForStateCount(automaton.states.length + 1)
   const hasInitialState = automaton.states.some((state) => state.initial)
 
   // set attributes and add new state
@@ -134,6 +140,26 @@ function setInitialState(stateId: number) {
   AutomatonProject.setLastUpdateSource('table')
 }
 
+function startEditingName(stateId: number, currentName: string) {
+  editingNames[stateId] = currentName
+}
+
+function bufferStateName(stateId: number, name: string) {
+  editingNames[stateId] = name
+}
+
+function commitStateName(stateId: number) {
+  const buffered = editingNames[stateId]
+  delete editingNames[stateId]
+
+  const name = buffered?.trim() ? buffered : `q${stateId}`
+  const automaton = getAutomaton()
+  automaton.states = automaton.states.map((state) =>
+    state.id === stateId ? { ...state, name } : state,
+  )
+  AutomatonProject.setLastUpdateSource('table')
+}
+
 function removeStateRow(stateId: number) {
   const automaton = getAutomaton()
   const remainingStates = automaton.states.filter((state) => state.id !== stateId)
@@ -166,12 +192,52 @@ function removeStateRow(stateId: number) {
   AutomatonProject.setLastUpdateSource('table')
 }
 
+function increaseInputBits() {
+  const automaton = getAutomaton()
+  const nextInputBits = inputBits.value + 1
+
+  automaton.transitions = automaton.transitions.map((transition) => ({
+    ...transition,
+    input: (transition.input ?? '').padStart(nextInputBits, '0').slice(-nextInputBits),
+  }))
+
+  AutomatonProject.setLastUpdateSource('table')
+}
+
+function decreaseInputBits() {
+  const automaton = getAutomaton()
+  if (inputBits.value <= 1) return
+
+  const nextInputBits = inputBits.value - 1
+  const mergedTransitions = new Map<string, AutomatonState['transitions'][number]>()
+
+  for (const transition of automaton.transitions) {
+    const normalizedInput = (transition.input ?? '').padStart(inputBits.value, '0')
+    const removedBit = normalizedInput.charAt(0)
+    const nextInput = normalizedInput.slice(-nextInputBits)
+    const key = `${transition.from}:${nextInput}`
+    const existingTransition = mergedTransitions.get(key)
+
+    if (!existingTransition || removedBit === '0') {
+      mergedTransitions.set(key, {
+        ...transition,
+        input: nextInput,
+      })
+    }
+  }
+
+  automaton.transitions = Array.from(mergedTransitions.values())
+
+  AutomatonProject.setLastUpdateSource('table')
+}
+
 /**
  * helper functions to display automaton data correctly in table
  */
 // compute amount of necessary bits (x) to be displayed
-function normalizeBitsToX(value: string | undefined, length: number): string {
-  return (value ?? '').padEnd(length, 'x')
+function normalizeBitsToX(value: string | undefined, length: number | string): string {
+  const normalizedLength = Math.max(Number(length) || 0, 0)
+  return (value ?? '').padEnd(normalizedLength, 'x')
 }
 
 // remap "to" if Z^n+1 is edited
@@ -285,7 +351,13 @@ function toggleOutputBit(idx: number, i: number) {
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           >
-            {{ state.name }}
+            <input
+              :value="editingNames[state.id] !== undefined ? editingNames[state.id] : state.name"
+              class="w-full bg-transparent text-center outline-none hover:bg-gray-700 focus:bg-gray-700 transition-colors duration-100"
+              @focus="startEditingName(state.id, state.name)"
+              @input="bufferStateName(state.id, ($event.target as HTMLInputElement).value)"
+              @blur="commitStateName(state.id)"
+            />
           </td>
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
@@ -303,8 +375,11 @@ function toggleOutputBit(idx: number, i: number) {
         </tr>
       </tbody>
     </table>
-    <button class="bg-primary text-xl" @click="addStateRow">+</button>
-
+    <div class="flex flex-row w-95 mb-2 text-xs space-x-5 font-mono">
+      <button class="bg-primary mr-15" @click="addStateRow">+ state</button>
+      <button class="bg-primary" @click="increaseInputBits">+ input bits</button>
+      <button class="bg-primary" @click="decreaseInputBits">- input bits</button>
+    </div>
     <!-- TRANSITIONS TABLE-->
     <div v-if="states.length >= 1" class="gap-4 items-center text-center">
       <h1 class="text-center py-4 mt-6 text-xl font-mono">Transitions</h1>
@@ -324,7 +399,9 @@ function toggleOutputBit(idx: number, i: number) {
               class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
               :colspan="inputBits"
             >
-              input
+              <div class="flex items-center justify-center gap-2">
+                <span>input</span>
+              </div>
             </th>
             <th
               class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
@@ -392,7 +469,7 @@ function toggleOutputBit(idx: number, i: number) {
               class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
               :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
             >
-              {{ (transitionView.fromBinary ?? '').charAt(i) || '0' }}
+              {{ (transitionView.fromBinary ?? '').charAt(Number(i)) || '0' }}
             </td>
 
             <!-- X^n bits (read only) -->
@@ -402,7 +479,7 @@ function toggleOutputBit(idx: number, i: number) {
               class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
               :class="i === inputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
             >
-              {{ normalizeBitsToX(transitions[idx]!.input, inputBits).charAt(i) }}
+              {{ normalizeBitsToX(transitions[idx]!.input, inputBits).charAt(Number(i)) }}
             </td>
 
             <!-- Z^(n+1) bits (edit) -->
@@ -413,7 +490,9 @@ function toggleOutputBit(idx: number, i: number) {
               :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
               @click="toggleToBit(idx, i)"
             >
-              {{ (transitionView.toBinary ?? '').padStart(bitNumber, 'x').charAt(i) || 'x' }}
+              {{
+                (transitionView.toBinary ?? '').padStart(bitNumber, 'x').charAt(Number(i)) || 'x'
+              }}
             </td>
 
             <!-- Y^n bits (edit) -->
@@ -424,7 +503,7 @@ function toggleOutputBit(idx: number, i: number) {
               :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
               @click="toggleOutputBit(idx, i)"
             >
-              {{ normalizeBitsToX(transitions[idx]!.output, outputBits).charAt(i) }}
+              {{ normalizeBitsToX(transitions[idx]!.output, outputBits).charAt(Number(i)) }}
             </td>
           </tr>
         </tbody>
