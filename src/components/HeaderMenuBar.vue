@@ -247,8 +247,10 @@ const MenuList = defineComponent<MenuListProps>({
                 },
                 [
                   h('span', entry.label),
-                  entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
-                  entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                  (entry.tooltip || entry.children) ? h('span', { class: 'flex items-center gap-2' }, [
+                    entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
+                    entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                  ]) : null,
                 ],
               ),
               submenuOpen && entry.children
