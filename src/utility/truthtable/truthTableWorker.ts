@@ -3,6 +3,7 @@ import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
 import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types';
 import { generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
 import { analyzeExpressions, detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
+import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator';
 
 // Message types for worker communication
 export interface WorkerRequest {
@@ -17,16 +18,6 @@ export interface WorkerResponse {
     couplingTermLatex: string | undefined;
     selectedFormula: Formula | undefined;
     formulaTermColors: TermColor[] | undefined;
-}
-
-function getFunctionSignature(
-    functionType: FunctionType,
-    functionRepresentation: FunctionRepresentation,
-    inputVars: string[]
-): string {
-    const formType = functionType === 'Disjunctive' ? 'D' : 'C';
-    const formRepresentation = functionRepresentation === 'Normal' ? 'N' : 'M';
-    return `f_{${formType}${formRepresentation}F}(${inputVars.join(', ')}) = `;
 }
 
 /**
@@ -77,62 +68,6 @@ function createEdgeCaseResult(
     const couplingTermLatex = signature + constant;
 
     return { qmcResult, formula, couplingTermLatex };
-}
-
-/**
- * Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
- */
-function getTermSortKey(term: string): string {
-    return term.replace(/\\bar\{([a-z])\}/g, '$1');
-}
-
-export function getCouplingTermLatex(
-    qmcResult: QMCResult,
-    functionType: FunctionType,
-    functionRepresentation: FunctionRepresentation,
-    inputVars: string[]
-): string {
-    const signature = getFunctionSignature(functionType, functionRepresentation, inputVars);
-
-    if (qmcResult.expressions.length === 0) {
-        return signature + '0';
-    }
-
-    const firstExpr = qmcResult.expressions[0];
-    if ((firstExpr as any).name === '1') {
-        return signature + '1';
-    }
-    if ((firstExpr as any).name === '0') {
-        return signature + '0';
-    }
-
-    const isCNF = functionType === 'Conjunctive';
-    const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF);
-
-    if (variablePositions.length === 0) {
-        const termJoiner = isCNF ? '' : ' + ';
-        return signature + constantTerms.sort((a, b) =>
-            getTermSortKey(a).localeCompare(getTermSortKey(b))
-        ).join(termJoiner);
-    }
-
-    const partsWithKeys: Array<{ sortKey: string, latex: string }> = [];
-
-    for (const term of constantTerms) {
-        partsWithKeys.push({ sortKey: getTermSortKey(term), latex: term });
-    }
-
-    for (const variations of variablePositions) {
-        const uniqueVars = Array.from(new Set(variations));
-        const matrixRows = uniqueVars.join(' \\\\ ');
-        const latex = `\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`;
-        partsWithKeys.push({ sortKey: getTermSortKey(uniqueVars[0] || ''), latex });
-    }
-
-    partsWithKeys.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-
-    const termJoiner = isCNF ? '' : ' + ';
-    return signature + partsWithKeys.map(p => p.latex).join(termJoiner);
 }
 
 async function runMinimization(truthTable: TruthTableState, index: number): Promise<QMCResult | undefined> {
@@ -306,7 +241,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                 currentQmcResult,
                 truthTable.functionType,
                 truthTable.functionRepresentation,
-                truthTable.inputVars
+                truthTable.inputVars,
+                truthTable.values,
+                truthTable.outputVariableIndex
             );
             selectedFormula = formulas[currentOutputVar];
 

@@ -7,7 +7,7 @@ import { stateManager, type AppState } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
 import { Minimizer, type QMCResult } from "@/utility/truthtable/minimizer";
 import type { TermColor } from "@/utility/truthtable/colorGenerator";
-import { getCouplingTermLatex } from "@/utility/truthtable/truthTableWorker";
+import { getCouplingTermLatex } from "@/utility/truthtable/latexGenerator";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
