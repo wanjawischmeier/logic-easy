@@ -94,6 +94,37 @@ function getNextTransitionId(): number {
   return maxTransitionId + 1
 }
 
+function resolveConcreteToPatternsForCurrentStates() {
+  const automaton = getAutomaton()
+
+  automaton.transitions = automaton.transitions.map((transition) => {
+    if (transition.to >= 0) {
+      return transition
+    }
+
+    const pattern = String(transition.toPattern ?? '')
+    if (!pattern || pattern.includes('x')) {
+      return transition
+    }
+
+    const targetIndex = parseInt(pattern, 2)
+    if (Number.isNaN(targetIndex)) {
+      return transition
+    }
+
+    const targetState = automaton.states[targetIndex]
+    if (!targetState) {
+      return transition
+    }
+
+    return {
+      ...transition,
+      to: targetState.id,
+      toPattern: undefined,
+    }
+  })
+}
+
 /**
  * helper functions to edit table in table panel
  */
@@ -128,6 +159,9 @@ function addStateRow() {
     })
     nextTransitionId += 1
   }
+
+  resolveConcreteToPatternsForCurrentStates()
+
   AutomatonProject.setLastUpdateSource('table')
 }
 
@@ -162,24 +196,45 @@ function commitStateName(stateId: number) {
 
 function removeStateRow(stateId: number) {
   const automaton = getAutomaton()
-  const remainingStates = automaton.states.filter((state) => state.id !== stateId)
-  const defaultToPattern = getDefaultToPatternForStateCount(remainingStates.length)
+  const remainingStates = automaton.states
+    .filter((state) => state.id !== stateId)
+    .sort((left, right) => left.id - right.id)
+  const oldToNewId = new Map<number, number>()
 
-  automaton.states = remainingStates
+  remainingStates.forEach((state, index) => {
+    oldToNewId.set(state.id, index)
+  })
+
+  automaton.states = remainingStates.map((state, index) => ({
+    ...state,
+    id: index,
+  }))
+
+  const defaultToPattern = getDefaultToPatternForStateCount(automaton.states.length)
 
   automaton.transitions = automaton.transitions
     .filter((transition) => transition.from !== stateId)
     .map((transition) => {
-      if (transition.to !== stateId) {
-        return transition
+      const remappedFrom = oldToNewId.get(transition.from)
+      if (remappedFrom === undefined) {
+        return null
       }
+
+      const remappedTo = oldToNewId.get(transition.to)
+      const hasConcreteTarget = transition.to >= 0 && remappedTo !== undefined
 
       return {
         ...transition,
-        to: -1,
-        toPattern: defaultToPattern,
+        from: remappedFrom,
+        to: hasConcreteTarget ? remappedTo : -1,
+        toPattern: hasConcreteTarget ? undefined : defaultToPattern,
       }
     })
+    .filter((transition) => transition !== null)
+
+  Object.keys(editingNames).forEach((key) => {
+    delete editingNames[Number(key)]
+  })
 
   if (automaton.states.length > 0 && !automaton.states.some((state) => state.initial)) {
     const firstRemainingState = automaton.states[0]!
@@ -190,6 +245,12 @@ function removeStateRow(stateId: number) {
   }
 
   AutomatonProject.setLastUpdateSource('table')
+}
+
+function decreaseStateCount() {
+  if (states.value.length === 0) return
+  const lastStateId = Math.max(...states.value.map((state) => state.id))
+  removeStateRow(lastStateId)
 }
 
 function increaseInputBits() {
@@ -227,6 +288,32 @@ function decreaseInputBits() {
   }
 
   automaton.transitions = Array.from(mergedTransitions.values())
+
+  AutomatonProject.setLastUpdateSource('table')
+}
+
+function increaseOutputBits() {
+  const automaton = getAutomaton()
+  const nextOutputBits = outputBits.value + 1
+
+  automaton.transitions = automaton.transitions.map((transition) => ({
+    ...transition,
+    output: normalizeBitsToX(transition.output, nextOutputBits).slice(0, nextOutputBits),
+  }))
+
+  AutomatonProject.setLastUpdateSource('table')
+}
+
+function decreaseOutputBits() {
+  const automaton = getAutomaton()
+  if (outputBits.value <= 1) return
+
+  const nextOutputBits = outputBits.value - 1
+
+  automaton.transitions = automaton.transitions.map((transition) => ({
+    ...transition,
+    output: normalizeBitsToX(transition.output, outputBits.value).slice(0, nextOutputBits),
+  }))
 
   AutomatonProject.setLastUpdateSource('table')
 }
@@ -295,8 +382,8 @@ function toggleOutputBit(idx: number, i: number) {
 </script>
 
 <template>
-  <div class="w-full h-full overflow-auto flex flex-col justify-center gap-4 items-center">
-    <h1 class="text-xl font-mono">States</h1>
+  <div class="w-full h-full overflow-auto flex flex-col gap-4 items-center p-4">
+    <h1 class="text-xl font-mono self-start">States</h1>
     <!-- STATES TABLE-->
     <table class="flex-auto bg-gray-800 border border-primary table-auto select-none mb-0">
       <thead>
@@ -316,9 +403,6 @@ function toggleOutputBit(idx: number, i: number) {
           >
             binary index
           </th>
-          <th class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono">
-            actions
-          </th>
         </tr>
       </thead>
       <tbody>
@@ -333,7 +417,6 @@ function toggleOutputBit(idx: number, i: number) {
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           />
-          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary px-2 py-0" />
         </tr>
 
         <!-- normal rows -->
@@ -364,21 +447,91 @@ function toggleOutputBit(idx: number, i: number) {
           >
             {{ binaryIDs[index] }}
           </td>
-          <td class="text-lg font-mono text-center bg-gray-800 border-b border-primary px-2 py-0">
-            <button
-              class="w-full px-2 py-0 select-none hover:bg-red-800 transition-colors duration-100"
-              @click="removeStateRow(state.id)"
-            >
-              x
-            </button>
-          </td>
         </tr>
       </tbody>
     </table>
-    <div class="flex flex-row w-95 mb-2 text-xs space-x-5 font-mono">
-      <button class="bg-primary mr-15" @click="addStateRow">+ state</button>
-      <button class="bg-primary" @click="increaseInputBits">+ input bits</button>
-      <button class="bg-primary" @click="decreaseInputBits">- input bits</button>
+    <!-- Toolbar -->
+    <div class="flex items-start mb-1 text-sm gap-6">
+      <!-- States pill group -->
+      <div class="flex flex-col items-center gap-1 text-on-surface-variant text-xs select-none mr-4">
+        <span class="text-gray-400 font-mono">states</span>
+        <div
+          class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
+        >
+          <button
+            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors disabled:opacity-30"
+            :disabled="states.length === 0"
+            title="Remove state"
+            @click="decreaseStateCount"
+          >
+            −
+          </button>
+          <span class="px-2 py-1 font-mono text-white tabular-nums min-w-6 text-center">{{
+            states.length
+          }}</span>
+          <button
+            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
+            title="Add state"
+            @click="addStateRow"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <!-- Input bits pill group -->
+      <div class="flex flex-col items-center gap-1 text-on-surface-variant text-xs select-none mr-4">
+        <span class="text-gray-400 font-mono">input bits</span>
+        <div
+          class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
+        >
+          <button
+            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors disabled:opacity-30"
+            :disabled="inputBits <= 1"
+            title="Remove input bit"
+            @click="decreaseInputBits"
+          >
+            −
+          </button>
+          <span class="px-2 py-1 font-mono text-white tabular-nums min-w-6 text-center">{{
+            inputBits
+          }}</span>
+          <button
+            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
+            title="Add input bit"
+            @click="increaseInputBits"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <!-- Output bits pill group -->
+      <div class="flex flex-col items-center gap-1 text-on-surface-variant text-xs select-none">
+        <span class="text-gray-400 font-mono">output bits</span>
+        <div
+          class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
+        >
+          <button
+            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors disabled:opacity-30"
+            :disabled="outputBits <= 1"
+            title="Remove output bit"
+            @click="decreaseOutputBits"
+          >
+            −
+          </button>
+          <span class="px-2 py-1 font-mono text-white tabular-nums min-w-6 text-center">{{
+            outputBits
+          }}</span>
+          <button
+            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
+            title="Add output bit"
+            @click="increaseOutputBits"
+          >
+            +
+          </button>
+        </div>
+      </div>
     </div>
     <!-- TRANSITIONS TABLE-->
     <div v-if="states.length >= 1" class="gap-4 items-center text-center">
@@ -399,9 +552,7 @@ function toggleOutputBit(idx: number, i: number) {
               class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
               :colspan="inputBits"
             >
-              <div class="flex items-center justify-center gap-2">
-                <span>input</span>
-              </div>
+              input
             </th>
             <th
               class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
