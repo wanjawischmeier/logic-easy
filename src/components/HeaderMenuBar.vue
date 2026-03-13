@@ -122,7 +122,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
           label: 'Boolean expressions',
           children: [
             {
-              label: 'DNF',
+              label: 'Disjunctive',
               action: () => {
                 exportTruthTableTOVHDLboolExpr(
                   truthTable.value,
@@ -131,7 +131,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               },
             },
             {
-              label: 'CNF',
+              label: 'Conjunctive',
               action: () => {
                 exportTruthTableTOVHDLboolExpr(
                   truthTable.value,

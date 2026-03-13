@@ -3,7 +3,7 @@
 
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
+        :selected-function-type="functionType" :selected-function-representation="functionRepresentation" :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
         <template #show-formula>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showFormula" />
@@ -24,7 +24,8 @@
         <div class="flex-1">
           <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :selected-formula="selectedFormula" :functionType="functionType" :qmc-result="qmcResult"
+            :selected-formula="selectedFormula" :functionType="functionType"
+            :function-representation="functionRepresentation" :qmc-result="qmcResult"
             :formula-term-colors="formulaTermColors" @values-changed="tableValues = $event" />
         </div>
 
@@ -38,7 +39,8 @@
           class="flex flex-col items-center gap-4">
           <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="index" :formulas="{}" :selected-formula="selectedFormula" :functionType="functionType"
-            :qmc-result="qmcResult" @values-changed="tableValues = $event" />
+            :function-representation="functionRepresentation" :qmc-result="qmcResult"
+            @values-changed="tableValues = $event" />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
           </FormulaRenderer>
@@ -107,7 +109,7 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, couplingTermLatex, qmcResult, formulaTermColors } = TruthTableProject.useState()
+const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, functionRepresentation, couplingTermLatex, qmcResult, formulaTermColors } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false

@@ -1,11 +1,20 @@
 export const FunctionType = {
-  DNF: 'DNF',
-  CNF: 'CNF',
+  DNF: 'Disjunctive',
+  CNF: 'Conjunctive',
 } as const;
 
-export const defaultFunctionType: FunctionType = 'DNF';
+export const defaultFunctionType: FunctionType = 'Disjunctive';
 
 export type FunctionType = (typeof FunctionType)[keyof typeof FunctionType];
+
+export const FunctionRepresentation = {
+  normal: 'Normal',
+  minimal: 'Minimal',
+} as const;
+
+export const defaultFunctionRepresentation: FunctionRepresentation = 'Minimal';
+
+export type FunctionRepresentation = (typeof FunctionRepresentation)[keyof typeof FunctionRepresentation];
 
 export interface Literal {
   variable: string;
@@ -23,7 +32,7 @@ export interface Formula {
 
 export const Formula = {
   empty: ({
-    type: 'DNF' as FunctionType,
+    type: 'Disjunctive' as FunctionType,
     terms: []
   })
 };
