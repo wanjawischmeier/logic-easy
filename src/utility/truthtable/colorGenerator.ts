@@ -6,6 +6,12 @@ export interface TermColor {
 }
 
 const NUM_COLOR_CANDIDATES = 100
+const SATURATION = 50
+
+export const defaultColor: TermColor = {
+    border: `hsla(210, ${SATURATION}%, 50%, 0.8)`,
+    fill: `hsla(210, ${SATURATION}%, 50%, 0.3)`
+};
 
 /**
  * Generate a semi-transparent HSLA color string for a term using golden angle.
@@ -52,8 +58,8 @@ export function generateTermColor(existingColors: TermColor[] = []): TermColor {
     }
 
     return {
-        border: `hsla(${hue}, 70%, 50%, 1)`,
-        fill: `hsla(${hue}, 70%, 50%, 0.25)`
+        border: `hsla(${hue}, ${SATURATION}%, 50%, 1)`,
+        fill: `hsla(${hue}, ${SATURATION}%, 50%, 0.25)`
     };
 }
 

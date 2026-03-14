@@ -8,7 +8,7 @@
 
     <div class="flex-1 min-h-0 relative">
       <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
-        :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
+        :components="componentsForDockview" :theme="themeAbyss" :disableAutoFocus="true" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels">
       </GettingStartedView>
@@ -37,8 +37,10 @@
 </template>
 
 <script setup lang="ts">
+import '@/style/dockview.css'
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
+import { themeAbyss } from 'dockview-vue';
 import DockViewHeader from '@/components/DockViewHeader.vue'
 import { dockComponents } from '@/router/dockRegistry'
 import { stateManager } from '@/projects/stateManager'
@@ -190,7 +192,7 @@ const setupPanelTracking = (api: DockviewApi) => {
   }
 
   updatePanelCount()
-  
+
   // Listen for panel additions and removals
   panelDisposable = api.onDidAddPanel(() => updatePanelCount())
   const removeDisposable = api.onDidRemovePanel(() => updatePanelCount())
