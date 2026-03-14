@@ -9,7 +9,7 @@
       <LegendButton :legend="currentLegend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :selected-function-representation="functionRepresentation"
+        :selected-function-type="functionType" :show-function-representation-selection="false"
         :customSettingSlotLabels="selectedTabIndex === 1 ? { 'show-highlights': 'Show highlights' } : {}">
         <template v-if="selectedTabIndex === 1" #show-highlights>
           <div class="flex gap-2 items-center" @click.stop>
