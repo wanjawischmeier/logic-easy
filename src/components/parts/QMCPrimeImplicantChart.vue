@@ -233,8 +233,8 @@ function calculateBoundingBoxes() {
             boxes.push({
                 x: minX + BOUNDING_BOX_PADDING,
                 y: minY + BOUNDING_BOX_PADDING,
-                width: (maxX - minX) - (BOUNDING_BOX_PADDING * 2),
-                height: (maxY - minY) - (BOUNDING_BOX_PADDING * 2),
+                width: Math.max(0, (maxX - minX) - (BOUNDING_BOX_PADDING * 2)),
+                height: Math.max(0, (maxY - minY) - (BOUNDING_BOX_PADDING * 2)),
                 color: termColor
             })
         })
