@@ -1,5 +1,5 @@
 import 'dockview-vue/dist/styles/dockview.css';
-import { createApp, defineComponent, type Component, ref } from 'vue';
+import { createApp, defineComponent, type Component } from 'vue';
 import { DockviewVue } from 'dockview-vue';
 import { VueLatex } from 'vatex';
 import router from '@/router';
@@ -20,8 +20,7 @@ const App = defineComponent({
     <router-view v-else />
   `,
   setup() {
-    const { isBelowMinimum } = useScreenSize();
-    const forceShowApp = ref(false);
+    const { isBelowMinimum, forceShowApp } = useScreenSize();
 
     return {
       isBelowMinimum,

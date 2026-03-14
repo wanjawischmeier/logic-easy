@@ -97,6 +97,11 @@ const handleResize = () => {
 }
 
 const continueAnyway = () => {
+    // Store the current resolution to localStorage to bypass warning on reload
+    localStorage.setItem('screenCheckBypass', JSON.stringify({
+        width: window.innerWidth,
+        height: window.innerHeight,
+    }))
     emit('continue')
 }
 
