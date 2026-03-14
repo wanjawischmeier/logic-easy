@@ -24,7 +24,7 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" filename="truth-table" :files="downloadFiles" />
+      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="truth-table" :files="downloadFiles" />
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"

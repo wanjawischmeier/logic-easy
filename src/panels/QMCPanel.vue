@@ -11,7 +11,8 @@
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType" :selected-function-representation="functionRepresentation" />
 
-      <DownloadButton :target-ref="screenshotRef" filename="qmc" :files="downloadFiles" />
+      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="qmc"
+        :files="downloadFiles" />
     </div>
 
     <div class="h-full" ref="screenshotRef">

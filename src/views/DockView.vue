@@ -190,7 +190,7 @@ const setupPanelTracking = (api: DockviewApi) => {
   }
 
   updatePanelCount()
-
+  
   // Listen for panel additions and removals
   panelDisposable = api.onDidAddPanel(() => updatePanelCount())
   const removeDisposable = api.onDidRemovePanel(() => updatePanelCount())

@@ -337,7 +337,7 @@ const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, u
               :onSelect="handleMethodSelect" />
           </template>
         </SettingsButton>
-        <DownloadButton :target-ref="iframeContainer" :screenshot="{ enabled: false }"
+        <DownloadButton :target-ref="iframeContainer" :panel-id="props.params.api.id" :screenshot="{ enabled: false }"
           :files="logicCircuitDownloadFiles" :direct-download="true" />
       </div>
     </teleport>
