@@ -2,7 +2,7 @@ import { Minimizer, type QMCResult } from './minimizer';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
 import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types';
 import { generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
-import { analyzeExpressions, detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
+import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
 import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator';
 
 // Message types for worker communication
