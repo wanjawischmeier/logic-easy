@@ -81,32 +81,13 @@ export const dockRegistry: DockRegistryEntry[] = [
     }
   },
   {
-    label: 'Minimization',
+    id: 'kv-diagram',
+    label: 'KV Diagram',
+    component: KVDiagramPanel,
+    projectType: 'truth-table',
     requires: {
-      view: ['TruthTable']
-    },
-    children: [
-      {
-        id: 'kv-diagram',
-        label: 'Karnaugh-Veitch',
-        component: KVDiagramPanel,
-        projectType: 'truth-table',
-        minimumWidth: 400,
-        requires: {
-          view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
-        },
-      },
-      {
-        id: 'qmc-visualization',
-        label: 'Quine McCluskey',
-        component: QMCPanel,
-        projectType: 'truth-table',
-        minimumWidth: 400,
-        requires: {
-          view: ['TruthTable']
-        },
-      }
-    ]
+      view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+    }
   },
   {
     id: 'transition-table',
@@ -119,7 +100,7 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     id: 'state-table',
-    label: 'State Table',
+    label: 'State and Transition Table',
     component: StateTablePanel,
     projectType: 'automaton',
     requires: {
@@ -142,7 +123,7 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     id: 'fsm-engine',
-    label: 'FSM Engine',
+    label: 'Automaton Editor',
     component: FsmEnginePanel,
     projectType: 'automaton',
     requires: {

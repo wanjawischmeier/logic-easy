@@ -36,6 +36,7 @@ export class StateManager {
   public isSaving = reactive({ value: false })
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
+   private isRestoring = false
 
   /**
    * Empty default state
@@ -54,6 +55,7 @@ export class StateManager {
     watch(
       () => this.state,
       () => {
+         if (this.isRestoring) return
         // Show spinner immediately on any state change
         this.isSaving.value = true
         if (this.savingSpinnerTimer) clearTimeout(this.savingSpinnerTimer)
@@ -72,6 +74,16 @@ export class StateManager {
     )
   }
 
+  /*
+  * helper functions for automaton state to avoid loops
+  */
+  beginRestore() {
+    this.isRestoring = true
+  }
+
+  endRestore() {
+    this.isRestoring = false
+  }
 
   /**
    * Open file picker and load a project

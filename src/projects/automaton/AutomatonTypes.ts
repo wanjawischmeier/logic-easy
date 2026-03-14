@@ -1,21 +1,28 @@
-import type { BaseProjectProps } from "../Project";
+import type { BaseProjectProps } from '../Project'
+
+// define automaton type
+export type AutomatonType = 'mealy' | 'moore' | ''
 
 // Default values for AutomatonProps
 export interface AutomatonProps extends BaseProjectProps {
-    // Add any automaton-specific props here
+  automatonType: AutomatonType
 }
 
 // export interface for data in fsm editor (same scheme as in stores / export)
 export interface AutomatonState {
-    states: Array<{
-        id: string | number
-        name: string
-        initial: boolean | null
-        final: boolean | null
-    }>
-    transitions: Array<{
-        id: string | number
-        from: string | number
-        label: string
-    }>
+  states: Array<{
+    id: number
+    name: string
+    initial: boolean
+    final: boolean
+  }>
+  transitions: Array<{
+    id: number
+    from: number
+    to: number
+    toPattern?: string
+    input: string
+    output: string
+  }>
+  automatonType: AutomatonType
 }

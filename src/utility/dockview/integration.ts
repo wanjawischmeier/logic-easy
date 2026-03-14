@@ -9,7 +9,7 @@ import { Toast } from '../toastService';
  * @returns The current DockviewApi instance if the service is initialized; otherwise `null`.
  */
 export function getDockviewApi(): DockviewApi | null {
-  return dockviewService.getApi();
+  return dockviewService.getApi()
 }
 
 /**
@@ -18,10 +18,10 @@ export function getDockviewApi(): DockviewApi | null {
  * @returns The panel if one could be found; otherwise `undefined`.
  */
 function getPanelByID(panelId: string): IDockviewPanel | undefined {
-  const api = getDockviewApi();
-  if (!api || !api.panels) return undefined;
+  const api = getDockviewApi()
+  if (!api || !api.panels) return undefined
 
-  return api.panels.find(p => p.id === panelId);
+  return api.panels.find((p) => p.id === panelId)
 }
 
 /**
@@ -31,11 +31,12 @@ function getPanelByID(panelId: string): IDockviewPanel | undefined {
  * @param position Where to position the panel in the dockview.
  * @returns `true` if the panel was sucessfully created; `false` otherwise.
  */
-export function createPanel(panelId: string, label: string, position?: AddPanelPositionOptions): boolean {
-  const api = getDockviewApi();
+
+export function createPanel(panelId: string, label: string, position?: AddPanelPositionOptions, params?: Record<string, unknown>): boolean {
+  const api = getDockviewApi()
   if (!api) {
-    console.warn('Dockview API not ready yet');
-    return false;
+    console.warn('Dockview API not ready yet')
+    return false
   }
 
   const registryEntry = findDockEntry(panelId);
@@ -44,12 +45,11 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
     return false;
   }
 
-  // Check if panel with this component already exists
-  const existingPanel = getPanelByID(panelId);
+  const existingPanel = getPanelByID(panelId)
   if (existingPanel) {
-    console.log(`Panel with id '${panelId}' already exists, focusing on it`);
-    existingPanel.api.setActive();
-    return true;
+    console.log(`Panel with id '${panelId}' already exists, focusing on it`)
+    existingPanel.api.setActive()
+    return true
   }
 
   try {
