@@ -17,11 +17,11 @@
                     <tr v-for="(pi, piIdx) in qmcResult?.pis" :key="pi.term"
                         class="hover:bg-surface-3 transition-color duration-100">
                         <td class="px-4 text-center align-middle border-b border-r border-primary font-mono relative"
-                            :style="getBorderStyle(pi, piIdx, true, qmcResult)">
+                            :style="props.showHighlights !== false ? getBorderStyle(pi, piIdx, true, qmcResult) : {}">
                             {{ pi.term }}
                         </td>
                         <td class="px-4 align-middle border-b border-r-4 border-primary relative"
-                            :style="getBorderStyle(pi, piIdx, false, qmcResult)">
+                            :style="props.showHighlights !== false ? getBorderStyle(pi, piIdx, false, qmcResult) : {}">
                             <vue-latex :fontsize=14 :expression="termToAlgebraic(pi.term)" />
                         </td>
                         <td v-for="m in qmcResult?.minterms" :key="m"
@@ -34,7 +34,8 @@
             </table>
 
             <!-- Bounding boxes for essential prime implicants -->
-            <svg class="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
+            <svg v-if="props.showHighlights !== false"
+                class="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
                 <rect v-for="(box, idx) in boundingBoxes" :key="idx" :x="box.x" :y="box.y" :width="box.width"
                     :height="box.height" :rx="8" :ry="8" :stroke="box.color.border" stroke-width="2"
                     :fill="box.color.fill" />
@@ -55,7 +56,10 @@ import type { PrimeImplicantInfo } from 'logi.js';
 
 const BOUNDING_BOX_PADDING = 6
 
-const props = defineProps<TruthTableState>()
+const props = withDefaults(
+    defineProps<TruthTableState & { showHighlights?: boolean }>(),
+    { showHighlights: true }
+)
 
 interface BoundingBox {
     x: number
