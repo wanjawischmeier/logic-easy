@@ -3,7 +3,8 @@
 
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :selected-function-representation="functionRepresentation" :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
+        :selected-function-type="functionType" :selected-function-representation="functionRepresentation"
+        :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
         <template #show-formula>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showFormula" />
@@ -15,7 +16,8 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" filename="kv" :files="downloadFiles" />
+      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="kv"
+        :files="downloadFiles" />
     </div>
 
     <div class="h-full" ref="screenshotRef">

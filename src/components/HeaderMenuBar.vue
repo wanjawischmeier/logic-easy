@@ -100,7 +100,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
     {
       label: 'Close',
       action: projectManager.closeCurrentProject,
-      disabled: !hasCurrentProject.value,
+      disabled: !hasCurrentProject.value || stateManager.isSaving.value,
     },
   ],
   View: viewMenu.value,
