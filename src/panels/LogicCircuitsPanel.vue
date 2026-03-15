@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
+import { getDockviewApi } from '@/utility/dockview/integration'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject.ts'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
 import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
@@ -17,6 +18,7 @@ const { inputVars, outputVars, formulas, functionType } = TruthTableProject.useS
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
+let layoutDisposable: any = null
 
 const panelRef = ref<HTMLElement | null>(null)
 const iframeContainer = ref<HTMLElement | null>(null)
@@ -141,7 +143,7 @@ function installIframeInteractionGuards() {
 function updateMethodPickerPosition() {
   if (!panelRef.value) return
   const rect = panelRef.value.getBoundingClientRect()
-  const offset = 12
+  const offset = 8
   downloadButtonStyle.value = {
     right: `${window.innerWidth - rect.right + offset}px`,
     top: `${rect.top + offset}px`,
@@ -161,8 +163,7 @@ onMounted(() => {
   if (panelRef.value) {
     positionObserver.observe(panelRef.value)
   }
-  window.addEventListener('scroll', updateMethodPickerPosition, true)
-  window.addEventListener('resize', updateMethodPickerPosition)
+  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateMethodPickerPosition())
 
   installIframeInteractionGuards()
   iframeReadyRebindHandler = () => installIframeInteractionGuards()
@@ -173,8 +174,10 @@ onBeforeUnmount(() => {
   console.log('LogicCircuitsTestingPanel unmounted')
   disposable?.dispose?.()
   positionObserver?.disconnect()
-  window.removeEventListener('scroll', updateMethodPickerPosition, true)
-  window.removeEventListener('resize', updateMethodPickerPosition)
+  if (layoutDisposable) {
+    layoutDisposable.dispose?.()
+    layoutDisposable = null
+  }
   detachIframeGuards?.()
   detachIframeGuards = null
   if (iframeReadyRebindHandler) {
@@ -308,7 +311,7 @@ const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, u
 </script>
 
 <template>
-  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2 p-2">
+  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2">
     <div ref="iframeContainer" class="relative flex-1">
       <IframePanel ref="iframePanelRef" iframe-key="__lc_preloaded_iframe" src="/logic-easy/logic-circuits/index.html"
         :visible="params.api.isVisible" class="flex-1" />
@@ -325,7 +328,7 @@ const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, u
               <div class="text-xs min-w-25">
                 <span v-if="allowEdits">manual edits enabled, automatic sync disabled.
                   <p class="text-red-200">
-                    Your Edits in LogicCircuits will never be synched to LogicEasy!
+                    Your Edits in LogicCircuits will never be synced to LogicEasy!
                   </p>
                 </span>
                 <span v-else>manual edits locked, automatic sync enabled</span>
