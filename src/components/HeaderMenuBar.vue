@@ -255,7 +255,7 @@ const MenuList = defineComponent<MenuListProps>({
                   ],
                   disabled: (!entry.action && !entry.panelId && !entry.children) || entry.disabled,
                   onClick: entry.children ? undefined : () => runAction(entry),
-                  onMouseenter: entry.children
+                  onMouseenter: entry.children && !entry.disabled
                     ? () => showSubmenu(level.value, idx)
                     : () => hideSubmenu(level.value),
                   type: 'button',
@@ -268,7 +268,7 @@ const MenuList = defineComponent<MenuListProps>({
                   ]) : null,
                 ],
               ),
-              submenuOpen && entry.children
+              submenuOpen && entry.children && !entry.disabled
                 ? h(
                   'div',
                   {
