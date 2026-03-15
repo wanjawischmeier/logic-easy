@@ -2,6 +2,7 @@
   <PopupBase :visible="true" title="About" :actions="actions" @close="onClose">
     <div class="text-on-surface">
       Credits...
+      <img src="/logo/le_1024.png" alt="">
     </div>
   </PopupBase>
 </template>
