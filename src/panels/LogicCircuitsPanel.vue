@@ -315,7 +315,7 @@ const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, u
     </div>
 
     <teleport to="body">
-      <div id="lc-download-button" class="fixed z-50 flex items-center gap-2 text-sm" :style="downloadButtonStyle">
+      <div id="lc-download-button" class="fixed z-10 flex items-center gap-2 text-sm" :style="downloadButtonStyle">
         <SettingsButton :selected-function-type="functionType" :input-vars="inputVars" :output-vars="outputVars"
           :show-output-selection="false" :show-function-representation-selection="false"
           :custom-setting-slot-labels="{ 'allow-edits': 'Allow manual edits', method: 'Gate Type' }">
