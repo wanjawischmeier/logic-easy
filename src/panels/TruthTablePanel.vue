@@ -49,7 +49,6 @@ import type { IDockviewPanelProps } from 'dockview-vue';
 import Checkbox from '@/components/parts/Checkbox.vue';
 import SearchIcon from '@/components/icons/SearchIcon.vue';
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager';
-import { FunctionRepresentation } from '@/utility/types';
 
 const legend: LegendItem[] = [
   {

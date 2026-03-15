@@ -8,7 +8,7 @@
   --dv-inactivegroup-visiblepanel-tab-background-color: var(--color-elevated);
   --dv-activegroup-visiblepanel-tab-color: var(--color-on-surface);
   --dv-inactivegroup-visiblepanel-tab-color: var(--color-on-surface-disabled);
-  --dv-tab-divider-color: var(--color-surface-3);
+  --dv-tab-divider-color: var(--color-surface-2);
 
   /* borders / separators */
   --dv-separator-border: var(--color-surface-2);
