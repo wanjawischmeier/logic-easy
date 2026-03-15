@@ -108,6 +108,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
     {
       label: 'LogicCircuits',
       tooltip: '.lc',
+      disabled: !hasCurrentProject.value || stateManager.isSaving.value,
       children: [
         {
           label: 'AND/OR',
@@ -120,6 +121,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               'dnf',
             )
           },
+          disabled: !hasCurrentProject.value || stateManager.isSaving.value,
         },
         {
           label: 'NAND',
@@ -133,6 +135,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               'nand',
             )
           },
+          disabled: !hasCurrentProject.value || stateManager.isSaving.value,
         },
         {
           label: 'NOR',
@@ -146,12 +149,14 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               'nor',
             )
           },
+          disabled: !hasCurrentProject.value || stateManager.isSaving.value,
         },
       ],
     },
     {
       label: 'VHDL',
       tooltip: '.vhdl',
+      disabled: !hasCurrentProject.value || stateManager.isSaving.value,
       children: [
         {
           label: 'Case-When',
@@ -161,9 +166,11 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               projectManager.getCurrentProject()?.name ?? 'no name provided',
             )
           },
+          disabled: !hasCurrentProject.value || stateManager.isSaving.value,
         },
         {
           label: 'Boolean expressions',
+          disabled: !hasCurrentProject.value || stateManager.isSaving.value,
           children: [
             {
               label: 'Disjunctive',
@@ -173,6 +180,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
                   projectManager.getCurrentProject()?.name ?? 'no name provided',
                 )
               },
+              disabled: !hasCurrentProject.value || stateManager.isSaving.value,
             },
             {
               label: 'Conjunctive',
@@ -183,6 +191,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
                   'cnf',
                 )
               },
+              disabled: !hasCurrentProject.value || stateManager.isSaving.value,
             },
           ],
         },
@@ -192,8 +201,14 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
       label: 'Screenshots',
       tooltip: '.zip',
       action: () => downloadRegistry.exportAllScreenshots(),
+      disabled: !hasCurrentProject.value || stateManager.isSaving.value,
     },
-    { label: 'LaTeX', tooltip: '.tex', action: () => downloadRegistry.exportAllLatex() },
+    {
+      label: 'LaTeX',
+      tooltip: '.tex',
+      action: () => downloadRegistry.exportAllLatex(),
+      disabled: !hasCurrentProject.value || stateManager.isSaving.value
+    },
   ],
   Help: [
     {
