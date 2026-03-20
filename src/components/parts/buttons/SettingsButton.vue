@@ -74,6 +74,7 @@ const emit = defineEmits<Emits>()
 
 const showDropdown = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
+let blurCheckTimeout: number | null = null
 
 const showOutputVarSelector = computed(() => props.outputVars.length > 1)
 const selectedFunctionTypeIndex = computed(() =>
@@ -86,6 +87,22 @@ const toggleDropdown = () => {
 
 const closeDropdown = () => {
     showDropdown.value = false
+}
+
+const handleWindowBlur = () => {
+    if (!showDropdown.value) return
+
+    if (blurCheckTimeout !== null) {
+        window.clearTimeout(blurCheckTimeout)
+    }
+
+    // Defer until focus state is updated so activeElement can reflect iframe focus.
+    blurCheckTimeout = window.setTimeout(() => {
+        blurCheckTimeout = null
+        if (document.activeElement instanceof HTMLIFrameElement) {
+            closeDropdown()
+        }
+    }, 0)
 }
 
 const handleOutputChange = (value: unknown, index: number) => {
@@ -109,9 +126,15 @@ const handleClickOutside = (event: MouseEvent) => {
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside)
+    window.addEventListener('blur', handleWindowBlur)
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside)
+    window.removeEventListener('blur', handleWindowBlur)
+    if (blurCheckTimeout !== null) {
+        window.clearTimeout(blurCheckTimeout)
+        blurCheckTimeout = null
+    }
 })
 </script>
