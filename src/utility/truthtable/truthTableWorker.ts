@@ -1,8 +1,8 @@
 import { Minimizer, type QMCResult } from './minimizer';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
 import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types';
-import { generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
-import { analyzeExpressions, detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
+import { defaultColor, generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
+import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
 import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator';
 
 // Message types for worker communication
@@ -48,12 +48,6 @@ function createEdgeCaseResult(
     const formula: Formula = {
         type: functionType,
         terms: [{ literals: [{ variable: constant, negated: false }] }]
-    };
-
-    // Create a default color for the edge case (used for highlighting all cells in KV diagram)
-    const defaultColor: TermColor = {
-        border: 'hsla(210, 100%, 50%, 0.8)',
-        fill: 'hsla(210, 100%, 50%, 0.3)'
     };
 
     const qmcResult: QMCResult = {

@@ -1,7 +1,12 @@
 <template>
   <PopupBase :visible="true" title="About" :actions="actions" @close="onClose">
     <div class="text-on-surface">
-      Credits...
+      <div class="flex justify-between">
+        <div>
+          Credits...
+        </div>
+        <img src="/logo/le_1024.png" :width="256">
+      </div>
     </div>
   </PopupBase>
 </template>

@@ -1,5 +1,5 @@
 import { type Term, FunctionType } from "@/utility/types";
-import type { TermColor } from "./colorGenerator";
+import { defaultColor, type TermColor } from "./colorGenerator";
 
 const CELL_PADDING = '6px'
 const BORDER_WIDTH = '2px'
@@ -281,8 +281,8 @@ export function calculateHighlights(
   if (functionType === FunctionType.DNF) {
     // DNF constant 1 (tautology): highlight all cells
     if (isConstant1) {
-      // For tautology in DNF, we need a color - use a default one if none provided
-      const color = termColors[0] || { border: 'hsla(210, 100%, 50%, 0.8)', fill: 'hsla(210, 100%, 50%, 0.3)' };
+      // For tautology in DNF, we need a color - use default color if none provided
+      const color = termColors[0] || defaultColor;
       return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
     }
     // DNF constant 0 (contradiction): highlight no cells
@@ -297,8 +297,8 @@ export function calculateHighlights(
     }
     // CNF constant 0 (contradiction): highlight all cells
     if (isConstant0) {
-      // For contradiction in CNF, we need a color - use a default one if none provided
-      const color = termColors[0] || { border: 'hsla(210, 100%, 50%, 0.8)', fill: 'hsla(210, 100%, 50%, 0.3)' };
+      // For contradiction in CNF, we need a color - use default color if none provided
+      const color = termColors[0] || defaultColor;
       return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
     }
 

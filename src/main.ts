@@ -7,10 +7,26 @@ import { dockComponents } from '@/router/dockRegistry';
 import { iframeManager } from '@/utility/iframeManager';
 import Toast from 'vue-toastification';
 import '@/style/toastification.css';
+import { useScreenSize } from '@/utility/useScreenSize';
+import ScreenTooSmallView from '@/views/ScreenTooSmallView.vue';
 
 const App = defineComponent({
   name: 'App',
-  template: `<router-view />`,
+  components: {
+    ScreenTooSmallView,
+  },
+  template: `
+    <ScreenTooSmallView v-if="isBelowMinimum && !forceShowApp" @continue="forceShowApp = true" />
+    <router-view v-else />
+  `,
+  setup() {
+    const { isBelowMinimum, forceShowApp } = useScreenSize();
+
+    return {
+      isBelowMinimum,
+      forceShowApp,
+    };
+  },
 });
 
 const app = createApp(App);
