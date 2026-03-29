@@ -4,6 +4,7 @@ import { stateManager } from '@/projects/stateManager'
 import { onMounted, reactive } from 'vue'
 
 const editingNames = reactive<Record<number, string | undefined>>({})
+const MAX_TRANSITION_BITS = 10
 
 /**
  * manage central data
@@ -242,6 +243,7 @@ function decreaseStateCount() {
 
 function increaseInputBits() {
   const automaton = getAutomaton()
+  if (inputBits.value >= MAX_TRANSITION_BITS) return
   const nextInputBits = inputBits.value + 1
 
   automaton.transitions = automaton.transitions.map((transition) => ({
@@ -281,6 +283,7 @@ function decreaseInputBits() {
 
 function increaseOutputBits() {
   const automaton = getAutomaton()
+  if (outputBits.value >= MAX_TRANSITION_BITS) return
   const nextOutputBits = outputBits.value + 1
 
   automaton.transitions = automaton.transitions.map((transition) => ({
@@ -467,6 +470,7 @@ function toggleOutputBit(idx: number, i: number) {
           }}</span>
           <button
             class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
+            :disabled="inputBits >= MAX_TRANSITION_BITS"
             title="Add input bit"
             @click="increaseInputBits"
           >
@@ -494,6 +498,7 @@ function toggleOutputBit(idx: number, i: number) {
           }}</span>
           <button
             class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
+            :disabled="outputBits >= MAX_TRANSITION_BITS"
             title="Add output bit"
             @click="increaseOutputBits"
           >
