@@ -15,6 +15,8 @@ export interface AutomatonState {
     name: string
     initial: boolean
     final: boolean
+    x?: number
+    y?: number
   }>
   transitions: Array<{
     id: number

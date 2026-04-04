@@ -25,6 +25,8 @@ interface RawFsmState {
   name?: string | null
   initial?: boolean | null
   final?: boolean | null
+  x?: string | number | null
+  y?: string | number | null
 }
 
 interface RawFsmData {
@@ -67,7 +69,9 @@ export class AutomatonProject extends Project {
         stateA.id !== stateB.id ||
         stateA.name !== stateB.name ||
         stateA.initial !== stateB.initial ||
-        stateA.final !== stateB.final
+        stateA.final !== stateB.final ||
+        stateA.x !== stateB.x ||
+        stateA.y !== stateB.y
       ) {
         return false
       }
@@ -296,11 +300,15 @@ export class AutomatonProject extends Project {
   private static parseRawState = (raw: unknown): AutomatonState['states'][number] => {
     const s = raw as RawFsmState
     const id = Number(s.id ?? 0)
+    const x = typeof s.x === 'number' && Number.isFinite(s.x) ? s.x : undefined
+    const y = typeof s.y === 'number' && Number.isFinite(s.y) ? s.y : undefined
     return {
       id,
       name: s.name ?? `q${id}`,
       initial: s.initial ?? false,
       final: s.final ?? false,
+      x,
+      y,
     }
   }
 
@@ -459,6 +467,8 @@ export class AutomatonProject extends Project {
               name: s.name,
               initial: s.initial,
               final: s.final,
+              x: s.x,
+              y: s.y,
             })),
             transitions: (val.transitions || []).map((t) => ({
               id: t.id,
