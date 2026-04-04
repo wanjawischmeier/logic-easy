@@ -63,6 +63,7 @@ interface ScreenshotOptions {
 
 interface Props {
   targetRef: HTMLElement | null
+  panelId: string
   filename?: string
   screenshot?: ScreenshotOptions
   files?: DownloadFileDescriptor[]
@@ -158,6 +159,7 @@ watch(
 
     downloadRegistry.register(registrationId, {
       targetRef: targetElement,
+      panelId: props.panelId,
       screenshot: {
         enabled: screenshotConfig.value.enabled && !!targetElement.value,
         filename: screenshotConfig.value.filename ?? props.filename,

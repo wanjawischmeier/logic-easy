@@ -24,7 +24,7 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" filename="truth-table" :files="downloadFiles" />
+      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="truth-table" :files="downloadFiles" />
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
@@ -49,7 +49,6 @@ import type { IDockviewPanelProps } from 'dockview-vue';
 import Checkbox from '@/components/parts/Checkbox.vue';
 import SearchIcon from '@/components/icons/SearchIcon.vue';
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager';
-import { FunctionRepresentation } from '@/utility/types';
 
 const legend: LegendItem[] = [
   {
