@@ -246,10 +246,41 @@ function increaseInputBits() {
   if (inputBits.value >= MAX_TRANSITION_BITS) return
   const nextInputBits = inputBits.value + 1
 
-  automaton.transitions = automaton.transitions.map((transition) => ({
+  const normalizedTransitions = automaton.transitions.map((transition) => ({
     ...transition,
     input: (transition.input ?? '').padStart(nextInputBits, '0').slice(-nextInputBits),
   }))
+
+  const existingByKey = new Map<string, AutomatonState['transitions'][number]>()
+  for (const transition of normalizedTransitions) {
+    existingByKey.set(`${transition.from}:${transition.input}`, transition)
+  }
+
+  const defaultToPattern = getDefaultToPatternForStateCount(automaton.states.length)
+  let nextTransitionId = getNextTransitionId()
+
+  for (const state of automaton.states) {
+    for (let inputIndex = 0; inputIndex < 1 << nextInputBits; inputIndex++) {
+      const input = inputIndex.toString(2).padStart(nextInputBits, '0')
+      const key = `${state.id}:${input}`
+      if (existingByKey.has(key)) continue
+
+      existingByKey.set(key, {
+        id: nextTransitionId,
+        from: state.id,
+        to: -1,
+        toPattern: defaultToPattern,
+        input,
+        output: 'x'.repeat(outputBits.value),
+      })
+      nextTransitionId += 1
+    }
+  }
+
+  automaton.transitions = Array.from(existingByKey.values()).sort((left, right) => {
+    if (left.from !== right.from) return left.from - right.from
+    return left.input.localeCompare(right.input)
+  })
 
   AutomatonProject.setLastUpdateSource('table')
 }

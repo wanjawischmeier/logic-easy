@@ -174,7 +174,6 @@ export class AutomatonProject extends Project {
       previousState,
     )
     const defaultToPattern = 'x'.repeat(bitNumber)
-    const defaultOutput = 'x'.repeat(outputBitLength)
     const transitionByKey = new Map<string, AutomatonState['transitions'][number]>()
 
     const registerTransition = (transition: AutomatonState['transitions'][number]) => {
@@ -202,36 +201,12 @@ export class AutomatonProject extends Project {
     ;(previousState?.transitions || []).forEach(registerTransition)
     ;(currentState.transitions || []).forEach(registerTransition)
 
-    let nextId =
-      Math.max(
-        -1,
-        ...(previousState?.transitions || []).map((transition) => transition.id),
-        ...(currentState.transitions || []).map((transition) => transition.id),
-      ) + 1
-
-    const normalizedTransitions: AutomatonState['transitions'] = []
-
-    for (const state of states) {
-      for (let inputIndex = 0; inputIndex < 1 << inputBitLength; inputIndex++) {
-        const input = inputIndex.toString(2).padStart(inputBitLength, '0')
-        const key = `${state.id}:${input}`
-        const existingTransition = transitionByKey.get(key)
-
-        if (existingTransition) {
-          normalizedTransitions.push(existingTransition)
-          continue
-        }
-
-        normalizedTransitions.push({
-          id: nextId++,
-          from: state.id,
-          to: -1,
-          toPattern: defaultToPattern,
-          input,
-          output: defaultOutput,
-        })
-      }
-    }
+    const normalizedTransitions: AutomatonState['transitions'] = Array.from(
+      transitionByKey.values(),
+    ).sort((left, right) => {
+      if (left.from !== right.from) return left.from - right.from
+      return left.input.localeCompare(right.input)
+    })
 
     // Keep transition IDs unique
     const usedTransitionIds = new Set<number>()

@@ -40,7 +40,7 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
   }
 
   const registryEntry = findDockEntry(panelId);
-  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) { // TODO: not sure 'VIEW' is correct here?
+  if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) {
     console.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`);
     return false;
   }
@@ -58,6 +58,7 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       component: panelId,
       title: label,
       position: position,
+      params,
       minimumWidth: registryEntry.minimumWidth ?? 0
     });
     return true;
