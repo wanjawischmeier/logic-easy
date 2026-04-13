@@ -57,11 +57,7 @@ export function formulaToLC(
     }
 
     // create lamp for this output, aligned with OR gate
-    const lamp = lcFile.createLamp(
-      xOffset + 650,
-      orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2,
-      0,
-    )
+    const lamp = lcFile.createLamp(xOffset + 650, orY + LCFile.LAMP_SIZE / 2, 0)
     lamp.addText(outputVar, 1) //add text label right to the lamp
     lampsByOutput.set(outputVar, lamp) //sadd lamp to map by output variable name
 
