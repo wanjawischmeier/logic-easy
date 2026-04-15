@@ -240,48 +240,16 @@ function remapExpressionVariables(
   return { ...source }
 }
 
-// Returns the effective number of input variables for KV limits.
-export function resolveEffectiveKVInputVarCount(state: {
-  truthTable?: { inputVars?: string[] }
-  automaton?: {
-    states?: Array<{ id: number }>
-    transitions?: Array<{ input?: string }>
-  }
-}): number {
-  const truthTableInputVars = state.truthTable?.inputVars?.length
-  if (truthTableInputVars !== undefined) return truthTableInputVars
-
-  const automaton = state.automaton
-  if (!automaton) return 0
-
-  const stateCount = automaton.states?.length ?? 0
-  const stateBits = stateCount <= 1 ? 0 : Math.ceil(Math.log2(stateCount))
-  const inputBits = Math.max(
-    0,
-    ...(automaton.transitions ?? []).map((transition) => String(transition.input ?? '').length),
-  )
-
-  return stateBits + inputBits
-}
-
-// KV is currently supported only for 2 to 4 input variables.
-export function isKVInputVarCountSupported(count: number): boolean {
-  return count >= 2 && count <= 4
-}
-
 // Returns a copied values matrix with one changed cell.
 export function applyCellChangeToValues(
   values: TruthTableState['values'],
   change: KVDiagramCellChange,
 ): TruthTableState['values'] | null {
-  if (!Number.isInteger(change.rowIndex) || !Number.isInteger(change.outputIndex)) return null
-  if (change.rowIndex < 0 || change.outputIndex < 0) return null
-
-  const row = values[change.rowIndex]
-  if (!row || change.outputIndex >= row.length) return null
+  const target = resolveCellChangeTarget(values, change)
+  if (!target) return null
 
   const nextValues = values.map((existingRow) => [...existingRow])
-  nextValues[change.rowIndex]![change.outputIndex] = change.value
+  nextValues[target.rowIndex]![target.outputIndex] = change.value
   return nextValues
 }
 
@@ -315,14 +283,28 @@ export function applyCellChangeToTruthTable(
   change: KVDiagramCellChange,
 ): boolean {
   if (!truthTable) return false
-  if (!Number.isInteger(change.rowIndex) || !Number.isInteger(change.outputIndex)) return false
-  if (change.rowIndex < 0 || change.outputIndex < 0) return false
+  const target = resolveCellChangeTarget(truthTable.values, change)
+  if (!target) return false
 
-  const row = truthTable.values[change.rowIndex]
-  if (!row || change.outputIndex >= row.length) return false
-
-  row[change.outputIndex] = change.value
+  truthTable.values[target.rowIndex]![target.outputIndex] = change.value
   return true
+}
+
+// Validates and resolves a single cell change against a values matrix.
+function resolveCellChangeTarget(
+  values: TruthTableState['values'],
+  change: KVDiagramCellChange,
+): { rowIndex: number; outputIndex: number } | null {
+  if (!Number.isInteger(change.rowIndex) || !Number.isInteger(change.outputIndex)) return null
+  if (change.rowIndex < 0 || change.outputIndex < 0) return null
+
+  const row = values[change.rowIndex]
+  if (!row || change.outputIndex >= row.length) return null
+
+  return {
+    rowIndex: change.rowIndex,
+    outputIndex: change.outputIndex,
+  }
 }
 
 // Writes edited KV output values back into automaton transitions.
@@ -591,11 +573,7 @@ function resolveInputBitCount(
   fallbackBits: number,
   stateCount?: number,
 ): number {
-  if (stateCount === 0 && rows.length === 0) {
-    return 0
-  }
-
-  return Math.max(fallbackBits, 0)
+  return stateCount === 0 && rows.length === 0 ? 0 : Math.max(fallbackBits, 0)
 }
 
 // Returns a cleaned binary string, or empty if invalid.
@@ -667,9 +645,7 @@ export function exportTransitionColumnsToKVDiagram(
   )
   const impossibleRowMask = Array.from(
     { length: normalizedTruthTable.values.length },
-    (_, rowIndex) => {
-      return !possibleRows.has(rowIndex)
-    },
+    (_, rowIndex) => !possibleRows.has(rowIndex),
   )
 
   const immutableCellMask = normalizedTruthTable.values.map((row, rowIndex) => {
