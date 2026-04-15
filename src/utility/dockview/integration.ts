@@ -1,7 +1,7 @@
-import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue';
-import { checkDockEntryRequirements, findDockEntry } from '@/router/dockRegistry';
-import { dockviewService } from '@/utility/dockview/service';
-import { Toast } from '../toastService';
+import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockview-vue'
+import { checkDockEntryRequirements, findDockEntry } from '@/router/dockRegistry'
+import { dockviewService } from '@/utility/dockview/service'
+import { Toast } from '../toastService'
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -32,17 +32,22 @@ function getPanelByID(panelId: string): IDockviewPanel | undefined {
  * @returns `true` if the panel was sucessfully created; `false` otherwise.
  */
 
-export function createPanel(panelId: string, label: string, position?: AddPanelPositionOptions, params?: Record<string, unknown>): boolean {
+export function createPanel(
+  panelId: string,
+  label: string,
+  position?: AddPanelPositionOptions,
+  params?: Record<string, unknown>,
+): boolean {
   const api = getDockviewApi()
   if (!api) {
     console.warn('Dockview API not ready yet')
     return false
   }
 
-  const registryEntry = findDockEntry(panelId);
+  const registryEntry = findDockEntry(panelId)
   if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) {
-    console.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`);
-    return false;
+    console.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`)
+    return false
   }
 
   const existingPanel = getPanelByID(panelId)
@@ -59,12 +64,12 @@ export function createPanel(panelId: string, label: string, position?: AddPanelP
       title: label,
       position: position,
       params,
-      minimumWidth: registryEntry.minimumWidth ?? 0
-    });
-    return true;
+      minimumWidth: registryEntry.minimumWidth ?? 0,
+    })
+    return true
   } catch (err) {
-    console.error('Failed to create panel', err);
+    console.error('Failed to create panel', err)
     Toast.error('Failed to create panel')
-    return false;
+    return false
   }
 }

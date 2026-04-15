@@ -1,78 +1,67 @@
+/*
+ * functionality for the automaton project, including sync with fsm engine
+ */
+
 import { Project } from '../Project'
 import { computed, onMounted, watch } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
-import type { AutomatonProps, AutomatonState, AutomatonType } from './AutomatonTypes'
+import type {
+  AutomatonProps,
+  AutomatonState,
+  AutomatonType,
+  RawFsmData,
+  RawFsmState,
+  RawFsmTransition,
+  UpdateSource,
+} from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
-
-/*
- * interfaces
- */
-interface RawFsmTransition {
-  id?: string | number
-  from?: string | number
-  to?: string | number
-  input?: string | unknown
-  output?: string | unknown
-  mealy_output?: string | unknown
-  toPattern?: string | unknown
-  label?: string | unknown
-}
-
-interface RawFsmState {
-  id?: string | number | null
-  name?: string | null
-  initial?: boolean | null
-  final?: boolean | null
-  x?: string | number | null
-  y?: string | number | null
-}
-
-interface RawFsmData {
-  states?: unknown
-  transitions?: unknown
-  automatonType?: unknown
-}
 
 /*
  * export type definitions
  */
-export type { AutomatonProps, AutomatonState } from './AutomatonTypes'
-
-export type UpdateSource = 'automatoneditor' | 'table' | null
+export type { AutomatonProps, AutomatonState, UpdateSource } from './AutomatonTypes'
 
 /*
- * automaton project class including export / import functions
+ * automaton project class including export / import / sync utility functions
  */
 export class AutomatonProject extends Project {
+  // flags to control table<->editor sync
   private static lastUpdateSource: UpdateSource = null
   private static updateFromEditor = false
   private static lastImportedFsmData: AutomatonState | null = null
   private static lastSentFsmData: AutomatonState | null = null
   private static listenerAttached = false
 
+  static getLastUpdateSource(): UpdateSource {
+    return this.lastUpdateSource
+  }
+
+  static setLastUpdateSource(source: UpdateSource) {
+    this.lastUpdateSource = source
+  }
+
+  private static setAutomatonType(value: unknown): AutomatonType {
+    return value === 'moore' || value === 'mealy' ? value : 'mealy'
+  }
+
   private static areStatesEqual(
-    left: AutomatonState['states'] | undefined,
-    right: AutomatonState['states'] | undefined,
+    stateA: AutomatonState['states'] | undefined,
+    stateB: AutomatonState['states'] | undefined,
   ): boolean {
-    const a = left || []
-    const b = right || []
-    if (a.length !== b.length) return false
+    /*
+     * checks whether two state nodes are equal.
+     * returns true if all parameters of the state nodes as defined in type AutomatonState['states'] are equal.
+     */
+    const a = stateA || []
+    const b = stateB || []
+    if (a.length !== b.length || !a || !b) return false
 
     for (let index = 0; index < a.length; index++) {
-      const stateA = a[index]
-      const stateB = b[index]
-      if (
-        !stateA ||
-        !stateB ||
-        stateA.id !== stateB.id ||
-        stateA.name !== stateB.name ||
-        stateA.initial !== stateB.initial ||
-        stateA.final !== stateB.final ||
-        stateA.x !== stateB.x ||
-        stateA.y !== stateB.y
-      ) {
+      const parameterA = a[index]
+      const parameterB = b[index]
+      if (parameterA != parameterB) {
         return false
       }
     }
@@ -81,26 +70,21 @@ export class AutomatonProject extends Project {
   }
 
   private static areTransitionsEqual(
-    left: AutomatonState['transitions'] | undefined,
-    right: AutomatonState['transitions'] | undefined,
+    firstTransition: AutomatonState['transitions'] | undefined,
+    secondTransition: AutomatonState['transitions'] | undefined,
   ): boolean {
-    const a = left || []
-    const b = right || []
-    if (a.length !== b.length) return false
+    /*
+     * checks whether two transitions are equal.
+     * returns true if all parameters of the transitions as defined in type AutomatonState['states'] are equal.
+     */
+    const a = firstTransition || []
+    const b = secondTransition || []
+    if (a.length !== b.length || !a || !b) return false
 
     for (let index = 0; index < a.length; index++) {
-      const transitionA = a[index]
-      const transitionB = b[index]
-      if (
-        !transitionA ||
-        !transitionB ||
-        transitionA.id !== transitionB.id ||
-        transitionA.from !== transitionB.from ||
-        transitionA.to !== transitionB.to ||
-        transitionA.toPattern !== transitionB.toPattern ||
-        transitionA.input !== transitionB.input ||
-        transitionA.output !== transitionB.output
-      ) {
+      const parameterA = a[index]
+      const parameterB = b[index]
+      if (parameterA != parameterB) {
         return false
       }
     }
@@ -109,19 +93,26 @@ export class AutomatonProject extends Project {
   }
 
   private static isSameAutomatonState(
-    left: AutomatonState | null | undefined,
-    right: AutomatonState | null | undefined,
+    firstAutomatonState: AutomatonState | null | undefined,
+    secondAutomatonState: AutomatonState | null | undefined,
   ): boolean {
-    if (!left || !right) return false
+    /*
+     * checks whether two AutomatonStates are equal.
+     * returns true if all parameters of the AAutomatonStates as defined in type AutomatonState['states'] are equal.
+     */
+    if (!firstAutomatonState || !secondAutomatonState) return false
 
     return (
-      left.automatonType === right.automatonType &&
-      this.areStatesEqual(left.states, right.states) &&
-      this.areTransitionsEqual(left.transitions, right.transitions)
+      firstAutomatonState.automatonType === secondAutomatonState.automatonType &&
+      this.areStatesEqual(firstAutomatonState.states, secondAutomatonState.states) &&
+      this.areTransitionsEqual(firstAutomatonState.transitions, secondAutomatonState.transitions)
     )
   }
 
   private static isTrustedMessage(event: MessageEvent): boolean {
+    /*
+     * checks whether a MessageEvent is from the correct source to ignore other events.
+     */
     const iframe = this.getFsmIframe()
     return event.origin === window.location.origin && event.source === iframe?.contentWindow
   }
@@ -131,6 +122,9 @@ export class AutomatonProject extends Project {
     selector: (transition: AutomatonState['transitions'][number]) => unknown,
     previousState?: AutomatonState | null,
   ): number {
+    /*
+     * computes amount of bits of transition input or output bits in comparison to a newly updated Automaton State.
+     */
     const lengths = [
       ...(previousState?.transitions || []),
       ...(currentState.transitions || []),
@@ -145,6 +139,9 @@ export class AutomatonProject extends Project {
     direction: 'left' | 'right',
     fill: string,
   ): string {
+    /*
+     * sets structure of different output / input bit data to the same base scheme.
+     */
     const normalized =
       direction === 'left'
         ? (value ?? '').padStart(length, fill)
@@ -156,10 +153,15 @@ export class AutomatonProject extends Project {
     currentState: AutomatonState,
     previousState?: AutomatonState | null,
   ): AutomatonState {
+    /*
+     * normalizes new or updated states to keep the same scheme and data structure.
+     * returns the correctly updated AutomatonState.
+     */
     const states = [...(currentState.states || [])]
       .filter((state) => state && typeof state.id === 'number' && !Number.isNaN(state.id))
       .sort((left, right) => left.id - right.id)
 
+    // updates all values correctly
     const stateIds = new Set(states.map((state) => state.id))
     const maxIndex = Math.max(states.length - 1, 0)
     const bitNumber = Math.max(maxIndex.toString(2).length, 1)
@@ -184,6 +186,7 @@ export class AutomatonProject extends Project {
       const hasConcreteTarget = stateIds.has(transition.to)
       const hasPattern = typeof transition.toPattern === 'string' && transition.toPattern.length > 0
 
+      // set correct transitions
       transitionByKey.set(`${transition.from}:${input}`, {
         id: transition.id,
         from: transition.from,
@@ -201,6 +204,7 @@ export class AutomatonProject extends Project {
     ;(previousState?.transitions || []).forEach(registerTransition)
     ;(currentState.transitions || []).forEach(registerTransition)
 
+    // normalize transitions
     const normalizedTransitions: AutomatonState['transitions'] = Array.from(
       transitionByKey.values(),
     ).sort((left, right) => {
@@ -208,7 +212,7 @@ export class AutomatonProject extends Project {
       return left.input.localeCompare(right.input)
     })
 
-    // Keep transition IDs unique
+    // keep transition IDs unique
     const usedTransitionIds = new Set<number>()
     let nextUniqueId = Math.max(-1, ...normalizedTransitions.map((transition) => transition.id)) + 1
 
@@ -238,18 +242,6 @@ export class AutomatonProject extends Project {
       transitions: transitionsWithUniqueIds,
       automatonType: this.setAutomatonType(currentState.automatonType),
     }
-  }
-
-  static getLastUpdateSource(): UpdateSource {
-    return this.lastUpdateSource
-  }
-
-  static setLastUpdateSource(source: UpdateSource) {
-    this.lastUpdateSource = source
-  }
-
-  private static setAutomatonType(value: unknown): AutomatonType {
-    return value === 'moore' || value === 'mealy' ? value : 'mealy'
   }
 
   private static parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
