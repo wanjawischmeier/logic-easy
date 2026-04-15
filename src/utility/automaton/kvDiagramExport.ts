@@ -17,8 +17,12 @@ import {
   detectTautologyOrContradiction,
   flattenCouplingTermsToFormula,
 } from '@/utility/truthtable/expressionParser'
-import { getCouplingTermLatex, getFunctionSignature } from '@/utility/truthtable/latexGenerator'
 import {
+  getCouplingTermLatex,
+  getFunctionSignature,
+} from '@/utility/truthtable/latexGenerator'
+import {
+  defaultColor,
   defaultColor,
   generateTermColor,
   mapFormulaTermsToPIColors,
@@ -153,7 +157,10 @@ export function buildBaseTruthTableState(input: KVDiagramBaseTruthTableInput): T
 export async function deriveAutomatonFormulaBundle(
   truthTable: TruthTableState,
 ): Promise<AutomatonDerivedFormulaBundle> {
-  const edgeCase = detectTautologyOrContradiction(truthTable.values, truthTable.outputVariableIndex)
+  const edgeCase = detectTautologyOrContradiction(
+    truthTable.values,
+    truthTable.outputVariableIndex,
+  )
   if (edgeCase !== null) {
     return createAutomatonEdgeCaseResult(truthTable, edgeCase)
   }
@@ -210,6 +217,35 @@ export async function deriveAutomatonFormulaBundle(
     selectedFormula,
     formulaTermColors,
     couplingTermLatex,
+  }
+}
+
+function createAutomatonEdgeCaseResult(
+  truthTable: TruthTableState,
+  type: 'tautology' | 'contradiction',
+): AutomatonDerivedFormulaBundle {
+  const constant: '0' | '1' = type === 'tautology' ? '1' : '0'
+  const signature = getFunctionSignature(
+    truthTable.functionType,
+    truthTable.functionRepresentation,
+    truthTable.inputVars,
+  )
+
+  return {
+    qmcResult: {
+      iterations: [],
+      minterms: [],
+      pis: [],
+      chart: null,
+      expressions: [{ name: constant } as never],
+      termColors: [defaultColor],
+    },
+    selectedFormula: {
+      type: truthTable.functionType,
+      terms: [{ literals: [{ variable: constant, negated: false }] }],
+    },
+    formulaTermColors: [defaultColor],
+    couplingTermLatex: `${signature}${constant}`,
   }
 }
 
