@@ -18,9 +18,6 @@ import type {
 } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
-/*
- * export type definitions
- */
 export type { AutomatonProps, AutomatonState, UpdateSource } from './AutomatonTypes'
 
 /*
@@ -35,14 +32,23 @@ export class AutomatonProject extends Project {
   private static listenerAttached = false
 
   static getLastUpdateSource(): UpdateSource {
+    /*
+     * returns the source where the latest automaton update has been triggered from.
+     */
     return this.lastUpdateSource
   }
 
   static setLastUpdateSource(source: UpdateSource) {
+    /*
+     * sets the source for the latest automaton update to coordinate editor/table sync.
+     */
     this.lastUpdateSource = source
   }
 
   private static setAutomatonType(value: unknown): AutomatonType {
+    /*
+     * converts any automaton type values to supported automaton types.
+     */
     return value === 'moore' || value === 'mealy' ? value : 'mealy'
   }
 
@@ -245,6 +251,9 @@ export class AutomatonProject extends Project {
   }
 
   private static parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
+    /*
+     * parses a raw transition payload from the fsm editor into internal transition data shape.
+     */
     const tr = raw as RawFsmTransition
     const hasLabel = typeof tr.label === 'string'
     const label = hasLabel ? String(tr.label ?? '') : ''
@@ -265,6 +274,9 @@ export class AutomatonProject extends Project {
   }
 
   private static parseRawState = (raw: unknown): AutomatonState['states'][number] => {
+    /*
+     * parses a raw state payload from the fsm editor into internal state data shape.
+     */
     const s = raw as RawFsmState
     const id = Number(s.id ?? 0)
     const x = typeof s.x === 'number' && Number.isFinite(s.x) ? s.x : undefined
@@ -280,11 +292,17 @@ export class AutomatonProject extends Project {
   }
 
   static getFsmIframe(): HTMLIFrameElement | undefined {
+    /*
+     * returns the preloaded fsm iframe instance from the global window object.
+     */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (window as any).__fsm_preloaded_iframe as HTMLIFrameElement | undefined
   }
 
   private static handleMessage(event: MessageEvent) {
+    /*
+     * handles incoming postMessage events from the fsm editor and syncs editor data to table state.
+     */
     if (event.data?.action !== 'export' && event.data?.action !== 'editorToTableExport') return
     if (!this.isTrustedMessage(event)) return
 
@@ -315,15 +333,24 @@ export class AutomatonProject extends Project {
     else this.lastUpdateSource = null
   }
 
+  /*
+   * stores a stable listener reference so add/removeEventListener use the same callback identity.
+   */
   private static handleMessageRef = (event: MessageEvent) => AutomatonProject.handleMessage(event)
 
   static attachFsmListener() {
+    /*
+     * attaches the global message listener once to receive fsm editor exports.
+     */
     if (this.listenerAttached) return
     window.addEventListener('message', this.handleMessageRef)
     this.listenerAttached = true
   }
 
   static disposeFsmListener() {
+    /*
+     * removes the global message listener when automaton project listener is active.
+     */
     if (this.listenerAttached) {
       window.removeEventListener('message', this.handleMessageRef)
       this.listenerAttached = false
@@ -331,6 +358,9 @@ export class AutomatonProject extends Project {
   }
 
   static override get defaultProps(): AutomatonProps {
+    /*
+     * returns default project props for newly created automaton projects.
+     */
     return {
       name: '',
       automatonType: 'mealy',
@@ -338,6 +368,9 @@ export class AutomatonProject extends Project {
   }
 
   static override useState() {
+    /*
+     * exposes reactive automaton state and synchronizes table/editor updates in both directions.
+     */
     onMounted(() => {
       AutomatonProject.attachFsmListener()
     })
@@ -486,6 +519,9 @@ export class AutomatonProject extends Project {
   }
 
   static override restoreDefaultPanelLayout(props: AutomatonProps) {
+    /*
+     * restores default panel layout for the automaton project and applies initial panel props.
+     */
     console.log('[AutomatonProject.restoreDefaultPanelLayout] applying default layout')
     createPanel('fsm-engine', 'FSM Engine', undefined, {
       automatonType: props.automatonType,
@@ -493,6 +529,9 @@ export class AutomatonProject extends Project {
   }
 
   static override createState(props: AutomatonProps) {
+    /*
+     * initializes an empty automaton state in global state manager for the project.
+     */
     stateManager.state.automaton = {
       states: [],
       transitions: [],
@@ -502,12 +541,18 @@ export class AutomatonProject extends Project {
   }
 
   static override validateState(state: AppState): boolean {
+    /*
+     * validates whether automaton state data exists in the current app state.
+     */
     return state.automaton != undefined
   }
 }
 
+/*
+ * registers automaton project type in the central project registry.
+ */
 registerProjectType('automaton', {
-  name: 'State Machine', // TODO: not really used!
+  name: 'Automaton',
   propsComponent: AutomatonPropsComponent,
   projectClass: AutomatonProject,
 })
