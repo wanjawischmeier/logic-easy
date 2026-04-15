@@ -85,7 +85,6 @@ export interface KVDiagramExportData {
   latexInputVars: string[]
   latexOutputVars: string[]
   immutableCellMask: boolean[][]
-  impossibleRowMask: boolean[]
 }
 
 // minimal transition row shape used for computed transition columns

@@ -118,9 +118,10 @@ export function resolveUseAutomatonBinding(input: {
   isAutomatonTransitionKV: boolean
   shouldForceAutomatonMode: boolean
 }): boolean {
-  if (!input.hasTransitionTableExport) return false
-  if (input.isAutomatonTransitionKV) return true
-  return input.shouldForceAutomatonMode
+  return (
+    input.hasTransitionTableExport &&
+    (input.isAutomatonTransitionKV || input.shouldForceAutomatonMode)
+  )
 }
 
 // Creates a clean truth-table state object from current panel inputs.
@@ -364,9 +365,9 @@ function parseAutomatonOutputDescriptor(
   stateBitWidth: number,
   outputBitWidth: number,
 ): AutomatonOutputDescriptor {
-  const nextStateMatch = /^([A-Za-z])_(\d+)\^\(n\+1\)$/i.exec(variableName)
+  const nextStateMatch = /^[A-Za-z]_(\d+)\^\(n\+1\)$/i.exec(variableName)
   if (nextStateMatch) {
-    const displayIndex = parseInt(nextStateMatch[2] ?? '', 10)
+    const displayIndex = parseInt(nextStateMatch[1] ?? '', 10)
     if (Number.isNaN(displayIndex)) return null
     return {
       kind: 'next-state',
@@ -374,9 +375,9 @@ function parseAutomatonOutputDescriptor(
     }
   }
 
-  const outputMatch = /^([A-Za-z])_(\d+)\^n$/i.exec(variableName)
+  const outputMatch = /^[A-Za-z]_(\d+)\^n$/i.exec(variableName)
   if (outputMatch) {
-    const displayIndex = parseInt(outputMatch[2] ?? '', 10)
+    const displayIndex = parseInt(outputMatch[1] ?? '', 10)
     if (Number.isNaN(displayIndex)) return null
     return {
       kind: 'output',
@@ -410,20 +411,19 @@ function resolveTransitionTarget(
   nextStateBits: string,
   states: AutomatonState['states'],
 ): Pick<AutomatonState['transitions'][number], 'to' | 'toPattern'> {
+  const unresolvedTarget = {
+    to: -1,
+    toPattern: nextStateBits,
+  }
+
   if (!/^[01]+$/.test(nextStateBits)) {
-    return {
-      to: -1,
-      toPattern: nextStateBits,
-    }
+    return unresolvedTarget
   }
 
   const stateIndex = parseInt(nextStateBits, 2)
   const state = states[stateIndex]
   if (!state) {
-    return {
-      to: -1,
-      toPattern: nextStateBits,
-    }
+    return unresolvedTarget
   }
 
   return {
@@ -523,6 +523,22 @@ function normalizeBinaryBits(value: string | undefined): string {
   return normalized
 }
 
+// Converts truth-table fields into the binding shape consumed by KV components.
+function createKVDiagramBindingFromTruthTable(truthTable: TruthTableState): KVDiagramBinding {
+  return {
+    inputVars: truthTable.inputVars,
+    outputVars: truthTable.outputVars,
+    values: truthTable.values,
+    outputVariableIndex: truthTable.outputVariableIndex,
+    functionType: truthTable.functionType,
+    functionRepresentation: truthTable.functionRepresentation,
+    selectedFormula: truthTable.selectedFormula,
+    qmcResult: truthTable.qmcResult,
+    formulaTermColors: truthTable.formulaTermColors,
+    couplingTermLatex: truthTable.couplingTermLatex,
+  }
+}
+
 // Builds the final KV data binding (truth-table or automaton export).
 export function buildKVDiagramBinding(
   baseTruthTable: TruthTableState,
@@ -530,31 +546,11 @@ export function buildKVDiagramBinding(
   useAutomatonBinding: boolean,
 ): KVDiagramBinding {
   if (!useAutomatonBinding || !automatonExport) {
-    return {
-      inputVars: baseTruthTable.inputVars,
-      outputVars: baseTruthTable.outputVars,
-      values: baseTruthTable.values,
-      outputVariableIndex: baseTruthTable.outputVariableIndex,
-      functionType: baseTruthTable.functionType,
-      functionRepresentation: baseTruthTable.functionRepresentation,
-      selectedFormula: baseTruthTable.selectedFormula,
-      qmcResult: baseTruthTable.qmcResult,
-      formulaTermColors: baseTruthTable.formulaTermColors,
-      couplingTermLatex: baseTruthTable.couplingTermLatex,
-    }
+    return createKVDiagramBindingFromTruthTable(baseTruthTable)
   }
 
   return {
-    inputVars: automatonExport.truthTable.inputVars,
-    outputVars: automatonExport.truthTable.outputVars,
-    values: automatonExport.truthTable.values,
-    outputVariableIndex: automatonExport.truthTable.outputVariableIndex,
-    functionType: automatonExport.truthTable.functionType,
-    functionRepresentation: automatonExport.truthTable.functionRepresentation,
-    selectedFormula: automatonExport.truthTable.selectedFormula,
-    qmcResult: automatonExport.truthTable.qmcResult,
-    formulaTermColors: automatonExport.truthTable.formulaTermColors,
-    couplingTermLatex: automatonExport.truthTable.couplingTermLatex,
+    ...createKVDiagramBindingFromTruthTable(automatonExport.truthTable),
     immutableCellMask: automatonExport.immutableCellMask,
   }
 }
@@ -583,17 +579,9 @@ export function exportTransitionColumnsToKVDiagram(
     columns.bitNumber,
     columns.inputBits,
   )
-  const impossibleRowMask = Array.from(
-    { length: normalizedTruthTable.values.length },
-    (_, rowIndex) => !possibleRows.has(rowIndex),
-  )
 
   const immutableCellMask = normalizedTruthTable.values.map((row, rowIndex) => {
-    if (!impossibleRowMask[rowIndex]) {
-      return row.map(() => false)
-    }
-
-    return row.map(() => true)
+    return row.map(() => !possibleRows.has(rowIndex))
   })
 
   return {
@@ -601,7 +589,6 @@ export function exportTransitionColumnsToKVDiagram(
     latexInputVars: normalizedTruthTable.inputVars.map(toLatexVariableName),
     latexOutputVars: normalizedTruthTable.outputVars.map(toLatexVariableName),
     immutableCellMask,
-    impossibleRowMask,
   }
 }
 
