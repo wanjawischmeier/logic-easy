@@ -36,7 +36,7 @@ export type {
 } from '@/projects/automaton/AutomatonTypes'
 
 // Checks if automaton-specific KV behavior should be enabled.
-export function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput): boolean {
+function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput): boolean {
   if (!input.hasAutomatonState) return false
   if (input.enabled === true) return true
   if (input.enabled === false) return false
@@ -70,7 +70,7 @@ export function hasUsableTruthTableData(state: {
 }
 
 // Forces automaton mode when no usable truth-table data exists.
-export function resolveShouldForceAutomatonMode(input: {
+function resolveShouldForceAutomatonMode(input: {
   hasAutomatonState: boolean
   hasUsableTruthTableData: boolean
 }): boolean {

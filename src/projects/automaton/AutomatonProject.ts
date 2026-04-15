@@ -24,12 +24,17 @@ export type { AutomatonProps, AutomatonState, UpdateSource } from './AutomatonTy
  * automaton project class including export / import / sync utility functions
  */
 export class AutomatonProject extends Project {
+  private static readonly EDITOR_SYNC_DEBOUNCE_MS = 20
+  private static readonly PERF_LOG_ENABLED = false
+
   // flags to control table<->editor sync
   private static lastUpdateSource: UpdateSource = null
   private static updateFromEditor = false
   private static lastImportedFsmData: AutomatonState | null = null
   private static lastSentFsmData: AutomatonState | null = null
   private static listenerAttached = false
+  private static stateToEditorWatcherAttached = false
+  private static stateToEditorDebounce: number | null = null
 
   static getLastUpdateSource(): UpdateSource {
     /*
@@ -62,12 +67,20 @@ export class AutomatonProject extends Project {
      */
     const a = stateA || []
     const b = stateB || []
-    if (a.length !== b.length || !a || !b) return false
+    if (a.length !== b.length) return false
 
     for (let index = 0; index < a.length; index++) {
       const parameterA = a[index]
       const parameterB = b[index]
-      if (parameterA != parameterB) {
+      if (!parameterA || !parameterB) return false
+      if (
+        parameterA.id !== parameterB.id ||
+        parameterA.name !== parameterB.name ||
+        parameterA.initial !== parameterB.initial ||
+        parameterA.final !== parameterB.final ||
+        parameterA.x !== parameterB.x ||
+        parameterA.y !== parameterB.y
+      ) {
         return false
       }
     }
@@ -85,12 +98,20 @@ export class AutomatonProject extends Project {
      */
     const a = firstTransition || []
     const b = secondTransition || []
-    if (a.length !== b.length || !a || !b) return false
+    if (a.length !== b.length) return false
 
     for (let index = 0; index < a.length; index++) {
       const parameterA = a[index]
       const parameterB = b[index]
-      if (parameterA != parameterB) {
+      if (!parameterA || !parameterB) return false
+      if (
+        parameterA.id !== parameterB.id ||
+        parameterA.from !== parameterB.from ||
+        parameterA.to !== parameterB.to ||
+        String(parameterA.toPattern ?? '') !== String(parameterB.toPattern ?? '') ||
+        String(parameterA.input ?? '') !== String(parameterB.input ?? '') ||
+        String(parameterA.output ?? '') !== String(parameterB.output ?? '')
+      ) {
         return false
       }
     }
@@ -250,6 +271,40 @@ export class AutomatonProject extends Project {
     }
   }
 
+  private static cloneAutomatonStateForSync(state: AutomatonState): AutomatonState {
+    /*
+     * creates a plain serializable automaton snapshot used for normalization and iframe sync.
+     */
+    return {
+      states: (state.states || []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        initial: s.initial,
+        final: s.final,
+        x: s.x,
+        y: s.y,
+      })),
+      transitions: (state.transitions || []).map((t) => ({
+        id: t.id,
+        from: t.from,
+        to: t.to,
+        toPattern: t.toPattern,
+        input: t.input,
+        output: t.output,
+      })),
+      automatonType: this.setAutomatonType(state.automatonType),
+    }
+  }
+
+  private static logPerf(label: string, startTime: number) {
+    /*
+     * logs sync timings when performance debugging is enabled.
+     */
+    if (!this.PERF_LOG_ENABLED) return
+    const durationMs = performance.now() - startTime
+    console.debug(`[AutomatonSync] ${label}: ${durationMs.toFixed(2)}ms`)
+  }
+
   private static parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
     /*
      * parses a raw transition payload from the fsm editor into internal transition data shape.
@@ -307,6 +362,7 @@ export class AutomatonProject extends Project {
     if (!this.isTrustedMessage(event)) return
     if (!stateManager.state.automaton) return
 
+    const parseStart = performance.now()
     const raw = event.data.fsm as RawFsmData
     const states = Array.isArray(raw.states) ? raw.states.map((r) => this.parseRawState(r)) : []
     const transitions = Array.isArray(raw.transitions)
@@ -320,6 +376,7 @@ export class AutomatonProject extends Project {
       },
       stateManager.state.automaton as AutomatonState | undefined,
     )
+    this.logPerf('editor->table parse+normalize', parseStart)
 
     if (this.isSameAutomatonState(this.lastImportedFsmData, fsmData)) {
       return
@@ -358,6 +415,55 @@ export class AutomatonProject extends Project {
     }
   }
 
+  private static ensureStateToEditorWatcher() {
+    /*
+     * attaches the automaton->iframe sync watcher once, regardless of how often useState() is called.
+     */
+    if (this.stateToEditorWatcherAttached) return
+
+    watch(
+      () => stateManager.state.automaton,
+      (val) => {
+        if (!val || this.updateFromEditor || this.getLastUpdateSource() === 'automatoneditor') {
+          return
+        }
+
+        if (this.stateToEditorDebounce !== null) {
+          clearTimeout(this.stateToEditorDebounce)
+        }
+
+        this.stateToEditorDebounce = window.setTimeout(() => {
+          this.stateToEditorDebounce = null
+
+          const normalizeStart = performance.now()
+          const actualState = this.normalizeState(this.cloneAutomatonStateForSync(val))
+          this.logPerf('table->editor normalize', normalizeStart)
+
+          if (this.isSameAutomatonState(this.lastSentFsmData, actualState)) {
+            return
+          }
+
+          this.lastSentFsmData = actualState
+          const fsmIframe = this.getFsmIframe()
+          if (!fsmIframe || !fsmIframe.contentWindow) return
+
+          const postMessageStart = performance.now()
+          fsmIframe.contentWindow.postMessage(
+            {
+              action: 'automatonimport',
+              fsm: actualState,
+            },
+            window.location.origin,
+          )
+          this.logPerf('table->editor postMessage', postMessageStart)
+        }, this.EDITOR_SYNC_DEBOUNCE_MS)
+      },
+      { deep: true },
+    )
+
+    this.stateToEditorWatcherAttached = true
+  }
+
   static override get defaultProps(): AutomatonProps {
     /*
      * returns default project props for newly created automaton projects.
@@ -374,6 +480,7 @@ export class AutomatonProject extends Project {
      */
     onMounted(() => {
       AutomatonProject.attachFsmListener()
+      AutomatonProject.ensureStateToEditorWatcher()
     })
 
     const automaton = computed(
@@ -444,64 +551,6 @@ export class AutomatonProject extends Project {
       const lengths = transitions.value.map((tr) => (tr.output || '').length)
       return Math.max(...lengths, 1)
     })
-
-    let automatonDebounce: number | null = null
-
-    watch(
-      () => stateManager.state.automaton,
-      (val) => {
-        if (
-          !val ||
-          AutomatonProject.updateFromEditor ||
-          AutomatonProject.getLastUpdateSource() === 'automatoneditor'
-        ) {
-          return
-        }
-        if (automatonDebounce !== null) {
-          clearTimeout(automatonDebounce)
-        }
-
-        automatonDebounce = window.setTimeout(() => {
-          const actualState = AutomatonProject.normalizeState({
-            states: (val.states || []).map((s) => ({
-              id: s.id,
-              name: s.name,
-              initial: s.initial,
-              final: s.final,
-              x: s.x,
-              y: s.y,
-            })),
-            transitions: (val.transitions || []).map((t) => ({
-              id: t.id,
-              from: t.from,
-              to: t.to,
-              toPattern: t.toPattern,
-              input: t.input,
-              output: t.output,
-            })),
-            automatonType: AutomatonProject.setAutomatonType(val.automatonType),
-          })
-
-          if (
-            AutomatonProject.isSameAutomatonState(AutomatonProject.lastSentFsmData, actualState)
-          ) {
-            return
-          }
-          AutomatonProject.lastSentFsmData = actualState
-          const fsmIframe = AutomatonProject.getFsmIframe()
-          if (!fsmIframe || !fsmIframe.contentWindow) return
-
-          fsmIframe.contentWindow.postMessage(
-            {
-              action: 'automatonimport',
-              fsm: actualState,
-            },
-            window.location.origin,
-          )
-        }, 50)
-      },
-      { deep: true },
-    )
 
     return {
       state: automaton,

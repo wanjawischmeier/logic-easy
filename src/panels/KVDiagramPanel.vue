@@ -144,7 +144,9 @@ const panelParams = computed<Record<string, unknown> | undefined>(
   () => (props.params as { params?: Record<string, unknown> } | undefined)?.params,
 )
 
-const isAutomatonProject = computed(() => projectManager.currentProjectInfo?.projectType === 'automaton')
+const isAutomatonProject = computed(
+  () => projectManager.currentProjectInfo?.projectType === 'automaton',
+)
 
 const hasUsableTruthTableDataComputed = computed(() =>
   hasUsableTruthTableData({
@@ -256,9 +258,7 @@ const kvBinding = computed(() =>
   ),
 )
 
-const tableValues = ref<TruthTableData>(
-  cloneTruthTableValues(kvBinding.value.values),
-)
+const tableValues = ref<TruthTableData>(cloneTruthTableValues(kvBinding.value.values))
 
 const automatonFormulaBundle = ref<AutomatonDerivedFormulaBundle>({})
 let automatonComputationToken = 0
@@ -292,7 +292,7 @@ watch(
 
     automatonFormulaBundle.value = formulaBundle
   },
-  { immediate: true, deep: true }
+  { immediate: true },
 )
 
 const effectiveQmcResult = computed(() =>
@@ -338,7 +338,10 @@ const onCellChanged = (change: KVDiagramCellChange) => {
     })
 
     AutomatonProject.setLastUpdateSource('table')
-    stateManager.state.automaton = applyTruthTableStateToAutomaton(currentAutomaton, patchedTruthTable)
+    stateManager.state.automaton = applyTruthTableStateToAutomaton(
+      currentAutomaton,
+      patchedTruthTable,
+    )
     return
   }
 
@@ -363,7 +366,6 @@ watch(
     if (!newVal) return
     tableValues.value = cloneTruthTableValues(newVal)
   },
-  { deep: true },
 )
 
 const downloadFiles = computed(() => [
