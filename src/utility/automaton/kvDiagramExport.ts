@@ -197,49 +197,6 @@ export async function deriveAutomatonFormulaBundle(
   }
 }
 
-// Maps placeholder variable names from QMC to visible input variable names.
-function buildQmcVariableNameMap(inputVars: string[]): Record<string, string> {
-  const map: Record<string, string> = {}
-
-  inputVars.forEach((inputVar, index) => {
-    const placeholder = String.fromCharCode(97 + index)
-    map[placeholder] = inputVar
-    map[placeholder.toUpperCase()] = inputVar
-  })
-
-  return map
-}
-
-// Recursively replaces variable names inside a QMC expression tree.
-function remapExpressionVariables(
-  expression: unknown,
-  variableMap: Record<string, string>,
-): unknown {
-  if (!expression || typeof expression !== 'object') {
-    return expression
-  }
-
-  const source = expression as { name?: unknown; args?: unknown[] }
-
-  if (typeof source.name === 'string') {
-    const mappedName = variableMap[source.name as string]
-    if (!mappedName) return { ...source }
-    return {
-      ...source,
-      name: mappedName,
-    }
-  }
-
-  if (Array.isArray(source.args)) {
-    return {
-      ...source,
-      args: source.args.map((arg) => remapExpressionVariables(arg as unknown, variableMap)),
-    }
-  }
-
-  return { ...source }
-}
-
 // Returns a copied values matrix with one changed cell.
 export function applyCellChangeToValues(
   values: TruthTableState['values'],
@@ -288,23 +245,6 @@ export function applyCellChangeToTruthTable(
 
   truthTable.values[target.rowIndex]![target.outputIndex] = change.value
   return true
-}
-
-// Validates and resolves a single cell change against a values matrix.
-function resolveCellChangeTarget(
-  values: TruthTableState['values'],
-  change: KVDiagramCellChange,
-): { rowIndex: number; outputIndex: number } | null {
-  if (!Number.isInteger(change.rowIndex) || !Number.isInteger(change.outputIndex)) return null
-  if (change.rowIndex < 0 || change.outputIndex < 0) return null
-
-  const row = values[change.rowIndex]
-  if (!row || change.outputIndex >= row.length) return null
-
-  return {
-    rowIndex: change.rowIndex,
-    outputIndex: change.outputIndex,
-  }
 }
 
 // Writes edited KV output values back into automaton transitions.
@@ -662,6 +602,71 @@ export function exportTransitionColumnsToKVDiagram(
     latexOutputVars: normalizedTruthTable.outputVars.map(toLatexVariableName),
     immutableCellMask,
     impossibleRowMask,
+  }
+}
+
+// Maps placeholder variable names from QMC to visible input variable names.
+function buildQmcVariableNameMap(inputVars: string[]): Record<string, string> {
+  const map: Record<string, string> = {}
+
+  inputVars.forEach((inputVar, index) => {
+    const placeholder = String.fromCharCode(97 + index)
+    map[placeholder] = inputVar
+    map[placeholder.toUpperCase()] = inputVar
+  })
+
+  return map
+}
+
+// Recursively replaces variable names inside a QMC expression tree.
+function remapExpressionVariables(
+  expression: unknown,
+  variableMap: Record<string, string>,
+): unknown {
+  if (!expression || typeof expression !== 'object') {
+    return expression
+  }
+
+  const source = expression as { name?: unknown; args?: unknown[] }
+  const remappedArgs = Array.isArray(source.args)
+    ? source.args.map((arg) => remapExpressionVariables(arg as unknown, variableMap))
+    : source.args
+
+  if (typeof source.name === 'string') {
+    const mappedName = variableMap[source.name as string]
+    if (!mappedName) {
+      return {
+        ...source,
+        ...(Array.isArray(source.args) ? { args: remappedArgs } : {}),
+      }
+    }
+
+    return {
+      ...source,
+      name: mappedName,
+      ...(Array.isArray(source.args) ? { args: remappedArgs } : {}),
+    }
+  }
+
+  if (Array.isArray(source.args)) return { ...source, args: remappedArgs }
+
+  return { ...source }
+}
+
+// Validates and resolves a single cell change against a values matrix.
+function resolveCellChangeTarget(
+  values: TruthTableState['values'],
+  change: KVDiagramCellChange,
+): { rowIndex: number; outputIndex: number } | null {
+  if (!Number.isInteger(change.rowIndex) || !Number.isInteger(change.outputIndex)) return null
+  if (change.rowIndex < 0 || change.outputIndex < 0) return null
+
+  const row = values[change.rowIndex]
+  if (!row || change.outputIndex >= row.length) return null
+
+  return {
+    rowIndex: change.rowIndex,
+    outputIndex: change.outputIndex,
   }
 }
 
