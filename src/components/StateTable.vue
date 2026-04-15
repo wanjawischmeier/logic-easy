@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/*
+* state table logic for editing automaton states and transitions
+*/
+
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
 import { stateManager } from '@/projects/stateManager'
 import { onMounted, reactive } from 'vue'
@@ -6,7 +10,7 @@ import { onMounted, reactive } from 'vue'
 const editingNames = reactive<Record<number, string | undefined>>({})
 const MAX_TRANSITION_BITS = 10
 
-/**
+/*
  * manage central data
  */
 
@@ -47,6 +51,7 @@ onMounted(() => {
 })
 
 function getNextStateId(): number {
+  // returns the smallest free numeric state id
   const usedIds = new Set(states.value.map((state) => state.id))
   let nextId = 0
 
@@ -58,15 +63,18 @@ function getNextStateId(): number {
 }
 
 function getRequiredStateBitsFromCount(stateCount: number): number {
+  // computes amount of bits required to represent all state indices
   const maxIndex = Math.max(stateCount - 1, 0)
   return Math.max(maxIndex.toString(2).length, 1)
 }
 
 function getDefaultToPatternForStateCount(stateCount: number): string {
+  // builds default wildcard target pattern for the current state count
   return 'x'.repeat(getRequiredStateBitsFromCount(stateCount))
 }
 
 function getNextTransitionId(): number {
+  // returns the next unique transition id based on current transitions
   const automaton = getAutomaton()
   const maxTransitionId = Math.max(
     -1,
@@ -76,6 +84,7 @@ function getNextTransitionId(): number {
 }
 
 function resolveConcreteToPatternsForCurrentStates() {
+  // resolves concrete binary target patterns to concrete state ids when possible
   const automaton = getAutomaton()
 
   automaton.transitions = automaton.transitions.map((transition) => {
@@ -106,11 +115,12 @@ function resolveConcreteToPatternsForCurrentStates() {
   })
 }
 
-/**
+/*
  * helper functions to edit table in table panel
  */
 
 function addStateRow() {
+  // adds a new state and initializes all missing transitions for that state
   const automaton = getAutomaton()
   const nextId = getNextStateId()
   const nextStatePattern = getDefaultToPatternForStateCount(automaton.states.length + 1)
@@ -147,6 +157,7 @@ function addStateRow() {
 }
 
 function setInitialState(stateId: number) {
+  // marks one state as initial and resets all other initial flags
   const automaton = getAutomaton()
   automaton.states = automaton.states.map((state) => ({
     ...state,
@@ -156,14 +167,17 @@ function setInitialState(stateId: number) {
 }
 
 function startEditingName(stateId: number, currentName: string) {
+  // starts buffered name editing for a specific state row
   editingNames[stateId] = currentName
 }
 
 function bufferStateName(stateId: number, name: string) {
+  // updates buffered input while user types a state name
   editingNames[stateId] = name
 }
 
 function commitStateName(stateId: number) {
+  // applies buffered state name (including fallback)
   const buffered = editingNames[stateId]
   delete editingNames[stateId]
 
@@ -183,6 +197,7 @@ function commitStateName(stateId: number) {
 }
 
 function removeStateRow(stateId: number) {
+  // removes one state and remaps all affected transitions and state ids
   const automaton = getAutomaton()
   const remainingStates = automaton.states
     .filter((state) => state.id !== stateId)
@@ -236,12 +251,14 @@ function removeStateRow(stateId: number) {
 }
 
 function decreaseStateCount() {
+  // removes the state with the currently highest id
   if (states.value.length === 0) return
   const lastStateId = Math.max(...states.value.map((state) => state.id))
   removeStateRow(lastStateId)
 }
 
 function increaseInputBits() {
+  // increases transition input width and fills newly required transition rows
   const automaton = getAutomaton()
   if (inputBits.value >= MAX_TRANSITION_BITS) return
   const nextInputBits = inputBits.value + 1
@@ -286,6 +303,7 @@ function increaseInputBits() {
 }
 
 function decreaseInputBits() {
+  // decreases input width by merging transitions that differ only in removed bit
   const automaton = getAutomaton()
   if (inputBits.value <= 1) return
 
@@ -313,6 +331,7 @@ function decreaseInputBits() {
 }
 
 function increaseOutputBits() {
+  // increases output width and pads transition outputs with wildcard bits
   const automaton = getAutomaton()
   if (outputBits.value >= MAX_TRANSITION_BITS) return
   const nextOutputBits = outputBits.value + 1
@@ -326,6 +345,7 @@ function increaseOutputBits() {
 }
 
 function decreaseOutputBits() {
+  // decreases output width by truncating outputs to new bit count
   const automaton = getAutomaton()
   if (outputBits.value <= 1) return
 
@@ -339,7 +359,7 @@ function decreaseOutputBits() {
   AutomatonProject.setLastUpdateSource('table')
 }
 
-/**
+/*
  * helper functions to display automaton data correctly in table
  */
 // compute amount of necessary bits (x) to be displayed
@@ -381,6 +401,7 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
 }
 
 function toggleToBit(idx: number, i: number) {
+  // toggles one next-state bit: x -> 0 -> 1 -> x
   const current = (binaryTransitions.value[idx]?.toBinary ?? '')
     .padStart(bitNumber.value, 'x')
     .charAt(i)
@@ -389,6 +410,7 @@ function toggleToBit(idx: number, i: number) {
 }
 
 function toggleOutputBit(idx: number, i: number) {
+  // toggles one output bit: 0 -> 1 -> x -> 0
   const transition = transitions.value[idx]
   if (!transition) return
 

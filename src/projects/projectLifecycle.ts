@@ -80,6 +80,33 @@ export class ProjectLifecycleManager {
   }
 
   /**
+   * Keeps only shared UI state and the store that belongs to the given project type.
+   */
+  private isolateStateForProjectType(projectType: string, state: typeof stateManager.state) {
+    const baseState = {
+      version: state.version,
+      panelStates: state.panelStates,
+      dockviewLayout: state.dockviewLayout,
+    }
+
+    if (projectType === 'automaton') {
+      return {
+        ...baseState,
+        automaton: state.automaton,
+      }
+    }
+
+    if (projectType === 'truth-table') {
+      return {
+        ...baseState,
+        truthTable: state.truthTable,
+      }
+    }
+
+    return state
+  }
+
+  /**
    * Open a project by ID (loads state into stateManager)
    */
   open(projectId: number): StoredProject | null {
@@ -118,7 +145,9 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
       console.warn('[ProjectLifecycle.open] Project has empty state - may need initialization')
     }
 
-    if (!(projectTypeInfo.projectClass?.validateState(project.state) ?? false)) {
+    const isolatedState = this.isolateStateForProjectType(project.projectType, project.state)
+
+    if (!(projectTypeInfo.projectClass?.validateState(isolatedState) ?? false)) {
       console.error('[ProjectLifecycle.open] Project state failed type specific validation')
       return null
     }
@@ -132,7 +161,7 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
 
     // Copy over shared state properties
     stateManager.beginRestore()
-    Object.assign(stateManager.state, project.state)
+    Object.assign(stateManager.state, isolatedState)
     stateManager.endRestore()
 
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {

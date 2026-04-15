@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/*
+* panel wrapper for rendering the automaton state table component
+*/
+
 import StateTable from '@/components/StateTable.vue'
 </script>
 

@@ -305,6 +305,7 @@ export class AutomatonProject extends Project {
      */
     if (event.data?.action !== 'export' && event.data?.action !== 'editorToTableExport') return
     if (!this.isTrustedMessage(event)) return
+    if (!stateManager.state.automaton) return
 
     const raw = event.data.fsm as RawFsmData
     const states = Array.isArray(raw.states) ? raw.states.map((r) => this.parseRawState(r)) : []
