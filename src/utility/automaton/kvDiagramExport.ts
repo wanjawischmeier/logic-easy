@@ -15,7 +15,11 @@ import type {
 import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
 import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
 import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
-import { mapFormulaTermsToPIColors, type TermColor } from '@/utility/truthtable/colorGenerator'
+import {
+  generateTermColor,
+  mapFormulaTermsToPIColors,
+  type TermColor,
+} from '@/utility/truthtable/colorGenerator'
 import {
   buildArtificialTruthTableFromComputedColumns,
   type TransitionTableComputedColumns,
@@ -162,6 +166,7 @@ export async function deriveAutomatonFormulaBundle(
   const remappedResult: QMCResult = {
     ...result,
     expressions: remappedExpressions,
+    termColors: mapResultColorsForAutomaton(truthTable, result),
   }
 
   const selectedFormula = flattenCouplingTermsToFormula(
@@ -187,7 +192,8 @@ export async function deriveAutomatonFormulaBundle(
     )
   } catch (error) {
     console.warn('[deriveAutomatonFormulaBundle] Failed to map formula term colors:', error)
-    formulaTermColors = undefined
+    // Use PI colors directly as fallback for Don't-Care handling
+    formulaTermColors = remappedResult.termColors
   }
 
   return {
@@ -196,6 +202,41 @@ export async function deriveAutomatonFormulaBundle(
     formulaTermColors,
     couplingTermLatex,
   }
+}
+
+// Assigns colors to current prime implicants while reusing previous colors by PI term.
+function mapResultColorsForAutomaton(truthTable: TruthTableState, result: QMCResult): TermColor[] {
+  if (!result?.pis?.length) return []
+
+  const existingQmcResult = truthTable.qmcResult
+  const existingPIs = existingQmcResult?.pis || []
+  const existingColors = existingQmcResult?.termColors || []
+
+  const termColorMap = new Map<string, TermColor>()
+  existingPIs.forEach((pi: { term?: string }, index: number) => {
+    const color = existingColors[index]
+    if (pi.term && color) termColorMap.set(pi.term, color)
+  })
+
+  const allColors = Array.from(termColorMap.values())
+  return result.pis.map((pi: { term?: string }) => {
+    const term = String(pi.term ?? '')
+    const reused = term ? termColorMap.get(term) : undefined
+    if (reused) return reused
+
+    const nextColor = generateTermColor(allColors)
+    allColors.push(nextColor)
+    return nextColor
+  })
+}
+
+// Builds deterministic fallback colors so KV highlights remain visible even if PI mapping fails.
+function buildFormulaColorFallback(termCount: number): TermColor[] {
+  const colors: TermColor[] = []
+  for (let index = 0; index < termCount; index++) {
+    colors.push(generateTermColor(colors))
+  }
+  return colors
 }
 
 // Returns a copied values matrix with one changed cell.
