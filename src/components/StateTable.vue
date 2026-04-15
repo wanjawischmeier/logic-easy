@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /*
-* state table logic for editing automaton states and transitions
-*/
+ * state table logic for editing automaton states and transitions
+ */
 
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
 import { stateManager } from '@/projects/stateManager'

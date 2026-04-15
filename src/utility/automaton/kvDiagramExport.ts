@@ -1,97 +1,41 @@
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
+import type {
+  AutomatonDerivedFormulaBundle,
+  AutomatonKVFeatureFlagInput,
+  AutomatonKVMode,
+  AutomatonKVModeInput,
+  AutomatonState,
+  BinaryTransitionLike,
+  KVDiagramBaseTruthTableInput,
+  KVDiagramBinding,
+  KVDiagramCellChange,
+  KVDiagramExportData,
+  KVDiagramExportOptions,
+} from '@/projects/automaton/AutomatonTypes'
 import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
 import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
 import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
 import { mapFormulaTermsToPIColors, type TermColor } from '@/utility/truthtable/colorGenerator'
-import type { Formula } from '@/utility/types'
 import {
   buildArtificialTruthTableFromComputedColumns,
-  type TransitionColumnsTruthTableOptions,
   type TransitionTableComputedColumns,
   type TransitionTableComputedRow,
 } from '@/utility/automaton/transitionTableArtificialTruthTable'
 
-export interface KVDiagramExportOptions extends TransitionColumnsTruthTableOptions {
-  outputVariableIndex?: number
-}
+export type {
+  AutomatonDerivedFormulaBundle,
+  AutomatonKVFeatureFlagInput,
+  AutomatonKVMode,
+  AutomatonKVModeInput,
+  BinaryTransitionLike,
+  KVDiagramBaseTruthTableInput,
+  KVDiagramBinding,
+  KVDiagramCellChange,
+  KVDiagramExportData,
+  KVDiagramExportOptions,
+} from '@/projects/automaton/AutomatonTypes'
 
-export interface KVDiagramExportData {
-  truthTable: TruthTableState
-  latexInputVars: string[]
-  latexOutputVars: string[]
-  immutableCellMask: boolean[][]
-  impossibleRowMask: boolean[]
-}
-
-export interface BinaryTransitionLike {
-  id?: number
-  input?: string
-  output?: string
-  fromBinary?: string
-  toBinary?: string
-}
-
-export interface AutomatonKVFeatureFlagInput {
-  panelId?: string
-  hasAutomatonState: boolean
-  enabled?: boolean
-}
-
-export interface AutomatonKVModeInput {
-  panelId?: string
-  panelParams?: Record<string, unknown>
-  hasAutomatonState: boolean
-  hasUsableTruthTableData: boolean
-  isAutomatonProject: boolean
-}
-
-export interface AutomatonKVMode {
-  shouldForceAutomatonMode: boolean
-  isAutomatonTransitionKV: boolean
-  exportToTable: boolean
-}
-
-export interface KVDiagramBinding {
-  inputVars: TruthTableState['inputVars']
-  outputVars: TruthTableState['outputVars']
-  values: TruthTableState['values']
-  outputVariableIndex: TruthTableState['outputVariableIndex']
-  functionType: TruthTableState['functionType']
-  functionRepresentation: TruthTableState['functionRepresentation']
-  selectedFormula: TruthTableState['selectedFormula']
-  qmcResult: TruthTableState['qmcResult']
-  formulaTermColors: TruthTableState['formulaTermColors']
-  couplingTermLatex: TruthTableState['couplingTermLatex']
-  immutableCellMask?: boolean[][]
-}
-
-export interface KVDiagramCellChange {
-  rowIndex: number
-  outputIndex: number
-  value: TruthTableState['values'][number][number]
-}
-
-export interface KVDiagramBaseTruthTableInput {
-  inputVars: TruthTableState['inputVars']
-  outputVars: TruthTableState['outputVars']
-  values: TruthTableState['values']
-  outputVariableIndex: TruthTableState['outputVariableIndex']
-  functionType: TruthTableState['functionType']
-  functionRepresentation: TruthTableState['functionRepresentation']
-  selectedFormula: TruthTableState['selectedFormula']
-  qmcResult: TruthTableState['qmcResult']
-  couplingTermLatex: TruthTableState['couplingTermLatex']
-  formulaTermColors: TruthTableState['formulaTermColors']
-}
-
-export interface AutomatonDerivedFormulaBundle {
-  qmcResult?: QMCResult
-  selectedFormula?: Formula
-  formulaTermColors?: TermColor[]
-  couplingTermLatex?: string
-}
-
+// Checks if automaton-specific KV behavior should be enabled.
 export function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput): boolean {
   if (!input.hasAutomatonState) return false
   if (input.enabled === true) return true
@@ -99,6 +43,11 @@ export function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput):
 
   const panelId = input.panelId ?? ''
   const isAutomatonPanel =
+    panelId === 'state-table' ||
+    panelId === 'fsm-engine' ||
+    panelId.startsWith('state-table') ||
+    panelId.startsWith('fsm-engine') ||
+    // old panel ids kept for backward compatibility
     panelId === 'transition-table' ||
     panelId === 'state-machine' ||
     panelId.startsWith('transition-table') ||
@@ -107,6 +56,7 @@ export function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput):
   return isAutomatonPanel
 }
 
+// True if truth-table data is present and usable.
 export function hasUsableTruthTableData(state: {
   inputVars?: string[]
   outputVars?: string[]
@@ -119,6 +69,7 @@ export function hasUsableTruthTableData(state: {
   )
 }
 
+// Forces automaton mode when no usable truth-table data exists.
 export function resolveShouldForceAutomatonMode(input: {
   hasAutomatonState: boolean
   hasUsableTruthTableData: boolean
@@ -126,6 +77,7 @@ export function resolveShouldForceAutomatonMode(input: {
   return input.hasAutomatonState && !input.hasUsableTruthTableData
 }
 
+// Builds the final mode flags for automaton KV behavior.
 export function resolveAutomatonKVMode(input: AutomatonKVModeInput): AutomatonKVMode {
   const shouldForceAutomatonMode = resolveShouldForceAutomatonMode({
     hasAutomatonState: input.hasAutomatonState,
@@ -160,6 +112,7 @@ export function resolveAutomatonKVMode(input: AutomatonKVModeInput): AutomatonKV
   }
 }
 
+// Decides whether KV should read/write via automaton data.
 export function resolveUseAutomatonBinding(input: {
   hasTransitionTableExport: boolean
   isAutomatonTransitionKV: boolean
@@ -170,6 +123,7 @@ export function resolveUseAutomatonBinding(input: {
   return input.shouldForceAutomatonMode
 }
 
+// Creates a clean truth-table state object from current panel inputs.
 export function buildBaseTruthTableState(input: KVDiagramBaseTruthTableInput): TruthTableState {
   return {
     inputVars: input.inputVars,
@@ -186,6 +140,7 @@ export function buildBaseTruthTableState(input: KVDiagramBaseTruthTableInput): T
   }
 }
 
+// Runs minimization and prepares formulas for automaton KV mode.
 export async function deriveAutomatonFormulaBundle(
   truthTable: TruthTableState,
 ): Promise<AutomatonDerivedFormulaBundle> {
@@ -229,7 +184,8 @@ export async function deriveAutomatonFormulaBundle(
       remappedResult.termColors,
       truthTable.inputVars,
     )
-  } catch {
+  } catch (error) {
+    console.warn('[deriveAutomatonFormulaBundle] Failed to map formula term colors:', error)
     formulaTermColors = undefined
   }
 
@@ -241,6 +197,7 @@ export async function deriveAutomatonFormulaBundle(
   }
 }
 
+// Maps placeholder variable names from QMC to visible input variable names.
 function buildQmcVariableNameMap(inputVars: string[]): Record<string, string> {
   const map: Record<string, string> = {}
 
@@ -253,6 +210,7 @@ function buildQmcVariableNameMap(inputVars: string[]): Record<string, string> {
   return map
 }
 
+// Recursively replaces variable names inside a QMC expression tree.
 function remapExpressionVariables(
   expression: unknown,
   variableMap: Record<string, string>,
@@ -263,8 +221,7 @@ function remapExpressionVariables(
 
   const source = expression as { name?: unknown; args?: unknown[] }
 
-  const hasName = typeof source.name === 'string'
-  if (hasName) {
+  if (typeof source.name === 'string') {
     const mappedName = variableMap[source.name as string]
     if (!mappedName) return { ...source }
     return {
@@ -276,15 +233,14 @@ function remapExpressionVariables(
   if (Array.isArray(source.args)) {
     return {
       ...source,
-      args: source.args.map((arg) =>
-        remapExpressionVariables(arg as unknown, variableMap),
-      ),
+      args: source.args.map((arg) => remapExpressionVariables(arg as unknown, variableMap)),
     }
   }
 
   return { ...source }
 }
 
+// Returns the effective number of input variables for KV limits.
 export function resolveEffectiveKVInputVarCount(state: {
   truthTable?: { inputVars?: string[] }
   automaton?: {
@@ -308,10 +264,12 @@ export function resolveEffectiveKVInputVarCount(state: {
   return stateBits + inputBits
 }
 
+// KV is currently supported only for 2 to 4 input variables.
 export function isKVInputVarCountSupported(count: number): boolean {
   return count >= 2 && count <= 4
 }
 
+// Returns a copied values matrix with one changed cell.
 export function applyCellChangeToValues(
   values: TruthTableState['values'],
   change: KVDiagramCellChange,
@@ -327,12 +285,14 @@ export function applyCellChangeToValues(
   return nextValues
 }
 
+// Copies the 2D truth-table values array.
 export function cloneTruthTableValues(
   values: TruthTableState['values'],
 ): TruthTableState['values'] {
   return values.map((row) => [...row])
 }
 
+// Builds a patched truth-table state for writing changes back to the automaton.
 export function buildPatchedAutomatonTruthTable(input: {
   truthTable: TruthTableState
   values: TruthTableState['values']
@@ -349,6 +309,7 @@ export function buildPatchedAutomatonTruthTable(input: {
   }
 }
 
+// Applies one cell change directly to an existing truth-table state.
 export function applyCellChangeToTruthTable(
   truthTable: TruthTableState | undefined,
   change: KVDiagramCellChange,
@@ -364,6 +325,7 @@ export function applyCellChangeToTruthTable(
   return true
 }
 
+// Writes edited KV output values back into automaton transitions.
 export function applyTruthTableStateToAutomaton(
   automaton: AutomatonState,
   truthTable: TruthTableState,
@@ -417,7 +379,11 @@ export function applyTruthTableStateToAutomaton(
     const fromStateBits = rowBits.slice(0, stateBits)
     const inputBitsValue = rowBits.slice(stateBits)
     const fromStateIndex = stateBits > 0 ? parseInt(fromStateBits, 2) : 0
-    if (Number.isNaN(fromStateIndex) || fromStateIndex < 0 || fromStateIndex >= sortedStates.length) {
+    if (
+      Number.isNaN(fromStateIndex) ||
+      fromStateIndex < 0 ||
+      fromStateIndex >= sortedStates.length
+    ) {
       continue
     }
 
@@ -464,11 +430,13 @@ export function applyTruthTableStateToAutomaton(
   }
 }
 
+// Describes how one KV output column maps to automaton data.
 type AutomatonOutputDescriptor =
   | { kind: 'next-state'; bitIndex: number }
   | { kind: 'output'; bitIndex: number }
   | null
 
+// Parses names like Z_0^(n+1) or Y_0^n into mapping descriptors.
 function parseAutomatonOutputDescriptor(
   variableName: string,
   stateBitWidth: number,
@@ -497,6 +465,7 @@ function parseAutomatonOutputDescriptor(
   return null
 }
 
+// Builds next-state bits from concrete target or wildcard pattern.
 function resolveTransitionNextStateBits(
   transition: AutomatonState['transitions'][number],
   bitWidth: number,
@@ -514,6 +483,7 @@ function resolveTransitionNextStateBits(
   return toIndex.toString(2).padStart(bitWidth, '0')
 }
 
+// Converts next-state bits back into transition target fields.
 function resolveTransitionTarget(
   nextStateBits: string,
   states: AutomatonState['states'],
@@ -540,6 +510,7 @@ function resolveTransitionTarget(
   }
 }
 
+// Replaces one bit in a string when the index is valid.
 function setBit(value: string, bitIndex: number, bit: '0' | '1' | 'x'): string {
   if (bitIndex < 0 || bitIndex >= value.length) return value
   const chars = value.split('')
@@ -547,16 +518,19 @@ function setBit(value: string, bitIndex: number, bit: '0' | '1' | 'x'): string {
   return chars.join('')
 }
 
+// Normalizes a bit string to a fixed width (left padded).
 function normalizeBits(value: string, length: number, fill: '0' | '1' | 'x'): string {
-  return String(value ?? '').padStart(length, fill).slice(-length)
+  return String(value).padStart(length, fill).slice(-length)
 }
 
+// Converts truth-table cell values to bit characters.
 function toBitChar(value: TruthTableState['values'][number][number] | undefined): '0' | '1' | 'x' {
   if (value === 0) return '0'
   if (value === 1) return '1'
   return 'x'
 }
 
+// Builds computed transition columns from raw binary rows.
 export function buildComputedColumnsFromBinaryTransitions(
   rows: BinaryTransitionLike[],
   dimensions: Pick<TransitionTableComputedColumns, 'bitNumber' | 'inputBits' | 'outputBits'> & {
@@ -579,16 +553,15 @@ export function buildComputedColumnsFromBinaryTransitions(
   }
 }
 
+// Determines how many state bits are needed.
 function resolveStateBitCount(
   rows: TransitionTableComputedRow[],
   fallbackBits: number,
   stateCount?: number,
 ): number {
-  if (stateCount === 0) {
-    return 0
-  }
+  if (stateCount === 0) return 0
 
-  const concreteFromStates = new Set<number>()
+  let maxFromStateIndex = -1
 
   for (const row of rows) {
     const normalized = normalizeBinaryBits(row.fromBinary)
@@ -596,20 +569,23 @@ function resolveStateBitCount(
 
     const stateIndex = parseInt(normalized, 2)
     if (Number.isNaN(stateIndex)) continue
-    concreteFromStates.add(stateIndex)
+    maxFromStateIndex = Math.max(maxFromStateIndex, stateIndex)
   }
 
-  if (concreteFromStates.size === 0) {
-    return Math.max(fallbackBits, 0)
+  if (maxFromStateIndex >= 0) {
+    if (maxFromStateIndex === 0) return 0
+    return Math.max(Math.ceil(Math.log2(maxFromStateIndex + 1)), 1)
   }
 
-  if (concreteFromStates.size === 1) {
-    return 0
+  if (typeof stateCount === 'number') {
+    if (stateCount <= 1) return 0
+    return Math.max(Math.ceil(Math.log2(stateCount)), 1)
   }
 
-  return Math.max(Math.ceil(Math.log2(concreteFromStates.size)), 1)
+  return Math.max(fallbackBits, 0)
 }
 
+// Determines input bit count and handles empty automata.
 function resolveInputBitCount(
   rows: TransitionTableComputedRow[],
   fallbackBits: number,
@@ -622,12 +598,14 @@ function resolveInputBitCount(
   return Math.max(fallbackBits, 0)
 }
 
+// Returns a cleaned binary string, or empty if invalid.
 function normalizeBinaryBits(value: string | undefined): string {
   const normalized = String(value ?? '').trim()
   if (!/^[01]+$/.test(normalized)) return ''
   return normalized
 }
 
+// Builds the final KV data binding (truth-table or automaton export).
 export function buildKVDiagramBinding(
   baseTruthTable: TruthTableState,
   automatonExport: KVDiagramExportData | null,
@@ -663,6 +641,7 @@ export function buildKVDiagramBinding(
   }
 }
 
+// Converts transition columns into truth-table data for KV and QMC.
 export function exportTransitionColumnsToKVDiagram(
   columns: TransitionTableComputedColumns,
   previousState?: TruthTableState,
@@ -710,6 +689,7 @@ export function exportTransitionColumnsToKVDiagram(
   }
 }
 
+// Collects row indices that are actually represented by transitions.
 function collectPossibleRows(
   rows: TransitionTableComputedRow[],
   stateBits: number,
@@ -736,16 +716,19 @@ function collectPossibleRows(
   return possibleRows
 }
 
+// Normalizes a bit string to a fixed width for row index calculation.
 function normalizeBitString(value: string | undefined, length: number): string {
   const normalized = String(value ?? '')
   if (length <= 0) return ''
   return normalized.padStart(length, '0').slice(-length)
 }
 
+// True when a string contains only 0/1 bits.
 function isBinaryBits(value: string): boolean {
   return /^[01]*$/.test(value)
 }
 
+// Converts internal variable names to LaTeX names.
 function toLatexVariableName(variableName: string): string {
   const nextStateMatch = /^([A-Za-z])_(\d+)\^\(n\+1\)$/i.exec(variableName)
   if (nextStateMatch) {
@@ -764,6 +747,7 @@ function toLatexVariableName(variableName: string): string {
   return variableName
 }
 
+// Clamps a number to an inclusive min/max range.
 function clamp(value: number, min: number, max: number): number {
   if (max < min) return min
   return Math.min(Math.max(value, min), max)
