@@ -13,9 +13,16 @@ import type {
   KVDiagramExportOptions,
 } from '@/projects/automaton/AutomatonTypes'
 import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
-import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
-import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
 import {
+  detectTautologyOrContradiction,
+  flattenCouplingTermsToFormula,
+} from '@/utility/truthtable/expressionParser'
+import {
+  getCouplingTermLatex,
+  getFunctionSignature,
+} from '@/utility/truthtable/latexGenerator'
+import {
+  defaultColor,
   generateTermColor,
   mapFormulaTermsToPIColors,
   type TermColor,
@@ -149,6 +156,14 @@ export function buildBaseTruthTableState(input: KVDiagramBaseTruthTableInput): T
 export async function deriveAutomatonFormulaBundle(
   truthTable: TruthTableState,
 ): Promise<AutomatonDerivedFormulaBundle> {
+  const edgeCase = detectTautologyOrContradiction(
+    truthTable.values,
+    truthTable.outputVariableIndex,
+  )
+  if (edgeCase !== null) {
+    return createAutomatonEdgeCaseResult(truthTable, edgeCase)
+  }
+
   const result = await Minimizer.runQMC(truthTable)
   if (!result || !result.expressions.length) {
     return {
@@ -204,6 +219,35 @@ export async function deriveAutomatonFormulaBundle(
   }
 }
 
+function createAutomatonEdgeCaseResult(
+  truthTable: TruthTableState,
+  type: 'tautology' | 'contradiction',
+): AutomatonDerivedFormulaBundle {
+  const constant: '0' | '1' = type === 'tautology' ? '1' : '0'
+  const signature = getFunctionSignature(
+    truthTable.functionType,
+    truthTable.functionRepresentation,
+    truthTable.inputVars,
+  )
+
+  return {
+    qmcResult: {
+      iterations: [],
+      minterms: [],
+      pis: [],
+      chart: null,
+      expressions: [{ name: constant } as never],
+      termColors: [defaultColor],
+    },
+    selectedFormula: {
+      type: truthTable.functionType,
+      terms: [{ literals: [{ variable: constant, negated: false }] }],
+    },
+    formulaTermColors: [defaultColor],
+    couplingTermLatex: `${signature}${constant}`,
+  }
+}
+
 // Assigns colors to current prime implicants while reusing previous colors by PI term.
 function mapResultColorsForAutomaton(truthTable: TruthTableState, result: QMCResult): TermColor[] {
   if (!result?.pis?.length) return []
@@ -228,15 +272,6 @@ function mapResultColorsForAutomaton(truthTable: TruthTableState, result: QMCRes
     allColors.push(nextColor)
     return nextColor
   })
-}
-
-// Builds deterministic fallback colors so KV highlights remain visible even if PI mapping fails.
-function buildFormulaColorFallback(termCount: number): TermColor[] {
-  const colors: TermColor[] = []
-  for (let index = 0; index < termCount; index++) {
-    colors.push(generateTermColor(colors))
-  }
-  return colors
 }
 
 // Returns a copied values matrix with one changed cell.
