@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
+import { stateManager } from '@/projects/stateManager'
 import type { RawFsmTransition, RawFsmState } from '@/projects/automaton/AutomatonTypes'
 
 describe('FSM Editor & Table Synchronization - Defensive Tests', () => {
@@ -364,6 +365,39 @@ describe('FSM Editor & Table Synchronization - Defensive Tests', () => {
       delete windowRef.__fsm_preloaded_iframe
       const result = AutomatonProject.getFsmIframe()
       expect(result).toBeUndefined()
+    })
+  })
+
+  describe('Parent Echo Guard', () => {
+    it('should ignore editor exports that exactly match the last state sent to the editor', () => {
+      const mockIframe = { contentWindow: {} as Window } as HTMLIFrameElement
+      const windowRef = window as unknown as Record<string, unknown>
+      windowRef.__fsm_preloaded_iframe = mockIframe
+
+      const originalAutomaton = AutomatonProject['normalizeState']({
+        states: [{ id: 0, name: 'q0', initial: true, final: false }],
+        transitions: [{ id: 1, from: 0, to: 0, input: '0', output: '0' }],
+        automatonType: 'mealy' as const,
+      })
+
+      stateManager.state.automaton = originalAutomaton
+      AutomatonProject['lastSentFsmData'] = originalAutomaton
+      AutomatonProject['lastImportedFsmData'] = null
+
+      const event = {
+        data: { action: 'export', fsm: originalAutomaton },
+        origin: window.location.origin,
+        source: mockIframe.contentWindow,
+      } as MessageEvent
+
+      AutomatonProject['handleMessage'](event)
+
+      expect(stateManager.state.automaton).toEqual(originalAutomaton)
+      expect(AutomatonProject['lastImportedFsmData']).toBeNull()
+
+      delete windowRef.__fsm_preloaded_iframe
+      AutomatonProject['lastSentFsmData'] = null
+      AutomatonProject['lastImportedFsmData'] = null
     })
   })
 
