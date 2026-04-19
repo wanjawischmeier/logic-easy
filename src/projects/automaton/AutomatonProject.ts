@@ -231,6 +231,28 @@ export class AutomatonProject extends Project {
     ;(previousState?.transitions || []).forEach(registerTransition)
     ;(currentState.transitions || []).forEach(registerTransition)
 
+    const inputCombinations = 1 << inputBitLength
+    let nextTransitionId =
+      Math.max(-1, ...Array.from(transitionByKey.values(), (transition) => transition.id)) + 1
+
+    for (const state of states) {
+      for (let inputIndex = 0; inputIndex < inputCombinations; inputIndex++) {
+        const input = inputIndex.toString(2).padStart(inputBitLength, '0')
+        const key = `${state.id}:${input}`
+        if (transitionByKey.has(key)) continue
+
+        transitionByKey.set(key, {
+          id: nextTransitionId,
+          from: state.id,
+          to: -1,
+          toPattern: defaultToPattern,
+          input,
+          output: ''.padEnd(outputBitLength, 'x'),
+        })
+        nextTransitionId += 1
+      }
+    }
+
     // normalize transitions
     const normalizedTransitions: AutomatonState['transitions'] = Array.from(
       transitionByKey.values(),
@@ -379,6 +401,10 @@ export class AutomatonProject extends Project {
       stateManager.state.automaton as AutomatonState | undefined,
     )
     this.logPerf('editor->table parse+normalize', parseStart)
+
+    if (this.isSameAutomatonState(this.lastSentFsmData, fsmData)) {
+      return
+    }
 
     if (this.isSameAutomatonState(this.lastImportedFsmData, fsmData)) {
       return
