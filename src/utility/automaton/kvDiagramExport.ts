@@ -1,3 +1,26 @@
+/**
+
+# KV Panel Export (Automaton Mode)
+The goal of this file is to enable KV-based analysis/editing for automaton outputs while
+keeping consistency with the shared automaton state and FSM editor. It mainly relates to
+the Minimizer / KV Diagram Panel (-> `src/panels/KVDiagramPanel.vue`).
+
+## Forward direction: automaton -> KV
+On every change of relevant source data (automaton transitions and derived binary transition rows):
+  1. compute transition-based columns for automaton context if necessary
+  2. export to an artificial truth-table-like structure
+  3. derive formula/minimization output for displayed variable
+  4. render KV with immutable-cell mask and highlights
+
+## Backward direction: KV -> automaton
+When a KV cell is edited in automaton mode:
+  1. local KV values are updated according to the input rules.
+  2. values are patched into a truth-table-like structure.
+  3. patched values are mapped back to automaton transitions.
+  4. shared automaton state is updated, sync with other modules.
+
+ */
+
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type {
   AutomatonDerivedFormulaBundle,

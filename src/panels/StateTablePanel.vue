@@ -1,8 +1,22 @@
-<script setup lang="ts">
-/*
- * panel wrapper for rendering the automaton state table component
- */
+<!--
 
+# State Table Panel
+*Panel wrapper for the state table component.*
+The goal of this panel is to host the state table inside dockview with minimal panel-level logic.
+
+# Responsibilities
+- Provide panel layout/container.
+- Mount `StateTable.vue`.
+
+# What belongs here
+- Dockview-facing panel composition.
+- Basic visual container behavior and rendering information.
+- optional in the future: General settings and functionality for both tables.
+-> Keep panel code lightweight and integration-focused.
+
+-->
+
+<script setup lang="ts">
 import StateTable from '@/components/StateTable.vue'
 </script>
 
