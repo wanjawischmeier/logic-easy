@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col h-screen bg-surface-1">
-    <div class="h-[39px]">
+    <div class="h-9.75">
       <DockViewHeader />
     </div>
 

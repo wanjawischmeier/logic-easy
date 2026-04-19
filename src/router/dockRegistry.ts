@@ -6,9 +6,14 @@ import StateTablePanel from '@/panels/StateTablePanel.vue';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
 import { stateManager } from '@/projects/stateManager';
-import QMCPanel from '@/panels/QMCPanel.vue';
 
-export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
+export type PanelRequirement =
+  | 'TruthTable'
+  | 'Automaton'
+  | 'KVAvailable'
+  | 'Min2InputVars'
+  | 'Max4InputVars'
+  | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
 
 /**
@@ -84,20 +89,11 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'kv-diagram',
     label: 'KV Diagram',
     component: KVDiagramPanel,
-    projectType: 'truth-table',
     requires: {
-      view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+      view: ['KVAvailable']
     }
   },
-  {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
-  },
+
   {
     id: 'state-table',
     label: 'State and Transition Table',
@@ -105,15 +101,6 @@ export const dockRegistry: DockRegistryEntry[] = [
     projectType: 'automaton',
     requires: {
       view: ['Automaton']
-    }
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
     }
   },
   {
@@ -219,6 +206,27 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true;
   let checkPassed = true;
 
+  const resolveEffectiveInputVarCount = (): number => {
+    const truthTableInputVars = stateManager.state.truthTable?.inputVars?.length;
+    if (truthTableInputVars !== undefined) {
+      return truthTableInputVars;
+    }
+
+    const automaton = stateManager.state.automaton;
+    if (!automaton) return 0;
+
+    const stateCount = automaton.states?.length ?? 0;
+    const stateBits = stateCount <= 1 ? 0 : Math.ceil(Math.log2(stateCount));
+    const inputBits = Math.max(
+      0,
+      ...(automaton.transitions ?? []).map((transition) => String(transition.input ?? '').length),
+    );
+
+    return stateBits + inputBits;
+  };
+
+  const effectiveInputVarCount = resolveEffectiveInputVarCount();
+
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
@@ -235,16 +243,33 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
         }
         break;
 
+      case 'KVAvailable':
+        // Automaton projects may always open KV.
+        if (stateManager.state.automaton) {
+          break;
+        }
+
+        // Truth-table projects may open KV only for 2..4 input variables.
+        const truthTableInputVarCount = stateManager.state.truthTable?.inputVars?.length ?? 0;
+        if (
+          !stateManager.state.truthTable ||
+          truthTableInputVarCount < 2 ||
+          truthTableInputVarCount > 4
+        ) {
+          checkPassed = false;
+        }
+        break;
+
       case 'Min2InputVars':
-        // Check if truth table has at least 2 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
+        // Check if current KV source (truth table or automaton) has at least 2 input variables
+        if (effectiveInputVarCount < 2) {
           checkPassed = false;
         }
         break;
 
       case 'Max4InputVars':
-        // Check if truth table has at most 4 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
+        // Check if current KV source (truth table or automaton) has at most 4 input variables
+        if (effectiveInputVarCount > 4) {
           checkPassed = false;
         }
         break;
