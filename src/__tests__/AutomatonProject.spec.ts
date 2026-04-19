@@ -228,6 +228,34 @@ describe('AutomatonProject - Defensive Tests for Code Quality Detection', () => 
       const patternFallback = result.transitions.find((t) => t.id === 3)
       expect(patternFallback?.toPattern).toBeDefined()
     })
+
+    it('should synthesize missing state-input combinations during normalization', () => {
+      const result = AutomatonProject['normalizeState']({
+        states: [
+          { id: 0, name: 'q0', initial: true, final: false },
+          { id: 1, name: 'q1', initial: false, final: false },
+        ],
+        transitions: [{ id: 1, from: 0, to: 1, input: '0', output: '0' }],
+        automatonType: 'mealy',
+      })
+
+      expect(result.transitions).toHaveLength(4)
+      expect(
+        result.transitions.map((transition) => `${transition.from}:${transition.input}`).sort(),
+      ).toEqual(['0:0', '0:1', '1:0', '1:1'])
+      expect(
+        result.transitions.find((transition) => transition.from === 0 && transition.input === '1')
+          ?.toPattern,
+      ).toBe('x')
+      expect(
+        result.transitions.find((transition) => transition.from === 1 && transition.input === '0')
+          ?.toPattern,
+      ).toBe('x')
+      expect(
+        result.transitions.find((transition) => transition.from === 0 && transition.input === '0')
+          ?.to,
+      ).toBe(1)
+    })
   })
 
   describe('State Comparison - Semantic Equivalence', () => {

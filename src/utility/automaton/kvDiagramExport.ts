@@ -587,17 +587,19 @@ function resolveStateBitCount(
     maxFromStateIndex = Math.max(maxFromStateIndex, stateIndex)
   }
 
-  if (maxFromStateIndex >= 0) {
-    if (maxFromStateIndex === 0) return 0
-    return Math.max(Math.ceil(Math.log2(maxFromStateIndex + 1)), 1)
-  }
+  const bitsFromRows =
+    maxFromStateIndex >= 0
+      ? maxFromStateIndex === 0
+        ? 0
+        : Math.max(Math.ceil(Math.log2(maxFromStateIndex + 1)), 1)
+      : 0
 
-  if (typeof stateCount === 'number') {
-    if (stateCount <= 1) return 0
-    return Math.max(Math.ceil(Math.log2(stateCount)), 1)
-  }
+  const bitsFromStateCount =
+    typeof stateCount === 'number' && stateCount > 1
+      ? Math.max(Math.ceil(Math.log2(stateCount)), 1)
+      : 0
 
-  return Math.max(fallbackBits, 0)
+  return Math.max(bitsFromRows, bitsFromStateCount, fallbackBits, 0)
 }
 
 // Determines input bit count and handles empty automata.

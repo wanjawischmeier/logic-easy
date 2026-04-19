@@ -7,6 +7,7 @@ import {
   cloneTruthTableValues,
   applyTruthTableStateToAutomaton,
   deriveAutomatonFormulaBundle,
+  buildComputedColumnsFromBinaryTransitions,
 } from '@/utility/automaton/kvDiagramExport'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
@@ -300,6 +301,30 @@ describe('KV Diagram Export & FSM Minimizer Sync - Defensive Tests', () => {
         const result = applyCellChangeToValues(values, change as any)
         expect(result).not.toBeNull()
       }
+    })
+  })
+
+  describe('buildComputedColumnsFromBinaryTransitions - State Bit Inference', () => {
+    it('should keep the state bit width in sync with the full state count', () => {
+      const columns = buildComputedColumnsFromBinaryTransitions(
+        [
+          {
+            id: 1,
+            fromBinary: '0',
+            toBinary: '0',
+            input: '0',
+            output: '0',
+          },
+        ],
+        {
+          bitNumber: 0,
+          inputBits: 1,
+          outputBits: 1,
+          stateCount: 3,
+        },
+      )
+
+      expect(columns.bitNumber).toBe(2)
     })
   })
 
