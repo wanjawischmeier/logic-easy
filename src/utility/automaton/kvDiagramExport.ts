@@ -20,7 +20,6 @@ import {
 import { getCouplingTermLatex, getFunctionSignature } from '@/utility/truthtable/latexGenerator'
 import {
   defaultColor,
-  defaultColor,
   generateTermColor,
   mapFormulaTermsToPIColors,
   type TermColor,
