@@ -37,10 +37,11 @@ automaton data correctly and to sync with the central automaton state.
 <script setup lang="ts">
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
 import { stateManager } from '@/projects/stateManager'
-import { onMounted, reactive } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 
 const editingNames = reactive<Record<number, string | undefined>>({})
 const MAX_TRANSITION_BITS = 10
+const editableCellRefs = ref<(HTMLElement | null)[][]>([])
 
 /*
  * manage central data
@@ -454,6 +455,61 @@ function toggleOutputBit(idx: number, i: number) {
   transition.output = chars.join('')
   AutomatonProject.setLastUpdateSource('table')
 }
+
+function setEditableCellRef(el: HTMLElement | null, rowIdx: number, colIdx: number) {
+  if (!editableCellRefs.value[rowIdx]) {
+    editableCellRefs.value[rowIdx] = []
+  }
+
+  editableCellRefs.value[rowIdx]![colIdx] = el
+}
+
+function focusEditableCell(rowIdx: number, colIdx: number) {
+  const maxRow = binaryTransitions.value.length - 1
+  const maxCol = bitNumber.value + outputBits.value - 1
+  if (maxRow < 0 || maxCol < 0) return
+
+  const targetRow = Math.max(0, Math.min(maxRow, rowIdx))
+  const targetCol = Math.max(0, Math.min(maxCol, colIdx))
+  editableCellRefs.value[targetRow]?.[targetCol]?.focus()
+}
+
+function toggleEditableCell(rowIdx: number, colIdx: number) {
+  if (colIdx < bitNumber.value) {
+    toggleToBit(rowIdx, colIdx)
+    return
+  }
+
+  toggleOutputBit(rowIdx, colIdx - bitNumber.value)
+}
+
+function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx: number) {
+  switch (event.key) {
+    case 'ArrowUp':
+      event.preventDefault()
+      focusEditableCell(rowIdx - 1, colIdx)
+      return
+    case 'ArrowDown':
+      event.preventDefault()
+      focusEditableCell(rowIdx + 1, colIdx)
+      return
+    case 'ArrowLeft':
+      event.preventDefault()
+      focusEditableCell(rowIdx, colIdx - 1)
+      return
+    case 'ArrowRight':
+      event.preventDefault()
+      focusEditableCell(rowIdx, colIdx + 1)
+      return
+    case ' ':
+    case 'Spacebar':
+      event.preventDefault()
+      toggleEditableCell(rowIdx, colIdx)
+      return
+    default:
+      return
+  }
+}
 </script>
 
 <template>
@@ -607,6 +663,7 @@ function toggleOutputBit(idx: number, i: number) {
         </select>
       </div>
     </div>
+
     <!-- TRANSITIONS TABLE-->
     <div v-if="states.length >= 1" class="gap-4 items-center text-center">
       <h1 class="text-center py-4 mt-6 text-xl font-mono">Transitions</h1>
@@ -711,9 +768,12 @@ function toggleOutputBit(idx: number, i: number) {
             <td
               v-for="(_, i) in bitNumber"
               :key="transitionView.id + '-to-' + i"
-              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 transition-colors duration-100"
+              :ref="(el) => setEditableCellRef(el as HTMLElement | null, idx, Number(i))"
+              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 focus:bg-gray-700 focus:outline-none transition-colors duration-100"
               :class="i === bitNumber - 1 ? 'border-r-4' : 'border-r border-gray-600'"
+              tabindex="0"
               @click="toggleToBit(idx, i)"
+              @keydown="handleEditableCellKeydown($event, idx, Number(i))"
             >
               {{
                 (transitionView.toBinary ?? '').padStart(bitNumber, 'x').charAt(Number(i)) || 'x'
@@ -724,9 +784,14 @@ function toggleOutputBit(idx: number, i: number) {
             <td
               v-for="(_, i) in outputBits"
               :key="transitionView.id + '-out-' + i"
-              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 transition-colors duration-100"
+              :ref="
+                (el) => setEditableCellRef(el as HTMLElement | null, idx, bitNumber + Number(i))
+              "
+              class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 focus:bg-gray-700 focus:outline-none transition-colors duration-100"
               :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
+              tabindex="0"
               @click="toggleOutputBit(idx, i)"
+              @keydown="handleEditableCellKeydown($event, idx, bitNumber + Number(i))"
             >
               {{ normalizeBitsToX(transitions[idx]!.output, outputBits).charAt(Number(i)) }}
             </td>
