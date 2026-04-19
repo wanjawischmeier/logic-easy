@@ -261,6 +261,7 @@ const kvBinding = computed(() =>
 const tableValues = ref<TruthTableData>(cloneTruthTableValues(kvBinding.value.values))
 
 const automatonFormulaBundle = ref<AutomatonDerivedFormulaBundle>({})
+const automatonQmcResultByOutputIndex = ref<Record<number, TruthTableState['qmcResult']>>({})
 let automatonComputationToken = 0
 
 watch(
@@ -275,22 +276,31 @@ watch(
   async () => {
     if (!useAutomatonBinding.value || !transitionTableExport.value) {
       automatonFormulaBundle.value = {}
+      automatonQmcResultByOutputIndex.value = {}
       return
     }
 
     const computationToken = ++automatonComputationToken
+    const outputIndex = kvBinding.value.outputVariableIndex
+    const cachedQmcResult = automatonQmcResultByOutputIndex.value[outputIndex]
+
     const truthTableForQmc: TruthTableState = {
       ...transitionTableExport.value.truthTable,
       values: cloneTruthTableValues(tableValues.value),
-      outputVariableIndex: kvBinding.value.outputVariableIndex,
+      outputVariableIndex: outputIndex,
       functionType: kvBinding.value.functionType,
       functionRepresentation: kvBinding.value.functionRepresentation,
+      qmcResult: cachedQmcResult,
     }
 
     const formulaBundle = await deriveAutomatonFormulaBundle(truthTableForQmc)
     if (computationToken !== automatonComputationToken) return
 
     automatonFormulaBundle.value = formulaBundle
+    automatonQmcResultByOutputIndex.value = {
+      ...automatonQmcResultByOutputIndex.value,
+      [outputIndex]: formulaBundle.qmcResult,
+    }
   },
   { immediate: true },
 )

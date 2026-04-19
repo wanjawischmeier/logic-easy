@@ -6,6 +6,7 @@ import {
   applyCellChangeToValues,
   cloneTruthTableValues,
   applyTruthTableStateToAutomaton,
+  deriveAutomatonFormulaBundle,
 } from '@/utility/automaton/kvDiagramExport'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
@@ -303,6 +304,91 @@ describe('KV Diagram Export & FSM Minimizer Sync - Defensive Tests', () => {
   })
 
   describe('Automaton Truth Table Application - State Synthesis', () => {
+    it('should keep term colors stable for selected output when other output changes', async () => {
+      const baseTruthTable: TruthTableState = {
+        inputVars: ['a', 'b'],
+        outputVars: ['y0', 'y1'],
+        values: [
+          [0, 0],
+          [1, 1],
+          [1, 0],
+          [0, 1],
+        ],
+        formulas: {},
+        outputVariableIndex: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        functionType: 'Disjunctive' as any,
+        functionRepresentation: 'Minimal',
+      }
+
+      const firstBundle = await deriveAutomatonFormulaBundle(baseTruthTable)
+      expect(firstBundle.qmcResult?.termColors?.length ?? 0).toBeGreaterThan(0)
+
+      const changedOtherOutputValues: TruthTableState['values'] = baseTruthTable.values.map(
+        (row, rowIndex) => {
+          if (rowIndex === 0 || rowIndex === 3) {
+            const toggledY1: 0 | 1 = row[1] === 1 ? 0 : 1
+            return [row[0]!, toggledY1]
+          }
+          return [...row]
+        },
+      )
+
+      const secondBundle = await deriveAutomatonFormulaBundle({
+        ...baseTruthTable,
+        values: changedOtherOutputValues,
+        // Reuse selected-output QMC result exactly like the truth-table flow.
+        qmcResult: firstBundle.qmcResult,
+      })
+
+      expect(secondBundle.qmcResult?.pis).toEqual(firstBundle.qmcResult?.pis)
+      expect(secondBundle.qmcResult?.termColors).toEqual(firstBundle.qmcResult?.termColors)
+      expect(secondBundle.formulaTermColors).toEqual(firstBundle.formulaTermColors)
+    })
+
+    it('should keep colors stable when switching output index back and forth with cache', async () => {
+      const baseTruthTable: TruthTableState = {
+        inputVars: ['a', 'b'],
+        outputVars: ['y0', 'y1'],
+        values: [
+          [0, 0],
+          [1, 1],
+          [1, 0],
+          [0, 1],
+        ],
+        formulas: {},
+        outputVariableIndex: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        functionType: 'Disjunctive' as any,
+        functionRepresentation: 'Minimal',
+      }
+
+      const qmcCache: Record<number, TruthTableState['qmcResult']> = {}
+
+      const deriveWithOutputCache = async (outputIndex: number) => {
+        const bundle = await deriveAutomatonFormulaBundle({
+          ...baseTruthTable,
+          outputVariableIndex: outputIndex,
+          qmcResult: qmcCache[outputIndex],
+        })
+
+        qmcCache[outputIndex] = bundle.qmcResult
+        return bundle
+      }
+
+      const firstY0 = await deriveWithOutputCache(0)
+      expect(firstY0.qmcResult?.termColors?.length ?? 0).toBeGreaterThan(0)
+
+      const y1 = await deriveWithOutputCache(1)
+      expect(y1.qmcResult?.termColors?.length ?? 0).toBeGreaterThan(0)
+
+      const secondY0 = await deriveWithOutputCache(0)
+
+      expect(secondY0.qmcResult?.pis).toEqual(firstY0.qmcResult?.pis)
+      expect(secondY0.qmcResult?.termColors).toEqual(firstY0.qmcResult?.termColors)
+      expect(secondY0.formulaTermColors).toEqual(firstY0.formulaTermColors)
+    })
+
     it('should handle empty automaton gracefully', () => {
       const empty: AutomatonState = {
         states: [],
