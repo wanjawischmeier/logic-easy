@@ -185,7 +185,7 @@ export class AutomatonProject extends Project {
      * returns the correctly updated AutomatonState.
      */
     const states = [...(currentState.states || [])]
-      .filter((state) => state && typeof state.id === 'number' && !Number.isNaN(state.id))
+      .filter((state) => state && Number.isInteger(state.id))
       .sort((left, right) => left.id - right.id)
 
     // updates all values correctly
@@ -334,8 +334,10 @@ export class AutomatonProject extends Project {
      */
     const s = raw as RawFsmState
     const id = Number(s.id ?? 0)
-    const x = typeof s.x === 'number' && Number.isFinite(s.x) ? s.x : undefined
-    const y = typeof s.y === 'number' && Number.isFinite(s.y) ? s.y : undefined
+    const xNumber = s.x === '' || s.x === null || s.x === undefined ? Number.NaN : Number(s.x)
+    const yNumber = s.y === '' || s.y === null || s.y === undefined ? Number.NaN : Number(s.y)
+    const x = Number.isFinite(xNumber) ? xNumber : undefined
+    const y = Number.isFinite(yNumber) ? yNumber : undefined
     return {
       id,
       name: s.name ?? `q${id}`,

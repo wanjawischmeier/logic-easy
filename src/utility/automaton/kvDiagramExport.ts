@@ -45,9 +45,9 @@ export type {
 
 // Checks if automaton-specific KV behavior should be enabled.
 function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput): boolean {
-  if (!input.hasAutomatonState) return false
   if (input.enabled === true) return true
   if (input.enabled === false) return false
+  if (!input.hasAutomatonState) return false
 
   const panelId = input.panelId ?? ''
   const isAutomatonPanel =
