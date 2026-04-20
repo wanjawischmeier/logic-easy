@@ -13,6 +13,50 @@ export class ProjectOperations {
   constructor(private metadataManager: ProjectMetadataManager, private lifecycle: ProjectLifecycleManager) { }
 
   /**
+   * Creates a deep copy of an app state object.
+   */
+  private cloneAppState(state: AppState): AppState {
+    return JSON.parse(JSON.stringify(state)) as AppState
+  }
+
+  /**
+   * Replaces the reactive app state with a new state object.
+   */
+  private replaceManagerState(nextState: AppState): void {
+    Object.keys(stateManager.state).forEach(
+      (key) => delete (stateManager.state as Record<string, unknown>)[key],
+    )
+    Object.assign(stateManager.state, nextState)
+  }
+
+  /**
+   * Keeps only shared UI state and the project specific store.
+   */
+  private isolateStateForProjectType(projectType: string, state: AppState): AppState {
+    const baseState: AppState = {
+      version: state.version,
+      panelStates: state.panelStates,
+      dockviewLayout: state.dockviewLayout,
+    }
+
+    if (projectType === 'automaton') {
+      return {
+        ...baseState,
+        automaton: state.automaton,
+      }
+    }
+
+    if (projectType === 'truth-table') {
+      return {
+        ...baseState,
+        truthTable: state.truthTable,
+      }
+    }
+
+    return { ...state }
+  }
+
+  /**
    * Create a new project
    */
   async create<TProps extends BaseProjectProps>(name: string, projectType: string, props?: TProps, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
@@ -31,10 +75,19 @@ export class ProjectOperations {
     // Initialize project state using the static createState method BEFORE saving
     const projectTypeInfo = projectTypes[projectType]
     if (projectTypeInfo?.projectClass) {
-      projectTypeInfo.projectClass.createState(project.props)
-      project.state = {
-        ...project.state,
-        ...stateManager.state
+      const previousStateSnapshot = this.cloneAppState(stateManager.state as AppState)
+
+      stateManager.beginRestore()
+      try {
+        this.replaceManagerState(StateManager.defaultState)
+
+        projectTypeInfo.projectClass.createState(project.props)
+
+        const initializedState = this.cloneAppState(stateManager.state as AppState)
+        project.state = this.isolateStateForProjectType(projectType, initializedState)
+      } finally {
+        this.replaceManagerState(previousStateSnapshot)
+        stateManager.endRestore()
       }
     }
 
@@ -103,7 +156,7 @@ export class ProjectOperations {
       return false
     }
 
-    project.state = state
+    project.state = this.isolateStateForProjectType(project.projectType, state)
     project.lastModified = Date.now()
 
     ProjectStorage.saveProject(project)

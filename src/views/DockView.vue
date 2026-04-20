@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col h-screen bg-surface-1">
-    <div class="h-[39px]">
+    <div class="h-9.75">
       <DockViewHeader />
     </div>
 
@@ -8,7 +8,7 @@
 
     <div class="flex-1 min-h-0 relative">
       <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
-        :components="componentsForDockview" :disableAutoFocus="true" @ready="onReady" />
+        :components="componentsForDockview" :theme="themeAbyss" :disableAutoFocus="true" @ready="onReady" />
 
       <GettingStartedView v-if="!hasPanels">
       </GettingStartedView>
@@ -37,8 +37,10 @@
 </template>
 
 <script setup lang="ts">
+import '@/style/dockview.css'
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
+import { themeAbyss } from 'dockview-vue';
 import DockViewHeader from '@/components/DockViewHeader.vue'
 import { dockComponents } from '@/router/dockRegistry'
 import { stateManager } from '@/projects/stateManager'
@@ -145,12 +147,22 @@ const setupPendingProjectLoad = (api: DockviewApi) => {
 
 const setupProjectChangeWatcher = (api: DockviewApi) => {
   watch(
-    () => projectManager.currentProjectInfo,
-    (newProjectInfo, oldProjectInfo) => {
-      // Trigger when project changes or opens (null -> ID)
-      if (newProjectInfo?.id && newProjectInfo?.id !== oldProjectInfo?.id) {
-        const isProjectChange = oldProjectInfo?.id !== null && oldProjectInfo?.id !== undefined
-        console.log(isProjectChange ? `Project changed to: ${projectManager.projectString(newProjectInfo)}` : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`)
+    () => ({
+      projectId: projectManager.currentProjectInfo?.id,
+      projectOpenedCounter: projectManager.lifecycle.projectOpened.value
+    }),
+    (newVal, oldVal) => {
+      // Trigger when either:
+      // 1. Project ID changes (first load, project change)
+      // 2. projectOpened counter changes (reload of same project)
+      if (newVal.projectId &&
+        (newVal.projectId !== oldVal?.projectId || newVal.projectOpenedCounter !== oldVal?.projectOpenedCounter)) {
+        const newProjectInfo = projectManager.currentProjectInfo
+        const isProjectChange = oldVal?.projectId !== null && oldVal?.projectId !== undefined && newVal.projectId !== oldVal?.projectId
+
+        if (newProjectInfo) {
+          console.log(isProjectChange ? `Project changed to: ${projectManager.projectString(newProjectInfo)}` : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`)
+        }
 
         restoreLayout(api, isProjectChange).then(() => {
           // Hide loading screen after layout is fully restored

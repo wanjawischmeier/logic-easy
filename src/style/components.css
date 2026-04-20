@@ -1,4 +1,8 @@
 @layer components {
+  code {
+    @apply bg-surface-3 px-1 py-0.5 rounded;
+  }
+
   .header-menu-btn {
     @apply px-2 py-1 hover:bg-surface-2 focus:outline-none;
 

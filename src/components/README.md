@@ -2,7 +2,7 @@ Contains reusable Vue components used across the app.
 
 # Responsibilities
 
-Provide presentational and small interactive UI building blocks (headers, renderers, panels, widgets).
+Provide UI building blocks.
 
 # Usage
 

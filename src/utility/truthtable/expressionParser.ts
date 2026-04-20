@@ -45,7 +45,7 @@ function parseLiteral(expression: Operation): Literal | null {
         const inner = (expression as any).args?.[0];
         if (inner && (inner as any).name !== undefined) {
             return {
-                variable: (inner as any).name.toLowerCase(),
+                variable: (inner as any).name,
                 negated: true
             };
         }
@@ -54,7 +54,7 @@ function parseLiteral(expression: Operation): Literal | null {
     // Handle VAR
     if ((expression as any).name !== undefined) {
         return {
-            variable: (expression as any).name.toLowerCase(),
+            variable: (expression as any).name,
             negated: false
         };
     }
@@ -85,7 +85,7 @@ export function flattenCouplingTermsToFormula(
         };
     }
 
-    if (functionType === 'CNF') {
+    if (functionType === 'Conjunctive') {
         // CNF: AND of OR clauses
         if ((expression as any).priority === 8) {
             const args = (expression as any).args as Operation[];
@@ -171,7 +171,7 @@ export function flattenCouplingTermsToFormula(
  */
 function operationToLatex(op: Operation, isCNF: boolean = false): string {
     if ((op as any).name !== undefined) {
-        return (op as any).name.toLowerCase();
+        return (op as any).name;
     }
 
     if ((op as any).priority === 15) {
@@ -222,24 +222,27 @@ export function analyzeExpressions(exprs: Operation[], isCNF: boolean): { consta
     if (exprs.length === 1) return { constantTerms: getTerms(exprs[0]!, isCNF), variablePositions: [] };
 
     const allTerms = exprs.map(expr => getTerms(expr, isCNF));
-    const maxLength = Math.max(...allTerms.map(t => t.length));
 
-    const paddedTerms = allTerms.map(terms => {
-        const padded = [...terms];
-        while (padded.length < maxLength) padded.push('');
-        return padded;
-    });
+    // Find common terms across all expressions
+    let commonTerms = allTerms[0] ?? [];
+    for (let i = 1; i < allTerms.length; i++) {
+        const terms = allTerms[i]!;
+        commonTerms = commonTerms.filter(t => terms.includes(t));
+    }
 
-    const constantTerms: string[] = [];
+    // For each expression, just keep the terms that are not common
+    const remainingTerms = allTerms.map(terms => terms.filter(t => !commonTerms.includes(t)));
+
+    const maxLength = Math.max(...remainingTerms.map(t => t.length));
+
+    const constantTerms: string[] = [...commonTerms];
     const variablePositions: string[][] = [];
 
     for (let pos = 0; pos < maxLength; pos++) {
-        const termsAtPos = paddedTerms.map(terms => terms[pos]!).filter(t => t !== '');
+        const termsAtPos = remainingTerms.map(terms => terms[pos]!).filter(t => t !== undefined && t !== '');
         const uniqueTerms = Array.from(new Set(termsAtPos));
 
-        if (uniqueTerms.length === 1) {
-            constantTerms.push(uniqueTerms[0]!);
-        } else if (uniqueTerms.length > 1) {
+        if (uniqueTerms.length > 0) {
             variablePositions.push(termsAtPos);
         }
     }
