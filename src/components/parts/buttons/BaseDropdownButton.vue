@@ -28,6 +28,7 @@ const props = defineProps<Props>()
 
 const showDropdown = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
+let blurCheckTimeout: number | null = null
 
 const toggleDropdown = () => {
     if (showDropdown.value) {
@@ -57,12 +58,34 @@ const handleClickOutside = (event: MouseEvent) => {
     }
 }
 
+const handleWindowBlur = () => {
+    if (!showDropdown.value) return
+
+    if (blurCheckTimeout !== null) {
+        window.clearTimeout(blurCheckTimeout)
+    }
+
+    // Defer until focus state updates so activeElement can reflect iframe focus.
+    blurCheckTimeout = window.setTimeout(() => {
+        blurCheckTimeout = null
+        if (document.activeElement instanceof HTMLIFrameElement) {
+            dropdownService.close()
+        }
+    }, 0)
+}
+
 onMounted(() => {
     document.addEventListener('click', handleClickOutside)
+    window.addEventListener('blur', handleWindowBlur)
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside)
+    window.removeEventListener('blur', handleWindowBlur)
+    if (blurCheckTimeout !== null) {
+        window.clearTimeout(blurCheckTimeout)
+        blurCheckTimeout = null
+    }
 })
 
 // Expose for use by child components if needed

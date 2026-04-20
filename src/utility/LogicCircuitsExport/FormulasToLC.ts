@@ -16,9 +16,10 @@ export function formulaToLC(
   outputVars: string[],
   minimizeForm: 'dnf' | 'cnf' = 'dnf',
   outType: 'and-or' | 'nand' | 'nor' = 'and-or',
+  firstLine: string | undefined = undefined,
 ): LCFile {
   //create new lc File instance
-  const lcFile = new LCFile()
+  const lcFile = new LCFile(firstLine)
 
   //set spacing constants
   const termSpacing = 20
@@ -57,11 +58,7 @@ export function formulaToLC(
     }
 
     // create lamp for this output, aligned with OR gate
-    const lamp = lcFile.createLamp(
-      xOffset + 650,
-      orY + LCFile.OR_SIZE / 2 + LCFile.LAMP_SIZE / 2,
-      0,
-    )
+    const lamp = lcFile.createLamp(xOffset + 650, orY + LCFile.LAMP_SIZE / 2, 0)
     lamp.addText(outputVar, 1) //add text label right to the lamp
     lampsByOutput.set(outputVar, lamp) //sadd lamp to map by output variable name
 

@@ -7,17 +7,20 @@ import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
 import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
 import IframePanel from '@/components/IFramePanel.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
+import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
-import Checkbox from '@/components/parts/Checkbox.vue'
+import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
+import { popupService } from '@/utility/popupService'
+import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
 
-const props = defineProps<Partial<IDockviewPanelProps>>()
+defineProps<Partial<IDockviewPanelProps>>()
 
 const { inputVars, outputVars, formulas, functionType } = TruthTableProject.useState()
 
 const title = ref('')
-let disposable: { dispose?: () => void } | null = null
+const disposable: { dispose?: () => void } | null = null
 let layoutDisposable: any = null
 
 const panelRef = ref<HTMLElement | null>(null)
@@ -28,10 +31,218 @@ type IframePanelExpose = {
 const iframePanelRef = ref<IframePanelExpose | null>(null)
 const downloadButtonStyle = ref<{ right?: string; top?: string }>({})
 let positionObserver: ResizeObserver | null = null
-const allowEdits = ref(false)
-const showLCSidebar = ref(false)
+const editWarning = ref(false)
+const editWarningMessage =
+  'Manual edits in the inbuild LogicCircuits are not synced to LogicEasy. If you want to edit the circuit in LogicCircuits, export the .lc file, and import it to LogicCircuits.'
+const editWarningInlineText = 'Manual edits are not synced to LogicEasy!'
 let detachIframeGuards: (() => void) | null = null
 let iframeReadyRebindHandler: EventListener | null = null
+const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
+
+type LogicCircuitsPanelState = {
+  hideManualEditWarning?: boolean
+}
+
+const hideManualEditWarning = computed(() => {
+  return (
+    stateManager.state.panelStates?.[LOGIC_CIRCUITS_PANEL_STATE_KEY]?.hideManualEditWarning === true
+  )
+})
+
+function setHideManualEditWarning(value: boolean) {
+  if (!stateManager.state.panelStates) {
+    stateManager.state.panelStates = {}
+  }
+  const stopEvent = (event: Event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (
+      typeof (event as Event & { stopImmediatePropagation?: () => void })
+        .stopImmediatePropagation === 'function'
+    ) {
+      ;(event as Event & { stopImmediatePropagation: () => void }).stopImmediatePropagation()
+    }
+  }
+
+  const panelState = stateManager.state.panelStates[LOGIC_CIRCUITS_PANEL_STATE_KEY] ?? {}
+  stateManager.state.panelStates[LOGIC_CIRCUITS_PANEL_STATE_KEY] = {
+    ...panelState,
+    hideManualEditWarning: value,
+  } as LogicCircuitsPanelState
+}
+
+function downloadTextAsFile(content: string, filename: string, mimeType = 'text/plain') {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+async function exportEditedLCFromPopup() {
+  const lcContent = await logicCircuits.exportCurrentLC()
+  if (!lcContent) {
+    downloadTextAsFile(createLcContent(selectedMethod.value), 'logic-circuit.lc', 'text/lc') //fallback to generated content
+    return
+  }
+
+  const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
+  const filenameBase = sanitizeName(projectName) || 'logic-circuit'
+  const filename = `${filenameBase}_edited.lc`
+  downloadTextAsFile(lcContent, filename, 'text/lc')
+}
+
+function syncFromLogicEasyAndDiscardManualEdits(dontShowAgain = false) {
+  if (dontShowAgain) {
+    setHideManualEditWarning(true)
+  }
+
+  editWarning.value = false
+  void updateFormulas()
+}
+
+function openEditWarningPopup() {
+  const currentPopup = popupService.current.value
+  if (
+    currentPopup &&
+    'component' in currentPopup &&
+    currentPopup.component === LogicCircuitsWarningPopup
+  ) {
+    return
+  }
+
+  popupService.open({
+    component: LogicCircuitsWarningPopup,
+    props: {
+      message: editWarningMessage,
+      exportAction: exportEditedLCFromPopup,
+      syncAction: syncFromLogicEasyAndDiscardManualEdits,
+    },
+  })
+}
+
+async function foundSignificantChanges(): Promise<boolean> {
+  const newLC = await logicCircuits.exportCurrentLC()
+
+  if (!newLC) return true
+  if (!currentLCContent) return false
+
+  console.log('new LC content:', newLC)
+  console.log('current LC content:', currentLCContent)
+
+  // check element changes
+  const newElems = newLC.match(/\[([^\]]*)\]/g)?.[1]
+
+  const lastElements = currentLCContent.elements.toString() // your already-parsed elements
+
+  const newIs = (newElems?.match(/i/g) ?? []).length
+  const newNs = (newElems?.match(/n/g) ?? []).length
+
+  const lastIs = (lastElements.match(/i/g) ?? []).length
+  const lastNs = (lastElements.match(/n/g) ?? []).length
+
+  const newCoords = newElems
+    ?.match(/\{([^}]*)\}/g)
+    ?.map((s) =>
+      s
+        .slice(1, -1)
+        .split(',')
+        .slice(1, 3)
+        .map((v) => v.trim().slice(0, -1))
+        .join(''),
+    )
+    .join('')
+
+  const lastCoords = lastElements
+    .match(/\{([^}]*)\}/g)
+    ?.map((s) =>
+      s
+        .slice(1, -1)
+        .split(',')
+        .slice(1, 3)
+        .map((v) => v.trim().slice(0, -1))
+        .join(''),
+    )
+    .join('')
+
+  console.log('Change detection:', {
+    newIs,
+    newNs,
+    lastIs,
+    lastNs,
+    newCoords,
+    lastCoords,
+  })
+
+  if (newIs !== lastIs || newNs !== lastNs || newCoords !== lastCoords) return true
+
+  // check node changes
+  const newNodes = newLC.match(/\[([^\]]*)\]/g)?.[2]
+  const lastNodes = currentLCContent.nodes.toString()
+
+  const newNodeCount = (newNodes?.match(/{/g) ?? []).length
+  const oldNodeCount = (lastNodes.match(/{/g) ?? []).length
+
+  const newFreeNodes = (newNodes?.match(/\d+,\d+/g) ?? []).length
+  const oldFreeNodes = (lastNodes.match(/\d+,\d+/g) ?? []).length
+
+  console.log('Change detection - nodes:', {
+    newNodeCount,
+    oldNodeCount,
+    newFreeNodes,
+    oldFreeNodes,
+  })
+
+  if (newNodeCount !== oldNodeCount) return true
+  if (newFreeNodes !== oldFreeNodes) return true
+
+  // check connection changes
+  const newConns = newLC.match(/\[([^\]]*)\]/g)?.[3]
+  const lastConns = currentLCContent.connections.toString()
+
+  const newConnCount = (newConns?.match(/{/g) ?? []).length
+  const oldConnCount = (lastConns.match(/{/g) ?? []).length
+
+  console.log('Change detection - connections:', {
+    newConnCount,
+    oldConnCount,
+  })
+
+  if (newConnCount !== oldConnCount) return true
+
+  //check for text changes
+  const newTexts = newLC.match(/\[([^\]]*)\]/g)?.[4]
+  const lastTexts = currentLCContent.texts.toString()
+  const extractLabels = (block: string) =>
+    block.match(/\{[^}]+\}/g)?.map((s) => s.slice(1, -1).split(',')[4] ?? '') ?? []
+
+  const newLabels = extractLabels(newTexts ?? '')
+  const lastLabels = extractLabels(lastTexts)
+
+  if (newLabels.join(',') !== lastLabels.join(',')) return true
+
+  return false
+}
+
+let changeDetectionInFlight = false
+
+async function refreshSignificantChangeWarning() {
+  if (changeDetectionInFlight) {
+    return
+  }
+
+  changeDetectionInFlight = true
+  try {
+    editWarning.value = await foundSignificantChanges()
+  } finally {
+    changeDetectionInFlight = false
+  }
+}
 
 function installIframeInteractionGuards() {
   detachIframeGuards?.()
@@ -40,85 +251,49 @@ function installIframeInteractionGuards() {
   const iframe = iframePanelRef.value?.getIframe?.()
   if (!iframe) return
 
-  const stopEvent = (event: Event) => {
-    event.preventDefault()
-    event.stopPropagation()
-    if (
-      typeof (event as Event & { stopImmediatePropagation?: () => void })
-        .stopImmediatePropagation === 'function'
-    ) {
-      ; (event as Event & { stopImmediatePropagation: () => void }).stopImmediatePropagation()
-    }
-  }
-
   const bindToDocument = (doc: Document) => {
-    const onMouseDown = (event: MouseEvent) => {
-      if (allowEdits.value) return
-      if (event.button !== 0) stopEvent(event)
+    const onChangeDetected = () => {
+      void refreshSignificantChangeWarning()
     }
 
-    const onMouseMove = (event: MouseEvent) => {
-      if (allowEdits.value) return
-      // Block move gestures while a mouse button is held to avoid dragging edits.
-      if (event.buttons !== 0) stopEvent(event)
+    let isDragging = false
+    let zoomTimeout: ReturnType<typeof setTimeout> | null = null
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) {
+        isDragging = true
+      }
+    }
+
+    const onMouseUp = () => {
+      if (isDragging) {
+        updateLCHeader()
+        onChangeDetected()
+      }
+      isDragging = false
     }
 
     const onWheel = () => {
-      if (allowEdits.value) return
-      // Keep zoom interactions enabled in locked mode.
-      return
+      if (zoomTimeout) clearTimeout(zoomTimeout)
+      zoomTimeout = setTimeout(() => {
+        updateLCHeader()
+        zoomTimeout = null
+      }, 150)
     }
 
-    const onContextMenu = (event: MouseEvent) => {
-      if (allowEdits.value) return
-      stopEvent(event)
-    }
-
-    const onAuxClick = (event: MouseEvent) => {
-      if (allowEdits.value) return
-      stopEvent(event)
-    }
-
-    const onDragStart = (event: DragEvent) => {
-      if (allowEdits.value) return
-      stopEvent(event)
-    }
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (allowEdits.value) return
-      stopEvent(event)
-    }
-
-    const onTouchMove = (event: TouchEvent) => {
-      if (allowEdits.value) return
-      stopEvent(event)
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (allowEdits.value) return
-      stopEvent(event)
-    }
-
+    doc.addEventListener('click', onChangeDetected, true)
+    doc.addEventListener('contextmenu', onChangeDetected, true)
+    doc.addEventListener('wheel', onWheel, true)
     doc.addEventListener('mousedown', onMouseDown, true)
-    doc.addEventListener('mousemove', onMouseMove, true)
-    doc.addEventListener('wheel', onWheel, { capture: true, passive: false })
-    doc.addEventListener('contextmenu', onContextMenu, true)
-    doc.addEventListener('auxclick', onAuxClick, true)
-    doc.addEventListener('dragstart', onDragStart, true)
-    doc.addEventListener('touchstart', onTouchStart, { capture: true, passive: false })
-    doc.addEventListener('touchmove', onTouchMove, { capture: true, passive: false })
-    doc.addEventListener('keydown', onKeyDown, true)
+    doc.addEventListener('mouseup', onMouseUp, true)
 
     detachIframeGuards = () => {
-      doc.removeEventListener('mousedown', onMouseDown, true)
-      doc.removeEventListener('mousemove', onMouseMove, true)
+      doc.removeEventListener('click', onChangeDetected, true)
+      doc.removeEventListener('contextmenu', onChangeDetected, true)
       doc.removeEventListener('wheel', onWheel, true)
-      doc.removeEventListener('contextmenu', onContextMenu, true)
-      doc.removeEventListener('auxclick', onAuxClick, true)
-      doc.removeEventListener('dragstart', onDragStart, true)
-      doc.removeEventListener('touchstart', onTouchStart, true)
-      doc.removeEventListener('touchmove', onTouchMove, true)
-      doc.removeEventListener('keydown', onKeyDown, true)
+      doc.removeEventListener('mousedown', onMouseDown, true)
+      doc.removeEventListener('mouseup', onMouseUp, true)
+      if (zoomTimeout) clearTimeout(zoomTimeout)
     }
   }
 
@@ -150,14 +325,19 @@ function updateMethodPickerPosition() {
   }
 }
 
+let currentLCHeader: string | undefined = undefined
+
+// adjust the view in future lc imports/exports to match the current view.
+async function updateLCHeader() {
+  console.log('LogicCircuits view updated via zoom or drag')
+  const newLC = await logicCircuits.exportCurrentLC()
+
+  if (!newLC) return
+
+  currentLCHeader = newLC.match(/\[([^\]]*)\]/g)?.[0]
+}
+
 onMounted(() => {
-  console.log('LogicCircuitsTestingPanel mounted')
-
-  disposable = props.params.api.onDidTitleChange(() => {
-    title.value = props.params.api.title ?? ''
-  })
-  title.value = props.params.api.title ?? ''
-
   updateMethodPickerPosition()
   positionObserver = new ResizeObserver(() => updateMethodPickerPosition())
   if (panelRef.value) {
@@ -171,8 +351,6 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  console.log('LogicCircuitsTestingPanel unmounted')
-  disposable?.dispose?.()
   positionObserver?.disconnect()
   if (layoutDisposable) {
     layoutDisposable.dispose?.()
@@ -186,14 +364,12 @@ onBeforeUnmount(() => {
   }
 })
 
-// formulas: Record<string, Formula> (reactive plain object) for the currently selected normal form
-
-type LCMethodType = 'AND/OR' | 'NAND' | 'NOR' | undefined
-const lcMethodTypes: Array<LCMethodType> = ['AND/OR', 'NAND', 'NOR']
+type LCMethodType = 'AND/OR' | 'NAND' | 'NOR'
+const lcMethodTypes: LCMethodType[] = ['AND/OR', 'NAND', 'NOR']
 const selectedMethod = ref<LCMethodType>('NOR')
 const selectedMethodIndex = computed(() => lcMethodTypes.indexOf(selectedMethod.value))
 
-const outTypeMap: Record<Exclude<LCMethodType, undefined>, 'and-or' | 'nand' | 'nor'> = {
+const outTypeMap: Record<LCMethodType, 'and-or' | 'nand' | 'nor'> = {
   'AND/OR': 'and-or',
   NAND: 'nand',
   NOR: 'nor',
@@ -206,14 +382,18 @@ const sanitizeName = (value: string) =>
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '')
 
-const createLcContent = (method: Exclude<LCMethodType, undefined>) => {
-  return formulaToLC(
+let currentLCContent: LCFile | null = null
+
+const createLcContent = (method: LCMethodType) => {
+  currentLCContent = formulaToLC(
     formulas.value,
     inputVars.value,
     outputVars.value,
     'dnf',
     outTypeMap[method],
-  ).toString()
+    currentLCHeader,
+  )
+  return currentLCContent.toString()
 }
 
 const logicCircuitDownloadFiles = computed(() => {
@@ -221,9 +401,7 @@ const logicCircuitDownloadFiles = computed(() => {
     return []
   }
 
-  // Only export the currently selected method
   const selected = selectedMethod.value
-  if (!selected) return []
 
   const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
   const baseName = sanitizeName(projectName)
@@ -243,105 +421,107 @@ const logicCircuitDownloadFiles = computed(() => {
 })
 
 function handleMethodSelect(value: unknown, idx: number) {
-  if (idx === null || idx < 0) return
+  if (idx == null || idx < 0 || idx >= lcMethodTypes.length) return
   selectedMethod.value = (value as LCMethodType) ?? lcMethodTypes[idx]
-  updateFormulas()
+  void updateFormulas()
 }
 
 let lastFileContent = ''
 
-function updateFormulas() {
-  let fileContent = ''
-
-  // if manual edits are allowed, updates are disabled to prevent overwriting user changes.
-  if (allowEdits.value) {
+async function updateFormulas() {
+  if (editWarning.value && !hideManualEditWarning.value) {
+    openEditWarningPopup()
     return
   }
 
-  switch (selectedMethod.value) {
-    case 'AND/OR':
-      fileContent = formulaToLC(formulas.value, inputVars.value, outputVars.value).toString()
-      break
-    case 'NAND':
-      fileContent = formulaToLC(
-        formulas.value,
-        inputVars.value,
-        outputVars.value,
-        'dnf',
-        'nand',
-      ).toString()
-      break
-    case 'NOR':
-      fileContent = formulaToLC(
-        formulas.value,
-        inputVars.value,
-        outputVars.value,
-        'dnf',
-        'nor',
-      ).toString()
-      break
-  }
+  const fileContent = createLcContent(selectedMethod.value)
 
   // Avoid updating if content hasn't changed to prevent unnecessary reloads
   if (fileContent === lastFileContent) {
     return
   }
-  lastFileContent = fileContent
 
-  const success = logicCircuits.loadFile({
+  const success = await logicCircuits.loadFile({
     content: fileContent,
   })
 
   if (!success) {
     console.error('Failed to load file')
+    return
   }
+
+  editWarning.value = false
+
+  lastFileContent = fileContent
 }
 
 // Keep the plain object in sync with state and selection
-watch([() => formulas.value], updateFormulas, { immediate: true, deep: true })
 watch(
-  () => allowEdits.value,
+  [() => formulas.value],
   () => {
-    // Rebind guards to the current iframe document and keep handlers in sync.
-    installIframeInteractionGuards()
+    void updateFormulas()
   },
+  { immediate: true, deep: true },
 )
 
-const methodOptions = ['AND/OR', 'NAND', 'NOR'] as Array<Exclude<LCMethodType, undefined>>
+const methodOptions = lcMethodTypes
 </script>
 
 <template>
   <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2">
     <div ref="iframeContainer" class="relative flex-1">
-      <IframePanel ref="iframePanelRef" iframe-key="__lc_preloaded_iframe" src="/logic-easy/logic-circuits/index.html"
-        :visible="params.api.isVisible" class="flex-1" />
+      <IframePanel
+        ref="iframePanelRef"
+        iframe-key="__lc_preloaded_iframe"
+        src="/logic-easy/logic-circuits/index.html"
+        :visible="params.api.isVisible"
+        class="flex-1"
+      />
     </div>
 
     <teleport to="body">
-      <div id="lc-download-button" class="fixed z-10 flex items-center gap-2 text-sm" :style="downloadButtonStyle">
-        <SettingsButton :selected-function-type="functionType" :input-vars="inputVars" :output-vars="outputVars"
-          :show-output-selection="false" :show-function-representation-selection="false"
-          :custom-setting-slot-labels="{ 'allow-edits': 'Allow manual edits', method: 'Gate Type' }">
-          <template #allow-edits>
-            <div class="flex gap-2 items-center text-white" @click.stop>
-              <Checkbox v-model="allowEdits" @update:model-value="updateFormulas" />
-              <div class="text-xs min-w-25">
-                <span v-if="allowEdits">manual edits enabled, automatic sync disabled.
-                  <p class="text-red-200">
-                    Your Edits in LogicCircuits will never be synced to LogicEasy!
-                  </p>
-                </span>
-                <span v-else>manual edits locked, automatic sync enabled</span>
-              </div>
-            </div>
-          </template>
+      <div
+        id="lc-download-button"
+        class="fixed z-50 flex items-center gap-2 text-sm"
+        :style="downloadButtonStyle"
+      >
+        <div
+          v-if="editWarning"
+          class="h-7 shrink-0 rounded-full border border-red-500 text-red-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+          title="Manual edits are not synced to LogicEasy"
+        >
+          <span
+            class="h-5 w-5 rounded-full border-2 border-red-500 flex items-center justify-center font-black text-sm leading-none"
+            aria-hidden="true"
+          >
+            !
+          </span>
+          <span class="whitespace-nowrap">{{ editWarningInlineText }}</span>
+        </div>
+        <SettingsButton
+          :selected-function-type="functionType"
+          :input-vars="inputVars"
+          :output-vars="outputVars"
+          :show-output-selection="false"
+          :show-function-type-selection="true"
+          :show-function-representation-selection="false"
+          :custom-setting-slot-labels="{ method: 'Gate Type' }"
+        >
           <template #method>
-            <MultiSelectSwitch :values="methodOptions" :initial-selected="selectedMethodIndex"
-              :onSelect="handleMethodSelect" />
+            <MultiSelectSwitch
+              :values="methodOptions"
+              :initial-selected="selectedMethodIndex"
+              :onSelect="handleMethodSelect"
+            />
           </template>
         </SettingsButton>
-        <DownloadButton :target-ref="iframeContainer" :panel-id="props.params.api.id" :screenshot="{ enabled: false }"
-          :files="logicCircuitDownloadFiles" :direct-download="true" />
+        <DownloadButton
+          :target-ref="iframeContainer"
+          :panel-id="params.api.id"
+          :screenshot="{ enabled: false }"
+          :files="logicCircuitDownloadFiles"
+          :direct-download="true"
+        />
       </div>
     </teleport>
   </div>
