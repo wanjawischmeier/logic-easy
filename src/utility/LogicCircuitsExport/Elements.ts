@@ -1,6 +1,6 @@
-import {ElementConnector} from './Nodes.ts';
-import type {Node} from './Nodes.ts';
-import {Text} from './Text.ts';
+import { ElementConnector } from './Nodes.ts'
+import type { Node } from './Nodes.ts'
+import { Text } from './Text.ts'
 import type { Connection } from '@/utility/LogicCircuitsExport/Connections.ts'
 
 /*
@@ -34,22 +34,22 @@ Elements in the .lc file have the following format:
 - inputs/outputs are strings representing the number and type of inputs/outputs
 (n => normal, i => inverted, sometimes (for lamps and buttons) there is a 1 in the front)
  */
-export class Element{
-  elementType: number;
-  elementID: number;
-  xPOS: number;
-  yPOS: number;
-  rotation: number;
-  inPorts: string;
-  outPorts: string;
-  inNodes: Node[]; //connectors for input
-  outNodes: Node[]; //connectors for output
+export class Element {
+  elementType: number
+  elementID: number
+  xPOS: number
+  yPOS: number
+  rotation: number
+  inPorts: string
+  outPorts: string
+  inNodes: Node[] //connectors for input
+  outNodes: Node[] //connectors for output
 
   //lists with all elements, nodes, connections and texts in the .lc file where this element should belong to
-  fileElements: Element[];
-  fileNodes: Node[];
-  fileConnections: Connection[];
-  fileTexts: Text[];
+  fileElements: Element[]
+  fileNodes: Node[]
+  fileConnections: Connection[]
+  fileTexts: Text[]
 
   /**
    * Creates an Element and adds it to the fileElements list
@@ -64,61 +64,108 @@ export class Element{
    * @param fileConnections - the list of all connections in the target .lc file
    * @param fileTexts - the list of all texts in the target .lc file
    */
-  constructor(elementType:number, xPOS:number, yPOS:number, rotation:number, inPorts:string, outPorts:string, fileElements:Element[], fileNodes:Node[], fileConnections:Connection[], fileTexts:Text[]) {
-    this.elementType = elementType;
-    this.xPOS = xPOS;
-    this.yPOS = yPOS;
-    this.rotation = rotation;
-    this.inPorts = inPorts;
-    this.outPorts = outPorts;
+  constructor(
+    elementType: number,
+    xPOS: number,
+    yPOS: number,
+    rotation: number,
+    inPorts: string,
+    outPorts: string,
+    fileElements: Element[],
+    fileNodes: Node[],
+    fileConnections: Connection[],
+    fileTexts: Text[],
+  ) {
+    this.elementType = elementType
+    this.xPOS = xPOS
+    this.yPOS = yPOS
+    this.rotation = rotation
+    this.inPorts = inPorts
+    this.outPorts = outPorts
 
-    this.fileElements = fileElements;
-    this.fileNodes = fileNodes;
-    this.fileConnections = fileConnections;
-    this.fileTexts = fileTexts;
+    this.fileElements = fileElements
+    this.fileNodes = fileNodes
+    this.fileConnections = fileConnections
+    this.fileTexts = fileTexts
 
-    this.fileElements.push(this); //add this element to the fileElement list for the target .lc file
-    this.elementID = this.fileElements.length-1 //get index in elements list which is then used in the connector nodes
+    this.fileElements.push(this) //add this element to the fileElement list for the target .lc file
+    this.elementID = this.fileElements.length - 1 //get index in elements list which is then used in the connector nodes
 
     //create in/output nodes
-    this.inNodes = [];
-    this.outNodes = [];
+    this.inNodes = []
+    this.outNodes = []
 
     //create connector node for each input, just 'n' and 'i' are ports, so everything else is removed out of the string first
-    this.inPorts.replace(/[^ni]/g, '').split('').forEach((char:string, inPortIndex:number) => {
-      if (char === 'n' || char==='i') this.inNodes.push(new ElementConnector(this.elementID, inPortIndex, false, this.fileNodes, this.fileConnections));
-    })
+    this.inPorts
+      .replace(/[^ni]/g, '')
+      .split('')
+      .forEach((char: string, inPortIndex: number) => {
+        if (char === 'n' || char === 'i')
+          this.inNodes.push(
+            new ElementConnector(
+              this.elementID,
+              inPortIndex,
+              false,
+              this.fileNodes,
+              this.fileConnections,
+            ),
+          )
+      })
 
     //create connector node for each output
-    this.outPorts.replace(/[^ni]/g, '').split('').forEach((char:string, outPortIndex:number) => {
-      if (char === 'n' || char==='i') this.outNodes.push(new ElementConnector(this.elementID, outPortIndex, true, this.fileNodes, this.fileConnections));
-    })
-
+    this.outPorts
+      .replace(/[^ni]/g, '')
+      .split('')
+      .forEach((char: string, outPortIndex: number) => {
+        if (char === 'n' || char === 'i')
+          this.outNodes.push(
+            new ElementConnector(
+              this.elementID,
+              outPortIndex,
+              true,
+              this.fileNodes,
+              this.fileConnections,
+            ),
+          )
+      })
   }
 
   /**
    * @returns {string} object in .lc element format
    * {<elementType>,<xPOS>,<yPOS>,<rotation>,<input>,<output>}
    */
-  toString():string{
-    return '{' + this.elementType + ',' + this.xPOS + ',' + this.yPOS + ','+this.rotation+',' + this.inPorts.replace('\'','') + ',' + this.outPorts.replace('\'','') + '}';
+  toString(): string {
+    return (
+      '{' +
+      this.elementType +
+      ',' +
+      this.xPOS +
+      ',' +
+      this.yPOS +
+      ',' +
+      this.rotation +
+      ',' +
+      this.inPorts.replace("'", '') +
+      ',' +
+      this.outPorts.replace("'", '') +
+      '}'
+    )
   }
-
 
   /**
    * Sets the X position of the element
    * @param xPOS {number} - The X position of the element
    */
-  setPosX(xPOS:number){
-    this.xPOS = xPOS;
+  setPosX(xPOS: number) {
+    this.xPOS = xPOS
   }
 
   /**
    * Sets the Y position of the element
    * @param yPOS {number} - The Y position of the element
    */
-  setPosY(yPOS:number){
-    this.yPOS = yPOS;
+  setPosY(yPOS: number) {
+    this.yPOS = yPOS
   }
 
   /**
@@ -129,10 +176,9 @@ export class Element{
    2 => rotated right twice
    3 => rotated right thrice
    */
-  setRotation(rotation:number){
-    this.rotation = rotation;
+  setRotation(rotation: number) {
+    this.rotation = rotation
   }
-
 
   /**
    * set inPorts sets the input ports of the element
@@ -141,8 +187,8 @@ export class Element{
    * i => inverted input
    * n => normal input
    */
-  setInPorts(inPorts:string){
-    this.inPorts = inPorts;
+  setInPorts(inPorts: string) {
+    this.inPorts = inPorts
   }
 
   /**
@@ -152,8 +198,8 @@ export class Element{
    * i => inverted output
    * n => normal output
    */
-  setOutPorts(outPorts:string){
-    this.outPorts = outPorts;
+  setOutPorts(outPorts: string) {
+    this.outPorts = outPorts
   }
 
   /**
@@ -161,11 +207,11 @@ export class Element{
    * @param index
    * @param type
    */
-  setInPortAt(index:number, type:'n'|'i'){
-    const inPortsArray = this.inPorts.replace(/[^ni]/g, '').split('');
-    if(index >=0 && index < inPortsArray.length){
-      inPortsArray[index] = type;
-      this.inPorts = inPortsArray.join('');
+  setInPortAt(index: number, type: 'n' | 'i') {
+    const inPortsArray = this.inPorts.replace(/[^ni]/g, '').split('')
+    if (index >= 0 && index < inPortsArray.length) {
+      inPortsArray[index] = type
+      this.inPorts = inPortsArray.join('')
     }
   }
 
@@ -174,11 +220,11 @@ export class Element{
    * @param index
    * @param type
    */
-  setOutPortAt(index:number, type:'n'|'i'){
-    const outPortsArray = this.outPorts.replace(/[^ni]/g, '').split('');
-    if(index >=0 && index < outPortsArray.length){
-      outPortsArray[index] = type;
-      this.outPorts = outPortsArray.join('');
+  setOutPortAt(index: number, type: 'n' | 'i') {
+    const outPortsArray = this.outPorts.replace(/[^ni]/g, '').split('')
+    if (index >= 0 && index < outPortsArray.length) {
+      outPortsArray[index] = type
+      this.outPorts = outPortsArray.join('')
     }
   }
 
@@ -186,7 +232,7 @@ export class Element{
    * get outConnector nodes of the element as an array of Nodes
    * @returns {Node[]}
    */
-  getOutConnectors():Node[]{
+  getOutConnectors(): Node[] {
     return this.outNodes
   }
 
@@ -194,7 +240,7 @@ export class Element{
     get inConnector nodes of the element as an array of Nodes
    @returns {Node[]}
    */
-  getInConnectors():Node[]{
+  getInConnectors(): Node[] {
     return this.inNodes
   }
 
@@ -211,27 +257,27 @@ export class Element{
 
   @returns {void}
    */
-  addText(content:string, position:number, fontSize:number = 12){
-    let xOffset = 0;
-    let yOffset = 0;
-    switch(position){
+  addText(content: string, position: number, fontSize: number = 12) {
+    let xOffset = 0
+    let yOffset = 0
+    switch (position) {
       case 0: //above
-        xOffset = -25;
-        yOffset = 25;
-        break;
+        xOffset = -25
+        yOffset = 25
+        break
       case 1: //right
-        xOffset = 60;
-        yOffset = 10;
-        break;
+        xOffset = 60
+        yOffset = 10
+        break
       case 2: //below
-        xOffset = 10;
-        yOffset = 70;
-        break;
+        xOffset = 10
+        yOffset = 70
+        break
       case 3: //left
-        xOffset = -50;
-        yOffset = 10;
-        break;
+        xOffset = -50
+        yOffset = 10
+        break
     }
-    new Text(xOffset, yOffset, fontSize, content, this.elementID, this.fileTexts);
+    new Text(xOffset, yOffset, fontSize, content, this.elementID, this.fileTexts)
   }
 }
