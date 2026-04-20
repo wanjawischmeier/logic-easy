@@ -20,7 +20,7 @@ defineProps<Partial<IDockviewPanelProps>>()
 const { inputVars, outputVars, formulas, functionType } = TruthTableProject.useState()
 
 const title = ref('')
-let disposable: { dispose?: () => void } | null = null
+const disposable: { dispose?: () => void } | null = null
 let layoutDisposable: any = null
 
 const panelRef = ref<HTMLElement | null>(null)
@@ -60,7 +60,7 @@ function setHideManualEditWarning(value: boolean) {
       typeof (event as Event & { stopImmediatePropagation?: () => void })
         .stopImmediatePropagation === 'function'
     ) {
-      ; (event as Event & { stopImmediatePropagation: () => void }).stopImmediatePropagation()
+      ;(event as Event & { stopImmediatePropagation: () => void }).stopImmediatePropagation()
     }
   }
 
@@ -470,8 +470,13 @@ const methodOptions = lcMethodTypes
 <template>
   <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2">
     <div ref="iframeContainer" class="relative flex-1">
-      <IframePanel ref="iframePanelRef" iframe-key="__lc_preloaded_iframe" src="/logic-easy/logic-circuits/index.html"
-        :visible="params.api.isVisible" class="flex-1" />
+      <IframePanel
+        ref="iframePanelRef"
+        iframe-key="__lc_preloaded_iframe"
+        src="/logic-easy/logic-circuits/index.html"
+        :visible="params.api.isVisible"
+        class="flex-1"
+      />
     </div>
 
     <teleport to="body">
@@ -502,12 +507,20 @@ const methodOptions = lcMethodTypes
           :custom-setting-slot-labels="{ method: 'Gate Type' }"
         >
           <template #method>
-            <MultiSelectSwitch :values="methodOptions" :initial-selected="selectedMethodIndex"
-              :onSelect="handleMethodSelect" />
+            <MultiSelectSwitch
+              :values="methodOptions"
+              :initial-selected="selectedMethodIndex"
+              :onSelect="handleMethodSelect"
+            />
           </template>
         </SettingsButton>
-        <DownloadButton :target-ref="iframeContainer" :panel-id="props.params.api.id" :screenshot="{ enabled: false }"
-          :files="logicCircuitDownloadFiles" :direct-download="true" />
+        <DownloadButton
+          :target-ref="iframeContainer"
+          :panel-id="params.api.id"
+          :screenshot="{ enabled: false }"
+          :files="logicCircuitDownloadFiles"
+          :direct-download="true"
+        />
       </div>
     </teleport>
   </div>
