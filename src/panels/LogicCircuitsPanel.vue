@@ -504,6 +504,7 @@ const methodOptions = lcMethodTypes
           :output-vars="outputVars"
           :show-output-selection="false"
           :show-function-type-selection="true"
+          :show-function-representation-selection="false"
           :custom-setting-slot-labels="{ method: 'Gate Type' }"
         >
           <template #method>
