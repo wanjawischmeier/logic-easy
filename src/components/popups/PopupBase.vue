@@ -14,6 +14,8 @@
           <h2 class="text-3xl text-on-surface">{{ title }}</h2>
         </div>
 
+        <div class="h-px bg-surface-3 w-19/20 mx-auto" />
+
         <!-- Content Area -->
         <div class="flex-1 overflow-auto px-6 py-4">
           <slot></slot>
