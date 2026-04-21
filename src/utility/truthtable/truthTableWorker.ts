@@ -1,9 +1,10 @@
 import { Minimizer, type QMCResult } from './minimizer';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
-import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types';
-import { defaultColor, generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
+import type { Formula } from '@/utility/types';
+import { mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
 import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
-import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator';
+import { getCouplingTermLatex } from './latexGenerator';
+import { createEdgeCaseResult, mapResultColorsByPiTerm } from './qmcResultUtils';
 
 // Message types for worker communication
 export interface WorkerRequest {
@@ -20,50 +21,6 @@ export interface WorkerResponse {
     formulaTermColors: TermColor[] | undefined;
 }
 
-/**
- * Creates a QMC result for edge cases (tautology/contradiction)
- */
-function createEdgeCaseResult(
-    type: 'tautology' | 'contradiction',
-    functionType: FunctionType,
-    functionRepresentation: FunctionRepresentation,
-    inputVars: string[]
-): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
-    const signature = getFunctionSignature(functionType, functionRepresentation, inputVars);
-
-    let constant: '0' | '1';
-
-    if (type === 'tautology') {
-        // Tautology: all 1s/don't cares
-        // DNF: f = 1
-        // CNF: f = 1
-        constant = '1';
-    } else {
-        // Contradiction: all 0s/don't cares
-        // DNF: f = 0
-        // CNF: f = 0
-        constant = '0';
-    }
-
-    const formula: Formula = {
-        type: functionType,
-        terms: [{ literals: [{ variable: constant, negated: false }] }]
-    };
-
-    const qmcResult: QMCResult = {
-        iterations: [],
-        minterms: [],
-        pis: [],
-        chart: null,
-        expressions: [{ name: constant } as any],
-        termColors: [defaultColor]
-    };
-
-    const couplingTermLatex = signature + constant;
-
-    return { qmcResult, formula, couplingTermLatex };
-}
-
 async function runMinimization(truthTable: TruthTableState, index: number): Promise<QMCResult | undefined> {
     // Create a modified truth table state for this output variable
     const modifiedTruthTable = {
@@ -72,43 +29,6 @@ async function runMinimization(truthTable: TruthTableState, index: number): Prom
     };
 
     return await Minimizer.runQMC(modifiedTruthTable);
-}
-
-function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermColor[] {
-    // Generate colors for each prime implicant based on their term string
-    // This ensures consistent coloring between QMC chart and KV diagram
-    // Preserve existing colors by matching PI term strings for temporal consistency
-
-    // Get existing QMC result for this output variable to preserve colors
-    const existingQmcResult = truthTable.qmcResult;
-    const existingPIs = existingQmcResult?.pis || [];
-    const existingColors = existingQmcResult?.termColors || [];
-
-    // Build a map of term string -> color from existing results
-    const termColorMap = new Map<string, TermColor>();
-
-    existingPIs.forEach((pi: any, idx: number) => {
-        const color = existingColors[idx]
-        if (pi.term && color) {
-            termColorMap.set(pi.term, color);
-        }
-    });
-
-    // Accumulate all colors as we generate new ones
-    const allColors = Array.from(termColorMap.values());
-
-    return result.pis.map((pi: any) => {
-        // Try to reuse color for this term string if it existed before
-        const existingColor = termColorMap.get(pi.term);
-        if (existingColor) {
-            return existingColor;
-        }
-
-        // Generate a new color that's maximally different from all colors (including newly generated ones)
-        const newColor = generateTermColor(allColors);
-        allColors.push(newColor); // Add to accumulator for next iteration
-        return newColor;
-    });
 }
 
 // Web Worker message handler
@@ -198,7 +118,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                 return { outputVar, result }
             }
 
-            result.termColors = mapResultColors(truthTable, result)
+            result.termColors = mapResultColorsByPiTerm(truthTable.qmcResult, result)
             return { outputVar, result };
         });
 

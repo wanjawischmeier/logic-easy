@@ -3,7 +3,10 @@
     <div v-if="variables.length < 2 || variables.length > 4">
       Only 2, 3, or 4 variables are supported for KV-Diagrams.
     </div>
-    <div v-else class="inline-grid grid-cols-[min-content_max-content] grid-rows-[min-content_max-content] select-none">
+    <div
+      v-else
+      class="inline-grid grid-cols-[min-content_max-content] grid-rows-[min-content_max-content] select-none"
+    >
       <!-- Top Header (Variables) -->
       <div class="col-start-2 row-start-1 flex">
         <!-- Spacer for the corner cell width -->
@@ -31,9 +34,12 @@
             <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
               <vue-latex :expression="outputVars[outputVariableIndex ?? 0] || 'f'" display-mode />
             </th>
-            <th v-for="(colCode, cIdx) in colCodes" :key="colCode"
+            <th
+              v-for="(colCode, cIdx) in colCodes"
+              :key="colCode"
               class="border border-b-4 border-primary bg-surface-1 text-primary-variant font-normal text-sm w-14 h-14 text-center"
-              :class="{ 'border-l-4': cIdx === 0 }">
+              :class="{ 'border-l-4': cIdx === 0 }"
+            >
               <vue-latex :expression="colCode" display-mode />
             </th>
           </tr>
@@ -42,18 +48,29 @@
           <tr v-for="(rowCode, rIdx) in rowCodes" :key="rowCode">
             <th
               class="border border-r-4 border-primary bg-surface-1 text-primary-variant font-normal text-sm w-14 text-center"
-              :class="{ 'border-t-4': rIdx === 0 }">
+              :class="{ 'border-t-4': rIdx === 0 }"
+            >
               <vue-latex :expression="rowCode" display-mode />
             </th>
-            <td v-for="(colCode, cIdx) in colCodes" :key="colCode"
-              class="relative border border-primary bg-surface-1 text-center hover:bg-surface-3 transition-colors duration-100 cursor-pointer select-none w-14 h-14"
-              @click="toggleCell(rowCode, colCode)">
-
+            <td
+              v-for="(colCode, cIdx) in colCodes"
+              :key="colCode"
+              class="relative border border-primary bg-surface-1 text-center transition-colors duration-100 select-none w-14 h-14"
+              :class="
+                isCellImmutable(rowCode, colCode)
+                  ? 'cursor-not-allowed opacity-70'
+                  : 'hover:bg-surface-3 cursor-pointer'
+              "
+              @click="toggleCell(rowCode, colCode)"
+            >
               <!-- Highlights -->
               <div class="absolute inset-0 pointer-events-none">
-                <div v-for="(highlight, idx) in getHighlights(rIdx, cIdx)" :key="idx"
-                  class="absolute transition-all duration-100" :style="highlight.style">
-                </div>
+                <div
+                  v-for="(highlight, idx) in getHighlights(rIdx, cIdx)"
+                  :key="idx"
+                  class="absolute transition-all duration-100"
+                  :style="highlight.style"
+                ></div>
               </div>
               <!-- Content -->
               <div class="relative z-10 flex items-center justify-center h-full">
@@ -68,70 +85,101 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
-import { Formula, FunctionType, defaultFunctionType } from '../utility/types';
+import { computed, nextTick, ref } from 'vue'
+import { defaultFunctionType } from '../utility/types'
 import {
   getLeftVariables,
   getTopVariables,
   getRowCodes,
   getColCodes,
-  getBinaryString
-} from '@/utility/truthtable/kvDiagramLayout';
-import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights';
-import type { TruthTableData, TruthTableCell, TruthTableState } from '@/projects/truth-table/TruthTableProject';
+  getBinaryString,
+} from '@/utility/truthtable/kvDiagramLayout'
+import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights'
+import type {
+  TruthTableCell,
+  TruthTableState,
+} from '@/projects/truth-table/TruthTableProject'
 
-const props = defineProps<TruthTableState>();
+type KVDiagramProps = TruthTableState & {
+  immutableCellMask?: boolean[][]
+}
+
+interface KVDiagramCellChange {
+  rowIndex: number
+  outputIndex: number
+  value: TruthTableCell
+}
+
+const props = defineProps<KVDiagramProps>()
 
 const emit = defineEmits<{
-  (e: 'valuesChanged', value: TruthTableData): void
-}>();
+  (e: 'valuesChanged', value: KVDiagramCellChange): void
+}>()
 
-const variables = computed(() => props.inputVars || []);
-const leftVariables = computed(() => getLeftVariables(variables.value));
-const topVariables = computed(() => getTopVariables(variables.value));
-const rowCodes = computed(() => getRowCodes(variables.value.length));
-const colCodes = computed(() => getColCodes(variables.value.length));
+const variables = computed(() => props.inputVars || [])
+const leftVariables = computed(() => getLeftVariables(variables.value))
+const topVariables = computed(() => getTopVariables(variables.value))
+const rowCodes = computed(() => getRowCodes(variables.value.length))
+const colCodes = computed(() => getColCodes(variables.value.length))
 
 const getValue = (rowCode: string, colCode: string) => {
-  if (!props.values) return '-';
+  if (!props.values) return '-'
 
-  const binaryString = getBinaryString(rowCode, colCode);
-  const rowIndex = parseInt(binaryString, 2);
-  const outputIdx = props.outputVariableIndex ?? 0;
+  const binaryString = getBinaryString(rowCode, colCode)
+  const rowIndex = parseInt(binaryString, 2)
+  const outputIdx = props.outputVariableIndex ?? 0
 
   if (rowIndex >= 0 && rowIndex < props.values.length) {
-    return props.values[rowIndex]?.[outputIdx] ?? '-';
+    return props.values[rowIndex]?.[outputIdx] ?? '-'
   }
-  return '-';
-};
+  return '-'
+}
 
 const toggleCell = (rowCode: string, colCode: string) => {
-  if (!props.values) return;
+  if (!props.values) return
 
-  const binaryString = getBinaryString(rowCode, colCode);
-  const rowIndex = parseInt(binaryString, 2);
-  const outputIdx = props.outputVariableIndex ?? 0;
+  const binaryString = getBinaryString(rowCode, colCode)
+  const rowIndex = parseInt(binaryString, 2)
+  const outputIdx = props.outputVariableIndex ?? 0
+
+  if (isCellImmutableByIndex(rowIndex, outputIdx)) return
 
   if (rowIndex >= 0 && rowIndex < props.values.length) {
-    const newValues = props.values.map(row => [...row]);
-    const row = newValues[rowIndex];
+    const row = props.values[rowIndex]
     if (row) {
-      const current = row[outputIdx];
-      let next: TruthTableCell = 0;
-      if (current === 0) next = 1;
-      else if (current === 1) next = '-';
-      else next = 0;
+      const current = row[outputIdx]
+      let next: TruthTableCell = 0
+      if (current === 0) next = 1
+      else if (current === 1) next = '-'
+      else next = 0
 
-      row[outputIdx] = next;
-      emit('valuesChanged', newValues);
+      emit('valuesChanged', {
+        rowIndex,
+        outputIndex: outputIdx,
+        value: next,
+      })
     }
   }
-};
+}
+
+const isCellImmutableByIndex = (rowIndex: number, outputIdx: number): boolean => {
+  if (props.immutableCellMask?.[rowIndex]?.[outputIdx]) return true
+  return false
+}
+
+const isCellImmutable = (rowCode: string, colCode: string): boolean => {
+  const binaryString = getBinaryString(rowCode, colCode)
+  const rowIndex = parseInt(binaryString, 2)
+  const outputIdx = props.outputVariableIndex ?? 0
+
+  if (Number.isNaN(rowIndex) || rowIndex < 0) return false
+  return isCellImmutableByIndex(rowIndex, outputIdx)
+}
 
 const getHighlights = (rIdx: number, cIdx: number) => {
-  if (!props.selectedFormula) return [];
+  if (!props.selectedFormula) return []
 
-  const functionType = props.functionType || defaultFunctionType;
+  const functionType = props.functionType || defaultFunctionType
   const outputVar = props.outputVars[props.outputVariableIndex]
   if (!outputVar) return []
 
@@ -143,16 +191,16 @@ const getHighlights = (rIdx: number, cIdx: number) => {
     props.selectedFormula.terms,
     functionType,
     props.inputVars,
-    props.formulaTermColors || []
-  );
-};
+    props.formulaTermColors || [],
+  )
+}
 
-const renderKey = ref(0);
+const renderKey = ref(0)
 
 const refresh = async () => {
-  await nextTick();
-  renderKey.value++;
-};
+  await nextTick()
+  renderKey.value++
+}
 
-defineExpose({ refresh });
+defineExpose({ refresh })
 </script>

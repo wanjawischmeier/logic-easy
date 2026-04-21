@@ -45,7 +45,7 @@ function parseLiteral(expression: Operation): Literal | null {
         const inner = (expression as any).args?.[0];
         if (inner && (inner as any).name !== undefined) {
             return {
-                variable: (inner as any).name.toLowerCase(),
+                variable: (inner as any).name,
                 negated: true
             };
         }
@@ -54,7 +54,7 @@ function parseLiteral(expression: Operation): Literal | null {
     // Handle VAR
     if ((expression as any).name !== undefined) {
         return {
-            variable: (expression as any).name.toLowerCase(),
+            variable: (expression as any).name,
             negated: false
         };
     }
@@ -171,7 +171,7 @@ export function flattenCouplingTermsToFormula(
  */
 function operationToLatex(op: Operation, isCNF: boolean = false): string {
     if ((op as any).name !== undefined) {
-        return (op as any).name.toLowerCase();
+        return (op as any).name;
     }
 
     if ((op as any).priority === 15) {

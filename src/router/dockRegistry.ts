@@ -3,12 +3,17 @@ import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
 import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue';
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
 import StateTablePanel from '@/panels/StateTablePanel.vue';
+import QMCPanel from '@/panels/QMCPanel.vue';
 import { computed } from 'vue';
 import type { ProjectType } from '@/projects/projectRegistry';
 import { stateManager } from '@/projects/stateManager';
-import QMCPanel from '@/panels/QMCPanel.vue';
 
-export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
+export type PanelRequirement =
+  | 'TruthTable'
+  | 'Automaton'
+  | 'Min2InputVars'
+  | 'Max4InputVars'
+  | 'NotSupported';
 export type RequirementType = 'CREATE' | 'VIEW'
 
 /**
@@ -82,18 +87,13 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     label: 'Minimization',
-    requires: {
-      view: ['TruthTable']
-    },
     children: [
       {
         id: 'kv-diagram',
-        label: 'Karnaugh-Veitch',
+        label: 'KV Diagram',
         component: KVDiagramPanel,
-        projectType: 'truth-table',
-        minimumWidth: 400,
         requires: {
-          view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+          view: ['Min2InputVars', 'Max4InputVars']
         },
       },
       {
@@ -103,20 +103,12 @@ export const dockRegistry: DockRegistryEntry[] = [
         projectType: 'truth-table',
         minimumWidth: 400,
         requires: {
-          view: ['TruthTable']
+          view: ['Min2InputVars', 'Max4InputVars']
         },
       }
     ]
   },
-  {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
-  },
+
   {
     id: 'state-table',
     label: 'State Table',
@@ -124,15 +116,6 @@ export const dockRegistry: DockRegistryEntry[] = [
     projectType: 'automaton',
     requires: {
       view: ['Automaton']
-    }
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
     }
   },
   {
@@ -238,6 +221,27 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true;
   let checkPassed = true;
 
+  const resolveEffectiveInputVarCount = (): number => {
+    const truthTableInputVars = stateManager.state.truthTable?.inputVars?.length;
+    if (truthTableInputVars !== undefined) {
+      return truthTableInputVars;
+    }
+
+    const automaton = stateManager.state.automaton;
+    if (!automaton) return 0;
+
+    const stateCount = automaton.states?.length ?? 0;
+    const stateBits = stateCount <= 1 ? 0 : Math.ceil(Math.log2(stateCount));
+    const inputBits = Math.max(
+      0,
+      ...(automaton.transitions ?? []).map((transition) => String(transition.input ?? '').length),
+    );
+
+    return stateBits + inputBits;
+  };
+
+  const effectiveInputVarCount = resolveEffectiveInputVarCount();
+
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
@@ -255,15 +259,15 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
         break;
 
       case 'Min2InputVars':
-        // Check if truth table has at least 2 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
+        // Check if current KV source (truth table or automaton) has at least 2 input variables
+        if (effectiveInputVarCount < 2) {
           checkPassed = false;
         }
         break;
 
       case 'Max4InputVars':
-        // Check if truth table has at most 4 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
+        // Check if current KV source (truth table or automaton) has at most 4 input variables
+        if (effectiveInputVarCount > 4) {
           checkPassed = false;
         }
         break;
