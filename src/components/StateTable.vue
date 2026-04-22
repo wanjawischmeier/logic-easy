@@ -4,7 +4,6 @@
  */
 
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
-import { stateManager } from '@/projects/stateManager'
 import { editBits, normalizeBits } from '@/utility/automaton/bitOperations'
 import { onMounted, reactive } from 'vue'
 
@@ -20,16 +19,7 @@ const { states, transitions, binaryIDs, binaryTransitions, bitNumber, inputBits,
   AutomatonProject.useState()
 
 // access to global automaton state
-const getAutomaton = (): AutomatonState => {
-  if (!stateManager.state.automaton) {
-    stateManager.state.automaton = {
-      states: [],
-      transitions: [],
-      automatonType: 'mealy',
-    }
-  }
-  return stateManager.state.automaton as AutomatonState
-}
+const getAutomaton = (): AutomatonState => AutomatonProject.ensureAutomatonState()
 
 // initial default transition
 onMounted(() => {
@@ -356,10 +346,7 @@ function decreaseOutputBits() {
  * helper functions to display automaton data correctly in table
  */
 // compute amount of necessary bits (x) to be displayed
-function normalizeBitsToX(value: string | undefined, length: number | string): string {
-  const normalizedLength = Math.max(Number(length) || 0, 0)
-  return normalizeBits(value, normalizedLength, 'x', 'right')
-}
+// Inline normalizeBits used in template; helper removed to reduce duplication.
 
 // remap "to" if Z^n+1 is edited
 function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
@@ -669,7 +656,7 @@ function toggleOutputBit(idx: number, i: number) {
               class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
               :class="i === inputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
             >
-              {{ normalizeBitsToX(transitions[idx]!.input, inputBits).charAt(Number(i)) }}
+              {{ normalizeBits(transitions[idx]!.input, inputBits, 'x', 'right').charAt(Number(i)) }}
             </td>
 
             <!-- Z^(n+1) bits (edit) -->
@@ -693,7 +680,7 @@ function toggleOutputBit(idx: number, i: number) {
               :class="i === outputBits - 1 ? 'border-r-4' : 'border-r border-gray-600'"
               @click="toggleOutputBit(idx, i)"
             >
-              {{ normalizeBitsToX(transitions[idx]!.output, outputBits).charAt(Number(i)) }}
+              {{ normalizeBits(transitions[idx]!.output, outputBits, 'x', 'right').charAt(Number(i)) }}
             </td>
           </tr>
         </tbody>

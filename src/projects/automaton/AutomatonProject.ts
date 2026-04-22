@@ -23,23 +23,33 @@ export class AutomatonProject extends Project {
   // Sync coordination flags between table and editor imports/exports.
   private static lastUpdateSource: UpdateSource = null
   private static updateFromEditor = false
-  private static lastImportedFsmData: AutomatonState | null = null
-  private static lastSentFsmData: AutomatonState | null = null
-  private static listenerAttached = false
-  private static stateToEditorWatcherAttached = false
-  private static stateToEditorDebounce: number | null = null
   private static stateToEditorWatcherStopHandle: WatchStopHandle | null = null
 
-    static getLastUpdateSource(): UpdateSource {
+  static getLastUpdateSource(): UpdateSource {
     return this.lastUpdateSource
   }
 
-    static setLastUpdateSource(source: UpdateSource) {
+  static setLastUpdateSource(source: UpdateSource) {
     this.lastUpdateSource = source
   }
 
-    private static setAutomatonType(value: unknown): AutomatonType {
+  private static setAutomatonType(value: unknown): AutomatonType {
     return value === 'moore' || value === 'mealy' ? value : 'mealy'
+  }
+
+  private static createEmptyAutomatonState(automatonType: AutomatonType = 'mealy'): AutomatonState {
+    return {
+      states: [],
+      transitions: [],
+      automatonType,
+    }
+  }
+
+  static ensureAutomatonState(): AutomatonState {
+    if (!stateManager.state.automaton) {
+      stateManager.state.automaton = this.createEmptyAutomatonState()
+    }
+    return stateManager.state.automaton as AutomatonState
   }
 
   private static areStatesEqual(
@@ -319,7 +329,7 @@ export class AutomatonProject extends Project {
     return (window as any).__fsm_preloaded_iframe as HTMLIFrameElement | undefined
   }
 
-  private static handleMessage(event: MessageEvent) {
+  private static handleMessage = (event: MessageEvent) => {
     // handles incoming postMessage events from the fsm editor and syncs editor data to table state.
     if (event.data?.action !== 'export' && event.data?.action !== 'editorToTableExport') return
     if (!this.isTrustedMessage(event)) return
@@ -339,72 +349,58 @@ export class AutomatonProject extends Project {
       stateManager.state.automaton as AutomatonState | undefined,
     )
 
-    if (this.isSameAutomatonState(this.lastImportedFsmData, fsmData)) {
+    if (this.isSameAutomatonState(stateManager.state.automaton as AutomatonState | undefined, fsmData)) {
       return
     }
 
     const wasTable = this.getLastUpdateSource() === 'table'
     this.updateFromEditor = true
-    this.lastImportedFsmData = fsmData
     stateManager.state.automaton = fsmData
     this.updateFromEditor = false
     if (wasTable) this.setLastUpdateSource('table')
     else this.lastUpdateSource = null
   }
 
-   // stores a stable listener reference so add/removeEventListener use the same callback identity.
-  private static handleMessageRef = (event: MessageEvent) => AutomatonProject.handleMessage(event)
-
   static attachFsmListener() {
-     // attaches the global message listener once to receive fsm editor exports.
-    if (this.listenerAttached) return
-    window.addEventListener('message', this.handleMessageRef)
-    this.listenerAttached = true
+    // keep listener registration idempotent without extra flag state
+    window.removeEventListener('message', this.handleMessage)
+    window.addEventListener('message', this.handleMessage)
     this.ensureStateToEditorWatcher()
   }
 
   static disposeFsmListener() {
     // Cleanly detach listener if currently active.
-    if (this.listenerAttached) {
-      window.removeEventListener('message', this.handleMessageRef)
-      this.listenerAttached = false
-    }
-
-    if (this.stateToEditorDebounce !== null) {
-      clearTimeout(this.stateToEditorDebounce)
-      this.stateToEditorDebounce = null
-    }
+    window.removeEventListener('message', this.handleMessage)
 
     this.stateToEditorWatcherStopHandle?.()
     this.stateToEditorWatcherStopHandle = null
-    this.stateToEditorWatcherAttached = false
   }
 
   private static ensureStateToEditorWatcher() {
      // attaches the automaton->iframe sync watcher once, regardless of how often useState() is called.
-    if (this.stateToEditorWatcherAttached) return
+    if (this.stateToEditorWatcherStopHandle) return
 
-    this.stateToEditorWatcherStopHandle = watch(
+    let stateToEditorDebounce: number | null = null
+    const stopWatch = watch(
       () => stateManager.state.automaton,
       (val) => {
         if (!val || this.updateFromEditor || this.getLastUpdateSource() === 'automatoneditor') {
           return
         }
 
-        if (this.stateToEditorDebounce !== null) {
-          clearTimeout(this.stateToEditorDebounce)
+        if (stateToEditorDebounce !== null) {
+          clearTimeout(stateToEditorDebounce)
         }
 
-        this.stateToEditorDebounce = window.setTimeout(() => {
-          this.stateToEditorDebounce = null
+        stateToEditorDebounce = window.setTimeout(() => {
+          stateToEditorDebounce = null
 
           const actualState = this.normalizeState(this.cloneAutomatonStateForSync(val))
 
-          if (this.isSameAutomatonState(this.lastSentFsmData, actualState)) {
+          if (this.isSameAutomatonState(val, actualState)) {
             return
           }
 
-          this.lastSentFsmData = actualState
           const fsmIframe = this.getFsmIframe()
           if (!fsmIframe || !fsmIframe.contentWindow) return
 
@@ -420,7 +416,13 @@ export class AutomatonProject extends Project {
       { deep: true },
     )
 
-    this.stateToEditorWatcherAttached = true
+    this.stateToEditorWatcherStopHandle = () => {
+      if (stateToEditorDebounce !== null) {
+        clearTimeout(stateToEditorDebounce)
+        stateToEditorDebounce = null
+      }
+      stopWatch()
+    }
   }
 
   static override get defaultProps(): AutomatonProps {
@@ -432,19 +434,12 @@ export class AutomatonProject extends Project {
   }
 
   static override useState() {
-     // exposes reactive automaton state and synchronizes table/editor updates in both directions.
-    const automaton = computed(
-      () =>
-        stateManager.state.automaton || {
-          states: [],
-          transitions: [],
-          automatonType: 'mealy',
-        },
-    )
+      // exposes reactive automaton state and computed table helpers.
+    const state = computed(() => stateManager.state.automaton)
 
-    const states = computed(() => automaton.value.states || [])
-    const transitions = computed(() => automaton.value.transitions || [])
-    const automatonType = computed(() => automaton.value.automatonType || 'mealy')
+    const states = computed(() => state.value?.states ?? [])
+    const transitions = computed(() => state.value?.transitions ?? [])
+    const automatonType = computed(() => state.value?.automatonType ?? 'mealy')
 
     const bitNumber = computed(() => {
       const maxIndex = Math.max(states.value.length - 1, 0)
@@ -502,8 +497,8 @@ export class AutomatonProject extends Project {
     })
 
     return {
-      state: automaton,
-      automaton,
+      state,
+      automaton: state,
       states,
       transitions,
       bitNumber,
@@ -529,11 +524,7 @@ export class AutomatonProject extends Project {
 
   static override createState(props: AutomatonProps) {
      // initializes an empty automaton state in global state manager for the project.
-    stateManager.state.automaton = {
-      states: [],
-      transitions: [],
-      automatonType: props.automatonType,
-    }
+    stateManager.state.automaton = this.createEmptyAutomatonState(props.automatonType)
     console.log('[AutomatonProject.createState] State initialized')
   }
 

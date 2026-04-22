@@ -501,9 +501,8 @@ export function exportTransitionColumnsToKVDiagram(
 ): KVDiagramExportData {
   const truthTable = buildArtificialTruthTableFromComputedColumns(columns, previousState, options)
 
-  const selectedOutputIndex = clamp(
-    options.outputVariableIndex ?? truthTable.outputVariableIndex,
-    0,
+  const selectedOutputIndex = Math.min(
+    Math.max(options.outputVariableIndex ?? truthTable.outputVariableIndex, 0),
     Math.max(truthTable.outputVars.length - 1, 0),
   )
 
@@ -621,7 +620,4 @@ function collectPossibleRows(
 }
 
 // Inclusive clamp helper.
-function clamp(value: number, min: number, max: number): number {
-  if (max < min) return min
-  return Math.min(Math.max(value, min), max)
-}
+// (clamp removed - inlined where needed to avoid duplication)

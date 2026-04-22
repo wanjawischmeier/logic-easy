@@ -1,5 +1,6 @@
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
+import { normalizeBits } from '@/utility/automaton/bitOperations'
 import {
   defaultFunctionRepresentation,
   defaultFunctionType,
@@ -74,24 +75,23 @@ export function buildArtificialTruthTableFromTransitionColumns(
   )
 
   for (const row of rows) {
-    const fromBits = normalizeToLength(row.fromBinary, stateBits, '0', 'left')
-    const input = normalizeToLength(row.input, inputBits, 'x', 'right')
+    const fromBits = normalizeBits(row.fromBinary, stateBits, '0', 'left')
+    const input = normalizeBits(row.input, inputBits, 'x', 'right')
     if (!/^[01]*$/.test(fromBits) || !/^[01]*$/.test(input)) continue
 
     const rowIndex = parseInt(`${fromBits}${input}`, 2)
     if (Number.isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rowCount) continue
 
-    const toBits = normalizeToLength(row.toBinary, stateBits, 'x', 'left')
-    const output = normalizeToLength(row.output, outputBits, 'x', 'right')
+    const toBits = normalizeBits(row.toBinary, stateBits, 'x', 'left')
+    const output = normalizeBits(row.output, outputBits, 'x', 'right')
 
     const nextStateCells = toBits.split('').map(toTruthTableCell)
     const outputCells = output.split('').map(toTruthTableCell)
     values[rowIndex] = [...nextStateCells, ...outputCells]
   }
 
-  const selectedOutputIndex = clamp(
-    previousState?.outputVariableIndex ?? 0,
-    0,
+  const selectedOutputIndex = Math.min(
+    Math.max(previousState?.outputVariableIndex ?? 0, 0),
     Math.max(outputVars.length - 1, 0),
   )
 
@@ -135,21 +135,6 @@ function inferInputBits(rows: TransitionTableComputedRow[]): number {
   return bits
 }
 
-function normalizeToLength(
-  value: string | undefined,
-  length: number,
-  fill: '0' | 'x',
-  align: 'left' | 'right',
-): string {
-  if (length <= 0) return ''
-
-  const normalized = String(value ?? '')
-  if (align === 'left') {
-    return normalized.padStart(length, fill).slice(-length)
-  }
-  return normalized.padEnd(length, fill).slice(0, length)
-}
-
 function buildTransitionTableNames(prefix: string, bits: number, suffix: string): string[] {
   return Array.from({ length: bits }, (_, index) => `${prefix}_${bits - 1 - index}^${suffix}`)
 }
@@ -160,7 +145,4 @@ function toTruthTableCell(bit: string): TruthTableState['values'][number][number
   return '-'
 }
 
-function clamp(value: number, min: number, max: number): number {
-  if (max < min) return min
-  return Math.min(Math.max(value, min), max)
-}
+// (clamp removed - inlined where needed to avoid duplication)
