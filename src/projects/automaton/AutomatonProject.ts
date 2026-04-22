@@ -1,9 +1,5 @@
-/*
- * functionality for the automaton project, including sync with fsm engine
- */
-
 import { Project } from '../Project'
-import { computed, onMounted, watch } from 'vue'
+import { computed, type WatchStopHandle, watch } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import AutomatonPropsComponent from './AutomatonPropsComponent.vue'
@@ -17,17 +13,14 @@ import type {
   UpdateSource,
 } from './AutomatonTypes'
 import { createPanel } from '@/utility/dockview/integration'
+import { normalizeBits } from '@/utility/automaton/bitOperations'
 
 export type { AutomatonProps, AutomatonState, UpdateSource } from './AutomatonTypes'
 
-/*
- * automaton project class including export / import / sync utility functions
- */
 export class AutomatonProject extends Project {
   private static readonly EDITOR_SYNC_DEBOUNCE_MS = 20
-  private static readonly PERF_LOG_ENABLED = false
 
-  // flags to control table<->editor sync
+  // Sync coordination flags between table and editor imports/exports.
   private static lastUpdateSource: UpdateSource = null
   private static updateFromEditor = false
   private static lastImportedFsmData: AutomatonState | null = null
@@ -35,19 +28,17 @@ export class AutomatonProject extends Project {
   private static listenerAttached = false
   private static stateToEditorWatcherAttached = false
   private static stateToEditorDebounce: number | null = null
+  private static stateToEditorWatcherStopHandle: WatchStopHandle | null = null
 
-  static getLastUpdateSource(): UpdateSource {
-     // returns the source where the latest automaton update has been triggered from.
+    static getLastUpdateSource(): UpdateSource {
     return this.lastUpdateSource
   }
 
-  static setLastUpdateSource(source: UpdateSource) {
-     //sets the source for the latest automaton update to coordinate editor/table sync.
+    static setLastUpdateSource(source: UpdateSource) {
     this.lastUpdateSource = source
   }
 
-  private static setAutomatonType(value: unknown): AutomatonType {
-     // converts any automaton type values to supported automaton types.
+    private static setAutomatonType(value: unknown): AutomatonType {
     return value === 'moore' || value === 'mealy' ? value : 'mealy'
   }
 
@@ -55,7 +46,7 @@ export class AutomatonProject extends Project {
     stateA: AutomatonState['states'] | undefined,
     stateB: AutomatonState['states'] | undefined,
   ): boolean {
-     // checks whether two state nodes are equal. returns true if all parameters of the state nodes as defined in type AutomatonState['states'] are equal.
+    // checks whether two state nodes are equal. returns true if all parameters of the state nodes as defined in type AutomatonState['states'] are equal.
     const a = stateA || []
     const b = stateB || []
     if (a.length !== b.length) return false
@@ -83,7 +74,7 @@ export class AutomatonProject extends Project {
     firstTransition: AutomatonState['transitions'] | undefined,
     secondTransition: AutomatonState['transitions'] | undefined,
   ): boolean {
-     // checks whether two transitions are equal. returns true if all parameters of the transitions as defined in type AutomatonState['states'] are equal.
+    // checks whether two transitions are equal. returns true if all parameters of the transitions as defined in type AutomatonState['states'] are equal.
     const a = firstTransition || []
     const b = secondTransition || []
     if (a.length !== b.length) return false
@@ -111,7 +102,7 @@ export class AutomatonProject extends Project {
     firstAutomatonState: AutomatonState | null | undefined,
     secondAutomatonState: AutomatonState | null | undefined,
   ): boolean {
-     // checks whether two AutomatonStates are equal. returns true if all parameters of the AAutomatonStates as defined in type AutomatonState['states'] are equal.
+    // checks whether two AutomatonStates are equal. returns true if all parameters of the AAutomatonStates as defined in type AutomatonState['states'] are equal.
     if (!firstAutomatonState || !secondAutomatonState) return false
 
     return (
@@ -122,7 +113,7 @@ export class AutomatonProject extends Project {
   }
 
   private static isTrustedMessage(event: MessageEvent): boolean {
-     // checks whether a MessageEvent is from the correct source to ignore other events.
+    // checks whether a MessageEvent is from the correct source to ignore other events.
     const iframe = this.getFsmIframe()
     return event.origin === window.location.origin && event.source === iframe?.contentWindow
   }
@@ -132,7 +123,7 @@ export class AutomatonProject extends Project {
     selector: (transition: AutomatonState['transitions'][number]) => unknown,
     previousState?: AutomatonState | null,
   ): number {
-     // computes amount of bits of transition input or output bits in comparison to a newly updated Automaton State.
+    // computes amount of bits of transition input or output bits in comparison to a newly updated Automaton State.
     const lengths = [
       ...(previousState?.transitions || []),
       ...(currentState.transitions || []),
@@ -141,30 +132,15 @@ export class AutomatonProject extends Project {
     return Math.max(...lengths, 1)
   }
 
-  private static normalizeBits(
-    value: string | undefined,
-    length: number,
-    direction: 'left' | 'right',
-    fill: string,
-  ): string {
-     // sets structure of different output / input bit data to the same base scheme.
-    const normalized =
-      direction === 'left'
-        ? (value ?? '').padStart(length, fill)
-        : (value ?? '').padEnd(length, fill)
-    return direction === 'left' ? normalized.slice(-length) : normalized.slice(0, length)
-  }
-
   private static normalizeState(
     currentState: AutomatonState,
     previousState?: AutomatonState | null,
   ): AutomatonState {
-     // normalizes new or updated states to keep the same scheme and data structure. returns the correctly updated AutomatonState.
+    // normalizes new or updated states to keep the same scheme and data structure. returns the correctly updated AutomatonState.
     const states = [...(currentState.states || [])]
       .filter((state) => state && Number.isInteger(state.id))
       .sort((left, right) => left.id - right.id)
 
-    // updates all values correctly
     const stateIds = new Set(states.map((state) => state.id))
     const maxIndex = Math.max(states.length - 1, 0)
     const bitNumber = Math.max(maxIndex.toString(2).length, 1)
@@ -185,18 +161,22 @@ export class AutomatonProject extends Project {
     const registerTransition = (transition: AutomatonState['transitions'][number]) => {
       if (!stateIds.has(transition.from)) return
 
-      const input = this.normalizeBits(transition.input, inputBitLength, 'left', '0')
-      const output = this.normalizeBits(transition.output, outputBitLength, 'right', 'x')
+      const input = normalizeBits(transition.input, inputBitLength, '0', 'left')
+      const output = normalizeBits(transition.output, outputBitLength, 'x', 'right')
       const hasConcreteTarget = stateIds.has(transition.to)
       const hasPattern = typeof transition.toPattern === 'string' && transition.toPattern.length > 0
 
-      // set correct transitions
       transitionByKey.set(`${transition.from}:${input}`, {
         id: transition.id,
         from: transition.from,
         to: hasConcreteTarget && !hasPattern ? transition.to : -1,
         toPattern: hasPattern
-          ? transition.toPattern?.padStart(bitNumber, 'x')
+          ? normalizeBits(
+              transition.toPattern,
+              Math.max(bitNumber, String(transition.toPattern ?? '').length),
+              'x',
+              'left',
+            )
           : hasConcreteTarget
             ? undefined
             : defaultToPattern,
@@ -241,11 +221,10 @@ export class AutomatonProject extends Project {
       }
     }
 
-    // keep transition IDs unique
     const usedTransitionIds = new Set<number>()
     let nextUniqueId = Math.max(-1, ...normalizedTransitions.map((transition) => transition.id)) + 1
 
-    const transitionsWithUniqueIds = normalizedTransitions.map((transition) => {
+        const transitionsWithUniqueIds = normalizedTransitions.map((transition) => {
       const id = Number(transition.id)
       if (!Number.isInteger(id) || usedTransitionIds.has(id)) {
         while (usedTransitionIds.has(nextUniqueId)) {
@@ -295,15 +274,8 @@ export class AutomatonProject extends Project {
     }
   }
 
-  private static logPerf(label: string, startTime: number) {
-     // logs sync timings when performance debugging is enabled.
-    if (!this.PERF_LOG_ENABLED) return
-    const durationMs = performance.now() - startTime
-    console.debug(`[AutomatonSync] ${label}: ${durationMs.toFixed(2)}ms`)
-  }
-
   private static parseRawTransition = (raw: unknown): AutomatonState['transitions'][number] => {
-     // parses a raw transition payload from the fsm editor into internal transition data shape.
+    // parses a raw transition payload from the fsm editor into internal transition data shape.
     const tr = raw as RawFsmTransition
     const hasLabel = typeof tr.label === 'string'
     const label = hasLabel ? String(tr.label ?? '') : ''
@@ -324,7 +296,7 @@ export class AutomatonProject extends Project {
   }
 
   private static parseRawState = (raw: unknown): AutomatonState['states'][number] => {
-     // parses a raw state payload from the fsm editor into internal state data shape.
+    // parses a raw state payload from the fsm editor into internal state data shape.
     const s = raw as RawFsmState
     const id = Number(s.id ?? 0)
     const xNumber = s.x === '' || s.x === null || s.x === undefined ? Number.NaN : Number(s.x)
@@ -342,18 +314,17 @@ export class AutomatonProject extends Project {
   }
 
   static getFsmIframe(): HTMLIFrameElement | undefined {
-     // returns the preloaded fsm iframe instance from the global window object.
+    // returns the preloaded fsm iframe instance from the global window object.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (window as any).__fsm_preloaded_iframe as HTMLIFrameElement | undefined
   }
 
   private static handleMessage(event: MessageEvent) {
-     // handles incoming postMessage events from the fsm editor and syncs editor data to table state.
+    // handles incoming postMessage events from the fsm editor and syncs editor data to table state.
     if (event.data?.action !== 'export' && event.data?.action !== 'editorToTableExport') return
     if (!this.isTrustedMessage(event)) return
     if (!stateManager.state.automaton) return
 
-    const parseStart = performance.now()
     const raw = event.data.fsm as RawFsmData
     const states = Array.isArray(raw.states) ? raw.states.map((r) => this.parseRawState(r)) : []
     const transitions = Array.isArray(raw.transitions)
@@ -367,7 +338,6 @@ export class AutomatonProject extends Project {
       },
       stateManager.state.automaton as AutomatonState | undefined,
     )
-    this.logPerf('editor->table parse+normalize', parseStart)
 
     if (this.isSameAutomatonState(this.lastImportedFsmData, fsmData)) {
       return
@@ -390,21 +360,31 @@ export class AutomatonProject extends Project {
     if (this.listenerAttached) return
     window.addEventListener('message', this.handleMessageRef)
     this.listenerAttached = true
+    this.ensureStateToEditorWatcher()
   }
 
   static disposeFsmListener() {
-     // removes the global message listener when automaton project listener is active.
+    // Cleanly detach listener if currently active.
     if (this.listenerAttached) {
       window.removeEventListener('message', this.handleMessageRef)
       this.listenerAttached = false
     }
+
+    if (this.stateToEditorDebounce !== null) {
+      clearTimeout(this.stateToEditorDebounce)
+      this.stateToEditorDebounce = null
+    }
+
+    this.stateToEditorWatcherStopHandle?.()
+    this.stateToEditorWatcherStopHandle = null
+    this.stateToEditorWatcherAttached = false
   }
 
   private static ensureStateToEditorWatcher() {
      // attaches the automaton->iframe sync watcher once, regardless of how often useState() is called.
     if (this.stateToEditorWatcherAttached) return
 
-    watch(
+    this.stateToEditorWatcherStopHandle = watch(
       () => stateManager.state.automaton,
       (val) => {
         if (!val || this.updateFromEditor || this.getLastUpdateSource() === 'automatoneditor') {
@@ -418,9 +398,7 @@ export class AutomatonProject extends Project {
         this.stateToEditorDebounce = window.setTimeout(() => {
           this.stateToEditorDebounce = null
 
-          const normalizeStart = performance.now()
           const actualState = this.normalizeState(this.cloneAutomatonStateForSync(val))
-          this.logPerf('table->editor normalize', normalizeStart)
 
           if (this.isSameAutomatonState(this.lastSentFsmData, actualState)) {
             return
@@ -430,7 +408,6 @@ export class AutomatonProject extends Project {
           const fsmIframe = this.getFsmIframe()
           if (!fsmIframe || !fsmIframe.contentWindow) return
 
-          const postMessageStart = performance.now()
           fsmIframe.contentWindow.postMessage(
             {
               action: 'automatonimport',
@@ -438,7 +415,6 @@ export class AutomatonProject extends Project {
             },
             window.location.origin,
           )
-          this.logPerf('table->editor postMessage', postMessageStart)
         }, this.EDITOR_SYNC_DEBOUNCE_MS)
       },
       { deep: true },
@@ -457,11 +433,6 @@ export class AutomatonProject extends Project {
 
   static override useState() {
      // exposes reactive automaton state and synchronizes table/editor updates in both directions.
-    onMounted(() => {
-      AutomatonProject.attachFsmListener()
-      AutomatonProject.ensureStateToEditorWatcher()
-    })
-
     const automaton = computed(
       () =>
         stateManager.state.automaton || {
@@ -547,7 +518,7 @@ export class AutomatonProject extends Project {
   }
 
   static override restoreDefaultPanelLayout(props: AutomatonProps) {
-     // restores default panel layout for the automaton project and applies initial panel props.
+    // Default dock layout for automaton workbench.
     console.log('[AutomatonProject.restoreDefaultPanelLayout] applying default layout')
     createPanel('state-table', 'State Table')
     createPanel('fsm-engine', 'FSM Engine', {

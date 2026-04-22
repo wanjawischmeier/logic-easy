@@ -5,6 +5,7 @@
 
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
 import { stateManager } from '@/projects/stateManager'
+import { editBits, normalizeBits } from '@/utility/automaton/bitOperations'
 import { onMounted, reactive } from 'vue'
 
 const editingNames = reactive<Record<number, string | undefined>>({})
@@ -265,7 +266,7 @@ function increaseInputBits() {
 
   const normalizedTransitions = automaton.transitions.map((transition) => ({
     ...transition,
-    input: (transition.input ?? '').padStart(nextInputBits, '0').slice(-nextInputBits),
+    input: normalizeBits(transition.input, nextInputBits, '0', 'left'),
   }))
 
   const existingByKey = new Map<string, AutomatonState['transitions'][number]>()
@@ -311,7 +312,7 @@ function decreaseInputBits() {
   const mergedTransitions = new Map<string, AutomatonState['transitions'][number]>()
 
   for (const transition of automaton.transitions) {
-    const normalizedInput = (transition.input ?? '').padStart(inputBits.value, '0')
+    const normalizedInput = normalizeBits(transition.input, inputBits.value, '0', 'left')
     const removedBit = normalizedInput.charAt(0)
     const nextInput = normalizedInput.slice(-nextInputBits)
     const key = `${transition.from}:${nextInput}`
@@ -330,33 +331,25 @@ function decreaseInputBits() {
   AutomatonProject.setLastUpdateSource('table')
 }
 
-function increaseOutputBits() {
-  // increases output width and pads transition outputs with wildcard bits
+function updateOutputBitWidth(nextOutputBits: number) {
   const automaton = getAutomaton()
-  if (outputBits.value >= MAX_TRANSITION_BITS) return
-  const nextOutputBits = outputBits.value + 1
-
   automaton.transitions = automaton.transitions.map((transition) => ({
     ...transition,
-    output: normalizeBitsToX(transition.output, nextOutputBits).slice(0, nextOutputBits),
+    output: normalizeBits(transition.output, nextOutputBits, 'x', 'right'),
   }))
-
   AutomatonProject.setLastUpdateSource('table')
+}
+
+function increaseOutputBits() {
+  // increases output width and pads transition outputs with wildcard bits
+  if (outputBits.value >= MAX_TRANSITION_BITS) return
+  updateOutputBitWidth(outputBits.value + 1)
 }
 
 function decreaseOutputBits() {
   // decreases output width by truncating outputs to new bit count
-  const automaton = getAutomaton()
   if (outputBits.value <= 1) return
-
-  const nextOutputBits = outputBits.value - 1
-
-  automaton.transitions = automaton.transitions.map((transition) => ({
-    ...transition,
-    output: normalizeBitsToX(transition.output, outputBits.value).slice(0, nextOutputBits),
-  }))
-
-  AutomatonProject.setLastUpdateSource('table')
+  updateOutputBitWidth(outputBits.value - 1)
 }
 
 /*
@@ -365,7 +358,7 @@ function decreaseOutputBits() {
 // compute amount of necessary bits (x) to be displayed
 function normalizeBitsToX(value: string | undefined, length: number | string): string {
   const normalizedLength = Math.max(Number(length) || 0, 0)
-  return (value ?? '').padEnd(normalizedLength, 'x')
+  return normalizeBits(value, normalizedLength, 'x', 'right')
 }
 
 // remap "to" if Z^n+1 is edited
@@ -375,10 +368,15 @@ function updateToFromBits(idx: number, i: number, bit: '0' | '1' | 'x') {
 
   AutomatonProject.setLastUpdateSource('table')
 
-  const current = (binaryTransitions.value[idx]?.toBinary ?? '').padStart(bitNumber.value, 'x')
-  const chars = current.split('')
-  chars[i] = bit
-  const newBits = chars.join('')
+  const newBits = editBits(
+    binaryTransitions.value[idx]?.toBinary,
+    bitNumber.value,
+    'x',
+    'left',
+    (chars) => {
+      if (i >= 0 && i < chars.length) chars[i] = bit
+    },
+  )
 
   if (newBits.includes('x')) {
     tr.to = -1
@@ -414,12 +412,11 @@ function toggleOutputBit(idx: number, i: number) {
   const transition = transitions.value[idx]
   if (!transition) return
 
-  const current = normalizeBitsToX(transition.output, outputBits.value)
-  const chars = current.split('')
-  const bit = chars[i]
-
-  chars[i] = bit === '0' ? '1' : bit === '1' ? 'x' : '0'
-  transition.output = chars.join('')
+  transition.output = editBits(transition.output, outputBits.value, 'x', 'right', (chars) => {
+    if (i < 0 || i >= chars.length) return
+    const bit = chars[i]
+    chars[i] = bit === '0' ? '1' : bit === '1' ? 'x' : '0'
+  })
   AutomatonProject.setLastUpdateSource('table')
 }
 </script>

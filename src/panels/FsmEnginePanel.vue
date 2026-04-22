@@ -7,11 +7,11 @@ import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
 onMounted(() => {
-  AutomatonProject.attachFsmListener()  
+  AutomatonProject.attachFsmListener()
 })
 
 onBeforeUnmount(() => {
-  AutomatonProject.disposeFsmListener() 
+  AutomatonProject.disposeFsmListener()
 })
 
 const title = ref('')
