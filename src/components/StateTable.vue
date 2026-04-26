@@ -1,8 +1,40 @@
-<script setup lang="ts">
-/*
- * state table logic for editing automaton states and transitions
- */
+<!--
 
+# State Table
+*State table component for automata*.
+- includes both 'state table' and 'transitions table'.
+  - state table: name and ID of each state node
+  - transitions table: start state node, end state node, input (only if automaton type
+   is 'mealy'), output of each transition
+
+## Goals
+Provide a direct table-based editing experience for automaton states and transitions.
+- Enable fast edits for state metadata and transition bits.
+- Keep edits aligned with the shared automaton model.
+- Mark updates so downstream sync can resolve origin correctly.
+
+## Functionality
+- Render state and transition tables.
+- Handle user edits for:
+  - state count and naming
+  - initial/final settings
+  - input/output bit-width changes
+  - next-state and output bit toggles
+- Inhibit prohibited user input and handle it smoothly.
+- Write updates into shared automaton state.
+
+# Dependencies
+- Reads and derives data from automaton domain state.
+- Writes through global app state.
+- Relies on automaton sync coordination for editor propagation.
+This component owns interaction-heavy table editing UI. Therefore, it should not own
+iframe message transport or project lifecycle concerns. Its only purpose is to display the
+automaton data correctly and to sync with the central automaton state.
+
+-->
+
+
+<script setup lang="ts">
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
 import { editBits, normalizeBits } from '@/utility/automaton/bitOperations'
 import { onMounted, reactive } from 'vue'
