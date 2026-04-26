@@ -36,7 +36,7 @@ automaton data correctly and to sync with the central automaton state.
 
 <script setup lang="ts">
 import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
-import { stateManager } from '@/projects/stateManager'
+import { editBits, normalizeBits } from '@/utility/automaton/bitOperations'
 import { onMounted, reactive, ref } from 'vue'
 
 const editingNames = reactive<Record<number, string | undefined>>({})
