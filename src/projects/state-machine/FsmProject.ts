@@ -2,12 +2,12 @@ import { Project } from '../Project'
 import { computed } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
-import FSMPropsComponent from './FsmPropsComponent.vue'
+import FsmPropsComponent from './FsmPropsComponent.vue'
 import type { FsmProps } from './FsmTypes'
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
 import { createPanel } from '@/utility/dockview/integration'
 
-export class FSMProject extends Project {
+export class FsmProject extends Project {
   static override get defaultProps(): FsmProps {
     return {
       name: 'FSM',
@@ -83,6 +83,6 @@ export class FSMProject extends Project {
 
 registerProjectType('fsm', {
   name: 'State Machine',
-  propsComponent: FSMPropsComponent,
-  projectClass: FSMProject,
+  propsComponent: FsmPropsComponent,
+  projectClass: FsmProject,
 })
