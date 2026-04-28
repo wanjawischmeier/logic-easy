@@ -17,11 +17,11 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Input Bits (1-12)</label>
+          <label class="text-sm">Input Bits (1-5)</label>
           <input
             type="number"
             v-model.number="localInputBits"
-            min="1" max="12"
+            min="1" max="5"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />
@@ -31,11 +31,11 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Output Bits (1-12)</label>
+          <label class="text-sm">Output Bits (1-5)</label>
           <input
             type="number"
             v-model.number="localOutputBits"
-            min="1" max="12"
+            min="1" max="5"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />
@@ -72,13 +72,13 @@ const localOutputBits = ref(props.modelValue.initialOutputBits ?? 1)
 // props input validation
 const inputBitsError = computed(() => {
   if (localInputBits.value < 1) return 'Must be at least 1'
-  if (localInputBits.value > 12) return 'Max 12 bits allowed'
+  if (localInputBits.value > 5) return 'Max 5 bits allowed'
   return undefined
 })
 
 const outputBitsError = computed(() => {
   if (localOutputBits.value < 1) return 'Must be at least 1'
-  if (localOutputBits.value > 12) return 'Max 12 bits allowed'
+  if (localOutputBits.value > 5) return 'Max 5 bits allowed'
   return undefined
 })
 
