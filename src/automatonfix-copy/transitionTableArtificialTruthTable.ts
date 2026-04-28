@@ -1,11 +1,11 @@
-import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
+import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import { normalizeBits } from '@/automatonfix-copy/bitOperations'
 import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
 
 export interface TransitionTableComputedRow
-  extends Pick<AutomatonState['transitions'][number], 'id' | 'input' | 'output'> {
-  id: number
+  extends Pick<FsmState['transitions'][number], 'id' | 'input' | 'output'> {
+  transitionId: number
   fromBinary: string
   toBinary: string
 }
@@ -80,7 +80,7 @@ export function buildArtificialTruthTableFromTransitionColumns(
     if (Number.isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rowCount) continue
 
     const toBits = normalizeBits(row.toBinary, stateBits, 'x', 'left')
-    const output = normalizeBits(row.output, outputBits, 'x', 'right')
+    const output = normalizeBits(row.mealyOutput, outputBits, 'x', 'right')
 
     const nextStateCells = toBits.split('').map(toTruthTableCell)
     const outputCells = output.split('').map(toTruthTableCell)
@@ -110,7 +110,7 @@ export function buildArtificialTruthTableFromTransitionColumns(
 function inferOutputBits(rows: TransitionTableComputedRow[]): number {
   let bits = 0
   for (const row of rows) {
-    bits = Math.max(bits, String(row.output ?? '').length)
+    bits = Math.max(bits, String(row.mealyOutput ?? '').length)
   }
   return bits
 }

@@ -18,6 +18,37 @@ onMounted(() => {
 onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
+
+
+/* from project:
+// reactive postmessage listener
+const fsmHandler = (event: MessageEvent) => {
+  if (event.data?.action === 'export') {
+    const fsmData: FSMState = {
+      states: event.data.fsm.states || [],
+      transitions: event.data.fsm.transitions || [],
+    }
+    stateManager.state.automaton = { ...fsmData }
+  }
+}
+
+let listenerAttached = false
+
+function ensureFsmListener() {
+  if (!listenerAttached) {
+    window.addEventListener('message', fsmHandler)
+    listenerAttached = true
+    console.log('FSM listener attached')
+  }
+}
+
+function disposeFsmListener() {
+  if (listenerAttached) {
+    window.removeEventListener('message', fsmHandler)
+    listenerAttached = false
+    console.log('FSM listener disposed')
+  }
+}*/
 </script>
 
 <template>

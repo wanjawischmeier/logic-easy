@@ -34,7 +34,7 @@ automaton data correctly and to sync with the central automaton state.
 -->
 
 <script setup lang="ts">
-import { AutomatonProject, type AutomatonState } from '@/projects/automaton/AutomatonProject'
+import { AutomatonProject, type AutomatonState } from '@/projects/state-machine/FsmProject'
 import { editBits, normalizeBits } from '@/automatonfix-copy/bitOperations'
 import { onMounted, reactive, ref } from 'vue'
 

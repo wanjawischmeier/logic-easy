@@ -69,7 +69,6 @@ export class AutomatonProject extends Project {
         parameterA.id !== parameterB.id ||
         parameterA.name !== parameterB.name ||
         parameterA.initial !== parameterB.initial ||
-        parameterA.final !== parameterB.final ||
         parameterA.x !== parameterB.x ||
         parameterA.y !== parameterB.y
       ) {

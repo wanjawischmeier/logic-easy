@@ -25,7 +25,7 @@ It should not contain automaton transformation logic itself.
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
-import { AutomatonProject } from '@/projects/automaton/AutomatonProject'
+import { AutomatonProject } from '@/projects/state-machine/FsmProject'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 

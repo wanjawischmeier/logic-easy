@@ -27,13 +27,13 @@ import type {
   AutomatonKVFeatureFlagInput,
   AutomatonKVMode,
   AutomatonKVModeInput,
-  AutomatonState,
+  FsmState,
   BinaryTransitionLike,
   KVDiagramBinding,
   KVDiagramCellChange,
   KVDiagramExportData,
   KVDiagramExportOptions,
-} from '@/projects/automaton/AutomatonTypes'
+} from '@/projects/state-machine/FsmTypes'
 import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
 import {
   detectTautologyOrContradiction,
@@ -59,7 +59,7 @@ export type {
   KVDiagramCellChange,
   KVDiagramExportData,
   KVDiagramExportOptions,
-} from '@/projects/automaton/AutomatonTypes'
+} from '@/projects/state-machine/FsmTypes'
 
 // Enables automaton KV logic only for automaton-related panels.
 function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput): boolean {
@@ -239,9 +239,9 @@ export function applyCellChangeToTruthTable(
 
 // Writes edited truth-table rows back into normalized automaton transitions.
 export function applyTruthTableStateToAutomaton(
-  automaton: AutomatonState,
+  automaton: FsmState,
   truthTable: TruthTableState,
-): AutomatonState {
+): FsmState {
   const sortedStates = [...(automaton.states ?? [])].sort((left, right) => left.id - right.id)
   if (sortedStates.length === 0) return automaton
 
@@ -263,10 +263,10 @@ export function applyTruthTableStateToAutomaton(
     }
   }
 
-  const transitionByKey = new Map<string, AutomatonState['transitions'][number]>()
+  const transitionByKey = new Map<string, FsmState['transitions'][number]>()
   for (const transition of automaton.transitions ?? []) {
     const normalizedInput = normalizeBits(String(transition.input ?? ''), inputBits, '0')
-    transitionByKey.set(`${transition.from}:${normalizedInput}`, {
+    transitionByKey.set(`${transition.fromNodeId}:${normalizedInput}`, {
       ...transition,
       input: normalizedInput,
     })
@@ -275,7 +275,9 @@ export function applyTruthTableStateToAutomaton(
   const stateBitWidth = Math.max(stateBits, 1)
   const outputBitWidth = Math.max(
     1,
-    ...(automaton.transitions ?? []).map((transition) => String(transition.output ?? '').length),
+    ...(automaton.transitions ?? []).map(
+      (transition) => String(transition.mealyOutput ?? '').length,
+    ),
   )
 
   const outputDescriptors = (truthTable.outputVars ?? []).map((name) =>
@@ -307,7 +309,7 @@ export function applyTruthTableStateToAutomaton(
     if (!existing) continue
 
     let nextStateBits = resolveTransitionNextStateBits(existing, stateBitWidth, sortedStates)
-    let outputBitsValue = normalizeBits(String(existing.output ?? ''), outputBitWidth, 'x')
+    let outputBitsValue = normalizeBits(String(existing.mealyOutput ?? ''), outputBitWidth, 'x')
 
     for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
       const descriptor = outputDescriptors[columnIndex]
@@ -325,13 +327,13 @@ export function applyTruthTableStateToAutomaton(
 
     transitionByKey.set(key, {
       ...existing,
-      output: outputBitsValue,
+      mealyOutput: outputBitsValue,
       ...resolveTransitionTarget(nextStateBits, sortedStates),
     })
   }
 
   const transitions = Array.from(transitionByKey.values()).sort((left, right) => {
-    if (left.from !== right.from) return left.from - right.from
+    if (left.fromNodeId !== right.fromNodeId) return left.fromNodeId - right.fromNodeId
     return String(left.input ?? '').localeCompare(String(right.input ?? ''))
   })
 
@@ -379,15 +381,15 @@ function parseAutomatonOutputDescriptor(
 
 // Builds next-state bits from concrete targets or wildcard patterns.
 function resolveTransitionNextStateBits(
-  transition: AutomatonState['transitions'][number],
+  transition: FsmState['transitions'][number],
   bitWidth: number,
-  states: AutomatonState['states'],
+  states: FsmState['states'],
 ): string {
   if (transition.toPattern && transition.toPattern.length > 0) {
     return normalizeBits(transition.toPattern, bitWidth, 'x')
   }
 
-  const toIndex = states.findIndex((state) => state.id === transition.to)
+  const toIndex = states.findIndex((state) => state.id === transition.toNodeId)
   if (toIndex < 0) {
     return 'x'.repeat(bitWidth)
   }
@@ -398,8 +400,8 @@ function resolveTransitionNextStateBits(
 // Converts next-state bits back to either concrete state id or toPattern.
 function resolveTransitionTarget(
   nextStateBits: string,
-  states: AutomatonState['states'],
-): Pick<AutomatonState['transitions'][number], 'to' | 'toPattern'> {
+  states: FsmState['states'],
+): Pick<FsmState['transitions'][number], 'to' | 'toPattern'> {
   const unresolvedTarget = {
     to: -1,
     toPattern: nextStateBits,
@@ -416,7 +418,7 @@ function resolveTransitionTarget(
   }
 
   return {
-    to: state.id,
+    toNodeId: state.id,
     toPattern: undefined,
   }
 }
