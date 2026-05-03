@@ -87,9 +87,6 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     label: 'Minimization',
-    requires: {
-      view: ['TruthTable']
-    },
     children: [
       {
         id: 'kv-diagram',
@@ -98,7 +95,7 @@ export const dockRegistry: DockRegistryEntry[] = [
         projectType: 'truth-table',
         minimumWidth: 400,
         requires: {
-          view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+          view: ['Min2InputVars', 'Max4InputVars']
         },
       },
       {
@@ -107,9 +104,6 @@ export const dockRegistry: DockRegistryEntry[] = [
         component: QMCPanel,
         projectType: 'truth-table',
         minimumWidth: 400,
-        requires: {
-          view: ['TruthTable']
-        },
       }
     ]
   },
