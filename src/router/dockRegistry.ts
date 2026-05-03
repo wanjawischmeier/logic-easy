@@ -8,7 +8,12 @@ import type { ProjectType } from '@/projects/projectRegistry';
 import { stateManager } from '@/projects/stateManager';
 import QMCPanel from '@/panels/QMCPanel.vue';
 
-export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
+export type PanelRequirement =
+  | 'TruthTable'
+  | 'Fsm'
+  | 'Min2InputVars'
+  | 'Max4InputVars'
+  | 'NotSupported'
 export type RequirementType = 'CREATE' | 'VIEW'
 
 /**
@@ -109,31 +114,13 @@ export const dockRegistry: DockRegistryEntry[] = [
     ]
   },
   {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
-  },
-  {
     id: 'state-table',
     label: 'State Table',
     component: StateTablePanel,
-    projectType: 'automaton',
+    projectType: 'fsm',
     requires: {
-      view: ['Automaton']
-    }
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
+      view: ['Fsm'],
+    },
   },
   {
     id: 'lc-iframe',
@@ -144,14 +131,14 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'fsm-engine',
     label: 'FSM Engine',
     component: FsmEnginePanel,
-    projectType: 'automaton',
+    projectType: 'fsm',
     requires: {
-      view: ['Automaton']
-    }
+      view: ['Fsm'],
+    },
   },
-];
+]
 
-const convertRegistryEntryToMenuEntry = (entry: DockRegistryEntry, requirementType: RequirementType, createProject = false): MenuEntry => {
+const convertRegistryEntryToMenuEntry = (  entry: DockRegistryEntry,   requirementType: RequirementType,   createProject = false): MenuEntry => {
   if (isDockMenuNode(entry)) {
     // Menu node with children
     const requirementsMet = checkDockMenuNodeRequirements(entry, requirementType);
@@ -200,7 +187,7 @@ export const viewMenu = computed<MenuEntry[]>(() => {
  * @param entries The entries to search through (defaults to top-level dockRegistry).
  * @returns The found DockEntry or undefined.
  */
-export function findDockEntry(id: string, entries: DockRegistryEntry[] = dockRegistry): DockEntry | undefined {
+export function findDockEntry(  id: string,   entries: DockRegistryEntry[] = dockRegistry): DockEntry | undefined {
   for (const entry of entries) {
     if (isDockEntry(entry)) {
       if (entry.id === id) return entry;
@@ -245,14 +232,14 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
         if (!stateManager.state.truthTable) {
           checkPassed = false;
         }
-        break;
+        break
 
-      case 'Automaton':
+      case 'Fsm':
         // Check if truth table state exists
-        if (!stateManager.state.automaton) {
-          checkPassed = false;
+        if (!stateManager.state.fsm) {
+          checkPassed = false
         }
-        break;
+        break
 
       case 'Min2InputVars':
         // Check if truth table has at least 2 input variables

@@ -5,6 +5,9 @@ import { registerProjectType } from '../projectRegistry'
 import FsmPropsComponent from './FsmPropsComponent.vue'
 import type { FsmProps } from './FsmTypes'
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
+import { normalizeFsmState } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
+import { importEditorPayload } from './fsmEditorImportHelpers'
+import type { FsmState } from './FsmTypes'
 import { createPanel } from '@/utility/dockview/integration'
 
 export class FsmProject extends Project {
@@ -76,10 +79,56 @@ export class FsmProject extends Project {
     console.log('[FSMProject.createState] State initialized')
   }
 
+  static importEditorExport(incomingFsm: unknown): void {
+    const state = stateManager.state.fsm as FsmState | undefined
+    if (!state || typeof incomingFsm !== 'object' || incomingFsm == null) return
+
+    interface EditorExportState {
+      id?: number
+      name?: string
+      initial?: boolean
+      x?: number
+      y?: number
+      moore_output?: string
+    }
+    interface EditorExportTransition {
+      from?: number
+      to?: number
+      input?: string
+      output?: string
+      mealy_output?: string
+    }
+    interface EditorExportPayload {
+      states?: EditorExportState[]
+      transitions?: EditorExportTransition[]
+    }
+
+    const payload = incomingFsm as EditorExportPayload
+    const { nodes, transitions } = importEditorPayload(payload, state)
+    state.nodes = nodes
+    state.transitions = transitions
+    normalizeFsmState(state)
+  }
+
   static override validateState(state: AppState): boolean {
     return state.fsm != undefined
   }
 }
+
+export { importEditorPayload } from './fsmEditorImportHelpers'
+
+export {
+  addStateRow,
+  getStateCountLimit,
+  removeStateRow,
+  renameState,
+  setInitialState,
+  setInputBitCount,
+  setOutputBitCount,
+  toggleMooreOutputBit,
+  toggleTransitionOutputBit,
+  toggleTransitionTargetBit,
+} from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 
 registerProjectType('fsm', {
   name: 'State Machine',

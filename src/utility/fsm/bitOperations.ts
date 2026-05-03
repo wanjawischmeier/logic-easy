@@ -1,4 +1,4 @@
-export type Bit = '0' | '1' | 'x';
+export type Bit = '0' | '1' | 'x'
 
 /**
  * calculate amount of bits needed for each binary statenode ID.
@@ -6,8 +6,8 @@ export type Bit = '0' | '1' | 'x';
  * @returns
  */
 export function calcBitNumber(idsCount?: number): number {
-  const length = idsCount ?? 0
-  return length === 0 ? 1 : Math.ceil(Math.log2(Math.max(length, 1)))
+  const length = idsCount ?? 0.
+  return length <= 1 ? 1 : Math.ceil(Math.log2(length))
 }
 
 /**
@@ -23,10 +23,17 @@ export function calcBinaryID(id: number, bitCount: number): string {
 /**
  * normalizes string to fixed length.
  */
-export function normalizeBits(val: string | undefined, len: number, fill: Bit = 'x'): string {
-  const s = (val ?? '').replace(/-/g, 'x');
-  if (s.length >= len) return s.slice(0, len);
-  return s.padEnd(len, fill);
+export function normalizeBits(
+  val: string | undefined,
+  len: number,
+  fill: Bit = 'x',
+  align: 'left' | 'right' = 'left',
+): string {
+  const s = (val ?? '').replace(/-/g, 'x')
+  if (s.length >= len) {
+    return align === 'left' ? s.slice(-len) : s.slice(0, len)
+  }
+  return align === 'left' ? s.padStart(len, fill) : s.padEnd(len, fill)
 }
 
 /**
@@ -43,5 +50,3 @@ export function toggleBitInString(str: string, index: number, length: number): s
   chars[index] = b === '0' ? '1' : b === '1' ? 'x' : '0'
   return chars.join('')
 }
-
-

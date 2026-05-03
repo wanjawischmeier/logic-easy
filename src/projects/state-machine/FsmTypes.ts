@@ -2,7 +2,7 @@ import type { BaseProjectProps } from '../Project'
 
 export type FsmModel = 'mealy' | 'moore'
 
-// Default values for AutomatonProps
+// Default values for FsmProps
 export interface FsmProps extends BaseProjectProps {
   initialFsmType: FsmModel
   initialInputBits: number
@@ -11,25 +11,25 @@ export interface FsmProps extends BaseProjectProps {
 
 // type definition for state nodes (all attributes)
 export interface FsmNode {
-    name: string
-    nodeId: number
-    binaryNodeId?: string
-    isInitial: boolean
-    isFinal?: boolean
-    editorCoordX?: number
-    editorCoordY?: number
-    mooreOutput?: string
-  }
+  name: string
+  nodeId: number
+  binaryNodeId?: string
+  isInitial: boolean
+  isFinal?: boolean
+  editorCoordX?: number
+  editorCoordY?: number
+  mooreOutput?: string
+}
 
 // type definition for transitions (all attributes)
 export interface FsmTransition {
-    transitionId: number
-    fromNodeId: number
-    toNodeId: number
-    input: string
-    mealyOutput?: string
-  }
-
+  transitionId: number
+  fromNodeId: number
+  toNodeId: number
+  toBinaryId?: string
+  input: string
+  mealyOutput?: string
+}
 
 // type definition for whole central fsm state
 export interface FsmState {

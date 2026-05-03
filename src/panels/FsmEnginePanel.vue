@@ -2,13 +2,16 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
-import { useFsmListener } from '@/utility/fsm/EditorSync/fsmListener';
+import { setIsSyncing, useFsmListener } from '@/utility/fsm/EditorSync/fsmListener'
+import { FsmProject } from '@/projects/state-machine/FsmProject'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
-useFsmListener()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
+const iframeRef = ref<any | null>(null)
+
+let messageHandler: ((event: MessageEvent) => void) | null = null
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
@@ -17,10 +20,36 @@ onMounted(() => {
   title.value = props.params.api.title ?? ''
 })
 
-onBeforeUnmount(() => {
-  disposable?.dispose?.()
+onMounted(() => {
+  // Initialize FSM outbound sync when the FSM panel mounts.
+  useFsmListener()
+
+  // handle editor -> app exports: delegate concrete state handling to FsmProject
+  messageHandler = (event: MessageEvent) => {
+    const fsmIframe = iframeRef.value?.getIframe
+      ? iframeRef.value.getIframe()
+      : (window as any).__fsm_preloaded_iframe
+    if (!fsmIframe) return
+    if (event.origin !== window.location.origin || event.source !== fsmIframe.contentWindow) return
+
+    const data = event.data || {}
+    if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
+      try {
+        setIsSyncing(true)
+        FsmProject.importEditorExport(data.fsm)
+      } finally {
+        setTimeout(() => setIsSyncing(false), 50)
+      }
+    }
+  }
+
+  window.addEventListener('message', messageHandler)
 })
 
+onBeforeUnmount(() => {
+  disposable?.dispose?.()
+  if (messageHandler) window.removeEventListener('message', messageHandler)
+})
 </script>
 
 <template>
@@ -28,6 +57,7 @@ onBeforeUnmount(() => {
     <div v-if="title" class="font-semibold mb-2">{{ title }}</div>
 
     <IframePanel
+      ref="iframeRef"
       iframe-key="__fsm_preloaded_iframe"
       src="/logic-easy/fsm-engine/dist/index.html"
       :visible="params.api.isVisible"
