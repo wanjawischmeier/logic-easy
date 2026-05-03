@@ -1,6 +1,10 @@
 import type { FunctionRepresentation, FunctionType, Formula } from '@/utility/types'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
-import { defaultColor, generateTermColor, type TermColor } from '@/utility/truthtable/colorGenerator'
+import {
+  defaultColor,
+  generateTermColor,
+  type TermColor,
+} from '@/utility/truthtable/colorGenerator'
 import { getFunctionSignature } from '@/utility/truthtable/latexGenerator'
 
 export interface EdgeCaseResult {
@@ -9,7 +13,7 @@ export interface EdgeCaseResult {
   couplingTermLatex: string
 }
 
-// Shared edge-case construction used by worker and automaton KV mode.
+// Shared edge-case construction used by worker and fsm KV mode.
 export function createEdgeCaseResult(
   type: 'tautology' | 'contradiction',
   functionType: FunctionType,

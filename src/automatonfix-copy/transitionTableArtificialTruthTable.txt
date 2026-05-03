@@ -1,6 +1,6 @@
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import { normalizeBits } from '@/automatonfix-copy/bitOperations'
+import { normalizeBits } from '@/fsmfix-copy/bitOperations'
 import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
 
 export interface TransitionTableComputedRow
@@ -20,7 +20,7 @@ export interface TransitionColumnsTruthTableOptions {
   outputBits?: number
 }
 
-// Shape of the computed values produced by AutomatonProject.useState(), reduced to the fields needed for truth-table generation.
+// Shape of the computed values produced by FsmProject.useState(), reduced to the fields needed for truth-table generation.
 export interface TransitionTableComputedColumns {
   binaryTransitions: TransitionTableComputedRow[]
   bitNumber: number

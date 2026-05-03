@@ -1,23 +1,23 @@
 /**
 
 # KV Panel Export (Automaton Mode)
-The goal of this file is to enable KV-based analysis/editing for automaton outputs while
-keeping consistency with the shared automaton state and FSM editor. It mainly relates to
+The goal of this file is to enable KV-based analysis/editing for fsm outputs while
+keeping consistency with the shared fsm state and FSM editor. It mainly relates to
 the Minimizer / KV Diagram Panel (-> `src/panels/KVDiagramPanel.vue`).
 
-## Forward direction: automaton -> KV
-On every change of relevant source data (automaton transitions and derived binary transition rows):
-  1. compute transition-based columns for automaton context if necessary
+## Forward direction: fsm -> KV
+On every change of relevant source data (fsm transitions and derived binary transition rows):
+  1. compute transition-based columns for fsm context if necessary
   2. export to an artificial truth-table-like structure
   3. derive formula/minimization output for displayed variable
   4. render KV with immutable-cell mask and highlights
 
-## Backward direction: KV -> automaton
-When a KV cell is edited in automaton mode:
+## Backward direction: KV -> fsm
+When a KV cell is edited in fsm mode:
   1. local KV values are updated according to the input rules.
   2. values are patched into a truth-table-like structure.
-  3. patched values are mapped back to automaton transitions.
-  4. shared automaton state is updated, sync with other modules.
+  3. patched values are mapped back to fsm transitions.
+  4. shared fsm state is updated, sync with other modules.
 
  */
 
@@ -41,13 +41,13 @@ import {
 } from '@/utility/truthtable/expressionParser'
 import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
 import { mapFormulaTermsToPIColors, type TermColor } from '@/utility/truthtable/colorGenerator'
-import { createEdgeCaseResult, mapResultColorsByPiTerm } from '@/automatonfix-copy/qmcResultUtils'
-import { normalizeBinaryBits, normalizeBits, setBit } from '@/automatonfix-copy/bitOperations'
+import { createEdgeCaseResult, mapResultColorsByPiTerm } from '@/fsmfix-copy/qmcResultUtils'
+import { normalizeBinaryBits, normalizeBits, setBit } from '@/fsmfix-copy/bitOperations'
 import {
   buildArtificialTruthTableFromComputedColumns,
   type TransitionTableComputedColumns,
   type TransitionTableComputedRow,
-} from '@/automatonfix-copy/transitionTableArtificialTruthTable'
+} from '@/fsmfix-copy/transitionTableArtificialTruthTable'
 
 export type {
   AutomatonDerivedFormulaBundle,
@@ -61,7 +61,7 @@ export type {
   KVDiagramExportOptions,
 } from '@/projects/state-machine/FsmTypes'
 
-// Enables automaton KV logic only for automaton-related panels.
+// Enables fsm KV logic only for fsm-related panels.
 function isAutomatonKVFeatureEnabled(input: AutomatonKVFeatureFlagInput): boolean {
   if (input.enabled === true) return true
   if (input.enabled === false) return false
@@ -90,7 +90,7 @@ export function resolveAutomatonKVMode(input: AutomatonKVModeInput): AutomatonKV
   const shouldForceAutomatonMode = input.hasAutomatonState && !input.hasUsableTruthTableData
 
   const explicitAutomatonFlag = input.panelParams?.enableAutomatonKV
-  const automatonEnabled =
+  const fsmEnabled =
     typeof explicitAutomatonFlag === 'boolean'
       ? explicitAutomatonFlag
       : input.isAutomatonProject || shouldForceAutomatonMode
@@ -98,7 +98,7 @@ export function resolveAutomatonKVMode(input: AutomatonKVModeInput): AutomatonKV
   const isAutomatonTransitionKV = isAutomatonKVFeatureEnabled({
     panelId: input.panelId,
     hasAutomatonState: input.hasAutomatonState,
-    enabled: automatonEnabled,
+    enabled: fsmEnabled,
   })
 
   const explicitExportFlag = input.panelParams?.enableAutomatonKVExportToTable
@@ -117,7 +117,7 @@ export function resolveAutomatonKVMode(input: AutomatonKVModeInput): AutomatonKV
   }
 }
 
-// Chooses automaton-backed binding only when export exists and mode requires it.
+// Chooses fsm-backed binding only when export exists and mode requires it.
 export function resolveUseAutomatonBinding(input: {
   hasTransitionTableExport: boolean
   isAutomatonTransitionKV: boolean
@@ -129,7 +129,7 @@ export function resolveUseAutomatonBinding(input: {
   )
 }
 
-// Runs QMC derivation and maps resulting formulas/colors for automaton KV mode.
+// Runs QMC derivation and maps resulting formulas/colors for fsm KV mode.
 export async function deriveAutomatonFormulaBundle(
   truthTable: TruthTableState,
 ): Promise<AutomatonDerivedFormulaBundle> {
@@ -237,17 +237,17 @@ export function applyCellChangeToTruthTable(
   return true
 }
 
-// Writes edited truth-table rows back into normalized automaton transitions.
+// Writes edited truth-table rows back into normalized fsm transitions.
 export function applyTruthTableStateToAutomaton(
-  automaton: FsmState,
+  fsm: FsmState,
   truthTable: TruthTableState,
 ): FsmState {
-  const sortedStates = [...(automaton.states ?? [])].sort((left, right) => left.id - right.id)
-  if (sortedStates.length === 0) return automaton
+  const sortedStates = [...(fsm.states ?? [])].sort((left, right) => left.id - right.id)
+  if (sortedStates.length === 0) return fsm
 
   const inferredInputBits = Math.max(
     0,
-    ...(automaton.transitions ?? []).map((transition) => String(transition.input ?? '').length),
+    ...(fsm.transitions ?? []).map((transition) => String(transition.input ?? '').length),
   )
   const totalInputVars = truthTable.inputVars?.length ?? 0
   const inferredStateBitsFromStateCount =
@@ -257,14 +257,14 @@ export function applyTruthTableStateToAutomaton(
   const rowBitCount = stateBits + inputBits
   if (rowBitCount <= 0) {
     return {
-      ...automaton,
+      ...fsm,
       states: sortedStates,
-      transitions: [...(automaton.transitions ?? [])],
+      transitions: [...(fsm.transitions ?? [])],
     }
   }
 
   const transitionByKey = new Map<string, FsmState['transitions'][number]>()
-  for (const transition of automaton.transitions ?? []) {
+  for (const transition of fsm.transitions ?? []) {
     const normalizedInput = normalizeBits(String(transition.input ?? ''), inputBits, '0')
     transitionByKey.set(`${transition.fromNodeId}:${normalizedInput}`, {
       ...transition,
@@ -275,9 +275,7 @@ export function applyTruthTableStateToAutomaton(
   const stateBitWidth = Math.max(stateBits, 1)
   const outputBitWidth = Math.max(
     1,
-    ...(automaton.transitions ?? []).map(
-      (transition) => String(transition.mealyOutput ?? '').length,
-    ),
+    ...(fsm.transitions ?? []).map((transition) => String(transition.mealyOutput ?? '').length),
   )
 
   const outputDescriptors = (truthTable.outputVars ?? []).map((name) =>
@@ -338,7 +336,7 @@ export function applyTruthTableStateToAutomaton(
   })
 
   return {
-    ...automaton,
+    ...fsm,
     states: sortedStates,
     transitions,
   }
@@ -490,14 +488,14 @@ function resolveStateBitCount(
   return Math.max(bitsFromRows, bitsFromStateCount, fallbackBits, 0)
 }
 
-// Builds KV binding from base truth-table or automaton export snapshot.
+// Builds KV binding from base truth-table or fsm export snapshot.
 export function buildKVDiagramBinding(
   baseTruthTable: TruthTableState,
-  automatonExport: KVDiagramExportData | null,
+  fsmExport: KVDiagramExportData | null,
   useAutomatonBinding: boolean,
 ): KVDiagramBinding {
-  if (!useAutomatonBinding || !automatonExport) return toKVDiagramBinding(baseTruthTable)
-  return toKVDiagramBinding(automatonExport.truthTable, automatonExport.immutableCellMask)
+  if (!useAutomatonBinding || !fsmExport) return toKVDiagramBinding(baseTruthTable)
+  return toKVDiagramBinding(fsmExport.truthTable, fsmExport.immutableCellMask)
 }
 
 // Shared mapping from TruthTableState shape to KVDiagramBinding shape.
