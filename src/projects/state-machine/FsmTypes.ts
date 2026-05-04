@@ -1,4 +1,5 @@
 import type { BaseProjectProps } from '../Project'
+import type { FunctionType } from '@/utility/types'
 
 export type FsmModel = 'mealy' | 'moore'
 
@@ -36,6 +37,7 @@ export interface FsmState {
   nodes: FsmNode[]
   transitions: FsmTransition[]
   fsmModel: FsmModel
+  functionType?: FunctionType
 
   nodeIdBitCount: number
   outputBitCount?: number

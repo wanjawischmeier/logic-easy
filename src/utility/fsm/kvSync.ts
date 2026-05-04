@@ -249,7 +249,7 @@ export function exportFsmToTruthTable(
     values,
     formulas: {},
     outputVariableIndex: selectedOutputIndex,
-    functionType: previousState?.functionType ?? defaultFunctionType,
+    functionType: fsm.functionType ?? previousState?.functionType ?? defaultFunctionType,
     functionRepresentation: previousState?.functionRepresentation ?? defaultFunctionRepresentation,
     qmcResult: previousState?.qmcResult,
     couplingTermLatex: previousState?.couplingTermLatex,

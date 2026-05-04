@@ -117,6 +117,9 @@ const handleOutputChange = (value: unknown, index: number) => {
 
 const handleFunctionTypeChange = (value: unknown) => {
   if (!stateManager.state.truthTable) return
+  if (stateManager.state.fsm) {
+    stateManager.state.fsm.functionType = value as FunctionType
+  }
   stateManager.state.truthTable.functionType = value as FunctionType
   truthTableWorkerManager.update()
 }

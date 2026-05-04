@@ -9,6 +9,7 @@ import { normalizeFsmState } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { importEditorPayload } from './fsmEditorImportHelpers'
 import type { FsmState } from './FsmTypes'
 import { createPanel } from '@/utility/dockview/integration'
+import { defaultFunctionType } from '@/utility/types'
 
 export class FsmProject extends Project {
   static override get defaultProps(): FsmProps {
@@ -71,6 +72,7 @@ export class FsmProject extends Project {
       nodes: [],
       transitions: [],
       fsmModel: props.initialFsmType,
+      functionType: defaultFunctionType,
       nodeIdBitCount: 0,
       inputBitCount: props.initialInputBits,
       outputBitCount: props.initialOutputBits,
