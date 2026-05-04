@@ -3,14 +3,30 @@ import type { FunctionType, FunctionRepresentation } from '../types'
 import { analyzeExpressions } from './expressionParser'
 import type { QMCResult } from './minimizer'
 
+export function formatLatexIdentifier(
+  identifier: string,
+  options?: { lowercase?: boolean },
+): string {
+  const normalized = options?.lowercase ? identifier.toLowerCase() : identifier
+
+  return normalized
+    .replace(/_(?!\{)([A-Za-z0-9]+)/g, '_{$1}')
+    .replace(/\^\(([^)]+)\)/g, '^{$1}')
+    .replace(/\^(?!\{)([A-Za-z0-9+\-]+)/g, '^{$1}')
+}
+
 export function getFunctionSignature(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  options?: { lowercaseInputVars?: boolean },
 ): string {
   const formType = functionType === 'Disjunctive' ? 'D' : 'C'
   const formRepresentation = functionRepresentation === 'Normal' ? 'N' : 'M'
-  return `f_{${formType}${formRepresentation}F}(${inputVars.join(', ')}) = `
+  const formattedInputVars = inputVars.map((inputVar) =>
+    formatLatexIdentifier(inputVar, { lowercase: options?.lowercaseInputVars ?? false }),
+  )
+  return `f_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
 }
 
 /**
@@ -22,7 +38,7 @@ function getBinaryMinterm(rowIdx: number, inputVars: string[]): string {
 
   for (let i = 0; i < inputVars.length; i++) {
     const bit = binary[i]
-    const variable = inputVars[i]!
+    const variable = formatLatexIdentifier(inputVars[i]!)
     if (bit === '1') {
       literals.push(variable)
     } else {
@@ -42,7 +58,7 @@ function getBinaryMaxterm(rowIdx: number, inputVars: string[]): string {
 
   for (let i = 0; i < inputVars.length; i++) {
     const bit = binary[i]
-    const variable = inputVars[i]!
+    const variable = formatLatexIdentifier(inputVars[i]!)
     // Maxterm negates the bits (opposite of minterm)
     if (bit === '0') {
       literals.push(variable)
@@ -122,8 +138,9 @@ export function getCouplingTermLatex(
   inputVars: string[],
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
+  options?: { lowercaseInputVars?: boolean },
 ): string {
-  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars)
+  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, options)
 
   // If normal form requested and values provided, return canonical form
   if (

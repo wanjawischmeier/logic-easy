@@ -1,6 +1,7 @@
 import type { Operation } from 'logi.js'
 import type { Formula, FunctionType, Literal, Term } from '../types'
 import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
+import { formatLatexIdentifier } from './latexGenerator'
 
 function getOperationRecord(operation: Operation): Record<string, unknown> {
   return operation as unknown as Record<string, unknown>
@@ -197,7 +198,7 @@ export function flattenCouplingTermsToFormula(
 function operationToLatex(op: Operation, isCNF: boolean = false): string {
   const name = getOperationName(op)
   if (name !== undefined) {
-    return name.toLowerCase()
+    return formatLatexIdentifier(name.toLowerCase())
   }
 
   if (getOperationPriority(op) === 15) {

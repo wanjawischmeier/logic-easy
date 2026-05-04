@@ -32,7 +32,10 @@
         <thead>
           <tr>
             <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
-              <vue-latex :expression="outputVars[outputVariableIndex ?? 0] || 'f'" display-mode />
+              <vue-latex
+                :expression="formatLatexIdentifier(outputVars[outputVariableIndex ?? 0] || 'f')"
+                display-mode
+              />
             </th>
             <th
               v-for="(colCode, cIdx) in colCodes"
@@ -95,6 +98,7 @@ import {
   getBinaryString,
 } from '@/utility/truthtable/kvDiagramLayout'
 import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights'
+import { formatLatexIdentifier } from '@/utility/truthtable/latexGenerator'
 import type {
   TruthTableData,
   TruthTableCell,
