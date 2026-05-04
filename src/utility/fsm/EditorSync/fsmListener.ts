@@ -7,6 +7,7 @@ let isSyncing = false
 let isInitialized = false
 let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
+
 function syncTableToEditor() {
   const newFsm = stateManager.state.fsm
   if (isSyncing || !newFsm) return

@@ -59,7 +59,7 @@ export interface LegendItem {
   label: string
   description?: string
   symbolType?: SymbolType
-  component?: any
+  component?: unknown
 }
 
 interface Props {
