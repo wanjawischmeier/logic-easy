@@ -392,9 +392,9 @@ const logicCircuitDownloadFiles = computed(() => {
   // Offer only the currently selected method as the downloadable file.
   return [
     {
-      label: selected,
+      label: selected + "-Circuit",
       // filename directly reflects the selected method (sanitized)
-      filename: `${baseName}_${sanitizeName(String(selected))}`,
+      filename: `${baseName}_${sanitizeName(String(selected))}-Circuit`,
       extension: 'lc',
       content: () => createLcContent(selected),
       mimeType: 'text/lc',
@@ -502,7 +502,7 @@ const methodOptions = lcMethodTypes
           :target-ref="iframeContainer"
           :screenshot="{ enabled: false }"
           :files="logicCircuitDownloadFiles"
-          :direct-download="true"
+          :direct-download="false"
         />
       </div>
     </teleport>
