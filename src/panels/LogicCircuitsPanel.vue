@@ -13,10 +13,12 @@ import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
 import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
+import type { Formula, Term } from '@/utility/types'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
-const { inputVars, outputVars, formulas, functionType, functionRepresentation } = TruthTableProject.useState()
+const { inputVars, outputVars, formulas, values, functionType, functionRepresentation } =
+  TruthTableProject.useState()
 
 const panelRef = ref<HTMLElement | null>(null)
 const iframeContainer = ref<HTMLElement | null>(null)
@@ -109,6 +111,36 @@ function openEditWarningPopup() {
       syncAction: syncFromLogicEasyAndDiscardManualEdits,
     },
   })
+}
+
+function generateCanonicalFormulas(): Record<string, Formula> {
+  const canonicalFormulas: Record<string, Formula> = {}
+
+  outputVars.value.forEach((outVar, outIdx) => {
+    const terms: Term[] = []
+    const isDNF = functionType.value === 'Disjunctive' // Note: check your FunctionType literals, it might be 'DNF' or 'Disjunctive' depending on your types
+    const targetValue = isDNF ? 1 : 0
+
+    values.value.forEach((row, rowIdx) => {
+      if (row[outIdx] === targetValue) {
+        const literals = inputVars.value.map((inVar, inIdx) => {
+          // Find input bits using binary representation of row index
+          const bitValue = (rowIdx >> (inputVars.value.length - 1 - inIdx)) & 1
+          const negated = isDNF ? bitValue === 0 : bitValue === 1
+
+          return { variable: inVar, negated }
+        })
+        terms.push({ literals })
+      }
+    })
+
+    canonicalFormulas[outVar] = {
+      type: functionType.value,
+      terms,
+    }
+  })
+
+  return canonicalFormulas
 }
 
 async function foundSignificantChanges(): Promise<boolean> {
@@ -369,8 +401,11 @@ const sanitizeName = (value: string) =>
 let currentLCContent: LCFile | null = null
 
 const createLcContent = (method: LCMethodType) => {
+  const targetFormulas =
+    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : formulas.value
+
   currentLCContent = formulaToLC(
-    formulas.value,
+    targetFormulas,
     inputVars.value,
     outputVars.value,
     outTypeMap[method],
@@ -392,7 +427,7 @@ const logicCircuitDownloadFiles = computed(() => {
   // Offer only the currently selected method as the downloadable file.
   return [
     {
-      label: selected + "-Circuit",
+      label: selected + '-Circuit',
       // filename directly reflects the selected method (sanitized)
       filename: `${baseName}_${sanitizeName(String(selected))}-Circuit`,
       extension: 'lc',
@@ -499,7 +534,7 @@ const methodOptions = lcMethodTypes
           </template>
         </SettingsButton>
         <DownloadButton
-        :panel-id="params.api.id"
+          :panel-id="params.api.id"
           :target-ref="iframeContainer"
           :screenshot="{ enabled: false }"
           :files="logicCircuitDownloadFiles"
