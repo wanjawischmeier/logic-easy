@@ -1,16 +1,33 @@
 <template>
-  <div class="inline-flex items-center gap-2 ">
+  <div class="inline-flex items-center gap-2">
     <span v-if="label" class="text-on-surface-variant select-none">{{ label }}</span>
-    <div ref="containerRef"
+    <div
+      ref="containerRef"
       class="inline-flex items-center gap-0.5 rounded bg-surface-2 p-0.5 border border-surface-3 transition-colors relative"
-      :class="highlightBorder ? 'hover:border-primary' : ''">
-      <div class="slider absolute inset-y-0.5 rounded-xs transition-all duration-100 ease-in-out" :style="sliderStyle">
-      </div>
-      <button v-for="(item, idx) in values" :key="idx" :ref="el => buttonRefs[idx] = el as HTMLElement"
-        @click="select(idx, item)" :aria-pressed="idx === selected"
-        class="px-3 py-1.5 relative z-10 transition-colors duration-100 rounded-xs"
-        :class="idx === selected ? randomSelectMode ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]' : '' : 'hover:bg-surface-3'">
-        {{ getLabel(item) }}
+      :class="highlightBorder ? 'hover:border-primary' : ''"
+    >
+      <div
+        class="slider absolute inset-y-0.5 rounded-xs transition-all duration-100 ease-in-out"
+        :style="sliderStyle"
+      ></div>
+      <button
+        v-for="(item, idx) in values"
+        :key="idx"
+        :ref="(el) => (buttonRefs[idx] = el as HTMLElement)"
+        @click="select(idx, item)"
+        :aria-pressed="idx === selected"
+        class="px-2.5 py-1.5 relative z-10 transition-colors duration-100 rounded-xs whitespace-nowrap text-[11px] leading-none"
+        :class="
+          idx === selected
+            ? randomSelectMode
+              ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]'
+              : ''
+            : 'hover:bg-surface-3'
+        "
+      >
+        <slot name="label" :item="item" :label="getLabel(item)" :index="idx">
+          {{ getLabel(item) }}
+        </slot>
       </button>
     </div>
   </div>
@@ -34,20 +51,23 @@
 </style>
 
 <script setup lang="ts">
-import { stateManager } from '@/projects/stateManager';
+import { stateManager } from '@/projects/stateManager'
 import { computed, onMounted, ref, toRefs, watch, nextTick } from 'vue'
 
-const props = withDefaults(defineProps<{
-  values: unknown[]
-  initialSelected?: number
-  onSelect?: (value: unknown, index: number) => void
-  labelKey?: string
-  labelFn?: (v: unknown) => string
-  label?: string
-  highlightBorder?: boolean
-}>(), {
-  highlightBorder: false
-})
+const props = withDefaults(
+  defineProps<{
+    values: unknown[]
+    initialSelected?: number
+    onSelect?: (value: unknown, index: number) => void
+    labelKey?: string
+    labelFn?: (v: unknown) => string
+    label?: string
+    highlightBorder?: boolean
+  }>(),
+  {
+    highlightBorder: false,
+  },
+)
 
 const emit = defineEmits<{
   (e: 'update:selected', value: number | null): void
@@ -56,7 +76,7 @@ const emit = defineEmits<{
 const { values, initialSelected, labelKey, labelFn, onSelect, label } = toRefs(props)
 
 const selected = ref<number | null>(
-  initialSelected?.value ?? (values.value && values.value.length ? 0 : null)
+  initialSelected?.value ?? (values.value && values.value.length ? 0 : null),
 )
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -65,6 +85,7 @@ const sliderStyleKey = ref(0)
 
 const sliderStyle = computed(() => {
   // Access the key to make this reactive to manual triggers
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   sliderStyleKey.value
 
   if (selected.value === null || !buttonRefs.value.length) {
@@ -81,32 +102,39 @@ const sliderStyle = computed(() => {
 
   return {
     width: `${width}px`,
-    transform: `translateX(${left - buttonRefs.value.length}px)`
+    transform: `translateX(${left - buttonRefs.value.length}px)`,
   }
 })
 
 // Sync internal selected state with initialSelected prop
-watch(initialSelected, (newVal) => {
-  if (newVal !== undefined && newVal !== selected.value) {
-    selected.value = newVal
-    nextTick(() => {
-      sliderStyleKey.value++
-    })
-  }
-}, { immediate: true })
+watch(
+  initialSelected,
+  (newVal) => {
+    if (newVal !== undefined && newVal !== selected.value) {
+      selected.value = newVal
+      nextTick(() => {
+        sliderStyleKey.value++
+      })
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   // Watch for when the component becomes visible using IntersectionObserver
   if (containerRef.value) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0) {
-          nextTick(() => {
-            sliderStyleKey.value++
-          })
-        }
-      })
-    }, { threshold: [0, 0.1] })
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0) {
+            nextTick(() => {
+              sliderStyleKey.value++
+            })
+          }
+        })
+      },
+      { threshold: [0, 0.1] },
+    )
 
     observer.observe(containerRef.value)
 
@@ -122,18 +150,18 @@ const isAnimating = ref(false)
 
 function equal2D<T>(a: T[][], b: T[][]): boolean {
   // outer length
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length) return false
 
   for (let i = 0; i < a.length; i++) {
-    const rowA = a[i];
-    const rowB = b[i];
+    const rowA = a[i]
+    const rowB = b[i]
     if (!rowA || !rowB) return false
 
     // inner length
-    if (rowA.length !== rowB.length) return false;
+    if (rowA.length !== rowB.length) return false
 
     for (let j = 0; j < rowA.length; j++) {
-      if (rowA[j] !== rowB[j]) return false;
+      if (rowA[j] !== rowB[j]) return false
     }
   }
 

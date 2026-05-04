@@ -14,12 +14,12 @@ Text in .lc files has the following format:
 - elemID is the ID of the target element this text is associated with, or null if it's standalone text
  */
 export class Text {
-  content: string;
+  content: string
   xPOS: number
-  yPOS: number;
-  fontSize: number;
-  elementID: number | null;
-  unknown: number;
+  yPOS: number
+  fontSize: number
+  elementID: number | null
+  unknown: number
 
   /**
    * Creates a new Text instance and adds it to the provided fileTexts array.
@@ -31,7 +31,15 @@ export class Text {
    * @param fileTexts
    * @param unknown
    */
-  constructor(xPOS: number, yPOS: number, fontSize: number = 12, content: string, elementID: number | null = null, fileTexts:Text[] , unknown: number = 0) {
+  constructor(
+    xPOS: number,
+    yPOS: number,
+    fontSize: number = 12,
+    content: string,
+    elementID: number | null = null,
+    fileTexts: Text[],
+    unknown: number = 0,
+  ) {
     this.xPOS = xPOS
     this.yPOS = yPOS
     this.fontSize = fontSize
@@ -39,8 +47,7 @@ export class Text {
     this.elementID = elementID
     this.unknown = unknown
 
-    fileTexts.push(this);
-
+    fileTexts.push(this)
   }
 
   /**
@@ -48,8 +55,20 @@ export class Text {
    * @returns {string} {<x>,<y>,<fontSize>,<unknown-default:0>,<text>,<elemID/null>}
    *
    */
-  toString():string {
-    return '{' + this.xPOS + ',' + this.yPOS + ',' + this.fontSize + ',' + this.unknown + ',' + this.content.replace('/', '') + (this.elementID !== null ? ','+this.elementID : '') + '}';
+  toString(): string {
+    return (
+      '{' +
+      this.xPOS +
+      ',' +
+      this.yPOS +
+      ',' +
+      this.fontSize +
+      ',' +
+      this.unknown +
+      ',' +
+      this.content.replace('/', '') +
+      (this.elementID !== null ? ',' + this.elementID : '') +
+      '}'
+    )
   }
-
 }

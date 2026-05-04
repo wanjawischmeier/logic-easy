@@ -1,73 +1,78 @@
-import TruthTablePanel from '@/panels/TruthTablePanel.vue';
-import KVDiagramPanel from '@/panels/KVDiagramPanel.vue';
-import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue';
-import FsmEnginePanel from '@/panels/FsmEnginePanel.vue';
-import StateTablePanel from '@/panels/StateTablePanel.vue';
-import { computed } from 'vue';
-import type { ProjectType } from '@/projects/projectRegistry';
-import { stateManager } from '@/projects/stateManager';
-import QMCPanel from '@/panels/QMCPanel.vue';
+import TruthTablePanel from '@/panels/TruthTablePanel.vue'
+import KVDiagramPanel from '@/panels/KVDiagramPanel.vue'
+import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue'
+import FsmEnginePanel from '@/panels/FsmEnginePanel.vue'
+import StateTablePanel from '@/panels/StateTablePanel.vue'
+import { computed } from 'vue'
+import type { ProjectType } from '@/projects/projectRegistry'
+import { stateManager } from '@/projects/stateManager'
+import QMCPanel from '@/panels/QMCPanel.vue'
 
-export type PanelRequirement = 'TruthTable' | 'Automaton' | 'Min2InputVars' | 'Max4InputVars' | 'NotSupported';
+export type PanelRequirement =
+  | 'TruthTable'
+  | 'Fsm'
+  | 'Min2InputVars'
+  | 'Max4InputVars'
+  | 'NotSupported'
 export type RequirementType = 'CREATE' | 'VIEW'
 
 /**
  * Create requirements propagate down
  */
 type Requirements = {
-  create?: PanelRequirement[];
-  view?: PanelRequirement[];
+  create?: PanelRequirement[]
+  view?: PanelRequirement[]
 }
 
 /**
  * Dock panel entry
  */
 type DockEntry = {
-  id: string;
-  label: string;
-  component: unknown;
-  projectType?: ProjectType;
-  requires?: Requirements;
-  minimumWidth?: number;
-};
+  id: string
+  label: string
+  component: unknown
+  projectType?: ProjectType
+  requires?: Requirements
+  minimumWidth?: number
+}
 
 /**
  * Menu node that groups dock entries
  */
 type DockMenuNode = {
-  label: string;
-  children: DockRegistryEntry[];
-  requires?: Requirements;
-};
+  label: string
+  children: DockRegistryEntry[]
+  requires?: Requirements
+}
 
 /**
  * Union type for registry entries
  */
-type DockRegistryEntry = DockEntry | DockMenuNode;
+type DockRegistryEntry = DockEntry | DockMenuNode
 
 /**
  * Type guard to check if an entry is a DockEntry
  */
 function isDockEntry(entry: DockRegistryEntry): entry is DockEntry {
-  return 'id' in entry;
+  return 'id' in entry
 }
 
 /**
  * Type guard to check if an entry is a DockMenuNode
  */
 function isDockMenuNode(entry: DockRegistryEntry): entry is DockMenuNode {
-  return 'children' in entry && !('id' in entry);
+  return 'children' in entry && !('id' in entry)
 }
 
 export type MenuEntry = {
-  label: string;
-  action?: () => void;
-  tooltip?: string;
-  panelId?: string;
-  children?: MenuEntry[];
-  createProject?: boolean;
-  disabled?: boolean;
-};
+  label: string
+  action?: () => void
+  tooltip?: string
+  panelId?: string
+  children?: MenuEntry[]
+  createProject?: boolean
+  disabled?: boolean
+}
 
 export const dockRegistry: DockRegistryEntry[] = [
   {
@@ -77,14 +82,11 @@ export const dockRegistry: DockRegistryEntry[] = [
     projectType: 'truth-table',
     minimumWidth: 500,
     requires: {
-      view: ['TruthTable']
-    }
+      view: ['TruthTable'],
+    },
   },
   {
     label: 'Minimization',
-    requires: {
-      view: ['TruthTable']
-    },
     children: [
       {
         id: 'kv-diagram',
@@ -93,7 +95,7 @@ export const dockRegistry: DockRegistryEntry[] = [
         projectType: 'truth-table',
         minimumWidth: 400,
         requires: {
-          view: ['TruthTable', 'Min2InputVars', 'Max4InputVars']
+          view: ['Min2InputVars', 'Max4InputVars'],
         },
       },
       {
@@ -102,38 +104,17 @@ export const dockRegistry: DockRegistryEntry[] = [
         component: QMCPanel,
         projectType: 'truth-table',
         minimumWidth: 400,
-        requires: {
-          view: ['TruthTable']
-        },
-      }
-    ]
-  },
-  {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
+      },
+    ],
   },
   {
     id: 'state-table',
     label: 'State Table',
     component: StateTablePanel,
-    projectType: 'automaton',
+    projectType: 'fsm',
     requires: {
-      view: ['Automaton']
-    }
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported']
-    }
+      view: ['Fsm'],
+    },
   },
   {
     id: 'lc-iframe',
@@ -144,55 +125,61 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'fsm-engine',
     label: 'FSM Engine',
     component: FsmEnginePanel,
-    projectType: 'automaton',
+    projectType: 'fsm',
     requires: {
-      view: ['Automaton']
-    }
+      view: ['Fsm'],
+    },
   },
-];
+]
 
-const convertRegistryEntryToMenuEntry = (entry: DockRegistryEntry, requirementType: RequirementType, createProject = false): MenuEntry => {
+const convertRegistryEntryToMenuEntry = (
+  entry: DockRegistryEntry,
+  requirementType: RequirementType,
+  createProject = false,
+): MenuEntry => {
   if (isDockMenuNode(entry)) {
     // Menu node with children
-    const requirementsMet = checkDockMenuNodeRequirements(entry, requirementType);
+    const requirementsMet = checkDockMenuNodeRequirements(entry, requirementType)
 
     return {
       label: entry.label,
       children: requirementsMet
-        ? entry.children.map(child => convertRegistryEntryToMenuEntry(child, requirementType, createProject))
+        ? entry.children.map((child) =>
+            convertRegistryEntryToMenuEntry(child, requirementType, createProject),
+          )
         : undefined,
-      disabled: !requirementsMet
-    };
+      disabled: !requirementsMet,
+    }
   }
 
   // Actual dock entry
   const menuEntry: MenuEntry = {
     label: entry.label,
     panelId: entry.id,
-    disabled: !checkDockEntryRequirements(entry, requirementType)
-  };
-
-  if (createProject) {
-    menuEntry.createProject = true;
+    disabled: !checkDockEntryRequirements(entry, requirementType),
   }
 
-  return menuEntry;
-};
+  if (createProject) {
+    menuEntry.createProject = true
+  }
+
+  return menuEntry
+}
 
 export const newMenu = computed<MenuEntry[]>(() => {
   // Flatten the registry to get only DockEntries with projectType
-  const flatEntries = flattenDockEntries();
+  const flatEntries = flattenDockEntries()
   return flatEntries
     .filter((entry) => entry.projectType !== undefined)
     .map((entry) => convertRegistryEntryToMenuEntry(entry, 'CREATE', true))
-    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false));
-});
+    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false))
+})
 
 export const viewMenu = computed<MenuEntry[]>(() => {
   return dockRegistry
     .map((entry) => convertRegistryEntryToMenuEntry(entry, 'VIEW'))
-    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false));
-});
+    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false))
+})
 
 /**
  * Recursively searches for a DockEntry by id, including nested children.
@@ -200,16 +187,19 @@ export const viewMenu = computed<MenuEntry[]>(() => {
  * @param entries The entries to search through (defaults to top-level dockRegistry).
  * @returns The found DockEntry or undefined.
  */
-export function findDockEntry(id: string, entries: DockRegistryEntry[] = dockRegistry): DockEntry | undefined {
+export function findDockEntry(
+  id: string,
+  entries: DockRegistryEntry[] = dockRegistry,
+): DockEntry | undefined {
   for (const entry of entries) {
     if (isDockEntry(entry)) {
-      if (entry.id === id) return entry;
+      if (entry.id === id) return entry
     } else if (isDockMenuNode(entry)) {
-      const found = findDockEntry(id, entry.children);
-      if (found) return found;
+      const found = findDockEntry(id, entry.children)
+      if (found) return found
     }
   }
-  return undefined;
+  return undefined
 }
 
 /**
@@ -218,87 +208,110 @@ export function findDockEntry(id: string, entries: DockRegistryEntry[] = dockReg
  * @returns A flat array of all DockEntry objects (excludes menu nodes).
  */
 function flattenDockEntries(entries: DockRegistryEntry[] = dockRegistry): DockEntry[] {
-  const result: DockEntry[] = [];
+  const result: DockEntry[] = []
   for (const entry of entries) {
     if (isDockEntry(entry)) {
-      result.push(entry);
+      result.push(entry)
     } else if (isDockMenuNode(entry)) {
-      result.push(...flattenDockEntries(entry.children));
+      result.push(...flattenDockEntries(entry.children))
     }
   }
-  return result;
+  return result
 }
 
 // mapping for :components prop consumed by dockview
 export const dockComponents: Record<string, unknown> = Object.fromEntries(
-  flattenDockEntries().map((e) => [e.id, e.component])
-) as Record<string, unknown>;
+  flattenDockEntries().map((e) => [e.id, e.component]),
+) as Record<string, unknown>
 
 const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
-  if (!requirements) return true;
-  let checkPassed = true;
+  if (!requirements) return true
+  let checkPassed = true
+
+  // determine available input variable count for both truth-table and fsm contexts
+  const getAvailableInputVarCount = (): number => {
+    const tt = stateManager.state.truthTable
+    if (tt && Array.isArray(tt.inputVars)) return tt.inputVars.length
+
+    const fsm = stateManager.state.fsm
+    if (fsm) {
+      const stateCount = (fsm.nodes || []).length
+      const stateBits =
+        stateCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, stateCount))))
+      const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
+      return stateBits + inputBits
+    }
+
+    return 0
+  }
 
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
         // Check if truth table state exists
         if (!stateManager.state.truthTable) {
-          checkPassed = false;
+          checkPassed = false
         }
-        break;
+        break
 
-      case 'Automaton':
+      case 'Fsm':
         // Check if truth table state exists
-        if (!stateManager.state.automaton) {
-          checkPassed = false;
+        if (!stateManager.state.fsm) {
+          checkPassed = false
         }
-        break;
+        break
 
       case 'Min2InputVars':
-        // Check if truth table has at least 2 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
-          checkPassed = false;
+        // Require at least 2 minimizer input variables
+        if (getAvailableInputVarCount() < 2) {
+          checkPassed = false
         }
-        break;
+        break
 
       case 'Max4InputVars':
-        // Check if truth table has at most 4 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
-          checkPassed = false;
+        // Require less than 5 minimizer input variables
+        if (getAvailableInputVarCount() > 4) {
+          checkPassed = false
         }
-        break;
+        break
 
       case 'NotSupported':
-        checkPassed = false;
-        break;
+        checkPassed = false
+        break
 
       default:
-        break;
+        break
     }
-  });
-  return checkPassed;
+  })
+  return checkPassed
 }
 
-export const checkDockEntryRequirements = (panel: DockEntry, requirementType: RequirementType): boolean => {
-  if (!panel.requires) return true;
+export const checkDockEntryRequirements = (
+  panel: DockEntry,
+  requirementType: RequirementType,
+): boolean => {
+  if (!panel.requires) return true
 
-  const createPanelRequirementsPassed = checkPanelRequirements(panel.requires.create);
+  const createPanelRequirementsPassed = checkPanelRequirements(panel.requires.create)
   if (requirementType === 'CREATE') {
-    return createPanelRequirementsPassed;
+    return createPanelRequirementsPassed
   }
 
   // Create requirements propagate down
-  return createPanelRequirementsPassed && checkPanelRequirements(panel.requires.view);
+  return createPanelRequirementsPassed && checkPanelRequirements(panel.requires.view)
 }
 
-export const checkDockMenuNodeRequirements = (node: DockMenuNode, requirementType: RequirementType): boolean => {
-  if (!node.requires) return true;
+export const checkDockMenuNodeRequirements = (
+  node: DockMenuNode,
+  requirementType: RequirementType,
+): boolean => {
+  if (!node.requires) return true
 
-  const createPanelRequirementsPassed = checkPanelRequirements(node.requires.create);
+  const createPanelRequirementsPassed = checkPanelRequirements(node.requires.create)
   if (requirementType === 'CREATE') {
-    return createPanelRequirementsPassed;
+    return createPanelRequirementsPassed
   }
 
   // Create requirements propagate down
-  return createPanelRequirementsPassed && checkPanelRequirements(node.requires.view);
+  return createPanelRequirementsPassed && checkPanelRequirements(node.requires.view)
 }

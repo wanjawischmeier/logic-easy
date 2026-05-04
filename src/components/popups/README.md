@@ -5,10 +5,13 @@ Popup components used across the application.
 Modal and popup UIs for user flows (credits, manual, project creation, property editing).
 
 # Usage
+
 ## Basic popups
+
 Use `PopupBase.vue` for consistent styling and accessibility.
 
 ## Project creation popups
+
 Parent (`ProjectCreationPopup`) validates the project name and provides a `registerValidation` function via slot props. Child props components call `registerValidation(fn)` to register a function that returns `{ valid: boolean, error?: string }`.
 
 ### Example:
@@ -28,17 +31,17 @@ Parent (`ProjectCreationPopup`) validates the project name and provides a `regis
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-const props = defineProps<{ inputCount?: number; registerValidation?: (fn: any) => void }>();
-const emit = defineEmits<{ 'update:inputCount': [number] }>();
+import { ref, computed, onMounted, watch } from 'vue'
+const props = defineProps<{ inputCount?: number; registerValidation?: (fn: any) => void }>()
+const emit = defineEmits<{ 'update:inputCount': [number] }>()
 
-const local = ref(props.inputCount ?? 1);
-watch(local, v => emit('update:inputCount', v));
+const local = ref(props.inputCount ?? 1)
+watch(local, (v) => emit('update:inputCount', v))
 
-const error = computed(() => (local.value < 1 ? 'Must be ≥ 1' : undefined));
+const error = computed(() => (local.value < 1 ? 'Must be ≥ 1' : undefined))
 
 onMounted(() => {
-  props.registerValidation?.(() => ({ valid: !error.value, error: error.value }));
-});
+  props.registerValidation?.(() => ({ valid: !error.value, error: error.value }))
+})
 </script>
 ```

@@ -1,5 +1,5 @@
-import { Toast } from "@/utility/toastService"
-import type { ProjectMetadata, StoredProject } from "./Project"
+import { Toast } from '@/utility/toastService'
+import type { ProjectMetadata, StoredProject } from './Project'
 
 const PROJECT_METADATA_KEY = 'logic-easy-projects-metadata'
 const PROJECT_KEY_PREFIX = 'logic-easy-project-'

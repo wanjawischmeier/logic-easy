@@ -5,7 +5,6 @@ import type { StoredProject } from '@/projects/Project'
 import { COMPATIBLE_STORAGE_VERSIONS, stateManager, STORAGE_VERSION } from '@/projects/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
 
-
 /**
  * Manages current project state (opening, closing, tracking current project)
  */
@@ -75,9 +74,7 @@ export class ProjectLifecycleManager {
    */
   private clearState(): void {
     Object.keys(stateManager.state).forEach(
-      key => delete (
-        stateManager.state as Record<string, unknown>
-      )[key]
+      (key) => delete (stateManager.state as Record<string, unknown>)[key],
     )
   }
 
@@ -94,7 +91,7 @@ export class ProjectLifecycleManager {
     if (!COMPATIBLE_STORAGE_VERSIONS.includes(project.state.version)) {
       console.warn(
         `Failed to open project with id ${projectId}:
-Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}, compatible: [${COMPATIBLE_STORAGE_VERSIONS}])`
+Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}, compatible: [${COMPATIBLE_STORAGE_VERSIONS}])`,
       )
       return null
     }
@@ -104,7 +101,7 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
       projectType: project.projectType,
       hasState: !!project.state,
       stateKeys: project.state ? Object.keys(project.state) : [],
-      sampleState: project.state
+      sampleState: project.state,
     })
 
     // Validate that project type exists in registry
@@ -133,10 +130,10 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     this.setCurrentId(projectId)
 
     // Copy over shared state properties
-    Object.assign(stateManager.state, project.state);
+    Object.assign(stateManager.state, project.state)
 
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
-      stateManagerState: stateManager.state
+      stateManagerState: stateManager.state,
     })
 
     // Emit signal that project was opened

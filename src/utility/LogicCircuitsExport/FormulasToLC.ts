@@ -150,7 +150,9 @@ export function formulaToLC(
   const lampsByOutput = new Map<string, Element>() //lamp map output variablename -> lamp element
   outputVars.forEach((outputVar) => {
     console.log('Processing output variable:', formulas[outputVar])
-    const formulaType = (formulas[outputVar]?.type === 'Disjunctive' ? 'Disjunctive' : 'Conjunctive') as FunctionType
+    const formulaType = (
+      formulas[outputVar]?.type === 'Disjunctive' ? 'Disjunctive' : 'Conjunctive'
+    ) as FunctionType
     const normalized = normalizeFormula(formulas[outputVar], formulaType)
     const terms = normalized.terms
     const termCount = Math.max(terms.length, 1)
