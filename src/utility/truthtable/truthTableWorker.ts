@@ -9,6 +9,7 @@ import {
 } from './colorGenerator'
 import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser'
 import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator'
+import type { Operation } from 'logi.js'
 
 // Message types for worker communication
 export interface WorkerRequest {
@@ -60,7 +61,7 @@ function createEdgeCaseResult(
     minterms: [],
     pis: [],
     chart: null,
-    expressions: [{ name: constant } as any],
+    expressions: [{ name: constant } as unknown as Operation],
     termColors: [defaultColor],
   }
 
@@ -95,7 +96,7 @@ function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermCo
   // Build a map of term string -> color from existing results
   const termColorMap = new Map<string, TermColor>()
 
-  existingPIs.forEach((pi: any, idx: number) => {
+  existingPIs.forEach((pi, idx: number) => {
     const color = existingColors[idx]
     if (pi.term && color) {
       termColorMap.set(pi.term, color)
@@ -105,7 +106,7 @@ function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermCo
   // Accumulate all colors as we generate new ones
   const allColors = Array.from(termColorMap.values())
 
-  return result.pis.map((pi: any) => {
+  return result.pis.map((pi) => {
     // Try to reuse color for this term string if it existed before
     const existingColor = termColorMap.get(pi.term)
     if (existingColor) {
@@ -117,6 +118,10 @@ function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermCo
     allColors.push(newColor) // Add to accumulator for next iteration
     return newColor
   })
+}
+
+function shouldUseGenericFormulaColors(truthTable: TruthTableState): boolean {
+  return truthTable.fsmMode !== true
 }
 
 // Web Worker message handler
@@ -189,7 +194,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         formulas,
         couplingTermLatex: currentEdgeResult.couplingTermLatex,
         selectedFormula: currentEdgeResult.formula,
-        formulaTermColors: currentEdgeResult.qmcResult.termColors,
+        formulaTermColors: shouldUseGenericFormulaColors(truthTable)
+          ? currentEdgeResult.qmcResult.termColors
+          : undefined,
       }
 
       self.postMessage(response)
@@ -247,7 +254,12 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       selectedFormula = formulas[currentOutputVar]
 
       // Map formula terms to prime implicant colors
-      if (selectedFormula && currentQmcResult.pis && currentQmcResult.termColors) {
+      if (
+        selectedFormula &&
+        currentQmcResult.pis &&
+        currentQmcResult.termColors &&
+        shouldUseGenericFormulaColors(truthTable)
+      ) {
         formulaTermColors = mapFormulaTermsToPIColors(
           selectedFormula,
           currentQmcResult.pis,
@@ -263,7 +275,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       formulas,
       couplingTermLatex,
       selectedFormula,
-      formulaTermColors,
+      formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
     }
 
     self.postMessage(response)

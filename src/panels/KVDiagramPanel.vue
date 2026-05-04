@@ -42,19 +42,20 @@
             :output-vars="outputVars"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
-            :selected-formula="selectedFormula"
+            :selected-formula="displaySelectedFormula"
             :functionType="functionType"
             :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
-            :formula-term-colors="formulaTermColors"
+            :qmc-result="displayQmcResult"
+            :formula-term-colors="displayFormulaTermColors"
+            :immutable-cell-mask="immutableCellMask"
             @values-changed="tableValues = $event"
           />
         </div>
 
         <FormulaRenderer
-          v-if="couplingTermLatex && showFormula"
+          v-if="displayCouplingTermLatex && showFormula"
           class="pt-8 flex-1"
-          :latex-expression="couplingTermLatex"
+          :latex-expression="displayCouplingTermLatex"
         />
       </div>
 
@@ -71,14 +72,19 @@
             :output-vars="outputVars"
             :outputVariableIndex="index"
             :formulas="{}"
-            :selected-formula="selectedFormula"
+            :selected-formula="displaySelectedFormula"
             :functionType="functionType"
             :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
+            :qmc-result="displayQmcResult"
+            :formula-term-colors="displayFormulaTermColors"
+            :immutable-cell-mask="immutableCellMask"
             @values-changed="tableValues = $event"
           />
 
-          <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
+          <FormulaRenderer
+            :latex-expression="displayCouplingTermLatex"
+            v-if="displayCouplingTermLatex"
+          >
           </FormulaRenderer>
         </div>
       </div>
@@ -102,8 +108,13 @@ import {
   type TruthTableCell,
   type TruthTableData,
 } from '@/projects/truth-table/TruthTableProject'
-import { getDockviewApi } from '@/utility/dockview/integration'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import {
+  buildFsmImmutableCellMask,
+  buildFsmKVDiagramPresentation,
+  applyTruthTableToFsm,
+} from '@/utility/fsm/kvSync'
+import { getDockviewApi } from '@/utility/dockview/integration'
 
 interface KVPanelState {
   showFormula: boolean
@@ -165,6 +176,35 @@ const {
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
 
+// Display-only remapping for FSM context: remap vars from (a,b,c) to actual FSM names
+const fsmPresentation = computed(() => {
+  if (!stateManager.state.fsm) return {}
+  if (!stateManager.state.truthTable) return {}
+  // Explicitly access qmcResult to ensure dependency is tracked
+  const qmc = stateManager.state.truthTable.qmcResult
+  if (!qmc) return {}
+  return buildFsmKVDiagramPresentation(stateManager.state.truthTable)
+})
+
+// Use remapped display values when FSM is active, otherwise use direct state
+const displaySelectedFormula = computed(
+  () => fsmPresentation.value.selectedFormula ?? selectedFormula.value,
+)
+
+const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcResult.value)
+
+const displayFormulaTermColors = computed(
+  () => fsmPresentation.value.formulaTermColors ?? formulaTermColors.value,
+)
+
+const displayCouplingTermLatex = computed(
+  () => fsmPresentation.value.couplingTermLatex ?? couplingTermLatex.value,
+)
+
+const immutableCellMask = computed(() =>
+  buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),
+)
+
 // Watch for local changes and notify DockView
 watch(
   tableValues,
@@ -178,9 +218,16 @@ watch(
       return
     }
 
-    console.log('[KVDiagramPanel] Calling updateTruthTable')
+    console.log('[KVDiagramPanel] Calling truthTableWorkerManager.update()')
     Object.assign(stateManager.state.truthTable.values, newVal)
     truthTableWorkerManager.update()
+
+    // sync to FSM if editing FSM-derived table while avoiding loops
+    if (stateManager.state.fsm) {
+      stateManager.suppressFsmSync(() => {
+        applyTruthTableToFsm(stateManager.state.fsm!, stateManager.state.truthTable!)
+      })
+    }
   },
   { deep: true },
 )

@@ -155,6 +155,7 @@ class TruthTableWorkerManager {
       qmcResult: toRaw(truthTable.qmcResult),
       couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: toRaw(truthTable.selectedFormula),
+      fsmMode: truthTable.fsmMode,
     }
 
     const request: WorkerRequest = {

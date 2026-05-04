@@ -2,7 +2,7 @@ import { Connection } from './Connections.ts'
 /**
  * A node can be either a FreeConnector or an ElementConnector
  */
-export type Node = FreeConnector | ElementConnector | Connector
+export type Node = FreeConnector | ElementConnector | Connector;
 
 /**
  To create connections in Logic Circuit, two components are needed: Nodes and Connections
@@ -29,48 +29,49 @@ Connections link these nodes together, they are defined in the fourth line of th
 
 Targets of nodes can be added for each node, out of these targets connections are automatically generated
  */
-export class Connector {
-  targets: Node[]
-  nodeID: number
+export class Connector{
+  targets:Node[]
+  nodeID:number;
 
-  fileNodes: Node[]
-  fileConnections: Connection[]
+  fileNodes:Node[];
+  fileConnections:Connection[];
 
   /**
    *
    * @param fileNodes
    * @param fileConnections
    */
-  constructor(fileNodes: Node[], fileConnections: Connection[]) {
-    this.fileNodes = fileNodes
-    this.fileConnections = fileConnections
+  constructor(fileNodes:Node[], fileConnections:Connection[]) {
+    this.fileNodes = fileNodes;
+    this.fileConnections = fileConnections;
 
-    this.targets = []
+    this.targets = [];
     this.fileNodes.push(this)
-    this.nodeID = this.fileNodes.length - 1 //get index in nodes list
+    this.nodeID = this.fileNodes.length-1 //get index in nodes list
   }
 
   /**
    * adds target node, used to automatically generate connections between nodes
    * @param target
    */
-  addTarget(target: Node) {
-    this.targets.push(target)
-    new Connection(this, target)
+  addTarget(target:Node){
+    this.targets.push(target);
+    new Connection(this, target);
   }
 
   /**
    * @return ID of the node
    * can be referenced in connections
    */
-  getID(): number {
-    return this.nodeID
+  getID():number{
+    return this.nodeID;
   }
 }
 
-export class FreeConnector extends Connector {
-  xPOS: number | null
-  yPOS: number | null
+
+export class FreeConnector extends Connector{
+  xPOS:number|null;
+  yPOS:number|null;
 
   /**
    * @param xPOS (free on canvas)
@@ -78,25 +79,26 @@ export class FreeConnector extends Connector {
    * @param fileNodes
    * @param fileConnections
    */
-  constructor(xPOS: number, yPOS: number, fileNodes: Node[], fileConnections: Connection[]) {
-    super(fileNodes, fileConnections)
-    this.xPOS = xPOS
-    this.yPOS = yPOS
+  constructor(xPOS:number, yPOS:number, fileNodes:Node[], fileConnections:Connection[]) {
+    super(fileNodes, fileConnections);
+    this.xPOS = xPOS;
+    this.yPOS = yPOS;
   }
+
 
   /**
    * Converts FreeConnector Node to .lc file format {<xPOS>,<yPOS>}
    * @return string {<yPOS>,<yPOS>}
    */
-  toString(): string {
-    return '{' + this.xPOS + ',' + this.yPOS + '}'
+  toString():string{
+    return '{'+this.xPOS+','+this.yPOS+'}'
   }
 }
 
-export class ElementConnector extends Connector {
-  elementID: number // elementID is position of the element in .lc file element array
-  output: 'i' | 'o' // 'i' for input, 'o' for output
-  portID: number // portID is the specific port number on the element (starting from 0)
+export class ElementConnector extends Connector{
+  elementID:number; // elementID is position of the element in .lc file element array
+  output:( 'i' | 'o'); // 'i' for input, 'o' for output
+  portID:number; // portID is the specific port number on the element (starting from 0)
 
   /**
    * @param elementID
@@ -105,24 +107,19 @@ export class ElementConnector extends Connector {
    * @param fileNodes
    * @param fileConnections
    */
-  constructor(
-    elementID: number,
-    portID: number,
-    output: boolean,
-    fileNodes: Node[],
-    fileConnections: Connection[],
-  ) {
-    super(fileNodes, fileConnections)
-    this.elementID = elementID
-    this.output = output ? 'o' : 'i'
-    this.portID = portID
+  constructor(elementID:number, portID:number, output:boolean, fileNodes:Node[], fileConnections:Connection[]) {
+    super(fileNodes, fileConnections);
+    this.elementID = elementID;
+    this.output = output ? 'o' : 'i';
+    this.portID = portID;
   }
 
   /**
    * converts ElementConnector node to .lc file Format {<elementID>,<type(i/o)>,<portID>}
    * @return string {<elementID><'i'/'o'><portID>}
    */
-  toString() {
-    return '{' + this.elementID + this.output + this.portID + '}'
+  toString(){
+    return '{'+this.elementID+this.output+this.portID+'}'
   }
 }
+

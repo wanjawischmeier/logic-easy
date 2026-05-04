@@ -71,7 +71,7 @@ export function generateTermColor(existingColors: TermColor[] = []): TermColor {
  */
 export function mapFormulaTermsToPIColors(
   formula: Formula,
-  pis: any[],
+  pis: Array<{ term?: string }>,
   piColors: TermColor[],
   inputVars: string[],
 ): TermColor[] {
@@ -88,7 +88,7 @@ export function mapFormulaTermsToPIColors(
     }
 
     // Find matching prime implicant by comparing literals
-    const piIdx = pis.findIndex((pi, idx) => {
+    const piIdx = pis.findIndex((pi) => {
       const piTerm = pi.term as string
       if (!piTerm) return false
 
