@@ -1,4 +1,4 @@
-import { Toast } from "./toastService"
+import { Toast } from './toastService'
 
 type IframeConfig = {
   key: string
@@ -30,7 +30,8 @@ class IframeManager {
 
     const iframe = document.createElement('iframe')
     iframe.src = src
-    iframe.style.cssText = 'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; border: none; display: none;'
+    iframe.style.cssText =
+      'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; border: none; display: none;'
     document.body.appendChild(iframe)
 
     w[key] = iframe
@@ -63,7 +64,8 @@ class IframeManager {
 
       const newIframe = document.createElement('iframe')
       newIframe.src = iframeSrc
-      newIframe.style.cssText = 'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; border: none;'
+      newIframe.style.cssText =
+        'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; border: none;'
 
       document.body.appendChild(newIframe)
 
@@ -80,7 +82,8 @@ class IframeManager {
         newIframe.addEventListener('load', onLoad)
       })
 
-      const oldDisplay = old && typeof old.style !== 'undefined' ? old.style.display || 'none' : 'none'
+      const oldDisplay =
+        old && typeof old.style !== 'undefined' ? old.style.display || 'none' : 'none'
       newIframe.style.display = oldDisplay
 
       w[key] = newIframe
@@ -113,11 +116,11 @@ export const iframeManager = new IframeManager()
 iframeManager.register({
   key: '__lc_preloaded_iframe',
   src: '/logic-easy/logic-circuits/index.html',
-  preload: true
+  preload: true,
 })
 
 iframeManager.register({
   key: '__fsm_preloaded_iframe',
   src: '/logic-easy/fsm-engine/dist/index.html',
-  preload: true
+  preload: true,
 })

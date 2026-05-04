@@ -1,8 +1,9 @@
 import { reactive, ref, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
+import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { SerializedDockview } from 'dockview-vue'
+import { syncFsmStateToTruthTable } from '@/utility/fsm/kvSync'
 
 /**
  * The current storage version
@@ -12,9 +13,7 @@ export const STORAGE_VERSION: number = 8
 /**
  * All storage versions that are compatible with the current one
  */
-export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
-  8
-]
+export const COMPATIBLE_STORAGE_VERSIONS: number[] = [8]
 
 /**
  * Everything that describes the state of the app,
@@ -23,7 +22,7 @@ export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
 export interface AppState {
   version: number
   truthTable?: TruthTableState
-  automaton?: AutomatonState
+  fsm?: FsmState
   panelStates?: Record<string, Record<string, unknown>>
   dockviewLayout?: SerializedDockview // Stores the dockview panel layout
 }
@@ -36,6 +35,7 @@ export class StateManager {
   public isSaving = ref(false)
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
+  private isSyncingFromFsm = false
 
   /**
    * Empty default state
@@ -47,7 +47,7 @@ export class StateManager {
   }
 
   constructor() {
-    this.state = reactive(StateManager.defaultState) as UnwrapNestedRefs<AppState>;
+    this.state = reactive(StateManager.defaultState) as UnwrapNestedRefs<AppState>
 
     // Auto-save to localStorage whenever state changes
     // Debounce to avoid excessive writes
@@ -68,10 +68,31 @@ export class StateManager {
           }, 300)
         }, 300)
       },
-      { deep: true }
+      { deep: true },
+    )
+
+    // automatically sync FSM to truth table whenever FSM changes
+    watch(
+      () => this.state.fsm,
+      (fsm) => {
+        if (!fsm) return
+
+        if (this.isSyncingFromFsm) {
+          this.isSyncingFromFsm = false
+          return
+        }
+
+        syncFsmStateToTruthTable(fsm)
+      },
+      { deep: true },
     )
   }
 
+  // temporarily suppress FSM <-> TruthTable sync to avoid loops
+  suppressFsmSync(callback: () => void) {
+    this.isSyncingFromFsm = true
+    callback()
+  }
 
   /**
    * Open file picker and load a project
@@ -86,7 +107,7 @@ export class StateManager {
   getPanelState<T>(panelId: string): T | undefined {
     const panelState = this.state.panelStates?.[panelId]
     // Return a plain object copy to avoid reactivity issues
-    return panelState ? JSON.parse(JSON.stringify(panelState)) as T : undefined
+    return panelState ? (JSON.parse(JSON.stringify(panelState)) as T) : undefined
   }
 
   /**
@@ -104,7 +125,7 @@ export class StateManager {
         }
         this.state.panelStates[panelId] = newState as Record<string, unknown>
       },
-      { deep: true, flush: 'post' }
+      { deep: true, flush: 'post' },
     )
 
     return stopWatch

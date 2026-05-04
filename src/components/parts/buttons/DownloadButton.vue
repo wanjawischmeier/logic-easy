@@ -1,11 +1,26 @@
 <template>
   <div class="relative" ref="dropdownContainer">
-    <div class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5">
-      <button @click.stop="handleClick" :disabled="isCapturing || !hasDownloadOptions"
+    <div
+      class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5"
+    >
+      <button
+        @click.stop="handleClick"
+        :disabled="isCapturing || !hasDownloadOptions"
         class="px-3 py-2 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
-        :class="showDropdown ? 'bg-primary' : ''" title="Download">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        :class="showDropdown ? 'bg-primary' : ''"
+        title="Download"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>

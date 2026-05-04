@@ -41,14 +41,14 @@ export class ProjectMetadataManager {
    * Find project info by ID
    */
   findById(projectId: number): ProjectInfo | null {
-    return this.metadata.projects.find(p => p.id === projectId) || null
+    return this.metadata.projects.find((p) => p.id === projectId) || null
   }
 
   /**
    * Update project info in metadata
    */
   update(projectInfo: ProjectInfo): void {
-    const index = this.metadata.projects.findIndex(p => p.id === projectInfo.id)
+    const index = this.metadata.projects.findIndex((p) => p.id === projectInfo.id)
     if (index >= 0) {
       this.metadata.projects[index] = projectInfo
     } else {
@@ -61,7 +61,7 @@ export class ProjectMetadataManager {
    * Remove project from metadata
    */
   remove(projectId: number): void {
-    this.metadata.projects = this.metadata.projects.filter(p => p.id !== projectId)
+    this.metadata.projects = this.metadata.projects.filter((p) => p.id !== projectId)
     ProjectStorage.saveMetadata(this.metadata)
   }
 
@@ -101,7 +101,9 @@ export class ProjectMetadataManager {
       return
     }
 
-    console.warn(`No metadata found: Rebuilding metadata from ${projectIds.length} projects in localStorage`)
+    console.warn(
+      `No metadata found: Rebuilding metadata from ${projectIds.length} projects in localStorage`,
+    )
 
     const projectInfos: ProjectInfo[] = []
     for (const projectId of projectIds) {
@@ -111,7 +113,7 @@ export class ProjectMetadataManager {
           id: project.id,
           name: project.props?.name || project.name || 'Untitled',
           lastModified: project.lastModified,
-          projectType: project.projectType
+          projectType: project.projectType,
         })
       }
     }

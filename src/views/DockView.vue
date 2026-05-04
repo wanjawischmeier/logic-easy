@@ -7,11 +7,16 @@
     <div class="h-px bg-surface-2"></div>
 
     <div class="flex-1 min-h-0 relative">
-      <dockview-vue class="dockview-theme-abyss w-full" :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
-        :components="componentsForDockview" :theme="themeAbyss" :disableAutoFocus="true" @ready="onReady" />
+      <dockview-vue
+        class="dockview-theme-abyss w-full"
+        :class="hasPanels ? 'h-[calc(100vh-40px)]' : 'h-0'"
+        :components="componentsForDockview"
+        :theme="themeAbyss"
+        :disableAutoFocus="true"
+        @ready="onReady"
+      />
 
-      <GettingStartedView v-if="!hasPanels">
-      </GettingStartedView>
+      <GettingStartedView v-if="!hasPanels"> </GettingStartedView>
 
       <!-- Loading Screen -->
       <LoadingScreen />
@@ -19,17 +24,29 @@
       <!-- Popup System -->
       <template v-if="popupService.current.value">
         <!-- Generic Popup -->
-        <component v-if="!popupService.isProjectCreation && 'component' in popupService.current.value"
-          :is="popupService.current.value.component" v-bind="popupService.current.value.props" />
+        <component
+          v-if="!popupService.isProjectCreation && 'component' in popupService.current.value"
+          :is="popupService.current.value.component"
+          v-bind="popupService.current.value.props"
+        />
 
         <!-- Project Creation Popup -->
         <ProjectCreationPopup
-          v-if="popupService.isProjectCreation && 'projectPropsComponent' in popupService.current.value" :visible="true"
-          :initial-props="popupService.current.value.initialProps" @close="popupService.close"
-          @create="handleProjectCreate" v-slot="slotProps">
-          <component :is="popupService.current.value.projectPropsComponent" :model-value="slotProps.modelValue"
+          v-if="
+            popupService.isProjectCreation && 'projectPropsComponent' in popupService.current.value
+          "
+          :visible="true"
+          :initial-props="popupService.current.value.initialProps"
+          @close="popupService.close"
+          @create="handleProjectCreate"
+          v-slot="slotProps"
+        >
+          <component
+            :is="popupService.current.value.projectPropsComponent"
+            :model-value="slotProps.modelValue"
             @update:model-value="slotProps['onUpdate:modelValue']"
-            :register-validation="slotProps.registerValidation" />
+            :register-validation="slotProps.registerValidation"
+          />
         </ProjectCreationPopup>
       </template>
     </div>
@@ -40,7 +57,7 @@
 import '@/style/dockview.css'
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
-import { themeAbyss } from 'dockview-vue';
+import { themeAbyss } from 'dockview-vue'
 import DockViewHeader from '@/components/DockViewHeader.vue'
 import { dockComponents } from '@/router/dockRegistry'
 import { stateManager } from '@/projects/stateManager'
@@ -88,9 +105,9 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
 
   // Clear existing panels only when switching projects
   if (isProjectChange) {
-    const panelIds = api.panels.map(p => p.id)
-    panelIds.forEach(id => {
-      const panel = api.panels.find(p => p.id === id)
+    const panelIds = api.panels.map((p) => p.id)
+    panelIds.forEach((id) => {
+      const panel = api.panels.find((p) => p.id === id)
       if (panel) api.removePanel(panel)
     })
   }
@@ -149,34 +166,46 @@ const setupProjectChangeWatcher = (api: DockviewApi) => {
   watch(
     () => ({
       projectId: projectManager.currentProjectInfo?.id,
-      projectOpenedCounter: projectManager.lifecycle.projectOpened.value
+      projectOpenedCounter: projectManager.lifecycle.projectOpened.value,
     }),
     (newVal, oldVal) => {
       // Trigger when either:
       // 1. Project ID changes (first load, project change)
       // 2. projectOpened counter changes (reload of same project)
-      if (newVal.projectId &&
-        (newVal.projectId !== oldVal?.projectId || newVal.projectOpenedCounter !== oldVal?.projectOpenedCounter)) {
+      if (
+        newVal.projectId &&
+        (newVal.projectId !== oldVal?.projectId ||
+          newVal.projectOpenedCounter !== oldVal?.projectOpenedCounter)
+      ) {
         const newProjectInfo = projectManager.currentProjectInfo
-        const isProjectChange = oldVal?.projectId !== null && oldVal?.projectId !== undefined && newVal.projectId !== oldVal?.projectId
+        const isProjectChange =
+          oldVal?.projectId !== null &&
+          oldVal?.projectId !== undefined &&
+          newVal.projectId !== oldVal?.projectId
 
         if (newProjectInfo) {
-          console.log(isProjectChange ? `Project changed to: ${projectManager.projectString(newProjectInfo)}` : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`)
+          console.log(
+            isProjectChange
+              ? `Project changed to: ${projectManager.projectString(newProjectInfo)}`
+              : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`,
+          )
         }
 
-        restoreLayout(api, isProjectChange).then(() => {
-          // Hide loading screen after layout is fully restored
-          setTimeout(() => {
+        restoreLayout(api, isProjectChange)
+          .then(() => {
+            // Hide loading screen after layout is fully restored
+            setTimeout(() => {
+              loadingService.hide()
+              isInitializingProject = false
+            }, 100)
+          })
+          .catch((err) => {
+            console.error('Failed to restore layout:', err)
             loadingService.hide()
             isInitializingProject = false
-          }, 100)
-        }).catch(err => {
-          console.error('Failed to restore layout:', err)
-          loadingService.hide()
-          isInitializingProject = false
-        })
+          })
       }
-    }
+    },
   )
 }
 
@@ -249,7 +278,7 @@ const handleProjectCreate = (props: Record<string, unknown>) => {
 }
 
 const onKeydown = (e: KeyboardEvent) => {
-  const isCtrlOrCmd = e.ctrlKey || e.metaKey  // Windows/Linux ctrl, macOS cmd
+  const isCtrlOrCmd = e.ctrlKey || e.metaKey // Windows/Linux ctrl, macOS cmd
 
   if (isCtrlOrCmd && e.key.toLowerCase() === 's') {
     e.preventDefault()

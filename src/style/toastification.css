@@ -11,7 +11,7 @@
   flex-direction: column;
   pointer-events: none;
 }
-@media only screen and (min-width : 600px) {
+@media only screen and (min-width: 600px) {
   .Vue-Toastification__container.top-left,
   .Vue-Toastification__container.top-right,
   .Vue-Toastification__container.top-center {
@@ -64,7 +64,7 @@
     margin-right: auto;
   }
 }
-@media only screen and (max-width : 600px) {
+@media only screen and (max-width: 600px) {
   .Vue-Toastification__container {
     width: 100vw;
     padding: 0;
@@ -95,14 +95,11 @@
   margin-bottom: 1rem;
   padding: 22px 24px;
   border-radius: 8px;
-  box-shadow: 0 1px 10px 0 rgba(0, 0, 0, 0.1), 0 2px 15px 0 rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 1px 10px 0 rgba(0, 0, 0, 0.1),
+    0 2px 15px 0 rgba(0, 0, 0, 0.05);
   justify-content: space-between;
-  font-family:
-    "Lato",
-    Helvetica,
-    "Roboto",
-    Arial,
-    sans-serif;
+  font-family: 'Lato', Helvetica, 'Roboto', Arial, sans-serif;
   max-width: 600px;
   min-width: 326px;
   pointer-events: auto;
@@ -133,7 +130,7 @@
   background-color: var(--color-warning);
   color: #fff;
 }
-@media only screen and (max-width : 600px) {
+@media only screen and (max-width: 600px) {
   .Vue-Toastification__toast {
     border-radius: 0px;
     margin-bottom: 0.5rem;
@@ -166,7 +163,9 @@
   align-items: center;
   color: #fff;
   opacity: 0.3;
-  transition: visibility 0s, opacity 100ms linear;
+  transition:
+    visibility 0s,
+    opacity 100ms linear;
 }
 .Vue-Toastification__close-button:hover,
 .Vue-Toastification__close-button:focus {
@@ -218,7 +217,11 @@
   margin: auto 0px auto 18px;
 }
 @keyframes bounceInRight {
-  from, 60%, 75%, 90%, to {
+  from,
+  60%,
+  75%,
+  90%,
+  to {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   from {
@@ -250,7 +253,11 @@
   }
 }
 @keyframes bounceInLeft {
-  from, 60%, 75%, 90%, to {
+  from,
+  60%,
+  75%,
+  90%,
+  to {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   0% {
@@ -282,7 +289,11 @@
   }
 }
 @keyframes bounceInUp {
-  from, 60%, 75%, 90%, to {
+  from,
+  60%,
+  75%,
+  90%,
+  to {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   from {
@@ -307,7 +318,8 @@
   20% {
     transform: translate3d(0, -10px, 0);
   }
-  40%, 45% {
+  40%,
+  45% {
     opacity: 1;
     transform: translate3d(0, 20px, 0);
   }
@@ -317,7 +329,11 @@
   }
 }
 @keyframes bounceInDown {
-  from, 60%, 75%, 90%, to {
+  from,
+  60%,
+  75%,
+  90%,
+  to {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   0% {
@@ -342,7 +358,8 @@
   20% {
     transform: translate3d(0, 10px, 0);
   }
-  40%, 45% {
+  40%,
+  45% {
     opacity: 1;
     transform: translate3d(0, -20px, 0);
   }
