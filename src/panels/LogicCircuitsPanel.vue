@@ -149,9 +149,6 @@ async function foundSignificantChanges(): Promise<boolean> {
   if (!newLC) return true
   if (!currentLCContent) return false
 
-  console.log('new LC content:', newLC)
-  console.log('current LC content:', currentLCContent)
-
   // check element changes
   const newElems = newLC.match(/\[([^\]]*)\]/g)?.[1]
 
@@ -187,15 +184,6 @@ async function foundSignificantChanges(): Promise<boolean> {
     )
     .join('')
 
-  console.log('Change detection:', {
-    newIs,
-    newNs,
-    lastIs,
-    lastNs,
-    newCoords,
-    lastCoords,
-  })
-
   if (newIs !== lastIs || newNs !== lastNs || newCoords !== lastCoords) return true
 
   // check node changes
@@ -208,13 +196,6 @@ async function foundSignificantChanges(): Promise<boolean> {
   const newFreeNodes = (newNodes?.match(/\d+,\d+/g) ?? []).length
   const oldFreeNodes = (lastNodes.match(/\d+,\d+/g) ?? []).length
 
-  console.log('Change detection - nodes:', {
-    newNodeCount,
-    oldNodeCount,
-    newFreeNodes,
-    oldFreeNodes,
-  })
-
   if (newNodeCount !== oldNodeCount) return true
   if (newFreeNodes !== oldFreeNodes) return true
 
@@ -224,11 +205,6 @@ async function foundSignificantChanges(): Promise<boolean> {
 
   const newConnCount = (newConns?.match(/{/g) ?? []).length
   const oldConnCount = (lastConns.match(/{/g) ?? []).length
-
-  console.log('Change detection - connections:', {
-    newConnCount,
-    oldConnCount,
-  })
 
   if (newConnCount !== oldConnCount) return true
 
