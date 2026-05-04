@@ -17,7 +17,7 @@
     </template>
 
     <template #content>
-      <div class="flex flex-col gap-3 min-w-[19rem]">
+      <div class="flex flex-col gap-3 min-w-76">
         <!-- Dynamic slots with labels from prop -->
         <div
           v-for="(label, slotName) in customSettingSlotLabels"
@@ -34,6 +34,7 @@
             :values="outputVars"
             :initialSelected="selectedOutputIndex"
             :onSelect="handleOutputChange"
+            :compact="true"
           >
             <template #label="{ label }">
               <span class="inline-flex items-center justify-center whitespace-nowrap leading-none">
