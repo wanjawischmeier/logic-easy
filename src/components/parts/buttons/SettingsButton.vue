@@ -85,15 +85,15 @@ const selectedFunctionRepresentationIndex = computed(() =>
 )
 
 const handleOutputChange = (value: unknown, index: number) => {
-    if (!stateManager.state.truthTable) return
-    stateManager.state.truthTable.outputVariableIndex = index;
-    truthTableWorkerManager.update()
+  if (!stateManager.state.truthTable) return
+  stateManager.state.truthTable.outputVariableIndex = index
+  truthTableWorkerManager.update()
 }
 
 const handleFunctionTypeChange = (value: unknown, index: number) => {
-    if (!stateManager.state.truthTable) return
-    stateManager.state.truthTable.functionType = value as FunctionType;
-    truthTableWorkerManager.update()
+  if (!stateManager.state.truthTable) return
+  stateManager.state.truthTable.functionType = value as FunctionType
+  truthTableWorkerManager.update()
 }
 
 const handleFunctionRepresentationChange = (value: unknown, index: number) => {
