@@ -16,14 +16,15 @@
         :ref="(el) => (buttonRefs[idx] = el as HTMLElement)"
         @click="select(idx, item)"
         :aria-pressed="idx === selected"
-        class="px-2.5 py-1.5 relative z-10 transition-colors duration-100 rounded-xs whitespace-nowrap text-[11px] leading-none"
-        :class="
+        :class="[
+          compact ? 'px-2.5 py-1.5 whitespace-nowrap text-[11px] leading-none' : 'px-3 py-1.5',
+          'relative z-10 transition-colors duration-100 rounded-xs',
           idx === selected
             ? randomSelectMode
               ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]'
               : ''
             : 'hover:bg-surface-3'
-        "
+        ]"
       >
         <slot name="label" :item="item" :label="getLabel(item)" :index="idx">
           {{ getLabel(item) }}
@@ -63,9 +64,11 @@ const props = withDefaults(
     labelFn?: (v: unknown) => string
     label?: string
     highlightBorder?: boolean
+    compact?: boolean
   }>(),
   {
     highlightBorder: false,
+    compact: false,
   },
 )
 
