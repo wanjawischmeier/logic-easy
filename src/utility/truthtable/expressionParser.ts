@@ -31,30 +31,30 @@ function getOperationArgs(operation: Operation): Operation[] {
  */
 export function detectTautologyOrContradiction(
   values: TruthTableData,
-  outputIndex: number
+  outputIndex: number,
 ): 'tautology' | 'contradiction' | null {
-  if (values.length === 0) return null;
+  if (values.length === 0) return null
 
-  let hasOne = false;
-  let hasZero = false;
+  let hasOne = false
+  let hasZero = false
 
   for (const row of values) {
-    const cell = row[outputIndex];
-    if (cell === 1) hasOne = true;
-    if (cell === 0) hasZero = true;
+    const cell = row[outputIndex]
+    if (cell === 1) hasOne = true
+    if (cell === 0) hasZero = true
 
     // If we have both 1s and 0s, it's neither
-    if (hasOne && hasZero) return null;
+    if (hasOne && hasZero) return null
   }
 
   // All are 1s or don't cares
-  if (hasOne && !hasZero) return 'tautology';
+  if (hasOne && !hasZero) return 'tautology'
 
   // All are 0s or don't cares
-  if (hasZero && !hasOne) return 'contradiction';
+  if (hasZero && !hasOne) return 'contradiction'
 
   // All are don't cares (treat as contradiction for simplicity)
-  return 'contradiction';
+  return 'contradiction'
 }
 
 /**

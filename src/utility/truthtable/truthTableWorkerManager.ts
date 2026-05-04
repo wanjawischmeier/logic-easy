@@ -12,16 +12,16 @@ import { toRaw } from 'vue'
  * - Only keeps the most recent queued update (discards intermediate ones)
  */
 class TruthTableWorkerManager {
-  private worker: Worker | null = null;
-  private requestId = 0;
-  private cooldownTimer: number | null = null;
-  private isRunning = false;
-  private hasQueuedUpdate = false;
-  private lastUpdateCompletedTime = 0;
-  private readonly DEBOUNCE_MS = 100;
+  private worker: Worker | null = null
+  private requestId = 0
+  private cooldownTimer: number | null = null
+  private isRunning = false
+  private hasQueuedUpdate = false
+  private lastUpdateCompletedTime = 0
+  private readonly DEBOUNCE_MS = 100
 
   constructor() {
-    this.initWorker();
+    this.initWorker()
   }
 
   private initWorker() {

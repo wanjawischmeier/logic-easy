@@ -26,7 +26,7 @@ export class Minimizer {
       pis: [],
       chart: null,
       expressions: [],
-            termColors: []
+      termColors: [],
     }
   }
 
@@ -34,7 +34,7 @@ export class Minimizer {
   static calculateMinterms(
     values: TruthTableData,
     outputIndex: number,
-    functionType: FunctionType
+    functionType: FunctionType,
   ): number[] {
     const mt: number[] = []
     const isDMF = functionType === 'Disjunctive'
@@ -83,14 +83,14 @@ export class Minimizer {
     // If it's an AND, convert to OR and negate each arg
     if ((op as any).priority === 8) {
       const args = (op as any).args as Operation[]
-            const negatedArgs = args.map(arg => this.applyDeMorgan(arg))
+      const negatedArgs = args.map((arg) => this.applyDeMorgan(arg))
       return { priority: 6, args: negatedArgs } as unknown as Operation
     }
 
     // If it's an OR, convert to AND and negate each arg
     if ((op as any).priority === 6) {
       const args = (op as any).args as Operation[]
-            const negatedArgs = args.map(arg => this.applyDeMorgan(arg))
+      const negatedArgs = args.map((arg) => this.applyDeMorgan(arg))
       return { priority: 8, args: negatedArgs } as unknown as Operation
     }
 
@@ -117,15 +117,12 @@ export class Minimizer {
     const mt = this.calculateMinterms(
       truthTable.values,
       truthTable.outputVariableIndex,
-            truthTable.functionType
+      truthTable.functionType,
     )
-        const dc = this.calculateDontCares(
-            truthTable.values,
-            truthTable.outputVariableIndex
-        )
+    const dc = this.calculateDontCares(truthTable.values, truthTable.outputVariableIndex)
 
     console.log('Calculated minterms:', mt)
-        console.log('Calculated don\'t-cares:', dc)
+    console.log("Calculated don't-cares:", dc)
 
     if (mt.length === 0) {
       console.log('No minterms - clearing display')
@@ -136,7 +133,7 @@ export class Minimizer {
     const numInputVars = truthTable.inputVars.length
     console.log('Running QMC with minterms:', mt)
 
-        let detailedResult: QMCDetailedExpressionsObjects;
+    let detailedResult: QMCDetailedExpressionsObjects
     try {
       detailedResult = qmc.solve(mt, dc, true, true, numInputVars) as QMCDetailedExpressionsObjects
     } catch (error) {
@@ -159,10 +156,11 @@ export class Minimizer {
       minterms: sortedMinterms,
       pis: d.primeImplicants,
       chart: d.chart,
-            expressions: truthTable.functionType === 'Conjunctive'
-                ? detailedResult.expressions.map(expr => this.applyDeMorgan(expr))
+      expressions:
+        truthTable.functionType === 'Conjunctive'
+          ? detailedResult.expressions.map((expr) => this.applyDeMorgan(expr))
           : detailedResult.expressions,
-            termColors: []
+      termColors: [],
     }
   }
 }

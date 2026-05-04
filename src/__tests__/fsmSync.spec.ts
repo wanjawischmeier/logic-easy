@@ -9,7 +9,7 @@ import StatesTable from '@/components/StatesTable.vue'
 import TransitionsTable from '@/components/TransitionsTable.vue'
 
 if (typeof window !== 'undefined' && !(window as any).Worker) {
-  (window as any).Worker = class {
+  ;(window as any).Worker = class {
     onmessage = () => {}
     postMessage = () => {}
     terminate = () => {}
@@ -132,7 +132,7 @@ describe('FSM editor <-> table transition sync', () => {
     await editableInFirstRow[2]!.trigger('click')
     await nextTick()
 
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     const changed = stateManager.state.fsm?.transitions.find(
       (t) => t.fromNodeId === 0 && t.input === '0',
@@ -153,7 +153,7 @@ describe('FSM editor <-> table transition sync', () => {
 
     const fsm = stateManager.state.fsm
     expect(fsm).toBeDefined()
-    const targetIndex = fsm!.transitions.findIndex(t => t.fromNodeId === 1 && t.input === '1')
+    const targetIndex = fsm!.transitions.findIndex((t) => t.fromNodeId === 1 && t.input === '1')
     expect(targetIndex).toBeGreaterThan(-1)
 
     const wrapper = mountTransitionsTable()

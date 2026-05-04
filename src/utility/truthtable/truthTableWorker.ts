@@ -13,17 +13,17 @@ import type { Operation } from 'logi.js'
 
 // Message types for worker communication
 export interface WorkerRequest {
-  id: number;
-  truthTable: TruthTableState;
+  id: number
+  truthTable: TruthTableState
 }
 
 export interface WorkerResponse {
-    id: number;
-    qmcResults: Record<string, QMCResult | undefined>;
-    formulas: Record<string, Formula | undefined>;
-    couplingTermLatex: string | undefined;
-    selectedFormula: Formula | undefined;
-    formulaTermColors: TermColor[] | undefined;
+  id: number
+  qmcResults: Record<string, QMCResult | undefined>
+  formulas: Record<string, Formula | undefined>
+  couplingTermLatex: string | undefined
+  selectedFormula: Formula | undefined
+  formulaTermColors: TermColor[] | undefined
 }
 
 /**
@@ -33,17 +33,17 @@ function createEdgeCaseResult(
   type: 'tautology' | 'contradiction',
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
-    inputVars: string[]
+  inputVars: string[],
 ): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
-    const signature = getFunctionSignature(functionType, functionRepresentation, inputVars);
+  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars)
 
-    let constant: '0' | '1';
+  let constant: '0' | '1'
 
   if (type === 'tautology') {
     // Tautology: all 1s/don't cares
     // DNF: f = 1
     // CNF: f = 1
-    constant = '1';
+    constant = '1'
   } else {
     // Contradiction: all 0s/don't cares
     // DNF: f = 0
@@ -53,8 +53,8 @@ function createEdgeCaseResult(
 
   const formula: Formula = {
     type: functionType,
-        terms: [{ literals: [{ variable: constant, negated: false }] }]
-    };
+    terms: [{ literals: [{ variable: constant, negated: false }] }],
+  }
 
   const qmcResult: QMCResult = {
     iterations: [],
@@ -65,9 +65,9 @@ function createEdgeCaseResult(
     termColors: [defaultColor],
   }
 
-    const couplingTermLatex = signature + constant;
+  const couplingTermLatex = signature + constant
 
-    return { qmcResult, formula, couplingTermLatex };
+  return { qmcResult, formula, couplingTermLatex }
 }
 
 async function runMinimization(
@@ -77,10 +77,10 @@ async function runMinimization(
   // Create a modified truth table state for this output variable
   const modifiedTruthTable = {
     ...truthTable,
-        outputVariableIndex: index
-    };
+    outputVariableIndex: index,
+  }
 
-    return await Minimizer.runQMC(modifiedTruthTable);
+  return await Minimizer.runQMC(modifiedTruthTable)
 }
 
 function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermColor[] {

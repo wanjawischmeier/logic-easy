@@ -1,14 +1,26 @@
 <template>
   <nav ref="rootRef" class="flex items-center gap-1 select-none text-sm">
-    <div v-for="(items, menu) in menus" :key="menu" class="relative" @mouseenter="maybeSwitch(menu)">
-      <button class="border hover:border-surface-3 hover:bg-surface-2"
+    <div
+      v-for="(items, menu) in menus"
+      :key="menu"
+      class="relative"
+      @mouseenter="maybeSwitch(menu)"
+    >
+      <button
+        class="border hover:border-surface-3 hover:bg-surface-2"
         :class="activeMenu === menu ? 'border-surface-3 bg-surface-2' : 'border-transparent'"
-        @click.stop="toggleMenu(menu)" :aria-expanded="activeMenu === menu" :aria-haspopup="true" type="button">
+        @click.stop="toggleMenu(menu)"
+        :aria-expanded="activeMenu === menu"
+        :aria-haspopup="true"
+        type="button"
+      >
         {{ menu }}
       </button>
 
-      <div v-if="activeMenu === menu"
-        class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20">
+      <div
+        v-if="activeMenu === menu"
+        class="absolute left-0 mt-1 w-48 bg-surface-2 border border-surface-3 rounded z-20"
+      >
         <MenuList :items="items" :level="0" />
       </div>
     </div>
@@ -80,11 +92,11 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
     },
     ...(recentProjectEntries.value.length > 0
       ? [
-        {
-          label: 'Recents',
-          children: recentProjectEntries.value,
-        },
-      ]
+          {
+            label: 'Recents',
+            children: recentProjectEntries.value,
+          },
+        ]
       : []),
     {
       label: 'Open',
@@ -207,7 +219,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
       label: 'LaTeX',
       tooltip: '.tex',
       action: () => downloadRegistry.exportAllLatex(),
-      disabled: !hasCurrentProject.value || stateManager.isSaving.value
+      disabled: !hasCurrentProject.value || stateManager.isSaving.value,
     },
   ],
   Help: [
@@ -242,34 +254,34 @@ const MenuList = defineComponent<MenuListProps>({
         { class: 'pr-1' },
         props.items.map((entry, idx) => {
           const submenuOpen = isOpen(level.value, idx)
-          return h(
-            'li',
-            { class: 'relative', key: idx },
-            [
-              h(
-                'button',
-                {
-                  class: [
-                    'w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm',
-                    { 'bg-surface-3': submenuOpen }
-                  ],
-                  disabled: (!entry.action && !entry.panelId && !entry.children) || entry.disabled,
-                  onClick: entry.children ? undefined : () => runAction(entry),
-                  onMouseenter: entry.children && !entry.disabled
+          return h('li', { class: 'relative', key: idx }, [
+            h(
+              'button',
+              {
+                class: [
+                  'w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm',
+                  { 'bg-surface-3': submenuOpen },
+                ],
+                disabled: (!entry.action && !entry.panelId && !entry.children) || entry.disabled,
+                onClick: entry.children ? undefined : () => runAction(entry),
+                onMouseenter:
+                  entry.children && !entry.disabled
                     ? () => showSubmenu(level.value, idx)
                     : () => hideSubmenu(level.value),
-                  type: 'button',
-                },
-                [
-                  h('span', entry.label),
-                  (entry.tooltip || entry.children) ? h('span', { class: 'flex items-center gap-2' }, [
-                    entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
-                    entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
-                  ]) : null,
-                ],
-              ),
-              submenuOpen && entry.children && !entry.disabled
-                ? h(
+                type: 'button',
+              },
+              [
+                h('span', entry.label),
+                entry.tooltip || entry.children
+                  ? h('span', { class: 'flex items-center gap-2' }, [
+                      entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
+                      entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                    ])
+                  : null,
+              ],
+            ),
+            submenuOpen && entry.children && !entry.disabled
+              ? h(
                   'div',
                   {
                     class:
@@ -277,9 +289,8 @@ const MenuList = defineComponent<MenuListProps>({
                   },
                   [h(MenuList, { items: entry.children, level: level.value + 1 })],
                 )
-                : null,
-            ],
-          )
+              : null,
+          ])
         }),
       )
   },

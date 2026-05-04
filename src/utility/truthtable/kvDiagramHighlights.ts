@@ -23,42 +23,42 @@ function isCovered(
   rowCode: string,
   colCode: string,
   functionType: FunctionType,
-  inputVars: string[]
+  inputVars: string[],
 ): boolean {
-  const binaryString = rowCode + colCode;
+  const binaryString = rowCode + colCode
 
   if (functionType === FunctionType.DNF) {
     // DNF: Term is a product (AND of literals).
     // Covers cells where all literals are true.
 
     if (term.literals.length === 1 && term.literals[0]?.variable === '0') {
-      return false;
+      return false
     }
     for (const literal of term.literals) {
-      const varIndex = inputVars.indexOf(literal.variable);
-      if (varIndex === -1) continue;
+      const varIndex = inputVars.indexOf(literal.variable)
+      if (varIndex === -1) continue
 
-      const bit = binaryString[varIndex];
+      const bit = binaryString[varIndex]
       // literal A (negated=false) requires bit '1'
       // literal !A (negated=true) requires bit '0'
-      if (!literal.negated && bit !== '1') return false;
-      if (literal.negated && bit !== '0') return false;
+      if (!literal.negated && bit !== '1') return false
+      if (literal.negated && bit !== '0') return false
     }
-    return true;
+    return true
   } else {
     // CNF: Term is a sum (OR of literals)a clause.
     // Covers cells where at least one literal is true.
     for (const literal of term.literals) {
-      const varIndex = inputVars.indexOf(literal.variable);
-      if (varIndex === -1) continue;
+      const varIndex = inputVars.indexOf(literal.variable)
+      if (varIndex === -1) continue
 
-      const bit = binaryString[varIndex];
+      const bit = binaryString[varIndex]
       // Literal A (negated=false) is true when bit='1'
       // Literal !A (negated=true) is true when bit='0'
-      if (!literal.negated && bit === '1') return true;
-      if (literal.negated && bit === '0') return true;
+      if (!literal.negated && bit === '1') return true
+      if (literal.negated && bit === '0') return true
     }
-    return false; // No literal was true
+    return false // No literal was true
   }
 }
 
@@ -77,14 +77,14 @@ function calculateAllCoverage(
   rows: string[],
   cols: string[],
   functionType: FunctionType,
-  inputVars: string[]
+  inputVars: string[],
 ): boolean[][][] {
-  const coverage: boolean[][][] = [];
+  const coverage: boolean[][][] = []
 
   terms.forEach((term, termIndex) => {
-    coverage[termIndex] = [];
+    coverage[termIndex] = []
     rows.forEach((rowCode, rowIndex) => {
-      coverage[termIndex]![rowIndex] = [];
+      coverage[termIndex]![rowIndex] = []
       cols.forEach((colCode, colIndex) => {
         coverage[termIndex]![rowIndex]![colIndex] = isCovered(
           term,
@@ -285,12 +285,12 @@ export function calculateHighlights(
   terms: Term[],
   functionType: FunctionType,
   inputVars: string[],
-  termColors: TermColor[]
+  termColors: TermColor[],
 ): Highlight[] {
-  const rowCode = rowCodes[rowIndex];
-  const colCode = colCodes[colIndex];
+  const rowCode = rowCodes[rowIndex]
+  const colCode = colCodes[colIndex]
 
-  if (!rowCode || !colCode) return [];
+  if (!rowCode || !colCode) return []
 
   // Check for constant formulas
   const isConstant1 =
@@ -309,13 +309,13 @@ export function calculateHighlights(
     }
     // DNF constant 0 (contradiction): highlight no cells
     if (isConstant0) {
-      return [];
+      return []
     }
   } else {
     // CNF mode
     // CNF constant 1 (tautology): highlight no cells (because CNF highlights zeros)
     if (isConstant1) {
-      return [];
+      return []
     }
     // CNF constant 0 (contradiction): highlight all cells
     if (isConstant0) {
@@ -327,16 +327,16 @@ export function calculateHighlights(
     }
 
     // Pre-calculate coverage for CNF check
-    const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars);
+    const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars)
 
     // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
     // A clause (sum) is FALSE when ALL its literals are false
     // So we highlight cells where at least one clause is completely false
     const anyClauseFalse = terms.some((_, termIndex) => {
-      return !coverage[termIndex]?.[rowIndex]?.[colIndex];
-    });
+      return !coverage[termIndex]?.[rowIndex]?.[colIndex]
+    })
 
-    if (!anyClauseFalse) return []; // Cell doesn't contribute to making formula false
+    if (!anyClauseFalse) return [] // Cell doesn't contribute to making formula false
   }
 
   // Pre-calculate coverage for all cells once

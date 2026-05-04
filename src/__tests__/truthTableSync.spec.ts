@@ -9,7 +9,7 @@ import KVDiagramPanel from '@/panels/KVDiagramPanel.vue'
 import QMCPanel from '@/panels/QMCPanel.vue'
 
 if (typeof window !== 'undefined' && !(window as any).Worker) {
-  (window as any).Worker = class {
+  ;(window as any).Worker = class {
     onmessage = () => {}
     postMessage = () => {}
     terminate = () => {}
@@ -57,7 +57,8 @@ describe('Truth table, KV, and QMC sync', () => {
       },
     },
     setup(props) {
-      return () => h('div', { 'data-testid': 'kv-diagram' }, String((props.values as unknown[]).length))
+      return () =>
+        h('div', { 'data-testid': 'kv-diagram' }, String((props.values as unknown[]).length))
     },
   })
 
@@ -69,7 +70,8 @@ describe('Truth table, KV, and QMC sync', () => {
       },
     },
     setup(props) {
-      return () => h('div', { 'data-testid': 'grouping-table' }, String((props.values as unknown[]).length))
+      return () =>
+        h('div', { 'data-testid': 'grouping-table' }, String((props.values as unknown[]).length))
     },
   })
 
@@ -86,7 +88,8 @@ describe('Truth table, KV, and QMC sync', () => {
   })
 
   const SettingsButtonStub = defineComponent({
-    template: '<div data-testid="settings-button"><slot name="show-formula" /><slot name="show-highlights" /><slot /></div>',
+    template:
+      '<div data-testid="settings-button"><slot name="show-formula" /><slot name="show-highlights" /><slot /></div>',
   })
 
   const DownloadButtonStub = defineComponent({
@@ -172,7 +175,9 @@ describe('Truth table, KV, and QMC sync', () => {
     const interactiveView = wrapper.find('[data-screenshot-ignore]')
 
     expect(interactiveView.find('[data-testid="grouping-table"]').exists()).toBe(false)
-    expect(interactiveView.find('[data-testid="formula-renderer"]').text()).toBe('f_{DMF}(a, b) = 0')
+    expect(interactiveView.find('[data-testid="formula-renderer"]').text()).toBe(
+      'f_{DMF}(a, b) = 0',
+    )
 
     const qmcResult = {
       ...Minimizer.emptyQMQResult,

@@ -15,13 +15,13 @@ import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
 import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
 
-export type TruthTableCell = 0 | 1 | '-';
-export type TruthTableData = TruthTableCell[][];
+export type TruthTableCell = 0 | 1 | '-'
+export type TruthTableData = TruthTableCell[][]
 
 // Default values for TruthTableProps
 export interface TruthTableProps extends BaseProjectProps {
-  inputVariableCount: number;
-  outputVariableCount: number;
+  inputVariableCount: number
+  outputVariableCount: number
 }
 
 export interface TruthTableState {
@@ -45,23 +45,25 @@ export class TruthTableProject extends Project {
       name: '',
       inputVariableCount: 4,
       outputVariableCount: 2,
-    };
+    }
   }
 
   static override useState() {
-    const state = computed(() => stateManager.state.truthTable);
+    const state = computed(() => stateManager.state.truthTable)
 
-    const inputVars = computed(() => state.value?.inputVars ?? []);
-    const outputVars = computed(() => state.value?.outputVars ?? []);
-    const values = computed(() => stateManager.state.truthTable?.values ?? []);
-    const formulas = computed(() => state.value?.formulas ?? {});
-    const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0);
-    const functionType = computed(() => state.value?.functionType ?? defaultFunctionType);
-    const functionRepresentation = computed(() => state.value?.functionRepresentation ?? defaultFunctionRepresentation);
-    const qmcResult = computed(() => state.value?.qmcResult);
-    const couplingTermLatex = computed(() => state.value?.couplingTermLatex);
-    const selectedFormula = computed(() => state.value?.selectedFormula);
-    const formulaTermColors = computed(() => state.value?.formulaTermColors);
+    const inputVars = computed(() => state.value?.inputVars ?? [])
+    const outputVars = computed(() => state.value?.outputVars ?? [])
+    const values = computed(() => stateManager.state.truthTable?.values ?? [])
+    const formulas = computed(() => state.value?.formulas ?? {})
+    const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0)
+    const functionType = computed(() => state.value?.functionType ?? defaultFunctionType)
+    const functionRepresentation = computed(
+      () => state.value?.functionRepresentation ?? defaultFunctionRepresentation,
+    )
+    const qmcResult = computed(() => state.value?.qmcResult)
+    const couplingTermLatex = computed(() => state.value?.couplingTermLatex)
+    const selectedFormula = computed(() => state.value?.selectedFormula)
+    const formulaTermColors = computed(() => state.value?.formulaTermColors)
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
 
@@ -78,7 +80,7 @@ export class TruthTableProject extends Project {
       qmcResult,
       couplingTermLatex,
       selectedFormula,
-      formulaTermColors
+      formulaTermColors,
     }
   }
 
@@ -89,7 +91,7 @@ export class TruthTableProject extends Project {
     if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
       createPanel('kv-diagram', 'KV Diagram', {
         referencePanel: 'truth-table',
-        direction: 'right'
+        direction: 'right',
       })
     }
   }
@@ -113,7 +115,7 @@ export class TruthTableProject extends Project {
 
     // initialize all output values to zero
     const values = Array.from({ length: rows }, () =>
-      Array.from({ length: props.outputVariableCount }, () => 0 as TruthTableCell)
+      Array.from({ length: props.outputVariableCount }, () => 0 as TruthTableCell),
     ) as TruthTableData
 
     const functionType: FunctionType = defaultFunctionType
@@ -122,7 +124,7 @@ export class TruthTableProject extends Project {
       Minimizer.emptyQMQResult,
       functionType,
       functionRepresentation,
-      inputVars
+      inputVars,
     )
 
     // Initialize state
@@ -141,17 +143,17 @@ export class TruthTableProject extends Project {
     console.log('[TruthTableProject.createState] State initialized:', {
       inputVars: inputVars,
       outputVars: outputVars,
-      hasValues: !!values
+      hasValues: !!values,
     })
   }
 
   static override validateState(state: AppState): boolean {
-    return state.truthTable != undefined;
+    return state.truthTable != undefined
   }
 }
 
 registerProjectType('truth-table', {
   name: 'Truth Table',
   propsComponent: TruthTablePropsComponent,
-  projectClass: TruthTableProject
-});
+  projectClass: TruthTableProject,
+})

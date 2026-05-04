@@ -21,7 +21,8 @@
           <input
             type="number"
             v-model.number="localInputBits"
-            min="1" max="5"
+            min="1"
+            max="5"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />
@@ -35,7 +36,8 @@
           <input
             type="number"
             v-model.number="localOutputBits"
-            min="1" max="5"
+            min="1"
+            max="5"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />

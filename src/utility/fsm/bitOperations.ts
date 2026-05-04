@@ -6,7 +6,7 @@ export type Bit = '0' | '1' | 'x'
  * @returns
  */
 export function calcBitNumber(idsCount?: number): number {
-  const length = idsCount ?? 0.
+  const length = idsCount ?? 0
   return length <= 1 ? 1 : Math.ceil(Math.log2(length))
 }
 

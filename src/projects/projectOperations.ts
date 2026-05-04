@@ -10,12 +10,20 @@ import { Toast } from '@/utility/toastService'
  * Handles CRUD operations on projects
  */
 export class ProjectOperations {
-  constructor(private metadataManager: ProjectMetadataManager, private lifecycle: ProjectLifecycleManager) { }
+  constructor(
+    private metadataManager: ProjectMetadataManager,
+    private lifecycle: ProjectLifecycleManager,
+  ) {}
 
   /**
    * Create a new project
    */
-  async create<TProps extends BaseProjectProps>(name: string, projectType: string, props?: TProps, onCreated?: (project: StoredProject) => void): Promise<StoredProject> {
+  async create<TProps extends BaseProjectProps>(
+    name: string,
+    projectType: string,
+    props?: TProps,
+    onCreated?: (project: StoredProject) => void,
+  ): Promise<StoredProject> {
     // Enforce project limit before creating
     this.metadataManager.enforceLimit()
 
@@ -25,7 +33,7 @@ export class ProjectOperations {
       lastModified: Date.now(),
       projectType,
       props: props || { name },
-      state: StateManager.defaultState
+      state: StateManager.defaultState,
     }
 
     // Initialize project state using the static createState method BEFORE saving
@@ -34,7 +42,7 @@ export class ProjectOperations {
       projectTypeInfo.projectClass.createState(project.props)
       project.state = {
         ...project.state,
-        ...stateManager.state
+        ...stateManager.state,
       }
     }
 
@@ -49,7 +57,9 @@ export class ProjectOperations {
     // Open the created project
     const opened = this.lifecycle.open(project.id)
     if (!opened) {
-      throw new Error(`Failed to open created project: ${this.metadataManager.projectString(project)}`)
+      throw new Error(
+        `Failed to open created project: ${this.metadataManager.projectString(project)}`,
+      )
     }
 
     // Call callback after everything is set up
@@ -81,7 +91,7 @@ export class ProjectOperations {
       id: project.id,
       name: project.name,
       lastModified: project.lastModified,
-      projectType: project.projectType
+      projectType: project.projectType,
     })
 
     // Brief delay to show the spinner
@@ -111,7 +121,7 @@ export class ProjectOperations {
       id: project.id,
       name: project.name,
       lastModified: project.lastModified,
-      projectType: project.projectType
+      projectType: project.projectType,
     })
 
     console.log('Saved project')

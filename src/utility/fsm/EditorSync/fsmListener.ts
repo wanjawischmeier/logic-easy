@@ -68,7 +68,7 @@ export function initFsmSyncService() {
     watch(
       () => stateManager.state.fsm,
       () => {
-        // updates are handled centralized in project 
+        // updates are handled centralized in project
         syncTableToEditor()
       },
       { deep: true },
