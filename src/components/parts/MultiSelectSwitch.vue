@@ -16,7 +16,7 @@
         :ref="(el) => (buttonRefs[idx] = el as HTMLElement)"
         @click="select(idx, item)"
         :aria-pressed="idx === selected"
-        class="px-3 py-1.5 relative z-10 transition-colors duration-100 rounded-xs"
+        class="px-2.5 py-1.5 relative z-10 transition-colors duration-100 rounded-xs whitespace-nowrap text-[11px] leading-none"
         :class="
           idx === selected
             ? randomSelectMode
@@ -25,7 +25,9 @@
             : 'hover:bg-surface-3'
         "
       >
-        {{ getLabel(item) }}
+        <slot name="label" :item="item" :label="getLabel(item)" :index="idx">
+          {{ getLabel(item) }}
+        </slot>
       </button>
     </div>
   </div>
@@ -83,6 +85,7 @@ const sliderStyleKey = ref(0)
 
 const sliderStyle = computed(() => {
   // Access the key to make this reactive to manual triggers
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   sliderStyleKey.value
 
   if (selected.value === null || !buttonRefs.value.length) {

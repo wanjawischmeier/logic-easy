@@ -32,7 +32,10 @@
         <thead>
           <tr>
             <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
-              <vue-latex :expression="outputVars[outputVariableIndex ?? 0] || 'f'" display-mode />
+              <vue-latex
+                :expression="formatLatexIdentifier(outputVars[outputVariableIndex ?? 0] || 'f')"
+                display-mode
+              />
             </th>
             <th
               v-for="(colCode, cIdx) in colCodes"
@@ -90,13 +93,18 @@ import {
   getBinaryString,
 } from '@/utility/truthtable/kvDiagramLayout'
 import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights'
+import { formatLatexIdentifier } from '@/utility/truthtable/latexGenerator'
 import type {
   TruthTableData,
   TruthTableCell,
   TruthTableState,
 } from '@/projects/truth-table/TruthTableProject'
 
-const props = defineProps<TruthTableState>()
+type KVDiagramProps = TruthTableState & {
+  immutableCellMask?: boolean[][]
+}
+
+const props = defineProps<KVDiagramProps>()
 
 const emit = defineEmits<{
   (e: 'valuesChanged', value: TruthTableData): void
@@ -142,6 +150,19 @@ const toggleCell = (rowCode: string, colCode: string) => {
       emit('valuesChanged', newValues)
     }
   }
+}
+
+const isCellImmutableByIndex = (rowIndex: number, outputIdx: number): boolean => {
+  return !!props.immutableCellMask?.[rowIndex]?.[outputIdx]
+}
+
+const isCellImmutable = (rowCode: string, colCode: string): boolean => {
+  const binaryString = getBinaryString(rowCode, colCode)
+  const rowIndex = parseInt(binaryString, 2)
+  const outputIdx = props.outputVariableIndex ?? 0
+
+  if (Number.isNaN(rowIndex) || rowIndex < 0) return false
+  return isCellImmutableByIndex(rowIndex, outputIdx)
 }
 
 const getHighlights = (rIdx: number, cIdx: number) => {

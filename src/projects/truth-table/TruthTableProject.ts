@@ -36,6 +36,7 @@ export interface TruthTableState {
   couplingTermLatex?: string
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
+  fsmMode?: boolean
 }
 
 export class TruthTableProject extends Project {
@@ -136,6 +137,7 @@ export class TruthTableProject extends Project {
       functionType: functionType,
       functionRepresentation: functionRepresentation,
       couplingTermLatex: couplingTermLatex,
+      fsmMode: false,
     }
 
     console.log('[TruthTableProject.createState] State initialized:', {

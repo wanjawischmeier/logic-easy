@@ -10,7 +10,7 @@ import QMCPanel from '@/panels/QMCPanel.vue'
 
 export type PanelRequirement =
   | 'TruthTable'
-  | 'Automaton'
+  | 'Fsm'
   | 'Min2InputVars'
   | 'Max4InputVars'
   | 'NotSupported'
@@ -87,9 +87,6 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     label: 'Minimization',
-    requires: {
-      view: ['TruthTable'],
-    },
     children: [
       {
         id: 'kv-diagram',
@@ -98,7 +95,7 @@ export const dockRegistry: DockRegistryEntry[] = [
         projectType: 'truth-table',
         minimumWidth: 400,
         requires: {
-          view: ['TruthTable', 'Min2InputVars', 'Max4InputVars'],
+          view: ['Min2InputVars', 'Max4InputVars'],
         },
       },
       {
@@ -107,37 +104,16 @@ export const dockRegistry: DockRegistryEntry[] = [
         component: QMCPanel,
         projectType: 'truth-table',
         minimumWidth: 400,
-        requires: {
-          view: ['TruthTable'],
-        },
       },
     ],
-  },
-  {
-    id: 'transition-table',
-    label: 'Transition Table',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported'],
-    },
   },
   {
     id: 'state-table',
     label: 'State Table',
     component: StateTablePanel,
-    projectType: 'automaton',
+    projectType: 'fsm',
     requires: {
-      view: ['Automaton'],
-    },
-  },
-  {
-    id: 'state-machine',
-    label: 'State Machine',
-    component: KVDiagramPanel,
-    projectType: 'truth-table',
-    requires: {
-      create: ['NotSupported'],
+      view: ['Fsm'],
     },
   },
   {
@@ -149,9 +125,9 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'fsm-engine',
     label: 'FSM Engine',
     component: FsmEnginePanel,
-    projectType: 'automaton',
+    projectType: 'fsm',
     requires: {
-      view: ['Automaton'],
+      view: ['Fsm'],
     },
   },
 ]
@@ -252,6 +228,23 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true
   let checkPassed = true
 
+  // determine available input variable count for both truth-table and fsm contexts
+  const getAvailableInputVarCount = (): number => {
+    const tt = stateManager.state.truthTable
+    if (tt && Array.isArray(tt.inputVars)) return tt.inputVars.length
+
+    const fsm = stateManager.state.fsm
+    if (fsm) {
+      const stateCount = (fsm.nodes || []).length
+      const stateBits =
+        stateCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, stateCount))))
+      const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
+      return stateBits + inputBits
+    }
+
+    return 0
+  }
+
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
@@ -261,23 +254,23 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
         }
         break
 
-      case 'Automaton':
+      case 'Fsm':
         // Check if truth table state exists
-        if (!stateManager.state.automaton) {
+        if (!stateManager.state.fsm) {
           checkPassed = false
         }
         break
 
       case 'Min2InputVars':
-        // Check if truth table has at least 2 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
+        // Require at least 2 minimizer input variables
+        if (getAvailableInputVarCount() < 2) {
           checkPassed = false
         }
         break
 
       case 'Max4InputVars':
-        // Check if truth table has at most 4 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
+        // Require less than 5 minimizer input variables
+        if (getAvailableInputVarCount() > 4) {
           checkPassed = false
         }
         break
