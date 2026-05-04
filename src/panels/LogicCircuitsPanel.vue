@@ -16,7 +16,7 @@ import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
-const { inputVars, outputVars, formulas, functionType } = TruthTableProject.useState()
+const { inputVars, outputVars, formulas, functionType, functionRepresentation } = TruthTableProject.useState()
 
 const panelRef = ref<HTMLElement | null>(null)
 const iframeContainer = ref<HTMLElement | null>(null)
@@ -488,6 +488,7 @@ const methodOptions = lcMethodTypes
           :show-output-selection="false"
           :show-function-type-selection="true"
           :custom-setting-slot-labels="{ method: 'Gate Type' }"
+          :selected-function-representation="functionRepresentation"
         >
           <template #method>
             <MultiSelectSwitch
