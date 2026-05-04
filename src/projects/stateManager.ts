@@ -1,8 +1,9 @@
 import { reactive, ref, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
+import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { SerializedDockview } from 'dockview-vue'
+import { syncFsmStateToTruthTable } from '@/utility/fsm/kvSync'
 
 /**
  * The current storage version
@@ -21,7 +22,7 @@ export const COMPATIBLE_STORAGE_VERSIONS: number[] = [8]
 export interface AppState {
   version: number
   truthTable?: TruthTableState
-  automaton?: AutomatonState
+  fsm?: FsmState
   panelStates?: Record<string, Record<string, unknown>>
   dockviewLayout?: SerializedDockview // Stores the dockview panel layout
 }
@@ -34,6 +35,7 @@ export class StateManager {
   public isSaving = ref(false)
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
+  private isSyncingFromFsm = false
 
   /**
    * Empty default state
@@ -68,6 +70,28 @@ export class StateManager {
       },
       { deep: true },
     )
+
+    // automatically sync FSM to truth table whenever FSM changes
+    watch(
+      () => this.state.fsm,
+      (fsm) => {
+        if (!fsm) return
+
+        if (this.isSyncingFromFsm) {
+          this.isSyncingFromFsm = false
+          return
+        }
+
+        syncFsmStateToTruthTable(fsm)
+      },
+      { deep: true },
+    )
+  }
+
+  // temporarily suppress FSM <-> TruthTable sync to avoid loops
+  suppressFsmSync(callback: () => void) {
+    this.isSyncingFromFsm = true
+    callback()
   }
 
   /**

@@ -460,6 +460,13 @@ const methodOptions = lcMethodTypes
         :visible="params.api.isVisible"
         class="flex-1"
       />
+      <IframePanel
+        ref="iframePanelRef"
+        iframe-key="__lc_preloaded_iframe"
+        src="/logic-easy/logic-circuits/index.html"
+        :visible="params.api.isVisible"
+        class="flex-1"
+      />
     </div>
 
     <teleport to="body">

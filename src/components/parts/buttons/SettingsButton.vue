@@ -17,7 +17,7 @@
     </template>
 
     <template #content>
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-3 min-w-[19rem]">
         <!-- Dynamic slots with labels from prop -->
         <div
           v-for="(label, slotName) in customSettingSlotLabels"
@@ -35,6 +35,11 @@
             :initialSelected="selectedOutputIndex"
             :onSelect="handleOutputChange"
           >
+            <template #label="{ label }">
+              <span class="inline-flex items-center justify-center whitespace-nowrap leading-none">
+                <vue-latex :expression="formatLatexIdentifier(label)" :fontsize="12" />
+              </span>
+            </template>
           </MultiSelectSwitch>
         </div>
 
@@ -73,6 +78,7 @@ import {
   FunctionType,
 } from '@/utility/types'
 import { stateManager } from '@/projects/stateManager'
+import { formatLatexIdentifier } from '@/utility/truthtable/latexGenerator'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 
 interface Props {
@@ -87,18 +93,11 @@ interface Props {
   showFunctionRepresentationSelection?: boolean
 }
 
-interface Emits {
-  (e: 'update:selectedOutputIndex', value: number): void
-  (e: 'update:selectedFunctionType', value: FunctionType): void
-  (e: 'update:selectedFunctionRepresentation', value: FunctionRepresentation): void
-}
-
 const props = withDefaults(defineProps<Props>(), {
   showOutputSelection: true,
   showFunctionTypeSelection: true,
   showFunctionRepresentationSelection: true,
 })
-const emit = defineEmits<Emits>()
 
 const showOutputVarSelector = computed(() => props.outputVars.length > 1)
 const selectedFunctionTypeIndex = computed(() =>
@@ -116,13 +115,16 @@ const handleOutputChange = (value: unknown, index: number) => {
   truthTableWorkerManager.update()
 }
 
-const handleFunctionTypeChange = (value: unknown, index: number) => {
+const handleFunctionTypeChange = (value: unknown) => {
   if (!stateManager.state.truthTable) return
+  if (stateManager.state.fsm) {
+    stateManager.state.fsm.functionType = value as FunctionType
+  }
   stateManager.state.truthTable.functionType = value as FunctionType
   truthTableWorkerManager.update()
 }
 
-const handleFunctionRepresentationChange = (value: unknown, index: number) => {
+const handleFunctionRepresentationChange = (value: unknown) => {
   if (!stateManager.state.truthTable) return
   stateManager.state.truthTable.functionRepresentation = value as FunctionRepresentation
   truthTableWorkerManager.update()

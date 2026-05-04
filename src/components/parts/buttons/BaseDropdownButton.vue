@@ -85,16 +85,10 @@ const handleWindowBlur = () => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  window.addEventListener('blur', handleWindowBlur)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('blur', handleWindowBlur)
-  if (blurCheckTimeout !== null) {
-    window.clearTimeout(blurCheckTimeout)
-    blurCheckTimeout = null
-  }
 })
 
 // Expose for use by child components if needed

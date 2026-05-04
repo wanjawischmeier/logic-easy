@@ -86,7 +86,10 @@
           :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4"
         >
-          <vue-latex :fontsize="14" :expression="`\\text{Output Variable:}${outputVar}`" />
+          <vue-latex
+            :fontsize="14"
+            :expression="`\\text{Output Variable:}${formatLatexIdentifier(outputVar)}`"
+          />
 
           <QMCGroupingTable
             :values="tableValues"
@@ -131,6 +134,7 @@ import QMCPrimeImplicantChart from '@/components/parts/QMCPrimeImplicantChart.vu
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import { stateManager } from '@/projects/stateManager'
+import { formatLatexIdentifier } from '@/utility/truthtable/latexGenerator'
 import {
   TruthTableProject,
   type TruthTableCell,

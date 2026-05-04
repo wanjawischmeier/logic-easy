@@ -4,6 +4,9 @@ type LoadOptions = {
   url?: string
   content?: string
 }
+  url?: string
+  content?: string
+}
 
 type LogicCircuitsWindow = Window & {
   __lc_preloaded_iframe?: HTMLIFrameElement
@@ -37,28 +40,39 @@ type LogicCircuitsWindow = Window & {
 class LogicCircuitsWrapper {
   async loadFile(options: LoadOptions): Promise<boolean> {
     const { url, content } = options
+    const { url, content } = options
 
     // Must have either url or content
     if (!url && !content) {
       console.warn('LogicCircuitsLoader: No url or content provided')
       return false
+      console.warn('LogicCircuitsLoader: No url or content provided')
+      return false
     }
 
+    let fileContent: string
     let fileContent: string
 
     // Prefer content, fallback to url
     if (content) {
+      fileContent = content
       fileContent = content
     } else if (url) {
       try {
         const resp = await fetch(url)
         if (!resp.ok) throw new Error('Fetch failed: ' + resp.status)
         fileContent = await resp.text()
+        const resp = await fetch(url)
+        if (!resp.ok) throw new Error('Fetch failed: ' + resp.status)
+        fileContent = await resp.text()
       } catch (err) {
+        console.error('LogicCircuitsLoader: Failed to fetch from url', err)
+        return false
         console.error('LogicCircuitsLoader: Failed to fetch from url', err)
         return false
       }
     } else {
+      return false
       return false
     }
 
@@ -78,18 +92,29 @@ class LogicCircuitsWrapper {
     // resetIFrame will create the new iframe, wait for it to be ready and deliver the payload once.
     try {
       const newIframe = await this.resetIFrame(undefined, fileContent)
+      const newIframe = await this.resetIFrame(undefined, fileContent)
       if (!newIframe) {
+        console.warn('LogicCircuitsLoader: Failed to reset iframe before delivering file')
+        return false
         console.warn('LogicCircuitsLoader: Failed to reset iframe before delivering file')
         return false
       }
       console.log('LogicCircuitsLoader: resetIFrame completed and should have delivered payload')
       return true
+      console.log('LogicCircuitsLoader: resetIFrame completed and should have delivered payload')
+      return true
     } catch (err) {
+      console.error('LogicCircuitsLoader: Error during resetIFrame delivery', err)
+      return false
       console.error('LogicCircuitsLoader: Error during resetIFrame delivery', err)
       return false
     }
   }
 
+  async resetIFrame(
+    src = '/logic-easy/logic-circuits/index.html',
+    fileContent?: string,
+  ): Promise<HTMLIFrameElement | null> {
   async resetIFrame(
     src = '/logic-easy/logic-circuits/index.html',
     fileContent?: string,
