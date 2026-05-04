@@ -137,7 +137,7 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     id: 'lc-iframe',
-    label: 'Logic Circuits Panel',
+    label: 'Logic Circuits',
     component: LogicCircuitsPanel,
   },
   {
