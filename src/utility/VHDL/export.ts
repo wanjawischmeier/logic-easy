@@ -176,7 +176,8 @@ export function exportTruthTableTOVHDLboolExpr(
   truthTable.outputVars.forEach((outputVar) => {
     let formularLine = `  Out${outputVar.toUpperCase()} <= `
     const formula = truthTable.selectedFormula
-    if (!formula || !Array.isArray(formula.terms)) { // TODO: why wouldn't it be an array?
+    if (!formula || !Array.isArray(formula.terms)) {
+      // TODO: why wouldn't it be an array?
       console.warn(`No DNF terms for output ${outputVar}.`)
       return // continue to next outputVar
     }

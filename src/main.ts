@@ -1,14 +1,14 @@
-import 'dockview-vue/dist/styles/dockview.css';
-import { createApp, defineComponent, type Component } from 'vue';
-import { DockviewVue } from 'dockview-vue';
-import { VueLatex } from 'vatex';
-import router from '@/router';
-import { dockComponents } from '@/router/dockRegistry';
-import { iframeManager } from '@/utility/iframeManager';
-import Toast from 'vue-toastification';
-import '@/style/toastification.css';
-import { useScreenSize } from '@/utility/useScreenSize';
-import ScreenTooSmallView from '@/views/ScreenTooSmallView.vue';
+import 'dockview-vue/dist/styles/dockview.css'
+import { createApp, defineComponent, type Component } from 'vue'
+import { DockviewVue } from 'dockview-vue'
+import { VueLatex } from 'vatex'
+import router from '@/router'
+import { dockComponents } from '@/router/dockRegistry'
+import { iframeManager } from '@/utility/iframeManager'
+import Toast from 'vue-toastification'
+import '@/style/toastification.css'
+import { useScreenSize } from '@/utility/useScreenSize'
+import ScreenTooSmallView from '@/views/ScreenTooSmallView.vue'
 
 const App = defineComponent({
   name: 'App',
@@ -20,19 +20,19 @@ const App = defineComponent({
     <router-view v-else />
   `,
   setup() {
-    const { isBelowMinimum, forceShowApp } = useScreenSize();
+    const { isBelowMinimum, forceShowApp } = useScreenSize()
 
     return {
       isBelowMinimum,
       forceShowApp,
-    };
+    }
   },
-});
+})
 
-const app = createApp(App);
+const app = createApp(App)
 app.config.errorHandler = (err) => {
-  console.log(err);
-};
+  console.log(err)
+}
 
 // Register a global custom directive called `v-focus`
 // Taken from https://stackoverflow.com/a/67576157
@@ -40,28 +40,28 @@ app.directive('focus', {
   // Autofocus an element
   mounted(el) {
     el.focus()
-  }
+  },
 })
 
-app.component('dockview-vue', DockviewVue);
+app.component('dockview-vue', DockviewVue)
 
 // Register dock components from the central registry
 Object.entries(dockComponents).forEach(([id, comp]) => {
-  app.component(id, comp as Component);
-});
+  app.component(id, comp as Component)
+})
 
-app.use(router);
-app.component('vue-latex', VueLatex);
+app.use(router)
+app.component('vue-latex', VueLatex)
 
 app.use(Toast, {
-  transition: "Vue-Toastification__fade",
+  transition: 'Vue-Toastification__fade',
   maxToasts: 5,
-  newestOnTop: true
-});
+  newestOnTop: true,
+})
 
-app.mount(document.getElementById('app')!);
+app.mount(document.getElementById('app')!)
 
 // Preload all registered iframes after app has mounted
 setTimeout(() => {
-  iframeManager.preloadAll();
-}, 0);
+  iframeManager.preloadAll()
+}, 0)

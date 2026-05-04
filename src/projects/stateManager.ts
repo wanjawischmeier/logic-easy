@@ -12,9 +12,7 @@ export const STORAGE_VERSION: number = 8
 /**
  * All storage versions that are compatible with the current one
  */
-export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
-  8
-]
+export const COMPATIBLE_STORAGE_VERSIONS: number[] = [8]
 
 /**
  * Everything that describes the state of the app,
@@ -47,7 +45,7 @@ export class StateManager {
   }
 
   constructor() {
-    this.state = reactive(StateManager.defaultState) as UnwrapNestedRefs<AppState>;
+    this.state = reactive(StateManager.defaultState) as UnwrapNestedRefs<AppState>
 
     // Auto-save to localStorage whenever state changes
     // Debounce to avoid excessive writes
@@ -68,10 +66,9 @@ export class StateManager {
           }, 300)
         }, 300)
       },
-      { deep: true }
+      { deep: true },
     )
   }
-
 
   /**
    * Open file picker and load a project
@@ -86,7 +83,7 @@ export class StateManager {
   getPanelState<T>(panelId: string): T | undefined {
     const panelState = this.state.panelStates?.[panelId]
     // Return a plain object copy to avoid reactivity issues
-    return panelState ? JSON.parse(JSON.stringify(panelState)) as T : undefined
+    return panelState ? (JSON.parse(JSON.stringify(panelState)) as T) : undefined
   }
 
   /**
@@ -104,7 +101,7 @@ export class StateManager {
         }
         this.state.panelStates[panelId] = newState as Record<string, unknown>
       },
-      { deep: true, flush: 'post' }
+      { deep: true, flush: 'post' },
     )
 
     return stopWatch

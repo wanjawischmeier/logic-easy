@@ -7,7 +7,7 @@ import type { StoredProject } from './Project'
  * Handles import/export operations for projects
  */
 export class ProjectImportExport {
-  constructor(private metadataManager: ProjectMetadataManager) { }
+  constructor(private metadataManager: ProjectMetadataManager) {}
   /**
    * Load and save project from .le file (without opening it)
    */
@@ -20,7 +20,9 @@ export class ProjectImportExport {
 
     if (existingProject) {
       // Update existing project
-      console.log(`Updating existing project: ${this.metadataManager.projectString(importedProject)}`)
+      console.log(
+        `Updating existing project: ${this.metadataManager.projectString(importedProject)}`,
+      )
       existingProject.state = importedProject.state
       existingProject.name = importedProject.name
       existingProject.lastModified = Date.now()
@@ -30,7 +32,7 @@ export class ProjectImportExport {
         id: existingProject.id,
         name: existingProject.name,
         lastModified: existingProject.lastModified,
-        projectType: existingProject.projectType
+        projectType: existingProject.projectType,
       })
 
       return existingProject
@@ -46,7 +48,7 @@ export class ProjectImportExport {
       id: importedProject.id,
       name: importedProject.name,
       lastModified: importedProject.lastModified,
-      projectType: importedProject.projectType
+      projectType: importedProject.projectType,
     })
 
     return importedProject

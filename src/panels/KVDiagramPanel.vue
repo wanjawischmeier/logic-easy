@@ -1,10 +1,14 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
-
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
-      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :selected-function-representation="functionRepresentation"
-        :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
+      <SettingsButton
+        :input-vars="inputVars"
+        :output-vars="outputVars"
+        :selected-output-index="outputVariableIndex"
+        :selected-function-type="functionType"
+        :selected-function-representation="functionRepresentation"
+        :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }"
+      >
         <template #show-formula>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showFormula" />
@@ -16,33 +20,63 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="kv"
-        :files="downloadFiles" />
+      <DownloadButton
+        :target-ref="screenshotRef"
+        :panel-id="props.params.api.id"
+        filename="kv"
+        :files="downloadFiles"
+      />
     </div>
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto">
+      <div
+        data-screenshot-ignore
+        class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto"
+      >
         <div class="flex-1">
-          <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
-            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :selected-formula="selectedFormula" :functionType="functionType"
-            :function-representation="functionRepresentation" :qmc-result="qmcResult"
-            :formula-term-colors="formulaTermColors" @values-changed="tableValues = $event" />
+          <KVDiagram
+            :key="`${functionType}-${outputVariableIndex}`"
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex"
+            :formulas="{}"
+            :selected-formula="selectedFormula"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="qmcResult"
+            :formula-term-colors="formulaTermColors"
+            @values-changed="tableValues = $event"
+          />
         </div>
 
-        <FormulaRenderer v-if="couplingTermLatex && showFormula" class="pt-8 flex-1"
-          :latex-expression="couplingTermLatex" />
+        <FormulaRenderer
+          v-if="couplingTermLatex && showFormula"
+          class="pt-8 flex-1"
+          :latex-expression="couplingTermLatex"
+        />
       </div>
 
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
-        <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${functionType}`"
-          class="flex flex-col items-center gap-4">
-          <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="index" :formulas="{}" :selected-formula="selectedFormula" :functionType="functionType"
-            :function-representation="functionRepresentation" :qmc-result="qmcResult"
-            @values-changed="tableValues = $event" />
+        <div
+          v-for="(outputVar, index) in outputVars"
+          :key="`screenshot-${outputVar}-${functionType}`"
+          class="flex flex-col items-center gap-4"
+        >
+          <KVDiagram
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="index"
+            :formulas="{}"
+            :selected-formula="selectedFormula"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="qmcResult"
+            @values-changed="tableValues = $event"
+          />
 
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
           </FormulaRenderer>
@@ -56,16 +90,20 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import KVDiagram from '@/components/KVDiagram.vue';
-import FormulaRenderer from '@/components/FormulaRenderer.vue';
+import KVDiagram from '@/components/KVDiagram.vue'
+import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
-import Checkbox from '@/components/parts/Checkbox.vue';
-import type { IDockviewPanelProps } from 'dockview-vue';
-import { stateManager } from '@/projects/stateManager';
-import { TruthTableProject, type TruthTableCell, type TruthTableData } from '@/projects/truth-table/TruthTableProject';
-import { getDockviewApi } from '@/utility/dockview/integration';
-import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager';
+import Checkbox from '@/components/parts/Checkbox.vue'
+import type { IDockviewPanelProps } from 'dockview-vue'
+import { stateManager } from '@/projects/stateManager'
+import {
+  TruthTableProject,
+  type TruthTableCell,
+  type TruthTableData,
+} from '@/projects/truth-table/TruthTableProject'
+import { getDockviewApi } from '@/utility/dockview/integration'
+import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 
 interface KVPanelState {
   showFormula: boolean
@@ -79,7 +117,7 @@ const screenshotRef = ref<HTMLElement | null>(null)
 
 // Auto-save panel state when values change
 stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
-  showFormula: showFormula.value
+  showFormula: showFormula.value,
 }))
 
 let disposable: { dispose?: () => void } | null = null
@@ -102,7 +140,7 @@ onMounted(() => {
   disposable = {
     dispose: () => {
       visibilityDisposable.dispose()
-    }
+    },
   }
 })
 
@@ -111,34 +149,53 @@ onBeforeUnmount(() => {
 })
 
 // Access state from params
-const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, functionRepresentation, couplingTermLatex, qmcResult, formulaTermColors } = TruthTableProject.useState()
+const {
+  inputVars,
+  outputVars,
+  values,
+  selectedFormula,
+  outputVariableIndex,
+  functionType,
+  functionRepresentation,
+  couplingTermLatex,
+  qmcResult,
+  formulaTermColors,
+} = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
 
 // Watch for local changes and notify DockView
-watch(tableValues, (newVal) => {
-  console.log('[KVDiagramPanel] Local tableValues changed:', newVal);
-  if (!stateManager.state.truthTable) return
+watch(
+  tableValues,
+  (newVal) => {
+    console.log('[KVDiagramPanel] Local tableValues changed:', newVal)
+    if (!stateManager.state.truthTable) return
 
-  if (isUpdatingFromState) {
-    isUpdatingFromState = false
-    console.log('[KVDiagramPanel] Skipping update (isUpdatingFromState)');
-    return
-  }
+    if (isUpdatingFromState) {
+      isUpdatingFromState = false
+      console.log('[KVDiagramPanel] Skipping update (isUpdatingFromState)')
+      return
+    }
 
-  console.log('[KVDiagramPanel] Calling updateTruthTable');
-  Object.assign(stateManager.state.truthTable.values, newVal);
-  truthTableWorkerManager.update()
-}, { deep: true })
+    console.log('[KVDiagramPanel] Calling updateTruthTable')
+    Object.assign(stateManager.state.truthTable.values, newVal)
+    truthTableWorkerManager.update()
+  },
+  { deep: true },
+)
 
 // Watch for external changes from state (use getter so watcher tracks the computed ref)
-watch(() => values.value, (newVal) => {
-  console.log('[KVPanel] state.value.values changed:', newVal);
-  if (!newVal) return
-  isUpdatingFromState = true
-  tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
-}, { deep: true })
+watch(
+  () => values.value,
+  (newVal) => {
+    console.log('[KVPanel] state.value.values changed:', newVal)
+    if (!newVal) return
+    isUpdatingFromState = true
+    tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])
+  },
+  { deep: true },
+)
 
 const downloadFiles = computed(() => [
   {

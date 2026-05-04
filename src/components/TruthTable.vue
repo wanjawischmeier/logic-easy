@@ -1,48 +1,86 @@
 <template>
-  <div ref="containerRef"
-    :class="['w-full h-full overflow-auto flex', centeredHorizontally ? 'justify-center' : 'justify-start', centeredVertically ? ' items-center' : 'items-start']">
-    <table v-if="modelValue.length && inputVars.length && outputVars.length" ref="tableRef"
-      class="bg-surface-1 border border-primary table-fixed w-auto select-none">
+  <div
+    ref="containerRef"
+    :class="[
+      'w-full h-full overflow-auto flex',
+      centeredHorizontally ? 'justify-center' : 'justify-start',
+      centeredVertically ? ' items-center' : 'items-start',
+    ]"
+  >
+    <table
+      v-if="modelValue.length && inputVars.length && outputVars.length"
+      ref="tableRef"
+      class="bg-surface-1 border border-primary table-fixed w-auto select-none"
+    >
       <thead>
         <tr>
-          <th v-for="(input, idx) in inputVars" :key="input"
+          <th
+            v-for="(input, idx) in inputVars"
+            :key="input"
             class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1 w-16"
-            :class="{ 'border-r-4': idx === inputVars.length - 1, 'border-r': idx !== inputVars.length - 1 }">
+            :class="{
+              'border-r-4': idx === inputVars.length - 1,
+              'border-r': idx !== inputVars.length - 1,
+            }"
+          >
             <vue-latex :expression="input" display-mode />
           </th>
-          <th v-for="output in displayedOutputVars" :key="output"
-            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r last:border-r-0 w-24">
+          <th
+            v-for="output in displayedOutputVars"
+            :key="output"
+            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r last:border-r-0 w-24"
+          >
             <vue-latex :expression="output" display-mode />
           </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(row, rowIdx) in modelValue" :key="rowIdx"
-          :ref="el => { if (el) rowRefs[rowIdx] = el as HTMLElement }" :class="{
+        <tr
+          v-for="(row, rowIdx) in modelValue"
+          :key="rowIdx"
+          :ref="
+            (el) => {
+              if (el) rowRefs[rowIdx] = el as HTMLElement
+            }
+          "
+          :class="{
             'bg-yellow-200/50': highlightedRow === rowIdx,
-            'bg-green-200/50': blinkGreenRow === rowIdx
-          }" class="transition-colors duration-300">
+            'bg-green-200/50': blinkGreenRow === rowIdx,
+          }"
+          class="transition-colors duration-300"
+        >
           <!-- Generated Input Columns -->
-          <td v-for="(input, colIdx) in inputVars" :key="'in-' + colIdx"
+          <td
+            v-for="(input, colIdx) in inputVars"
+            :key="'in-' + colIdx"
             class="text-lg font-mono text-center align-middle border-b border-primary transition-colors duration-300"
             :class="{
               'bg-surface-1': highlightedRow !== rowIdx && blinkGreenRow !== rowIdx,
               'border-r-4': colIdx === inputVars.length - 1,
-              'border-r': colIdx !== inputVars.length - 1
-            }">
+              'border-r': colIdx !== inputVars.length - 1,
+            }"
+          >
             <div class="flex-1 flex items-center justify-center">
-              <vue-latex :fontsize=12 :expression="getInputValue(rowIdx, colIdx).toString()" display-mode />
+              <vue-latex
+                :fontsize="12"
+                :expression="getInputValue(rowIdx, colIdx).toString()"
+                display-mode
+              />
             </div>
           </td>
           <!-- Editable Output Columns -->
-          <td v-for="(item, idx) in getDisplayedOutputCells(row)" :key="'out-' + item.actualIndex"
+          <td
+            v-for="(item, idx) in getDisplayedOutputCells(row)"
+            :key="'out-' + item.actualIndex"
             class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-color duration-300"
             :class="{
               'bg-surface-1': highlightedRow !== rowIdx && blinkGreenRow !== rowIdx,
-              'border-r': idx !== getDisplayedOutputCells(row).length - 1
-            }" @click="toggleCell(rowIdx, item.actualIndex)">
+              'border-r': idx !== getDisplayedOutputCells(row).length - 1,
+            }"
+            @click="toggleCell(rowIdx, item.actualIndex)"
+          >
             <div class="flex-1 flex items-center justify-center">
-              <vue-latex :fontsize=12 :expression="item.cell.toString()" display-mode />
+              <vue-latex :fontsize="12" :expression="item.cell.toString()" display-mode />
             </div>
           </td>
         </tr>
@@ -53,9 +91,8 @@
 </template>
 
 <script setup lang="ts">
-import type { TruthTableData } from '@/projects/truth-table/TruthTableProject';
+import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-
 
 const props = defineProps<{
   inputVars: string[]
@@ -90,14 +127,20 @@ let tableObserver: ResizeObserver | null = null
 // Get displayed output cells based on showAllOutputVars
 function getDisplayedOutputCells(row: any[]) {
   if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
-    return [{ cell: row[props.outputVariableIndex], actualIndex: props.outputVariableIndex, displayIndex: 0 }]
+    return [
+      {
+        cell: row[props.outputVariableIndex],
+        actualIndex: props.outputVariableIndex,
+        displayIndex: 0,
+      },
+    ]
   }
   return row.map((cell, idx) => ({ cell, actualIndex: idx, displayIndex: idx }))
 }
 
 // colIdx is the index within the output array (modelValue[row])
 function toggleCell(rowIdx: number, colIdx: number) {
-  const newValues = props.modelValue.map(row => [...row])
+  const newValues = props.modelValue.map((row) => [...row])
   const row = newValues[rowIdx]
   if (!row) return
 
@@ -113,8 +156,8 @@ function toggleCell(rowIdx: number, colIdx: number) {
 
 function getInputValue(rowIdx: number, colIdx: number) {
   // MSB is at index 0
-  const shiftAmount = props.inputVars.length - 1 - colIdx;
-  return (rowIdx >> shiftAmount) & 1;
+  const shiftAmount = props.inputVars.length - 1 - colIdx
+  return (rowIdx >> shiftAmount) & 1
 }
 
 function updateCentered() {
@@ -153,15 +196,18 @@ onBeforeUnmount(() => {
 watch(
   () => [props.modelValue, props.inputVars, props.outputVars],
   () => nextTick(updateCentered),
-  { deep: true }
+  { deep: true },
 )
 
 // Scroll highlighted row into view
-watch(() => props.highlightedRow, (rowIdx) => {
-  if (typeof rowIdx === 'number' && rowRefs.value[rowIdx]) {
-    nextTick(() => {
-      rowRefs.value[rowIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-  }
-})
+watch(
+  () => props.highlightedRow,
+  (rowIdx) => {
+    if (typeof rowIdx === 'number' && rowRefs.value[rowIdx]) {
+      nextTick(() => {
+        rowRefs.value[rowIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    }
+  },
+)
 </script>

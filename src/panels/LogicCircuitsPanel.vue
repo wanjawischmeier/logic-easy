@@ -498,7 +498,7 @@ const methodOptions = lcMethodTypes
           </template>
         </SettingsButton>
         <DownloadButton
-        :panel-id="params.api.id"
+          :panel-id="params.api.id"
           :target-ref="iframeContainer"
           :screenshot="{ enabled: false }"
           :files="logicCircuitDownloadFiles"

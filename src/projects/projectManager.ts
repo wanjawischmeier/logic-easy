@@ -48,11 +48,11 @@ export class ProjectManager {
   /**
    * Open a project by ID
    */
-  openProject(projectId: number): void;
+  openProject(projectId: number): void
   /**
    * Open a project using a file picker dialog
    */
-  openProject(): Promise<void>;
+  openProject(): Promise<void>
   openProject(projectId?: number): void | Promise<void> {
     if (projectId !== undefined) {
       // Open by ID
@@ -66,13 +66,13 @@ export class ProjectManager {
           }
         } catch (error) {
           console.error('Failed to open project:', error)
-          Toast.error('Failed to open project');
+          Toast.error('Failed to open project')
           loadingService.hide()
         }
       }, 100)
     } else {
       // Open via file picker
-      return this.openProjectFromFile();
+      return this.openProjectFromFile()
     }
   }
 
@@ -86,9 +86,13 @@ export class ProjectManager {
       document.body.appendChild(input)
 
       const file: File | null = await new Promise((resolve) => {
-        input.addEventListener('change', () => {
-          resolve(input.files && input.files[0] ? input.files[0] : null)
-        }, { once: true })
+        input.addEventListener(
+          'change',
+          () => {
+            resolve(input.files && input.files[0] ? input.files[0] : null)
+          },
+          { once: true },
+        )
         input.click()
       })
 
@@ -104,14 +108,14 @@ export class ProjectManager {
       }
     } catch (error) {
       console.error(`Failed to load project from file: ${error}`)
-      Toast.error('Failed to load project');
+      Toast.error('Failed to load project')
     }
   }
 
   async loadProjectFromFile(file: File): Promise<StoredProject> {
     loadingService.show('Loading project from file...')
     // Add a small delay to ensure spinner is visible
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
     try {
       const project = await this.importExport.importFromFile(file)
@@ -140,9 +144,9 @@ export class ProjectManager {
       }
 
       // Close all panels - will automatically trigger lifecycle.close()
-      const panelIds = api.panels.map(p => p.id)
-      panelIds.forEach(id => {
-        const panel = api.panels.find(p => p.id === id)
+      const panelIds = api.panels.map((p) => p.id)
+      panelIds.forEach((id) => {
+        const panel = api.panels.find((p) => p.id === id)
         if (panel) {
           api.removePanel(panel)
         }
@@ -156,16 +160,16 @@ export class ProjectManager {
   }
 
   saveCurrentProject(): void {
-    const currentInfo = this.currentProjectInfo;
+    const currentInfo = this.currentProjectInfo
     if (!currentInfo) {
-      console.warn('No current project to save');
-      return;
+      console.warn('No current project to save')
+      return
     }
 
     // Get the state directly from the state manager
-    const state = stateManager.state;
+    const state = stateManager.state
 
-    this.updateProjectState(currentInfo.id, state);
+    this.updateProjectState(currentInfo.id, state)
   }
 
   getCurrentProject(): StoredProject | null {
@@ -198,7 +202,12 @@ export class ProjectManager {
 
   // === Project CRUD ===
 
-  createProject<TProps extends BaseProjectProps>(name: string, projectType: ProjectType, props?: TProps, onCreated?: (project: StoredProject) => void): void {
+  createProject<TProps extends BaseProjectProps>(
+    name: string,
+    projectType: ProjectType,
+    props?: TProps,
+    onCreated?: (project: StoredProject) => void,
+  ): void {
     loadingService.show('Creating project...')
 
     setTimeout(async () => {
@@ -207,7 +216,7 @@ export class ProjectManager {
         // Don't hide loading screen here - let the layout restoration handle it
       } catch (error) {
         console.error('Failed to create project:', error)
-        Toast.error('Failed to create project');
+        Toast.error('Failed to create project')
         loadingService.hide()
       }
     }, 100)
