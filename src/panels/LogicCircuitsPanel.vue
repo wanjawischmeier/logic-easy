@@ -13,10 +13,12 @@ import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
 import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
+import type { Formula, Term } from '@/utility/types'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
-const { inputVars, outputVars, formulas, functionType } = TruthTableProject.useState()
+const { inputVars, outputVars, formulas, values, functionType, functionRepresentation } =
+  TruthTableProject.useState()
 
 const panelRef = ref<HTMLElement | null>(null)
 const iframeContainer = ref<HTMLElement | null>(null)
@@ -111,14 +113,41 @@ function openEditWarningPopup() {
   })
 }
 
+function generateCanonicalFormulas(): Record<string, Formula> {
+  const canonicalFormulas: Record<string, Formula> = {}
+
+  outputVars.value.forEach((outVar, outIdx) => {
+    const terms: Term[] = []
+    const isDNF = functionType.value === 'Disjunctive' // Note: check your FunctionType literals, it might be 'DNF' or 'Disjunctive' depending on your types
+    const targetValue = isDNF ? 1 : 0
+
+    values.value.forEach((row, rowIdx) => {
+      if (row[outIdx] === targetValue) {
+        const literals = inputVars.value.map((inVar, inIdx) => {
+          // Find input bits using binary representation of row index
+          const bitValue = (rowIdx >> (inputVars.value.length - 1 - inIdx)) & 1
+          const negated = isDNF ? bitValue === 0 : bitValue === 1
+
+          return { variable: inVar, negated }
+        })
+        terms.push({ literals })
+      }
+    })
+
+    canonicalFormulas[outVar] = {
+      type: functionType.value,
+      terms,
+    }
+  })
+
+  return canonicalFormulas
+}
+
 async function foundSignificantChanges(): Promise<boolean> {
   const newLC = await logicCircuits.exportCurrentLC()
 
   if (!newLC) return true
   if (!currentLCContent) return false
-
-  console.log('new LC content:', newLC)
-  console.log('current LC content:', currentLCContent)
 
   // check element changes
   const newElems = newLC.match(/\[([^\]]*)\]/g)?.[1]
@@ -155,15 +184,6 @@ async function foundSignificantChanges(): Promise<boolean> {
     )
     .join('')
 
-  console.log('Change detection:', {
-    newIs,
-    newNs,
-    lastIs,
-    lastNs,
-    newCoords,
-    lastCoords,
-  })
-
   if (newIs !== lastIs || newNs !== lastNs || newCoords !== lastCoords) return true
 
   // check node changes
@@ -176,13 +196,6 @@ async function foundSignificantChanges(): Promise<boolean> {
   const newFreeNodes = (newNodes?.match(/\d+,\d+/g) ?? []).length
   const oldFreeNodes = (lastNodes.match(/\d+,\d+/g) ?? []).length
 
-  console.log('Change detection - nodes:', {
-    newNodeCount,
-    oldNodeCount,
-    newFreeNodes,
-    oldFreeNodes,
-  })
-
   if (newNodeCount !== oldNodeCount) return true
   if (newFreeNodes !== oldFreeNodes) return true
 
@@ -192,11 +205,6 @@ async function foundSignificantChanges(): Promise<boolean> {
 
   const newConnCount = (newConns?.match(/{/g) ?? []).length
   const oldConnCount = (lastConns.match(/{/g) ?? []).length
-
-  console.log('Change detection - connections:', {
-    newConnCount,
-    oldConnCount,
-  })
 
   if (newConnCount !== oldConnCount) return true
 
@@ -369,8 +377,11 @@ const sanitizeName = (value: string) =>
 let currentLCContent: LCFile | null = null
 
 const createLcContent = (method: LCMethodType) => {
+  const targetFormulas =
+    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : formulas.value
+
   currentLCContent = formulaToLC(
-    formulas.value,
+    targetFormulas,
     inputVars.value,
     outputVars.value,
     outTypeMap[method],
@@ -392,9 +403,9 @@ const logicCircuitDownloadFiles = computed(() => {
   // Offer only the currently selected method as the downloadable file.
   return [
     {
-      label: selected,
+      label: selected + '-Circuit',
       // filename directly reflects the selected method (sanitized)
-      filename: `${baseName}_${sanitizeName(String(selected))}`,
+      filename: `${baseName}_${sanitizeName(String(selected))}-Circuit`,
       extension: 'lc',
       content: () => createLcContent(selected),
       mimeType: 'text/lc',
@@ -488,6 +499,7 @@ const methodOptions = lcMethodTypes
           :show-output-selection="false"
           :show-function-type-selection="true"
           :custom-setting-slot-labels="{ method: 'Gate Type' }"
+          :selected-function-representation="functionRepresentation"
         >
           <template #method>
             <MultiSelectSwitch
@@ -502,7 +514,7 @@ const methodOptions = lcMethodTypes
           :target-ref="iframeContainer"
           :screenshot="{ enabled: false }"
           :files="logicCircuitDownloadFiles"
-          :direct-download="true"
+          :direct-download="false"
         />
       </div>
     </teleport>
