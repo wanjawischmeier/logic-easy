@@ -223,20 +223,6 @@ export class LCFile {
     const sixthhLine: string = '[]'
 
     // \r\n (Windows format) is required for Logic Circuits to properly read the file
-    console.log(
-      'LCFile toString generated:\n',
-      this.firstLine +
-        '\r\n' +
-        secondLine +
-        '\r\n' +
-        thirdLine +
-        '\r\n' +
-        fourthLine +
-        '\r\n' +
-        fifthLine +
-        '\r\n' +
-        sixthhLine,
-    )
     return (
       this.firstLine +
       '\r\n' +
