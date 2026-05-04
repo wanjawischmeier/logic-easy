@@ -153,6 +153,7 @@ class TruthTableWorkerManager {
             formulas: toRaw(truthTable.formulas),
             outputVariableIndex: truthTable.outputVariableIndex,
             functionType: truthTable.functionType,
+            functionRepresentation: truthTable.functionRepresentation,
             qmcResult: toRaw(truthTable.qmcResult),
             couplingTermLatex: truthTable.couplingTermLatex,
             selectedFormula: toRaw(truthTable.selectedFormula)

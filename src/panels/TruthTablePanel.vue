@@ -9,8 +9,9 @@
       <LegendButton :legend="legend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :show-output-selection="!showAllOutputVars"
-        :show-function-type-selection="false"
+        :selected-function-type="functionType" :selected-function-representation="functionRepresentation"
+        :show-output-selection="!showAllOutputVars" :show-function-type-selection="false"
+        :show-function-representation-selection="false"
         :customSettingSlotLabels="{ 'show-all-ouput-vars': 'Show all ouput variables' }">
         <template #show-all-ouput-vars>
           <div class="flex gap-2 items-center" @click.stop>
@@ -23,7 +24,7 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" filename="truth-table" :files="downloadFiles" />
+      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="truth-table" :files="downloadFiles" />
     </div>
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable v-model="tableValues" :input-vars="inputVars" :output-vars="outputVars"
@@ -74,7 +75,7 @@ interface TruthTablePanelState {
 }
 
 // Access state from params
-const { inputVars, outputVars, values, outputVariableIndex, functionType } = TruthTableProject.useState()
+const { inputVars, outputVars, values, outputVariableIndex, functionType, functionRepresentation } = TruthTableProject.useState()
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<TruthTablePanelState>(props.params.api.id)

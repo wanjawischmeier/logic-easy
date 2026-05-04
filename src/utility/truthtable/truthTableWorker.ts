@@ -1,8 +1,9 @@
 import { Minimizer, type QMCResult } from './minimizer';
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject';
-import type { FunctionType, Formula } from '@/utility/types';
-import { generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
-import { analyzeExpressions, detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
+import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types';
+import { defaultColor, generateTermColor, mapFormulaTermsToPIColors, type TermColor } from './colorGenerator';
+import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser';
+import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator';
 
 // Message types for worker communication
 export interface WorkerRequest {
@@ -25,11 +26,10 @@ export interface WorkerResponse {
 function createEdgeCaseResult(
     type: 'tautology' | 'contradiction',
     functionType: FunctionType,
+    functionRepresentation: FunctionRepresentation,
     inputVars: string[]
 ): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
-    const isDNF = functionType === 'DNF';
-    const formType = isDNF ? 'DMF' : 'CMF';
-    const signature = `f_{${formType}}(${inputVars.join(', ')}) = `;
+    const signature = getFunctionSignature(functionType, functionRepresentation, inputVars);
 
     let constant: '0' | '1';
 
@@ -50,12 +50,6 @@ function createEdgeCaseResult(
         terms: [{ literals: [{ variable: constant, negated: false }] }]
     };
 
-    // Create a default color for the edge case (used for highlighting all cells in KV diagram)
-    const defaultColor: TermColor = {
-        border: 'hsla(210, 100%, 50%, 0.8)',
-        fill: 'hsla(210, 100%, 50%, 0.3)'
-    };
-
     const qmcResult: QMCResult = {
         iterations: [],
         minterms: [],
@@ -68,62 +62,6 @@ function createEdgeCaseResult(
     const couplingTermLatex = signature + constant;
 
     return { qmcResult, formula, couplingTermLatex };
-}
-
-/**
- * Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
- */
-function getTermSortKey(term: string): string {
-    return term.replace(/\\bar\{([a-z])\}/g, '$1');
-}
-
-export function getCouplingTermLatex(
-    qmcResult: QMCResult,
-    functionType: FunctionType,
-    inputVars: string[]
-): string {
-    const formType = functionType === 'DNF' ? 'DMF' : 'CMF';
-    const signature = `f_{${formType}}(${inputVars.join(', ')}) = `;
-
-    if (qmcResult.expressions.length === 0) {
-        return signature + '0';
-    }
-
-    const firstExpr = qmcResult.expressions[0];
-    if ((firstExpr as any).name === '1') {
-        return signature + '1';
-    }
-    if ((firstExpr as any).name === '0') {
-        return signature + '0';
-    }
-
-    const isCNF = functionType === 'CNF';
-    const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF);
-
-    if (variablePositions.length === 0) {
-        const termJoiner = isCNF ? '' : ' + ';
-        return signature + constantTerms.sort((a, b) =>
-            getTermSortKey(a).localeCompare(getTermSortKey(b))
-        ).join(termJoiner);
-    }
-
-    const partsWithKeys: Array<{ sortKey: string, latex: string }> = [];
-
-    for (const term of constantTerms) {
-        partsWithKeys.push({ sortKey: getTermSortKey(term), latex: term });
-    }
-
-    for (const variations of variablePositions) {
-        const uniqueVars = Array.from(new Set(variations));
-        const matrixRows = uniqueVars.join(' \\\\ ');
-        const latex = `\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`;
-        partsWithKeys.push({ sortKey: getTermSortKey(uniqueVars[0] || ''), latex });
-    }
-
-    partsWithKeys.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-
-    const termJoiner = isCNF ? '' : ' + ';
-    return signature + partsWithKeys.map(p => p.latex).join(termJoiner);
 }
 
 async function runMinimization(truthTable: TruthTableState, index: number): Promise<QMCResult | undefined> {
@@ -208,6 +146,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
                     const edgeResult = createEdgeCaseResult(
                         outputEdgeCase,
                         truthTable.functionType,
+                        truthTable.functionRepresentation,
                         truthTable.inputVars
                     );
                     qmcResults[outputVar] = edgeResult.qmcResult;
@@ -235,6 +174,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
             const currentEdgeResult = createEdgeCaseResult(
                 edgeCase,
                 truthTable.functionType,
+                truthTable.functionRepresentation,
                 truthTable.inputVars
             );
 
@@ -294,7 +234,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
             couplingTermLatex = getCouplingTermLatex(
                 currentQmcResult,
                 truthTable.functionType,
-                truthTable.inputVars
+                truthTable.functionRepresentation,
+                truthTable.inputVars,
+                truthTable.values,
+                truthTable.outputVariableIndex
             );
             selectedFormula = formulas[currentOutputVar];
 

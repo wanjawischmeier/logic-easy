@@ -4,6 +4,7 @@ import JSZip from 'jszip'
 import { loadingService } from './loadingService'
 import { projectManager } from '@/projects/projectManager'
 import { Toast } from './toastService'
+import { getDockviewApi } from '@/utility/dockview/integration'
 
 type LatexContentResolver = () => string | undefined | Promise<string | undefined>
 
@@ -19,13 +20,15 @@ interface ScreenshotRegistration {
 
 interface DownloadRegistration {
   id: string
-  targetRef?: Ref<HTMLElement | null>
+  targetRef: Ref<HTMLElement | null>
+  panelId: string
   screenshot: ScreenshotRegistration
   latexFiles: LatexRegistration[]
 }
 
 interface RegisterOptions {
-  targetRef?: Ref<HTMLElement | null>
+  targetRef: Ref<HTMLElement | null>
+  panelId: string
   screenshot?: Partial<ScreenshotRegistration>
   latex?: LatexRegistration | LatexRegistration[]
 }
@@ -48,6 +51,7 @@ class DownloadRegistry {
     this.registrations.set(id, {
       id,
       targetRef: options.targetRef,
+      panelId: options.panelId,
       screenshot,
       latexFiles: latexEntries,
     })
@@ -145,17 +149,39 @@ class DownloadRegistry {
     loadingService.show('Exporting project as screenshots...')
     console.log(`Exporting ${screenshotRegistrations.length} screenshots...`)
 
+    const api = getDockviewApi()
+    if (!api) {
+      console.error('Dockview API not available')
+      Toast.error('Failed to capture screenshots')
+      return
+    }
+
+    // Store the current active panel to restore it later
+    const activePanel = api.activePanel
+
     const zip = new JSZip()
     const timestamp = new Date().toISOString().slice(0, 10)
     let index = 1
 
-    for (const { targetRef, screenshot } of screenshotRegistrations) {
-      if (!targetRef?.value) {
-        console.warn(`Skipping ${screenshot.filename}: element not found`)
-        continue
-      }
-
+    for (const { targetRef, panelId, screenshot } of screenshotRegistrations) {
       try {
+        // Focus the panel first
+        const panel = api.getPanel(panelId)
+        if (panel) {
+          console.log(`Focusing panel: ${panelId}`)
+          panel.focus()
+          // Wait for layout to settle
+          await new Promise((resolve) => setTimeout(resolve, 200))
+          // Also wait a frame for render
+          await new Promise((resolve) => requestAnimationFrame(resolve))
+        }
+
+        if (!targetRef.value) {
+          console.warn(`Skipping ${screenshot.filename}: element ref is null`)
+          Toast.warning(`Failed to capture ${screenshot.filename}`)
+          continue
+        }
+
         const blob = await this.captureScreenshot(targetRef.value)
         if (blob) {
           zip.file(`${screenshot.filename}-${timestamp}-${index}.png`, blob)
@@ -164,9 +190,14 @@ class DownloadRegistry {
         // Small delay between screenshots to avoid overwhelming the browser
         await new Promise((resolve) => setTimeout(resolve, 100))
       } catch (error) {
-        console.error(`Failed to capture ${screenshot.filename}:`, error)
-        Toast.warning(`Failed to capture ${screenshot.filename}`)
+        console.warn(`Error in capture ${screenshot.filename}:`, error)
       }
+    }
+
+    // Restore the previously active panel
+    if (activePanel) {
+      console.log(`Restoring active panel: ${activePanel.id}`)
+      activePanel.focus()
     }
 
     // Generate and download the zip file

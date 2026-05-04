@@ -1,4 +1,16 @@
 @layer base {
+  html,
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  #app {
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
   button {
     @apply px-2 pb-1 pt-0.5 rounded text-on-surface;
   }

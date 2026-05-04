@@ -31,7 +31,7 @@ export class Minimizer {
         functionType: FunctionType
     ): number[] {
         const mt: number[] = []
-        const isDMF = functionType === 'DNF'
+        const isDMF = functionType === 'Disjunctive'
 
         values.forEach((row, rowIndex) => {
             const outputCell = row[outputIndex]
@@ -156,7 +156,7 @@ export class Minimizer {
             minterms: sortedMinterms,
             pis: d.primeImplicants,
             chart: d.chart,
-            expressions: truthTable.functionType === 'CNF'
+            expressions: truthTable.functionType === 'Conjunctive'
                 ? detailedResult.expressions.map(expr => this.applyDeMorgan(expr))
                 : detailedResult.expressions,
             termColors: []

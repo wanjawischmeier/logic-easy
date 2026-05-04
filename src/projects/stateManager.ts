@@ -1,4 +1,4 @@
-import { reactive, watch, type UnwrapNestedRefs } from 'vue'
+import { reactive, ref, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
@@ -7,13 +7,13 @@ import type { SerializedDockview } from 'dockview-vue'
 /**
  * The current storage version
  */
-export const STORAGE_VERSION: number = 7
+export const STORAGE_VERSION: number = 8
 
 /**
  * All storage versions that are compatible with the current one
  */
 export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
-  6, 7
+  8
 ]
 
 /**
@@ -33,7 +33,7 @@ export interface AppState {
  */
 export class StateManager {
   public state: UnwrapNestedRefs<AppState>
-  public isSaving = reactive({ value: false })
+  public isSaving = ref(false)
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
 

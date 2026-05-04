@@ -20,7 +20,8 @@
                 type="text" maxlength="1" :value="getValueAtIndex(index - 1)"
                 class="bit-box-input w-6 h-6 text-center bg-surface-1 border border-surface-3 rounded outline-none focus:border-primary font-mono text-shadow-2xs cursor-default"
                 @mousedown.prevent="focusFirstEmpty" @input="e => handleInput(index - 1, e)"
-                @keydown.enter.prevent="() => resetSearch(false)" @keydown.escape.prevent="() => resetSearch(false)"
+                @keydown.enter.prevent="() => { if (searchStep === 2) resetSearch(false) }"
+                @keydown.escape.prevent="() => resetSearch(false)"
                 @keydown.backspace.prevent="e => handleBackspace(index - 1, e)" />
         </div>
     </div>
@@ -57,6 +58,7 @@ const blinkGreenRow = ref<number | null>(null)
 const inputRefs = ref<HTMLInputElement[]>([])
 const searchBarRef = ref<HTMLElement | null>(null)
 const isFocussed = ref<boolean>(false)
+let isTransitioningStep = false
 
 const searchHint = computed(() => {
     return searchStep.value === 1 ? 'Search' : 'Edit'
@@ -175,6 +177,11 @@ function resetSearch(shouldRefocus: boolean = false) {
  * Reset search only if focus left the container
  */
 function handleBlur(e: FocusEvent) {
+    // Don't reset during step transitions (inputs are being re-rendered)
+    if (isTransitioningStep) {
+        return
+    }
+
     // Check if the new focus target is still within the search container
     const relatedTarget = e.relatedTarget as HTMLElement
     const currentTarget = e.currentTarget as HTMLElement
@@ -207,10 +214,15 @@ watch(searchInput, (newValue, oldValue) => {
         // Step 1 complete: move to step 2
         const rowIndex = parseInt(newValue, 2)
         if (rowIndex >= 0 && rowIndex < props.values.length) {
+            isTransitioningStep = true
             highlightedRow.value = rowIndex
             emit('highlightedRowChanged', rowIndex)
             searchInput.value = ''
             searchStep.value = 2
+            nextTick(() => {
+                isTransitioningStep = false
+                focusFirstEmpty()
+            })
         }
     } else if (searchStep.value === 2 && newValue.length === numBits.value) {
         console.log('[watch searchInput] Step 2 complete, updating values')

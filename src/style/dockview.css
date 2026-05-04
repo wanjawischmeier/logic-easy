@@ -1,0 +1,18 @@
+.dockview-theme-abyss {
+  /* group / panel background */
+  --dv-group-view-background-color: var(--color-elevated);
+  --dv-tabs-and-actions-container-background-color: var(--color-surface-1);
+
+  /* tabs */
+  --dv-activegroup-visiblepanel-tab-background-color: var(--color-elevated);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--color-elevated);
+  --dv-activegroup-visiblepanel-tab-color: var(--color-on-surface);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--color-on-surface-disabled);
+  --dv-tab-divider-color: var(--color-surface-2);
+
+  /* borders / separators */
+  --dv-separator-border: var(--color-surface-2);
+
+  /* hover / drag */
+  --dv-drag-over-background-color: var(--color-surface-3-50);
+}
