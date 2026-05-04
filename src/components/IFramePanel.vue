@@ -8,7 +8,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { getDockviewApi } from '@/utility/dockview/integration'
 
 const props = defineProps<{
   iframeKey: string
@@ -21,7 +20,6 @@ let preloadedIframe: HTMLIFrameElement | undefined
 let iframeReadyHandler: EventListener | null = null
 let resizeObserver: ResizeObserver | null = null
 let pollInterval: number | null = null
-let layoutDisposable: any = null
 
 function getGlobalIframe(): HTMLIFrameElement | undefined {
   return (window as unknown as Window & { [key: string]: HTMLIFrameElement | undefined })[
@@ -75,7 +73,8 @@ function setupIframe() {
     resizeObserver.observe(containerRef.value)
   }
 
-  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateIframePosition())
+  window.addEventListener('scroll', updateIframePosition, true)
+  window.addEventListener('resize', updateIframePosition)
 
   return true
 }
@@ -133,10 +132,8 @@ onMounted(() => {
     console.log(`IframePanel: detected iframe swap for ${props.iframeKey}`)
 
     resizeObserver?.disconnect()
-    if (layoutDisposable) {
-      layoutDisposable.dispose?.()
-      layoutDisposable = null
-    }
+    window.removeEventListener('scroll', updateIframePosition, true)
+    window.removeEventListener('resize', updateIframePosition)
     setupIframe()
   }
 
@@ -161,10 +158,8 @@ onBeforeUnmount(() => {
   }
 
   resizeObserver?.disconnect()
-  if (layoutDisposable) {
-    layoutDisposable.dispose?.()
-    layoutDisposable = null
-  }
+  window.removeEventListener('scroll', updateIframePosition, true)
+  window.removeEventListener('resize', updateIframePosition)
 
   document.removeEventListener('mousedown', onMouseDown)
   window.removeEventListener('mouseup', onMouseUp)

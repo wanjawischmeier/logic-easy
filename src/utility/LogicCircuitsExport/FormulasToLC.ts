@@ -16,10 +16,9 @@ export function formulaToLC(
   outputVars: string[],
   minimizeForm: 'dnf' | 'cnf' = 'dnf',
   outType: 'and-or' | 'nand' | 'nor' = 'and-or',
-  firstLine: string | undefined = undefined,
 ): LCFile {
   //create new lc File instance
-  const lcFile = new LCFile(firstLine)
+  const lcFile = new LCFile()
 
   //set spacing constants
   const termSpacing = 20

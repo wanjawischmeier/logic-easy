@@ -9,21 +9,9 @@
       <LegendButton :legend="currentLegend" />
 
       <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :show-function-representation-selection="false"
-        :customSettingSlotLabels="selectedTabIndex === 1 ? { 'show-highlights': 'Show highlights' } : {}">
-        <template v-if="selectedTabIndex === 1" #show-highlights>
-          <div class="flex gap-2 items-center" @click.stop>
-            <Checkbox v-model="showHighlights" />
-            <div class="text-xs min-w-25">
-              <span v-if="showHighlights">Highlights enabled</span>
-              <span v-else>Highlights disabled</span>
-            </div>
-          </div>
-        </template>
-      </SettingsButton>
+        :selected-function-type="functionType" />
 
-      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="qmc"
-        :files="downloadFiles" />
+      <DownloadButton :target-ref="screenshotRef" filename="qmc" :files="downloadFiles" />
     </div>
 
     <div class="h-full" ref="screenshotRef">
@@ -33,12 +21,11 @@
           class="flex-1 flex items-center justify-center overflow-auto w-full">
           <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :functionType="functionType" :function-representation="functionRepresentation" :qmc-result="qmcResult" />
+            :functionType="functionType" :qmc-result="qmcResult" />
 
           <QMCPrimeImplicantChart v-else-if="selectedTabIndex === 1" :values="tableValues" :input-vars="inputVars"
             :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :functionType="functionType" :function-representation="functionRepresentation" :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex" :show-highlights="showHighlights" />
+            :functionType="functionType" :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex" />
 
         </div>
         <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full">
@@ -55,12 +42,11 @@
 
           <QMCGroupingTable :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
-            :function-representation="functionRepresentation" :qmc-result="qmcResult" />
+            :qmc-result="qmcResult" />
 
           <QMCPrimeImplicantChart :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
             :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
-            :function-representation="functionRepresentation" :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex" :show-highlights="showHighlights" />
+            :qmc-result="qmcResult" :coupling-term-latex="couplingTermLatex" />
         </div>
       </div>
     </div>
@@ -75,7 +61,6 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue';
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
-import Checkbox from '@/components/parts/Checkbox.vue'
 import QMCGroupingTable from '@/components/parts/QMCGroupingTable.vue'
 import QMCPrimeImplicantChart from '@/components/parts/QMCPrimeImplicantChart.vue'
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue';
@@ -87,7 +72,6 @@ import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerMa
 
 interface QMCPanelState {
   selectedTabIndex: number
-  showHighlights: boolean
 }
 
 let disposable: { dispose?: () => void } | null = null
@@ -97,7 +81,6 @@ const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<QMCPanelState>(props.params.api.id)
 const viewTabs = ['Grouping Table', 'Prime Implicants'];
 const selectedTabIndex = ref(panelState?.selectedTabIndex ?? 0);
-const showHighlights = ref(panelState?.showHighlights ?? true)
 const screenshotRef = ref<HTMLElement | null>(null)
 
 const legends: Record<string, LegendItem[]> = {
@@ -180,12 +163,11 @@ onBeforeUnmount(() => {
 
 // Auto-save panel state when values change
 stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
-  selectedTabIndex: selectedTabIndex.value,
-  showHighlights: showHighlights.value
+  selectedTabIndex: selectedTabIndex.value
 }))
 
 // Access state from params
-const { inputVars, outputVars, values, outputVariableIndex, functionType, functionRepresentation, qmcResult, couplingTermLatex } = TruthTableProject.useState()
+const { inputVars, outputVars, values, selectedFormula, outputVariableIndex, functionType, qmcResult, couplingTermLatex } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false

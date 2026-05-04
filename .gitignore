@@ -35,6 +35,3 @@ coverage
 
 # Vitest
 __screenshots__/
-
-# sub repos
-fsm-engine/

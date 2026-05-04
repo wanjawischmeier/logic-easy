@@ -1,4 +1,4 @@
-import { reactive, ref, watch, type UnwrapNestedRefs } from 'vue'
+import { reactive, watch, type UnwrapNestedRefs } from 'vue'
 import { projectManager } from '@/projects/projectManager'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { AutomatonState } from '@/projects/automaton/AutomatonTypes'
@@ -7,13 +7,13 @@ import type { SerializedDockview } from 'dockview-vue'
 /**
  * The current storage version
  */
-export const STORAGE_VERSION: number = 8
+export const STORAGE_VERSION: number = 7
 
 /**
  * All storage versions that are compatible with the current one
  */
 export const COMPATIBLE_STORAGE_VERSIONS: number[] = [
-  8
+  6, 7
 ]
 
 /**
@@ -33,10 +33,9 @@ export interface AppState {
  */
 export class StateManager {
   public state: UnwrapNestedRefs<AppState>
-  public isSaving = ref(false)
+  public isSaving = reactive({ value: false })
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   private savingSpinnerTimer: ReturnType<typeof setTimeout> | null = null
-   private isRestoring = false
 
   /**
    * Empty default state
@@ -55,7 +54,6 @@ export class StateManager {
     watch(
       () => this.state,
       () => {
-         if (this.isRestoring) return
         // Show spinner immediately on any state change
         this.isSaving.value = true
         if (this.savingSpinnerTimer) clearTimeout(this.savingSpinnerTimer)
@@ -74,16 +72,6 @@ export class StateManager {
     )
   }
 
-  /*
-  * helper functions for automaton state to avoid loops
-  */
-  beginRestore() {
-    this.isRestoring = true
-  }
-
-  endRestore() {
-    this.isRestoring = false
-  }
 
   /**
    * Open file picker and load a project

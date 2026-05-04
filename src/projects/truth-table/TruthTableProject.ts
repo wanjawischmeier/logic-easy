@@ -1,13 +1,13 @@
 import { createPanel } from "@/utility/dockview/integration";
 import { Project, type BaseProjectProps } from "../Project";
 import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
-import { defaultFunctionRepresentation, defaultFunctionType, type Formula, type FunctionRepresentation, type FunctionType } from "@/utility/types";
+import type { Formula, FunctionType } from "@/utility/types";
 import { computed } from "vue";
 import { stateManager, type AppState } from "@/projects/stateManager";
 import { registerProjectType } from '@/projects/projectRegistry';
 import { Minimizer, type QMCResult } from "@/utility/truthtable/minimizer";
 import type { TermColor } from "@/utility/truthtable/colorGenerator";
-import { getCouplingTermLatex } from "@/utility/truthtable/latexGenerator";
+import { getCouplingTermLatex } from "@/utility/truthtable/truthTableWorker";
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
@@ -25,7 +25,6 @@ export interface TruthTableState {
   formulas: Record<string, Formula>;
   outputVariableIndex: number;
   functionType: FunctionType;
-  functionRepresentation: FunctionRepresentation;
   qmcResult?: QMCResult;
   couplingTermLatex?: string;
   selectedFormula?: Formula;
@@ -49,8 +48,7 @@ export class TruthTableProject extends Project {
     const values = computed(() => stateManager.state.truthTable?.values ?? []);
     const formulas = computed(() => state.value?.formulas ?? {});
     const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0);
-    const functionType = computed(() => state.value?.functionType ?? defaultFunctionType);
-    const functionRepresentation = computed(() => state.value?.functionRepresentation ?? defaultFunctionRepresentation);
+    const functionType = computed(() => state.value?.functionType ?? 'DNF');
     const qmcResult = computed(() => state.value?.qmcResult);
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex);
     const selectedFormula = computed(() => state.value?.selectedFormula);
@@ -67,7 +65,6 @@ export class TruthTableProject extends Project {
       formulas,
       outputVariableIndex,
       functionType,
-      functionRepresentation,
       qmcResult,
       couplingTermLatex,
       selectedFormula,
@@ -109,12 +106,10 @@ export class TruthTableProject extends Project {
       Array.from({ length: props.outputVariableCount }, () => 0 as TruthTableCell)
     ) as TruthTableData
 
-    const functionType: FunctionType = defaultFunctionType
-    const functionRepresentation: FunctionRepresentation = defaultFunctionRepresentation
+    const functionType: FunctionType = 'DNF'
     const couplingTermLatex = getCouplingTermLatex(
       Minimizer.emptyQMQResult,
       functionType,
-      functionRepresentation,
       inputVars
     )
 
@@ -126,7 +121,6 @@ export class TruthTableProject extends Project {
       formulas: formulas,
       outputVariableIndex: 0,
       functionType: functionType,
-      functionRepresentation: functionRepresentation,
       couplingTermLatex: couplingTermLatex,
     }
 
@@ -140,6 +134,10 @@ export class TruthTableProject extends Project {
   static override validateState(state: AppState): boolean {
     return state.truthTable != undefined;
   }
+
+  static functionTypes = computed(() =>
+    Object.values({ DNF: 'DNF', CNF: 'CNF' } as Record<string, FunctionType>)
+  )
 }
 
 registerProjectType('truth-table', {

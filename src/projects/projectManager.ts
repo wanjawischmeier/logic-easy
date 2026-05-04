@@ -100,7 +100,7 @@ export class ProjectManager {
       if (extension === 'le') {
         await this.loadProjectFromFile(file)
       } else {
-        Toast.warning('Opening of LogicCircuits projects not supported yet')
+        alert('Opening of LogicCircuits projects not supported yet')
       }
     } catch (error) {
       console.error(`Failed to load project from file: ${error}`)

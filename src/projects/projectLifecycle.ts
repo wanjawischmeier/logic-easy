@@ -12,8 +12,6 @@ import { projectTypes } from '@/projects/projectRegistry'
 export class ProjectLifecycleManager {
   private currentProjectId: Ref<number | null>
   private metadataManager: ProjectMetadataManager
-  // Signal that increments every time a project is successfully opened
-  public readonly projectOpened = ref<number>(0)
 
   constructor(metadataManager: ProjectMetadataManager) {
     this.metadataManager = metadataManager
@@ -75,35 +73,10 @@ export class ProjectLifecycleManager {
    */
   private clearState(): void {
     Object.keys(stateManager.state).forEach(
-      (key) => delete (stateManager.state as Record<string, unknown>)[key],
+      key => delete (
+        stateManager.state as Record<string, unknown>
+      )[key]
     )
-  }
-
-  /**
-   * Keeps only shared UI state and the store that belongs to the given project type.
-   */
-  private isolateStateForProjectType(projectType: string, state: typeof stateManager.state) {
-    const baseState = {
-      version: state.version,
-      panelStates: state.panelStates,
-      dockviewLayout: state.dockviewLayout,
-    }
-
-    if (projectType === 'automaton') {
-      return {
-        ...baseState,
-        automaton: state.automaton,
-      }
-    }
-
-    if (projectType === 'truth-table') {
-      return {
-        ...baseState,
-        truthTable: state.truthTable,
-      }
-    }
-
-    return state
   }
 
   /**
@@ -129,7 +102,7 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
       projectType: project.projectType,
       hasState: !!project.state,
       stateKeys: project.state ? Object.keys(project.state) : [],
-      sampleState: project.state,
+      sampleState: project.state
     })
 
     // Validate that project type exists in registry
@@ -145,9 +118,7 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
       console.warn('[ProjectLifecycle.open] Project has empty state - may need initialization')
     }
 
-    const isolatedState = this.isolateStateForProjectType(project.projectType, project.state)
-
-    if (!(projectTypeInfo.projectClass?.validateState(isolatedState) ?? false)) {
+    if (!(projectTypeInfo.projectClass?.validateState(project.state) ?? false)) {
       console.error('[ProjectLifecycle.open] Project state failed type specific validation')
       return null
     }
@@ -160,16 +131,11 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     this.setCurrentId(projectId)
 
     // Copy over shared state properties
-    stateManager.beginRestore()
-    Object.assign(stateManager.state, isolatedState)
-    stateManager.endRestore()
+    Object.assign(stateManager.state, project.state);
 
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
-      stateManagerState: stateManager.state,
+      stateManagerState: stateManager.state
     })
-
-    // Emit signal that project was opened
-    this.projectOpened.value++
 
     return project
   }
