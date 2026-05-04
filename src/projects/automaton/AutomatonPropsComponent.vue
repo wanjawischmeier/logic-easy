@@ -5,15 +5,14 @@
 </template>
 
 <script setup lang="ts">
-import type { ValidationFunction } from '@/projects/projectRegistry';
-import { ref, computed, onMounted, watch } from 'vue';
-import type { AutomatonProps } from './AutomatonTypes';
+import type { ValidationFunction } from '@/projects/projectRegistry'
+import { ref, computed, onMounted, watch } from 'vue'
+import type { AutomatonProps } from './AutomatonTypes'
 
 const props = defineProps<{
-  modelValue: AutomatonProps;
-  registerValidation?: (fn: ValidationFunction) => void;
+  modelValue: AutomatonProps
+  registerValidation?: (fn: ValidationFunction) => void
 }>()
-
 
 // Register validation with parent
 onMounted(() => {
@@ -21,9 +20,9 @@ onMounted(() => {
     props.registerValidation(() => {
       return {
         valid: true,
-        error: undefined
-      };
-    });
+        error: undefined,
+      }
+    })
   }
-});
+})
 </script>

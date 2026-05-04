@@ -1,5 +1,5 @@
-import { type Term, FunctionType } from "@/utility/types";
-import { defaultColor, type TermColor } from "./colorGenerator";
+import { type Term, FunctionType } from '@/utility/types'
+import { defaultColor, type TermColor } from './colorGenerator'
 
 const CELL_PADDING = '6px'
 const BORDER_WIDTH = '2px'
@@ -23,42 +23,42 @@ function isCovered(
   rowCode: string,
   colCode: string,
   functionType: FunctionType,
-  inputVars: string[]
+  inputVars: string[],
 ): boolean {
-  const binaryString = rowCode + colCode;
+  const binaryString = rowCode + colCode
 
   if (functionType === FunctionType.DNF) {
     // DNF: Term is a product (AND of literals).
     // Covers cells where all literals are true.
 
     if (term.literals.length === 1 && term.literals[0]?.variable === '0') {
-      return false;
+      return false
     }
     for (const literal of term.literals) {
-      const varIndex = inputVars.indexOf(literal.variable);
-      if (varIndex === -1) continue;
+      const varIndex = inputVars.indexOf(literal.variable)
+      if (varIndex === -1) continue
 
-      const bit = binaryString[varIndex];
+      const bit = binaryString[varIndex]
       // literal A (negated=false) requires bit '1'
       // literal !A (negated=true) requires bit '0'
-      if (!literal.negated && bit !== '1') return false;
-      if (literal.negated && bit !== '0') return false;
+      if (!literal.negated && bit !== '1') return false
+      if (literal.negated && bit !== '0') return false
     }
-    return true;
+    return true
   } else {
     // CNF: Term is a sum (OR of literals)a clause.
     // Covers cells where at least one literal is true.
     for (const literal of term.literals) {
-      const varIndex = inputVars.indexOf(literal.variable);
-      if (varIndex === -1) continue;
+      const varIndex = inputVars.indexOf(literal.variable)
+      if (varIndex === -1) continue
 
-      const bit = binaryString[varIndex];
+      const bit = binaryString[varIndex]
       // Literal A (negated=false) is true when bit='1'
       // Literal !A (negated=true) is true when bit='0'
-      if (!literal.negated && bit === '1') return true;
-      if (literal.negated && bit === '0') return true;
+      if (!literal.negated && bit === '1') return true
+      if (literal.negated && bit === '0') return true
     }
-    return false; // No literal was true
+    return false // No literal was true
   }
 }
 
@@ -77,28 +77,40 @@ function calculateAllCoverage(
   rows: string[],
   cols: string[],
   functionType: FunctionType,
-  inputVars: string[]
+  inputVars: string[],
 ): boolean[][][] {
-  const coverage: boolean[][][] = [];
+  const coverage: boolean[][][] = []
 
   terms.forEach((term, termIndex) => {
-    coverage[termIndex] = [];
+    coverage[termIndex] = []
     rows.forEach((rowCode, rowIndex) => {
-      coverage[termIndex]![rowIndex] = [];
+      coverage[termIndex]![rowIndex] = []
       cols.forEach((colCode, colIndex) => {
-        coverage[termIndex]![rowIndex]![colIndex] = isCovered(term, rowCode, colCode, functionType, inputVars);
-      });
-    });
-  });
+        coverage[termIndex]![rowIndex]![colIndex] = isCovered(
+          term,
+          rowCode,
+          colCode,
+          functionType,
+          inputVars,
+        )
+      })
+    })
+  })
 
-  return coverage;
+  return coverage
 }
 
 /**
  * Compute css style for a given coverage scenario.
  * Puts borders on all egdes that do not have a neighbor.
  */
-function getStyleFromCoverage(color: TermColor, hasTop: boolean, hasBottom: boolean, hasLeft: boolean, hasRight: boolean) {
+function getStyleFromCoverage(
+  color: TermColor,
+  hasTop: boolean,
+  hasBottom: boolean,
+  hasLeft: boolean,
+  hasRight: boolean,
+) {
   return {
     backgroundColor: color.fill,
     top: hasTop ? '0' : CELL_PADDING,
@@ -124,16 +136,16 @@ function createFullCoverageHighlight(
   colIndex: number,
   rowCount: number,
   colCount: number,
-  color: TermColor
+  color: TermColor,
 ): Highlight {
-  const isTopEdge = rowIndex === 0;
-  const isBottomEdge = rowIndex === rowCount - 1;
-  const isLeftEdge = colIndex === 0;
-  const isRightEdge = colIndex === colCount - 1;
+  const isTopEdge = rowIndex === 0
+  const isBottomEdge = rowIndex === rowCount - 1
+  const isLeftEdge = colIndex === 0
+  const isRightEdge = colIndex === colCount - 1
 
   return {
-    style: getStyleFromCoverage(color, !isTopEdge, !isBottomEdge, !isLeftEdge, !isRightEdge)
-  };
+    style: getStyleFromCoverage(color, !isTopEdge, !isBottomEdge, !isLeftEdge, !isRightEdge),
+  }
 }
 
 /**
@@ -144,14 +156,14 @@ function isEntireRowCovered(
   termIndex: number,
   rowIndex: number,
   colCount: number,
-  isCNF: boolean
+  isCNF: boolean,
 ): boolean {
   for (let ci = 0; ci < colCount; ci++) {
     if (coverage[termIndex]?.[rowIndex]?.[ci] === isCNF) {
-      return false;
+      return false
     }
   }
-  return true;
+  return true
 }
 
 /**
@@ -162,14 +174,14 @@ function isEntireColCovered(
   termIndex: number,
   colIndex: number,
   rowCount: number,
-  isCNF: boolean
+  isCNF: boolean,
 ): boolean {
   for (let ri = 0; ri < rowCount; ri++) {
     if (coverage[termIndex]?.[ri]?.[colIndex] === isCNF) {
-      return false;
+      return false
     }
   }
-  return true;
+  return true
 }
 
 /**
@@ -196,48 +208,54 @@ function inferHighlightFromCoverage(
   rowIndex: number,
   colIndex: number,
   functionType: FunctionType,
-  termColors: TermColor[]
+  termColors: TermColor[],
 ): Highlight[] {
-  const highlights: Highlight[] = [];
-  const isCNF = functionType === FunctionType.CNF;
+  const highlights: Highlight[] = []
+  const isCNF = functionType === FunctionType.CNF
 
   terms.forEach((term, index) => {
-    const covered = coverage[index]?.[rowIndex]?.[colIndex];
+    const covered = coverage[index]?.[rowIndex]?.[colIndex]
     if (covered === undefined || covered === isCNF) return
 
-    const color = termColors[index];
-    if (!color) return;
+    const color = termColors[index]
+    if (!color) return
 
-    const topRowIndex = (rowIndex - 1 + rows.length) % rows.length;
-    const bottomRowIndex = (rowIndex + 1) % rows.length;
-    const leftColIndex = (colIndex - 1 + cols.length) % cols.length;
-    const rightColIndex = (colIndex + 1) % cols.length;
+    const topRowIndex = (rowIndex - 1 + rows.length) % rows.length
+    const bottomRowIndex = (rowIndex + 1) % rows.length
+    const leftColIndex = (colIndex - 1 + cols.length) % cols.length
+    const rightColIndex = (colIndex + 1) % cols.length
 
-    let hasTop = coverage[index]?.[topRowIndex]?.[colIndex] !== isCNF;
-    let hasBottom = coverage[index]?.[bottomRowIndex]?.[colIndex] !== isCNF;
-    let hasLeft = coverage[index]?.[rowIndex]?.[leftColIndex] !== isCNF;
-    let hasRight = coverage[index]?.[rowIndex]?.[rightColIndex] !== isCNF;
+    let hasTop = coverage[index]?.[topRowIndex]?.[colIndex] !== isCNF
+    let hasBottom = coverage[index]?.[bottomRowIndex]?.[colIndex] !== isCNF
+    let hasLeft = coverage[index]?.[rowIndex]?.[leftColIndex] !== isCNF
+    let hasRight = coverage[index]?.[rowIndex]?.[rightColIndex] !== isCNF
 
     // Check edge cases: if entire row/column is covered, show outer borders
     if (rowIndex === 0 && isEntireColCovered(coverage, index, colIndex, rows.length, isCNF)) {
-      hasTop = false;
+      hasTop = false
     }
-    if (rowIndex === rows.length - 1 && isEntireColCovered(coverage, index, colIndex, rows.length, isCNF)) {
-      hasBottom = false;
+    if (
+      rowIndex === rows.length - 1 &&
+      isEntireColCovered(coverage, index, colIndex, rows.length, isCNF)
+    ) {
+      hasBottom = false
     }
     if (colIndex === 0 && isEntireRowCovered(coverage, index, rowIndex, cols.length, isCNF)) {
-      hasLeft = false;
+      hasLeft = false
     }
-    if (colIndex === cols.length - 1 && isEntireRowCovered(coverage, index, rowIndex, cols.length, isCNF)) {
-      hasRight = false;
+    if (
+      colIndex === cols.length - 1 &&
+      isEntireRowCovered(coverage, index, rowIndex, cols.length, isCNF)
+    ) {
+      hasRight = false
     }
 
     highlights.push({
-      style: getStyleFromCoverage(color, hasTop, hasBottom, hasLeft, hasRight)
-    });
-  });
+      style: getStyleFromCoverage(color, hasTop, hasBottom, hasLeft, hasRight),
+    })
+  })
 
-  return highlights;
+  return highlights
 }
 
 /**
@@ -246,7 +264,7 @@ function inferHighlightFromCoverage(
  * `style`: map of CSS props used to render the highlight region.
  */
 export interface Highlight {
-  style: Record<string, string>;
+  style: Record<string, string>
 }
 
 /**
@@ -267,59 +285,71 @@ export function calculateHighlights(
   terms: Term[],
   functionType: FunctionType,
   inputVars: string[],
-  termColors: TermColor[]
+  termColors: TermColor[],
 ): Highlight[] {
-  const rowCode = rowCodes[rowIndex];
-  const colCode = colCodes[colIndex];
+  const rowCode = rowCodes[rowIndex]
+  const colCode = colCodes[colIndex]
 
-  if (!rowCode || !colCode) return [];
+  if (!rowCode || !colCode) return []
 
   // Check for constant formulas
-  const isConstant1 = terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '1';
-  const isConstant0 = terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '0';
+  const isConstant1 =
+    terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '1'
+  const isConstant0 =
+    terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '0'
 
   if (functionType === FunctionType.DNF) {
     // DNF constant 1 (tautology): highlight all cells
     if (isConstant1) {
       // For tautology in DNF, we need a color - use default color if none provided
-      const color = termColors[0] || defaultColor;
-      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
+      const color = termColors[0] || defaultColor
+      return [
+        createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color),
+      ]
     }
     // DNF constant 0 (contradiction): highlight no cells
     if (isConstant0) {
-      return [];
+      return []
     }
   } else {
     // CNF mode
     // CNF constant 1 (tautology): highlight no cells (because CNF highlights zeros)
     if (isConstant1) {
-      return [];
+      return []
     }
     // CNF constant 0 (contradiction): highlight all cells
     if (isConstant0) {
       // For contradiction in CNF, we need a color - use default color if none provided
-      const color = termColors[0] || defaultColor;
-      return [createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color)];
+      const color = termColors[0] || defaultColor
+      return [
+        createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color),
+      ]
     }
 
     // Pre-calculate coverage for CNF check
-    const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars);
+    const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars)
 
     // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
     // A clause (sum) is FALSE when ALL its literals are false
     // So we highlight cells where at least one clause is completely false
     const anyClauseFalse = terms.some((_, termIndex) => {
-      return !coverage[termIndex]?.[rowIndex]?.[colIndex];
-    });
+      return !coverage[termIndex]?.[rowIndex]?.[colIndex]
+    })
 
-    if (!anyClauseFalse) return []; // Cell doesn't contribute to making formula false
+    if (!anyClauseFalse) return [] // Cell doesn't contribute to making formula false
   }
 
   // Pre-calculate coverage for all cells once
-  const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars);
+  const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars)
 
   return inferHighlightFromCoverage(
-    terms, coverage, rowCodes, colCodes,
-    rowIndex, colIndex, functionType, termColors
-  );
+    terms,
+    coverage,
+    rowCodes,
+    colCodes,
+    rowIndex,
+    colIndex,
+    functionType,
+    termColors,
+  )
 }
