@@ -219,6 +219,22 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true;
   let checkPassed = true;
 
+  // determine available input variable count for both truth-table and fsm contexts
+  const getAvailableInputVarCount = (): number => {
+    const tt = stateManager.state.truthTable
+    if (tt && Array.isArray(tt.inputVars)) return tt.inputVars.length
+
+    const fsm = stateManager.state.fsm
+    if (fsm) {
+      const stateCount = (fsm.nodes || []).length
+      const stateBits = stateCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, stateCount))))
+      const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
+      return stateBits + inputBits
+    }
+
+    return 0
+  }
+
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
@@ -236,15 +252,15 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
         break
 
       case 'Min2InputVars':
-        // Check if truth table has at least 2 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) < 2) {
+        // Require at least 2 minimizer input variables
+        if (getAvailableInputVarCount() < 2) {
           checkPassed = false;
         }
         break;
 
       case 'Max4InputVars':
-        // Check if truth table has at most 4 input variables
-        if ((stateManager.state.truthTable?.inputVars?.length ?? 0) > 4) {
+        // Require less than 5 minimizer input variables
+      if (getAvailableInputVarCount() > 4) {
           checkPassed = false;
         }
         break;

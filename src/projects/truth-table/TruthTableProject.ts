@@ -1,13 +1,19 @@
-import { createPanel } from "@/utility/dockview/integration";
-import { Project, type BaseProjectProps } from "../Project";
-import TruthTablePropsComponent from "./TruthTablePropsComponent.vue";
-import { defaultFunctionRepresentation, defaultFunctionType, type Formula, type FunctionRepresentation, type FunctionType } from "@/utility/types";
-import { computed } from "vue";
-import { stateManager, type AppState } from "@/projects/stateManager";
-import { registerProjectType } from '@/projects/projectRegistry';
-import { Minimizer, type QMCResult } from "@/utility/truthtable/minimizer";
-import type { TermColor } from "@/utility/truthtable/colorGenerator";
-import { getCouplingTermLatex } from "@/utility/truthtable/latexGenerator";
+import { createPanel } from '@/utility/dockview/integration'
+import { Project, type BaseProjectProps } from '../Project'
+import TruthTablePropsComponent from './TruthTablePropsComponent.vue'
+import {
+  defaultFunctionRepresentation,
+  defaultFunctionType,
+  type Formula,
+  type FunctionRepresentation,
+  type FunctionType,
+} from '@/utility/types'
+import { computed } from 'vue'
+import { stateManager, type AppState } from '@/projects/stateManager'
+import { registerProjectType } from '@/projects/projectRegistry'
+import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
+import type { TermColor } from '@/utility/truthtable/colorGenerator'
+import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
 
 export type TruthTableCell = 0 | 1 | '-';
 export type TruthTableData = TruthTableCell[][];
@@ -19,17 +25,18 @@ export interface TruthTableProps extends BaseProjectProps {
 }
 
 export interface TruthTableState {
-  inputVars: string[];
-  outputVars: string[];
-  values: TruthTableData;
-  formulas: Record<string, Formula>;
-  outputVariableIndex: number;
-  functionType: FunctionType;
-  functionRepresentation: FunctionRepresentation;
-  qmcResult?: QMCResult;
-  couplingTermLatex?: string;
-  selectedFormula?: Formula;
-  formulaTermColors?: TermColor[];
+  inputVars: string[]
+  outputVars: string[]
+  values: TruthTableData
+  formulas: Record<string, Formula>
+  outputVariableIndex: number
+  functionType: FunctionType
+  functionRepresentation: FunctionRepresentation
+  qmcResult?: QMCResult
+  couplingTermLatex?: string
+  selectedFormula?: Formula
+  formulaTermColors?: TermColor[]
+  fsmMode?: boolean
 }
 
 export class TruthTableProject extends Project {
@@ -128,6 +135,7 @@ export class TruthTableProject extends Project {
       functionType: functionType,
       functionRepresentation: functionRepresentation,
       couplingTermLatex: couplingTermLatex,
+      fsmMode: false,
     }
 
     console.log('[TruthTableProject.createState] State initialized:', {

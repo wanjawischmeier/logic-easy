@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
-import type { FsmModel, FsmNode, FsmTransition } from '@/projects/state-machine/FsmTypes'
+import type { FsmModel, FsmTransition } from '@/projects/state-machine/FsmTypes'
 import { normalizeBits } from '@/utility/fsm/bitOperations'
 import {
   toggleMooreOutputBit,
