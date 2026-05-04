@@ -93,12 +93,6 @@ interface Props {
   showFunctionRepresentationSelection?: boolean
 }
 
-interface Emits {
-    (e: 'update:selectedOutputIndex', value: number): void
-    (e: 'update:selectedFunctionType', value: FunctionType): void
-    (e: 'update:selectedFunctionRepresentation', value: FunctionRepresentation): void
-}
-
 const props = withDefaults(defineProps<Props>(), {
   showOutputSelection: true,
   showFunctionTypeSelection: true,
