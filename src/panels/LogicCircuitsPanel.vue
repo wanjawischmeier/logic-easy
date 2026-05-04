@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
-import { TruthTableProject } from '@/projects/truth-table/TruthTableProject.ts'
-import { logicCircuits } from '@/utility/logicCircuitsWrapper.ts'
-import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
+import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
+import { logicCircuits } from '@/utility/logicCircuitsWrapper'
+import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC'
 import IframePanel from '@/components/IFramePanel.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import { stateManager } from '@/projects/stateManager'
@@ -498,6 +498,7 @@ const methodOptions = lcMethodTypes
           </template>
         </SettingsButton>
         <DownloadButton
+        :panel-id="params.api.id"
           :target-ref="iframeContainer"
           :screenshot="{ enabled: false }"
           :files="logicCircuitDownloadFiles"

@@ -37,11 +37,11 @@ import CreditPopup from './popups/CreditPopup.vue'
 import { projectManager } from '@/projects/projectManager'
 import { stateManager } from '@/projects/stateManager'
 import { downloadRegistry } from '@/utility/downloadRegistry'
-import { formulaToLcFile } from '@/utility/LogicCircuitsExport/FormulasToLC.ts'
+import { formulaToLcFile } from '@/utility/LogicCircuitsExport/FormulasToLC'
 import {
   exportTruthTableTOVHDLboolExpr,
   exportTruthTableTOVHDLcaseWhen,
-} from '@/utility/VHDL/export.ts'
+} from '@/utility/VHDL/export'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
@@ -163,7 +163,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
               formulas.value,
               inputVars.value,
               outputVars.value,
-              formulaType.value === 'Disjunctive' ? 'Disjunctive' : 'Conjunctive',
+              functionType.value,
               'nor',
             )
           },
