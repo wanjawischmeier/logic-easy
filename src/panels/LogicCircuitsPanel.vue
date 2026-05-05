@@ -476,7 +476,7 @@ const methodOptions = lcMethodTypes
     <teleport to="body">
       <div
         id="lc-download-button"
-        class="fixed z-50 flex items-center gap-2 text-sm"
+        class="fixed z-10 flex items-center gap-2 text-sm"
         :style="downloadButtonStyle"
       >
         <div
