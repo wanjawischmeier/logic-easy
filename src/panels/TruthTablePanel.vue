@@ -1,6 +1,6 @@
 <template>
-  <div class="h-full text-white flex flex-col p-2 overflow-auto" @mousedown="searchBarRef?.exit">
-    <div class="flex justify-end items-center h-10 mb-2 gap-2">
+  <div class="h-full min-h-0 overflow-hidden text-white flex flex-col p-2" @mousedown="searchBarRef?.exit">
+    <div class="shrink-0 flex justify-end items-center h-10 mb-2 gap-2">
       <TruthTableSearch
         :input-vars="inputVars"
         :output-vars="outputVars"
@@ -43,7 +43,7 @@
         :files="downloadFiles"
       />
     </div>
-    <div ref="screenshotRef" class="flex-1 overflow-auto">
+ <div ref="screenshotRef" class="flex-1 min-h-0 overflow-y-auto overscroll-hidden">
       <TruthTable
         v-model="tableValues"
         :input-vars="inputVars"
