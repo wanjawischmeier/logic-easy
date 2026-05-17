@@ -6,6 +6,7 @@ import StateTablePanel from '@/panels/StateTablePanel.vue'
 import { computed } from 'vue'
 import type { ProjectType } from '@/projects/projectRegistry'
 import { stateManager } from '@/projects/stateManager'
+import { projectManager } from '@/projects/projectManager'
 import QMCPanel from '@/panels/QMCPanel.vue'
 
 export type PanelRequirement =
@@ -122,8 +123,8 @@ export const dockRegistry: DockRegistryEntry[] = [
     component: LogicCircuitsPanel,
   },
   {
-    id: 'fsm-engine',
-    label: 'FSM Engine',
+    id: 'fsm-editor',
+    label: 'FSM Editor',
     component: FsmEnginePanel,
     projectType: 'fsm',
     requires: {
@@ -228,6 +229,8 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   if (!requirements) return true
   let checkPassed = true
 
+  const currentProjectType = projectManager.currentProjectInfo?.projectType ?? null
+
   // determine available input variable count for both truth-table and fsm contexts
   const getAvailableInputVarCount = (): number => {
     const tt = stateManager.state.truthTable
@@ -248,15 +251,14 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
-        // Check if truth table state exists
-        if (!stateManager.state.truthTable) {
+        // Only allow for truth-table projects, even if FSM sync created a truth table state
+        if (!stateManager.state.truthTable || currentProjectType !== 'truth-table') {
           checkPassed = false
         }
         break
 
       case 'Fsm':
-        // Check if truth table state exists
-        if (!stateManager.state.fsm) {
+        if (!stateManager.state.fsm || currentProjectType !== 'fsm') {
           checkPassed = false
         }
         break
