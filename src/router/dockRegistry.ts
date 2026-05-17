@@ -122,8 +122,8 @@ export const dockRegistry: DockRegistryEntry[] = [
     component: LogicCircuitsPanel,
   },
   {
-    id: 'fsm-engine',
-    label: 'FSM Engine',
+    id: 'fsm-editor',
+    label: 'FSM Editor',
     component: FsmEnginePanel,
     projectType: 'fsm',
     requires: {

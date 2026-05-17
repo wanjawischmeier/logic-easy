@@ -73,7 +73,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-full text-white flex flex-col p-2 bg-surface">
-    <div v-if="title" class="font-semibold mb-2">{{ title }}</div>
 
     <IframePanel
       ref="iframeRef"
