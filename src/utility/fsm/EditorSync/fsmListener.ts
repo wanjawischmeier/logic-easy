@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { effectScope, watch, type EffectScope, nextTick } from 'vue'
+import { effectScope, watch, type EffectScope } from 'vue'
 import { stateManager } from '@/projects/stateManager'
 import { calcBinaryID, normalizeBits } from '../bitOperations'
 
@@ -8,9 +8,8 @@ let isInitialized = false
 let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
 let suppressIncomingEditorExport = false
-let recentForceSync = false
 
-export function syncTableToEditor() {
+function syncTableToEditor() {
   const newFsm = stateManager.state.fsm
   if (isSyncing || !newFsm) return
 
@@ -27,21 +26,29 @@ export function syncTableToEditor() {
       y: n.editorCoordY,
       moore_output: n.mooreOutput || '',
     })),
-    transitions: newFsm.transitions.map((t) => ({
-      toBinaryId: normalizeBits(
-        t.toBinaryId ??
-          (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, newFsm.nodeIdBitCount || 1) : ''),
-        newFsm.nodeIdBitCount || 1,
+    transitions: newFsm.transitions.map((t) => {
+      const nodeBits = newFsm.nodeIdBitCount || 1
+      const inBits = newFsm.inputBitCount || 1
+      const outBits = newFsm.outputBitCount || 1
+      const toBinary = normalizeBits(
+        t.toBinaryId ?? (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, nodeBits) : ''),
+        nodeBits,
         'x',
         'left',
-      ),
-      id: t.transitionId,
-      from: t.fromNodeId,
-      to: t.toNodeId,
-      input: t.input,
-      output: t.mealyOutput || '',
-      mealy_output: t.mealyOutput || '',
-    })),
+      )
+      const inputNorm = normalizeBits(t.input, inBits, 'x', 'right')
+      const outputNorm = normalizeBits(t.mealyOutput, outBits, 'x', 'right')
+      return {
+        toBinaryId: toBinary,
+        id: t.transitionId,
+        groupId: (t as any).groupId ?? t.transitionId,
+        from: t.fromNodeId,
+        to: t.toNodeId,
+        input: inputNorm,
+        output: outputNorm,
+        mealy_output: outputNorm,
+      }
+    }),
     fsmType: newFsm.fsmModel,
   }
 
@@ -62,8 +69,8 @@ export function forceSyncTableToEditor(): void {
   const fsmIframe = (window as any).__fsm_preloaded_iframe
   if (!fsmIframe?.contentWindow) return
 
+  // mark that the next incoming editor export (in response) should be ignored
   suppressIncomingEditorExport = true
-  recentForceSync = true
 
   const editorPayload = {
     states: newFsm.nodes.map((n) => ({
@@ -125,16 +132,9 @@ export function initFsmSyncService() {
   syncScope.run(() => {
     watch(
       () => stateManager.state.fsm,
-      async () => {
-        // wait one tick so external callers can toggle `isSyncing`
-        await nextTick()
-        if (recentForceSync) {
-          recentForceSync = false
-          return
-        }
-        if (!isSyncing) {
-          syncTableToEditor()
-        }
+      () => {
+        // updates are handled centralized in project
+        syncTableToEditor()
       },
       { deep: true },
     )
