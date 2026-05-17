@@ -106,7 +106,7 @@ function decreaseOutputBits() {
 
 <template>
   <div class="w-full flex flex-col gap-2 items-center p-2">
-    <h1 class="text-xl font-mono self-start">States</h1>
+    <h1 class="text-xl text-center font-mono">States</h1>
 
     <table class="flex-auto bg-gray-800 border border-primary table-auto select-none mb-0">
       <thead>
