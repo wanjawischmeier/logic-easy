@@ -2,7 +2,8 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
-import { setIsSyncing, useFsmListener } from '@/utility/fsm/EditorSync/fsmListener'
+import { setIsSyncing, useFsmListener, forceSyncTableToEditor, consumeSuppressIncomingEditorExport } from '@/utility/fsm/EditorSync/fsmListener'
+import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
@@ -34,11 +35,22 @@ onMounted(() => {
 
     const data = event.data || {}
     if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
+      // if we suppressed the next editor export (because we forced a sync), consume suppression and ignore
+      if (consumeSuppressIncomingEditorExport()) return
+
+      const prevNodes = stateManager.state.fsm?.nodes?.length ?? 0
+
       try {
         setIsSyncing(true)
         FsmProject.importEditorExport(data.fsm)
+
+        const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
+        // if the editor added a new node, force a single back-sync of transitions
+        if (nextNodes > prevNodes) {
+          forceSyncTableToEditor()
+        }
       } finally {
-        setTimeout(() => setIsSyncing(false), 50)
+        setIsSyncing(false)
       }
     }
   }

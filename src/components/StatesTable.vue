@@ -2,6 +2,7 @@
 import { computed, reactive } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
+import { syncTableToEditor } from '@/utility/fsm/EditorSync/fsmListener'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
@@ -27,6 +28,7 @@ function addStateRow() {
   if (!current) return
 
   addFsmStateRow(current, fsmModel.value)
+  syncTableToEditor()
 }
 
 function removeStateRow(stateId: number) {
