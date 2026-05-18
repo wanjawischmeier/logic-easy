@@ -44,6 +44,7 @@ import { newMenu, type MenuEntry } from '@/router/dockRegistry'
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue'
 import { projectManager } from '@/projects/projectManager'
 import { showProjectCreationPopup } from '@/utility/popupService'
+import { formatDate } from '@/utility/dateFormatter'
 
 interface ListEntry {
   label: string
@@ -56,24 +57,6 @@ export default defineComponent({
   name: 'GettingStartedView',
   components: { DirectoryStyleList },
   setup() {
-    function formatDate(timestamp: number): string {
-      const now = Date.now()
-      const diff = now - timestamp
-      const seconds = Math.floor(diff / 1000)
-      const minutes = Math.floor(seconds / 60)
-      const hours = Math.floor(minutes / 60)
-      const days = Math.floor(hours / 24)
-
-      if (seconds < 60) return 'Just now'
-      if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
-      if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`
-      if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`
-
-      // For older dates, show the actual date
-      const date = new Date(timestamp)
-      return date.toLocaleDateString()
-    }
-
     const newProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
       newMenu.value.map((menuEntry: MenuEntry) => ({
         label: menuEntry.label,
