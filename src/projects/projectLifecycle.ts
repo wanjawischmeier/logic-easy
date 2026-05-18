@@ -139,6 +139,9 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     // Emit signal that project was opened
     this.projectOpened.value++
 
+    // Update document title
+    document.title = `${project.name} - LogicEasy`
+
     return project
   }
 
@@ -152,6 +155,9 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     console.log(`Closing project: ${this.metadataManager.projectString(projectInfo)}`)
     this.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
+
+    // Reset document title
+    document.title = 'LogicEasy'
 
     // Clear the state to trigger reactivity updates
     this.clearState()
