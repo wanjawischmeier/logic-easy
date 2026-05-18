@@ -7,8 +7,9 @@
       @mouseenter="maybeSwitch(menu)"
     >
       <button
-        class="border hover:border-surface-3 hover:bg-surface-2"
+        class="border hover:border-surface-3 hover:bg-surface-2 disabled:text-on-surface-disabled disabled:bg-transparent disabled:border-transparent"
         :class="activeMenu === menu ? 'border-surface-3 bg-surface-2' : 'border-transparent'"
+        :disabled="disabledMenus.has(menu)"
         @click.stop="toggleMenu(menu)"
         :aria-expanded="activeMenu === menu"
         :aria-haspopup="true"
@@ -241,6 +242,36 @@ const activeMenu = ref<string>('')
 const openPath = ref<number[]>([])
 const rootRef = ref<HTMLElement | null>(null)
 
+/**
+ * Check if all items in an array are disabled (recursively checks children)
+ */
+function areAllItemsDisabled(items: MenuEntry[]): boolean {
+  if (items.length === 0) return true
+
+  return items.every((item) => {
+    if (item.disabled) return true
+    if (item.children) {
+      return areAllItemsDisabled(item.children)
+    }
+    return false
+  })
+}
+
+/**
+ * Compute which menus should be entirely disabled
+ */
+const disabledMenus = computed<Set<string>>(() => {
+  const disabled = new Set<string>()
+
+  Object.entries(menus.value).forEach(([menuName, items]) => {
+    if (areAllItemsDisabled(items)) {
+      disabled.add(menuName)
+    }
+  })
+
+  return disabled
+})
+
 type MenuListProps = {
   items: MenuEntry[]
   level?: number
@@ -319,7 +350,7 @@ function toggleMenu(name: string): void {
 }
 
 function maybeSwitch(name: string): void {
-  if (activeMenu.value && activeMenu.value !== name) {
+  if (activeMenu.value && activeMenu.value !== name && !disabledMenus.value.has(name)) {
     activeMenu.value = name
     openPath.value = []
   }
