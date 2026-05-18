@@ -104,6 +104,9 @@ export const dockRegistry: DockRegistryEntry[] = [
         component: QMCPanel,
         projectType: 'truth-table',
         minimumWidth: 400,
+        requires: {
+          view: ['TruthTable'],
+        },
       },
     ],
   },
@@ -120,6 +123,9 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'lc-iframe',
     label: 'Logic Circuits',
     component: LogicCircuitsPanel,
+    requires: {
+      view: ['TruthTable'],
+    },
   },
   {
     id: 'fsm-engine',
@@ -145,8 +151,8 @@ const convertRegistryEntryToMenuEntry = (
       label: entry.label,
       children: requirementsMet
         ? entry.children.map((child) =>
-            convertRegistryEntryToMenuEntry(child, requirementType, createProject),
-          )
+          convertRegistryEntryToMenuEntry(child, requirementType, createProject),
+        )
         : undefined,
       disabled: !requirementsMet,
     }
