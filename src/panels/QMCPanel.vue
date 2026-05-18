@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
+  <div class="h-full text-on-surface flex flex-col p-2">
     <div class="w-full flex flex-wrap text-sm justify-end items-center gap-2">
       <MultiSelectSwitch
         :values="viewTabs"
@@ -40,9 +40,9 @@
       />
     </div>
 
-    <div class="h-full" ref="screenshotRef">
+    <div class="flex-1 w-full overflow-auto" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center">
+      <div data-screenshot-ignore class="flex flex-col items-center">
         <div
           v-if="(qmcResult?.iterations.length ?? 0) !== 0"
           class="flex-1 flex items-center justify-center overflow-auto w-full"
