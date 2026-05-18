@@ -23,7 +23,7 @@
             ? randomSelectMode
               ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]'
               : ''
-            : 'hover:bg-surface-3'
+            : 'hover:bg-surface-3',
         ]"
       >
         <slot name="label" :item="item" :label="getLabel(item)" :index="idx">
