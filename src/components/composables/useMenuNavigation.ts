@@ -3,7 +3,7 @@ import type { MenuEntry } from '@/router/dockRegistry'
 import { dropdownService } from '@/utility/dropdownService'
 import { createPanel } from '@/utility/dockview/integration'
 import { showProjectCreationPopup } from '@/utility/popupService'
-import { areAllItemsDisabled } from './useHeaderMenus'
+import { shouldMenuBeDisabled } from './useHeaderMenus'
 
 export function useMenuNavigation(menusComputed: () => Record<string, MenuEntry[]>) {
   const activeMenu = ref<string>('')
@@ -13,7 +13,7 @@ export function useMenuNavigation(menusComputed: () => Record<string, MenuEntry[
     const disabled = new Set<string>()
 
     Object.entries(menusComputed()).forEach(([menuName, items]) => {
-      if (areAllItemsDisabled(items)) {
+      if (shouldMenuBeDisabled(menuName, items)) {
         disabled.add(menuName)
       }
     })

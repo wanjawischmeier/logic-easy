@@ -69,11 +69,11 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
       },
       ...(recentProjectEntries.value.length > 0
         ? [
-            {
-              label: 'Recents',
-              children: recentProjectEntries.value,
-            },
-          ]
+          {
+            label: 'Recents',
+            children: recentProjectEntries.value,
+          },
+        ]
         : []),
       {
         label: 'Open',
@@ -224,6 +224,22 @@ export function areAllItemsDisabled(items: MenuEntry[]): boolean {
     }
     return false
   })
+}
+
+/**
+ * Check if a menu should be disabled based on its items.
+ */
+export function shouldMenuBeDisabled(menuName: string, items: MenuEntry[]): boolean {
+  // If menu has no items at all, disable it
+  if (items.length === 0) return true
+
+  // For Export menu: disable only when there's no current project
+  if (menuName === 'Export') {
+    return !hasCurrentProject.value
+  }
+
+  // For other menus: check if all items are disabled
+  return areAllItemsDisabled(items)
 }
 
 /**
