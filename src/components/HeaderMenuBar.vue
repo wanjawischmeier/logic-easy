@@ -122,7 +122,7 @@ const menus = computed<Record<string, MenuEntry[]>>(() => ({
       disabled: !hasCurrentProject.value || stateManager.isSaving.value,
     },
   ],
-  View: viewMenu.value,
+  View: filteredViewMenu.value,
   Export: [
     {
       label: 'LogicCircuits',
@@ -271,6 +271,23 @@ const disabledMenus = computed<Set<string>>(() => {
 
   return disabled
 })
+
+/**
+ * Filter out disabled entries from menu items (recursively)
+ */
+function filterDisabledEntries(items: MenuEntry[]): MenuEntry[] {
+  return items
+    .filter((item) => !item.disabled)
+    .map((item) => ({
+      ...item,
+      children: item.children ? filterDisabledEntries(item.children) : undefined,
+    }))
+}
+
+/**
+ * Filtered view menu with disabled entries removed
+ */
+const filteredViewMenu = computed(() => filterDisabledEntries(viewMenu.value))
 
 type MenuListProps = {
   items: MenuEntry[]
