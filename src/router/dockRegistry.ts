@@ -104,6 +104,9 @@ export const dockRegistry: DockRegistryEntry[] = [
         component: QMCPanel,
         projectType: 'truth-table',
         minimumWidth: 400,
+        requires: {
+          view: ['TruthTable'],
+        },
       },
     ],
   },
@@ -120,6 +123,9 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'lc-iframe',
     label: 'Logic Circuits',
     component: LogicCircuitsPanel,
+    requires: {
+      view: ['TruthTable'],
+    },
   },
   {
     id: 'fsm-engine',
@@ -141,14 +147,22 @@ const convertRegistryEntryToMenuEntry = (
     // Menu node with children
     const requirementsMet = checkDockMenuNodeRequirements(entry, requirementType)
 
+    const convertedChildren = requirementsMet
+      ? entry.children.map((child) =>
+          convertRegistryEntryToMenuEntry(child, requirementType, createProject),
+        )
+      : undefined
+
+    // Disable the menu if its own requirements aren't met, or if all children are disabled
+    const allChildrenDisabled =
+      convertedChildren && convertedChildren.length > 0
+        ? convertedChildren.every((child) => child.disabled)
+        : false
+
     return {
       label: entry.label,
-      children: requirementsMet
-        ? entry.children.map((child) =>
-            convertRegistryEntryToMenuEntry(child, requirementType, createProject),
-          )
-        : undefined,
-      disabled: !requirementsMet,
+      children: convertedChildren,
+      disabled: !requirementsMet || allChildrenDisabled,
     }
   }
 
