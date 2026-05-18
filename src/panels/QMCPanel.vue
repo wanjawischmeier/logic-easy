@@ -1,6 +1,6 @@
 <template>
-  <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
-    <div class="w-full flex flex-wrap text-sm justify-end items-center gap-2">
+  <div class="h-full min-w-0 min-h-0 overflow-hidden text-on-surface flex flex-col p-2">
+    <div class="w-full min-w-0 flex flex-wrap text-sm justify-end items-center gap-2">
       <MultiSelectSwitch
         :values="viewTabs"
         :initialSelected="selectedTabIndex"
@@ -40,15 +40,16 @@
       />
     </div>
 
-    <div class="h-full" ref="screenshotRef">
+    <div class="w-full min-w-0 min-h-0 flex-1 overflow-auto" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center">
+      <div data-screenshot-ignore class="flex min-h-full min-w-0 flex-col items-stretch">
         <div
           v-if="(qmcResult?.iterations.length ?? 0) !== 0"
-          class="flex-1 flex items-center justify-center overflow-auto w-full"
+          class="qmc-result-viewport flex min-h-full w-full min-w-0 flex-1 overflow-auto"
         >
           <QMCGroupingTable
             v-if="selectedTabIndex === 0"
+            class="w-full min-w-0"
             :values="tableValues"
             :input-vars="inputVars"
             :output-vars="outputVars"
@@ -61,6 +62,7 @@
 
           <QMCPrimeImplicantChart
             v-else-if="selectedTabIndex === 1"
+            class="w-full min-w-0"
             :values="tableValues"
             :input-vars="inputVars"
             :output-vars="outputVars"
@@ -73,7 +75,7 @@
             :show-highlights="showHighlights"
           />
         </div>
-        <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full">
+        <div v-else class="qmc-result-viewport flex min-h-full w-full min-w-0 flex-1 overflow-auto">
           <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
           </FormulaRenderer>
         </div>
@@ -120,7 +122,19 @@
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.qmc-result-viewport {
+  align-items: center;
+  justify-content: center;
+}
+
+@supports (justify-content: safe center) {
+  .qmc-result-viewport {
+    align-items: safe center;
+    justify-content: safe center;
+  }
+}
+</style>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'

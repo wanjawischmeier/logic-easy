@@ -16,3 +16,8 @@
   /* hover / drag */
   --dv-drag-over-background-color: var(--color-surface-3-50);
 }
+
+.dockview-theme-abyss .dv-split-view-container .dv-view {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}

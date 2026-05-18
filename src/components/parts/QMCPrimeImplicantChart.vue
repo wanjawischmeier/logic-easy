@@ -1,9 +1,9 @@
 <template>
-  <div>
-    <div class="w-full overflow-auto relative">
+  <div class="w-full min-w-0">
+    <div class="w-full min-w-0 overflow-auto relative">
       <table
         ref="tableRef"
-        class="bg-surface-1 border border-primary table-fixed w-auto select-none relative"
+        class="mx-auto bg-surface-1 border border-primary table-fixed w-auto select-none relative"
       >
         <thead>
           <tr>

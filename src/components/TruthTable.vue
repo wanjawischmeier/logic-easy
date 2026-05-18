@@ -2,9 +2,9 @@
   <div
     ref="containerRef"
     :class="[
-      'w-full h-full overflow-auto flex',
+      'w-full h-full min-h-0 overflow-auto overscroll-contain flex',
       centeredHorizontally ? 'justify-center' : 'justify-start',
-      centeredVertically ? ' items-center' : 'items-start',
+      centeredVertically ? 'items-center' : 'items-start',
     ]"
   >
     <table
