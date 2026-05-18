@@ -15,6 +15,11 @@
       <thead>
         <tr>
           <th
+            class="px-3 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1 w-12"
+          >
+            #
+          </th>
+          <th
             v-for="(input, idx) in inputVars"
             :key="input"
             class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1 w-16"
@@ -49,6 +54,15 @@
           }"
           class="transition-colors duration-300"
         >
+          <!-- Index Column -->
+          <td
+            class="px-3 py-1 text-sm font-mono text-center align-middle border-b border-r-4 border-primary transition-colors duration-300"
+            :class="{
+              'bg-surface-1': highlightedRow !== rowIdx && blinkGreenRow !== rowIdx,
+            }"
+          >
+            {{ rowIdx }}
+          </td>
           <!-- Generated Input Columns -->
           <td
             v-for="(input, colIdx) in inputVars"
