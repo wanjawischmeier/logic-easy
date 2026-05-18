@@ -1,7 +1,10 @@
 <template>
-  <div>
-    <div class="w-full overflow-auto">
-      <table ref="tableRef" class="bg-surface-1 border border-primary table-auto select-none">
+  <div class="w-full min-w-0">
+    <div class="w-full min-w-0 overflow-auto">
+      <table
+        ref="tableRef"
+        class="mx-auto bg-surface-1 border border-primary table-auto select-none"
+      >
         <thead>
           <tr>
             <th
