@@ -9,6 +9,7 @@ import {
   exportTruthTableTOVHDLcaseWhen,
 } from '@/utility/VHDL/export'
 import { popupService } from '@/utility/popupService'
+import { formatDate } from '@/utility/dateFormatter'
 import CreditPopup from '../popups/CreditPopup.vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
@@ -52,6 +53,7 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
 
       return {
         label: displayName,
+        tooltip: formatDate(project.lastModified),
         action: () => {
           projectManager.openProject(project.id)
         },

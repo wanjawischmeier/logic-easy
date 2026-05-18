@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center">
       <!-- Barrier -->
-      <div class="absolute inset-0 bg-black/20" @click="onBarrierClick"></div>
+      <div class="absolute inset-0 bg-black/20 backdrop-blur-xs" @click="onBarrierClick"></div>
 
       <!-- Popup Content -->
       <div
