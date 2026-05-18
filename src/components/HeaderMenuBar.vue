@@ -44,6 +44,7 @@ import { useHeaderMenus } from './composables/useHeaderMenus'
 import { useMenuNavigation } from './composables/useMenuNavigation'
 
 const rootRef = ref<HTMLElement | null>(null)
+let blurCheckTimeout: number | null = null
 
 async function openFileAction() {
   await stateManager.openFile()
@@ -74,12 +75,34 @@ function handleDocClick(e: MouseEvent): void {
   }
 }
 
+function handleWindowBlur(): void {
+  if (!activeMenu.value) return
+
+  if (blurCheckTimeout !== null) {
+    window.clearTimeout(blurCheckTimeout)
+  }
+
+  // Defer until focus state updates so activeElement can reflect iframe focus.
+  blurCheckTimeout = window.setTimeout(() => {
+    blurCheckTimeout = null
+    if (document.activeElement instanceof HTMLIFrameElement) {
+      closeMenu()
+    }
+  }, 0)
+}
+
 onMounted(() => {
   document.addEventListener('click', handleDocClick)
+  window.addEventListener('blur', handleWindowBlur)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocClick)
+  window.removeEventListener('blur', handleWindowBlur)
+  if (blurCheckTimeout !== null) {
+    window.clearTimeout(blurCheckTimeout)
+    blurCheckTimeout = null
+  }
   dropdownService.close()
 })
 </script>
