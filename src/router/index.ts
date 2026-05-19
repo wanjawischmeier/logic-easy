@@ -6,7 +6,17 @@ const router = createRouter({
   routes: [
     {
       path: '/logic-easy/',
-      name: 'dock',
+      name: 'home',
+      component: DockView,
+    },
+    {
+      path: '/logic-easy/about',
+      name: 'about',
+      component: DockView,
+    },
+    {
+      path: '/logic-easy/project/:projectId',
+      name: 'project',
       component: DockView,
     },
   ],
