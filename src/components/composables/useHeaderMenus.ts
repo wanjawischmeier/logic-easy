@@ -10,7 +10,7 @@ import {
 } from '@/utility/VHDL/export'
 import { popupService } from '@/utility/popupService'
 import { formatDate } from '@/utility/dateFormatter'
-import CreditPopup from '../popups/AboutPopup.vue'
+import AboutPopup from '../popups/AboutPopup.vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
@@ -204,7 +204,7 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
         label: 'Manual',
         action: () => window.open('/logic-easy/docs/', '_blank', 'noopener,noreferrer'),
       },
-      { label: 'About', action: () => popupService.open({ component: CreditPopup }) },
+      { label: 'About', action: () => popupService.open({ component: AboutPopup }) },
     ],
   }))
 

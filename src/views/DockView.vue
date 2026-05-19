@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import '@/style/dockview.css'
-import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount, shallowRef } from 'vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
 import { themeAbyss } from 'dockview-vue'
 import DockViewHeader from '@/components/DockViewHeader.vue'
@@ -73,7 +73,7 @@ import { Toast } from '@/utility/toastService'
 import { useDockViewRouting } from './composables/useDockViewRouting'
 
 const componentsForDockview = dockComponents
-const dockviewApi = ref<DockviewApi | null>(null)
+const dockviewApi = shallowRef<DockviewApi | null>(null)
 let panelDisposable: { dispose?: () => void } | null = null
 let layoutChangeDisposable: { dispose?: () => void } | null = null
 
