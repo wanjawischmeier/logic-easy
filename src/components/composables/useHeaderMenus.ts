@@ -10,7 +10,7 @@ import {
 } from '@/utility/VHDL/export'
 import { popupService } from '@/utility/popupService'
 import { formatDate } from '@/utility/dateFormatter'
-import CreditPopup from '../popups/CreditPopup.vue'
+import CreditPopup from '../popups/AboutPopup.vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
@@ -69,11 +69,11 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
       },
       ...(recentProjectEntries.value.length > 0
         ? [
-          {
-            label: 'Recents',
-            children: recentProjectEntries.value,
-          },
-        ]
+            {
+              label: 'Recents',
+              children: recentProjectEntries.value,
+            },
+          ]
         : []),
       {
         label: 'Open',
