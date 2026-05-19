@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, ref, watch, type Ref, type ShallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { popupService } from '@/utility/popupService'
 import { loadingService } from '@/utility/loadingService'
@@ -32,7 +32,7 @@ export function useDockViewRouting() {
   const isRouteInitiatedProjectChange = ref(false)
 
   const setupRouteSync = (params: {
-    dockviewApi: Ref<DockviewApi | null>
+    dockviewApi: ShallowRef<DockviewApi | null>
     hasPanels: Ref<boolean>
     isRestoringLayout: Ref<boolean>
     isInitializingProject: Ref<boolean>
