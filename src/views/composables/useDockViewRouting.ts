@@ -27,7 +27,8 @@ export function useDockViewRouting() {
   const route = useRoute()
   const router = useRouter()
 
-  const routeProjectId = computed(() => getProjectIdFromRoute(route.params.projectId))
+  const routeProjectId = computed(() => getProjectIdFromRoute(route?.params?.projectId))
+
   const pendingInitialProjectId = ref<number | null>(routeProjectId.value)
   const isRouteInitiatedProjectChange = ref(false)
 
@@ -40,11 +41,11 @@ export function useDockViewRouting() {
     const { dockviewApi, hasPanels, isRestoringLayout, isInitializingProject } = params
 
     watch(
-      () => route.fullPath,
+      () => route?.fullPath,
       () => {
         const projectIdFromRoute = routeProjectId.value
 
-        if (route.name === 'about') {
+        if (route?.name === 'about') {
           if (!isAboutPopupOpen()) {
             popupService.open({ component: AboutPopup })
           }
@@ -68,7 +69,7 @@ export function useDockViewRouting() {
           return
         }
 
-        if (route.name === 'home' && projectManager.currentProjectInfo?.id !== undefined) {
+        if (route?.name === 'home' && projectManager.currentProjectInfo?.id !== undefined) {
           if (!isRestoringLayout.value && !isInitializingProject.value) {
             isRouteInitiatedProjectChange.value = true
             projectManager.closeCurrentProject()
@@ -93,13 +94,13 @@ export function useDockViewRouting() {
 
         if (newId) {
           if (route.name !== 'project' || routeProjectId.value !== newId) {
-            router.replace({ name: 'project', params: { projectId: newId } })
+            router?.replace({ name: 'project', params: { projectId: newId } })
           }
           return
         }
 
         if (route.name === 'project') {
-          router.replace({ name: 'home' })
+          router?.replace({ name: 'home' })
         }
       },
     )
@@ -109,7 +110,7 @@ export function useDockViewRouting() {
       (current) => {
         if (route.name === 'about' && !current) {
           const currentId = projectManager.currentProjectInfo?.id
-          router.replace(
+          router?.replace(
             currentId ? { name: 'project', params: { projectId: currentId } } : { name: 'home' },
           )
         }
