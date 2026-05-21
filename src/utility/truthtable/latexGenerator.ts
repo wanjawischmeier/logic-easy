@@ -131,7 +131,26 @@ function getNormalFormLatex(
   }
 }
 
-export function getCouplingTermLatex(
+/**
+ * Generate the Cartesian product of arrays
+ */
+function cartesianProduct<T>(arrays: T[][]): T[][] {
+  if (arrays.length === 0) return [[]]
+  if (arrays.length === 1) return arrays[0]!.map(item => [item])
+
+  const [first, ...rest] = arrays
+  const restProduct = cartesianProduct(rest)
+
+  return first!.flatMap(item =>
+    restProduct.map(combo => [item, ...combo])
+  )
+}
+
+/**
+ * Get all possible equivalent minimal forms as complete formulas
+ * Returns { signature, formulas } where each formula is a complete minimal expression
+ */
+export function getAlternativeMinimalForms(
   qmcResult: QMCResult,
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
@@ -139,7 +158,7 @@ export function getCouplingTermLatex(
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
   options?: { lowercaseInputVars?: boolean },
-): string {
+): { signature: string; formulas: string[] } {
   const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, options)
 
   // If normal form requested and values provided, return canonical form
@@ -154,49 +173,106 @@ export function getCouplingTermLatex(
       inputVars,
       outputVariableIndex,
     )
-    return signature + normalForm
+    // For tautology/contradiction, return as single formula
+    if (normalForm === '0' || normalForm === '1') {
+      return { signature, formulas: [normalForm] }
+    }
+    // For normal form (DNF/CNF), just return as-is (no alternatives in canonical form)
+    return { signature, formulas: [normalForm] }
   }
 
   if (qmcResult.expressions.length === 0) {
-    return signature + '0'
+    return { signature, formulas: ['0'] }
   }
 
   const firstExpr = qmcResult.expressions[0]
   if ((firstExpr as any).name === '1') {
-    return signature + '1'
+    return { signature, formulas: ['1'] }
   }
   if ((firstExpr as any).name === '0') {
-    return signature + '0'
+    return { signature, formulas: ['0'] }
   }
 
   const isCNF = functionType === 'Conjunctive'
   const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF)
 
+  // Sort constant terms
+  const sortedConstantTerms = constantTerms.sort((a, b) =>
+    getTermSortKey(a).localeCompare(getTermSortKey(b))
+  )
+
+  // If no variable positions, return single formula with just constant terms
   if (variablePositions.length === 0) {
     const termJoiner = isCNF ? '' : ' + '
-    return (
-      signature +
-      constantTerms
-        .sort((a, b) => getTermSortKey(a).localeCompare(getTermSortKey(b)))
-        .join(termJoiner)
-    )
+    return {
+      signature,
+      formulas: [sortedConstantTerms.join(termJoiner)]
+    }
   }
 
-  const partsWithKeys: Array<{ sortKey: string; latex: string }> = []
+  // Generate all combinations of variable position choices
+  const combinations = cartesianProduct(variablePositions)
 
-  for (const term of constantTerms) {
-    partsWithKeys.push({ sortKey: getTermSortKey(term), latex: term })
+  const formulas = combinations.map(combo => {
+    const allTerms = [...sortedConstantTerms, ...combo]
+    const termJoiner = isCNF ? '' : ' + '
+    return allTerms.join(termJoiner)
+  })
+
+  return { signature, formulas }
+}
+
+/**
+ * Get all coupling terms as an array of LaTeX expressions
+ * Returns { signature, terms } where signature is the function signature
+ * and terms is an array of LaTeX expressions for each term
+ */
+export function getCouplingTermsLatexArray(
+  qmcResult: QMCResult,
+  functionType: FunctionType,
+  functionRepresentation: FunctionRepresentation,
+  inputVars: string[],
+  truthTableValues?: TruthTableState['values'],
+  outputVariableIndex?: number,
+  options?: { lowercaseInputVars?: boolean },
+): { signature: string; terms: string[] } {
+  const { signature, formulas } = getAlternativeMinimalForms(
+    qmcResult,
+    functionType,
+    functionRepresentation,
+    inputVars,
+    truthTableValues,
+    outputVariableIndex,
+    options,
+  )
+
+  return { signature, terms: formulas }
+}
+
+export function getCouplingTermLatex(
+  qmcResult: QMCResult,
+  functionType: FunctionType,
+  functionRepresentation: FunctionRepresentation,
+  inputVars: string[],
+  truthTableValues?: TruthTableState['values'],
+  outputVariableIndex?: number,
+  options?: { lowercaseInputVars?: boolean },
+): string {
+  const { signature, formulas } = getAlternativeMinimalForms(
+    qmcResult,
+    functionType,
+    functionRepresentation,
+    inputVars,
+    truthTableValues,
+    outputVariableIndex,
+    options,
+  )
+
+  if (formulas.length === 0) {
+    return signature + '0'
   }
 
-  for (const variations of variablePositions) {
-    const uniqueVars = Array.from(new Set(variations))
-    const matrixRows = uniqueVars.join(' \\\\ ')
-    const latex = `\\left\\{ \\begin{matrix} ${matrixRows} \\end{matrix} \\right\\}`
-    partsWithKeys.push({ sortKey: getTermSortKey(uniqueVars[0] || ''), latex })
-  }
-
-  partsWithKeys.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-
+  const isCNF = functionType === 'Conjunctive'
   const termJoiner = isCNF ? '' : ' + '
-  return signature + partsWithKeys.map((p) => p.latex).join(termJoiner)
+  return signature + formulas[0]
 }

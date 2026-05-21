@@ -8,7 +8,7 @@ import {
   type TermColor,
 } from './colorGenerator'
 import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser'
-import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator'
+import { getFunctionSignature, getCouplingTermLatex, getAlternativeMinimalForms } from './latexGenerator'
 import type { Operation } from 'logi.js'
 
 // Message types for worker communication
@@ -22,6 +22,7 @@ export interface WorkerResponse {
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
   couplingTermLatex: string | undefined
+  alternativeFormulas: { signature: string; formulas: string[] } | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
 }
@@ -193,6 +194,14 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         qmcResults,
         formulas,
         couplingTermLatex: currentEdgeResult.couplingTermLatex,
+        alternativeFormulas: getAlternativeMinimalForms(
+          currentEdgeResult.qmcResult,
+          truthTable.functionType,
+          truthTable.functionRepresentation,
+          truthTable.inputVars,
+          truthTable.values,
+          truthTable.outputVariableIndex,
+        ),
         selectedFormula: currentEdgeResult.formula,
         formulaTermColors: shouldUseGenericFormulaColors(truthTable)
           ? currentEdgeResult.qmcResult.termColors
@@ -239,11 +248,20 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
     let couplingTermLatex: string | undefined
+    let alternativeFormulas: { signature: string; formulas: string[] } | undefined
     let selectedFormula: Formula | undefined
     let formulaTermColors: TermColor[] | undefined
 
     if (currentQmcResult) {
       couplingTermLatex = getCouplingTermLatex(
+        currentQmcResult,
+        truthTable.functionType,
+        truthTable.functionRepresentation,
+        truthTable.inputVars,
+        truthTable.values,
+        truthTable.outputVariableIndex,
+      )
+      alternativeFormulas = getAlternativeMinimalForms(
         currentQmcResult,
         truthTable.functionType,
         truthTable.functionRepresentation,
@@ -274,6 +292,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       qmcResults,
       formulas,
       couplingTermLatex,
+      alternativeFormulas,
       selectedFormula,
       formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
     }
@@ -287,6 +306,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       qmcResults: {},
       formulas: {},
       couplingTermLatex: undefined,
+      alternativeFormulas: undefined,
       selectedFormula: undefined,
       formulaTermColors: undefined,
     }

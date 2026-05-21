@@ -5,7 +5,7 @@ import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
 import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
-import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
+import { getCouplingTermLatex, getAlternativeMinimalForms } from '@/utility/truthtable/latexGenerator'
 import {
   generateTermColor,
   mapFormulaTermsToPIColors,
@@ -110,6 +110,7 @@ export interface FsmKVDiagramPresentation {
   selectedFormula?: TruthTableState['selectedFormula']
   formulaTermColors?: TermColor[]
   couplingTermLatex?: string
+  alternativeFormulas?: { signature: string; formulas: string[] }
 }
 
 export function buildFsmImmutableCellMask(
@@ -185,6 +186,15 @@ export function buildFsmKVDiagramPresentation(
     selectedFormula,
     formulaTermColors,
     couplingTermLatex: getCouplingTermLatex(
+      remappedResult,
+      truthTable.functionType,
+      truthTable.functionRepresentation,
+      truthTable.inputVars,
+      truthTable.values,
+      truthTable.outputVariableIndex,
+      { lowercaseInputVars: true },
+    ),
+    alternativeFormulas: getAlternativeMinimalForms(
       remappedResult,
       truthTable.functionType,
       truthTable.functionRepresentation,

@@ -34,6 +34,7 @@ export interface TruthTableState {
   functionRepresentation: FunctionRepresentation
   qmcResult?: QMCResult
   couplingTermLatex?: string
+  alternativeFormulas?: { signature: string; formulas: string[] }
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
   fsmMode?: boolean
@@ -62,6 +63,7 @@ export class TruthTableProject extends Project {
     )
     const qmcResult = computed(() => state.value?.qmcResult)
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex)
+    const alternativeFormulas = computed(() => state.value?.alternativeFormulas)
     const selectedFormula = computed(() => state.value?.selectedFormula)
     const formulaTermColors = computed(() => state.value?.formulaTermColors)
 
@@ -79,6 +81,7 @@ export class TruthTableProject extends Project {
       functionRepresentation,
       qmcResult,
       couplingTermLatex,
+      alternativeFormulas,
       selectedFormula,
       formulaTermColors,
     }
