@@ -71,17 +71,18 @@
             :qmc-result="qmcResult"
             :coupling-term-latex="couplingTermLatex"
             :alternative-formulas="alternativeFormulas"
+            v-model:selectedFormulaIndex="selectedFormulaIndex"
             :show-highlights="showHighlights"
           />
         </div>
         <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full flex-col">
           <div v-if="alternativeFormulas" class="flex flex-col items-center gap-4">
-            <div class="text-xl text-primary-variant p-2">
-              <vue-latex :expression="alternativeFormulas.signature" />
-            </div>
-            <div v-for="(formula, index) in alternativeFormulas.formulas" :key="index">
-              <FormulaRenderer :latex-expression="formula" />
-            </div>
+            <MinimizedFormulaViewer
+              v-model:selectedIndex="selectedFormulaIndex"
+              :signature="alternativeFormulas.signature"
+              :formulas="alternativeFormulas.formulas"
+              :function-representation="functionRepresentation"
+            />
           </div>
         </div>
       </div>
@@ -121,6 +122,7 @@
             :coupling-term-latex="couplingTermLatex"
             :alternative-formulas="alternativeFormulas"
             :show-highlights="showHighlights"
+            v-model:selectedFormulaIndex="selectedFormulaIndex"
           />
         </div>
       </div>
@@ -132,7 +134,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import FormulaRenderer from '@/components/FormulaRenderer.vue'
+import MinimizedFormulaViewer from '@/components/parts/MinimizedFormulaViewer.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
@@ -154,6 +156,7 @@ import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerMa
 interface QMCPanelState {
   selectedTabIndex: number
   showHighlights: boolean
+  selectedFormulaIndex: number
 }
 
 let disposable: { dispose?: () => void } | null = null
@@ -163,6 +166,7 @@ const panelState = stateManager.getPanelState<QMCPanelState>(props.params.api.id
 const viewTabs = ['Grouping Table', 'Prime Implicants']
 const selectedTabIndex = ref(panelState?.selectedTabIndex ?? 0)
 const showHighlights = ref(panelState?.showHighlights ?? true)
+const selectedFormulaIndex = ref(panelState?.selectedFormulaIndex ?? 0)
 const screenshotRef = ref<HTMLElement | null>(null)
 
 const legends: Record<string, LegendItem[]> = {
@@ -252,6 +256,7 @@ onBeforeUnmount(() => {
 stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
   selectedTabIndex: selectedTabIndex.value,
   showHighlights: showHighlights.value,
+  selectedFormulaIndex: selectedFormulaIndex.value,
 }))
 
 // Access state from params

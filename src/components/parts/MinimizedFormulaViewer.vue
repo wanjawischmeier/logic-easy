@@ -130,7 +130,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  dropdownService.close()
 })
 
 const selectedLatex = computed(() => {

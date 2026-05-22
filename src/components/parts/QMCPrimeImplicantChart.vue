@@ -99,9 +99,16 @@ import type { PrimeImplicantInfo } from 'logi.js'
 
 const BOUNDING_BOX_PADDING = 6
 
-const props = withDefaults(defineProps<TruthTableState & { showHighlights?: boolean }>(), {
-  showHighlights: true,
-})
+const props = withDefaults(
+  defineProps<TruthTableState & { showHighlights?: boolean; selectedFormulaIndex?: number }>(),
+  {
+    showHighlights: true,
+  },
+)
+
+const emit = defineEmits<{
+  (e: 'update:selectedFormulaIndex', value: number): void
+}>()
 
 interface BoundingBox {
   x: number
@@ -113,7 +120,20 @@ interface BoundingBox {
 
 const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<BoundingBox>>([])
-const selectedFormulaIndex = ref(0)
+const selectedFormulaIndex = ref(props.selectedFormulaIndex ?? 0)
+
+watch(
+  () => props.selectedFormulaIndex,
+  (value) => {
+    if (typeof value === 'number' && value !== selectedFormulaIndex.value) {
+      selectedFormulaIndex.value = value
+    }
+  },
+)
+
+watch(selectedFormulaIndex, (value) => {
+  emit('update:selectedFormulaIndex', value)
+})
 
 // Find which minterms make each prime implicant essential
 const essentialMinterms = computed(() => {

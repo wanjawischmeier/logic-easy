@@ -130,17 +130,20 @@ import { getDockviewApi } from '@/utility/dockview/integration'
 
 interface KVPanelState {
   showFormula: boolean
+  selectedFormulaIndex: number
 }
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
 const showFormula = ref(panelState?.showFormula ?? true)
+const currentFormulaIndex = ref(panelState?.selectedFormulaIndex ?? 0)
 const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 const screenshotRef = ref<HTMLElement | null>(null)
 
 // Auto-save panel state when values change
 stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
   showFormula: showFormula.value,
+  selectedFormulaIndex: currentFormulaIndex.value,
 }))
 
 let disposable: { dispose?: () => void } | null = null
@@ -188,7 +191,6 @@ const {
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
-const currentFormulaIndex = ref(0)
 
 // Display-only remapping for FSM context: remap vars from (a,b,c) to actual FSM names
 const fsmPresentation = computed(() => {
