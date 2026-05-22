@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import '@/style/dockview.css'
-import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount, shallowRef } from 'vue'
 import type { DockviewReadyEvent, DockviewApi, SerializedDockview } from 'dockview-vue'
 import { themeAbyss } from 'dockview-vue'
 import DockViewHeader from '@/components/DockViewHeader.vue'
@@ -70,20 +70,21 @@ import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockview/service'
 import type { BaseProjectProps } from '@/projects/Project'
 import { Toast } from '@/utility/toastService'
+import { useDockViewRouting } from './composables/useDockViewRouting'
 
 const componentsForDockview = dockComponents
-const dockviewApi = ref<DockviewApi | null>(null)
+const dockviewApi = shallowRef<DockviewApi | null>(null)
 let panelDisposable: { dispose?: () => void } | null = null
 let layoutChangeDisposable: { dispose?: () => void } | null = null
 
-// Initialize pending project ID immediately
-let pendingInitialProjectId: number | null = projectManager.getPendingInitialProjectId()
-let isInitializingProject = pendingInitialProjectId !== null
-let isRestoringLayout = false
-const hasPanels = ref(pendingInitialProjectId !== null)
+const { pendingInitialProjectId, setupRouteSync } = useDockViewRouting()
 
-if (pendingInitialProjectId !== null) {
-  console.log('Pending project to load on page load:', pendingInitialProjectId)
+const isInitializingProject = ref(pendingInitialProjectId.value !== null)
+const isRestoringLayout = ref(false)
+const hasPanels = ref(pendingInitialProjectId.value !== null)
+
+if (pendingInitialProjectId.value !== null) {
+  console.log('Pending project to load on page load:', pendingInitialProjectId.value)
   loadingService.show('Loading page...')
 } else {
   // No project to load, ensure loading screen is hidden
@@ -101,7 +102,7 @@ const restoreDefaultLayout = () => {
 
 const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
   // Set flag to prevent premature project close during restoration
-  isRestoringLayout = true
+  isRestoringLayout.value = true
 
   // Clear existing panels only when switching projects
   if (isProjectChange) {
@@ -138,13 +139,13 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
   }
 
   // Clear flag after restoration is complete
-  isRestoringLayout = false
+  isRestoringLayout.value = false
 }
 
 const setupPendingProjectLoad = (api: DockviewApi) => {
-  if (pendingInitialProjectId !== null) {
-    const projectIdToLoad = pendingInitialProjectId
-    pendingInitialProjectId = null
+  if (pendingInitialProjectId.value !== null) {
+    const projectIdToLoad = pendingInitialProjectId.value
+    pendingInitialProjectId.value = null
 
     console.log('Dockview ready, loading pending project:', projectIdToLoad)
     loadingService.show('Opening project...')
@@ -156,7 +157,7 @@ const setupPendingProjectLoad = (api: DockviewApi) => {
       } catch (error) {
         console.error('Failed to open project on page load:', error)
         loadingService.hide()
-        isInitializingProject = false
+        isInitializingProject.value = false
       }
     }, 100)
   }
@@ -196,13 +197,13 @@ const setupProjectChangeWatcher = (api: DockviewApi) => {
             // Hide loading screen after layout is fully restored
             setTimeout(() => {
               loadingService.hide()
-              isInitializingProject = false
+              isInitializingProject.value = false
             }, 100)
           })
           .catch((err) => {
             console.error('Failed to restore layout:', err)
             loadingService.hide()
-            isInitializingProject = false
+            isInitializingProject.value = false
           })
       }
     },
@@ -215,7 +216,7 @@ const setupPanelTracking = (api: DockviewApi) => {
     hasPanels.value = panelCount > 0
 
     // Close project when all panels are closed and we are not restoring a layout or initializing
-    if (panelCount === 0 && !isRestoringLayout && !isInitializingProject) {
+    if (panelCount === 0 && !isRestoringLayout.value && !isInitializingProject.value) {
       projectManager.closeCurrentProject()
     }
   }
@@ -236,7 +237,7 @@ const setupPanelTracking = (api: DockviewApi) => {
 const setupLayoutAutoSave = (api: DockviewApi) => {
   layoutChangeDisposable = api.onDidLayoutChange(() => {
     // Skip saving during layout restoration to avoid overwriting with partial state
-    if (isRestoringLayout || isInitializingProject) {
+    if (isRestoringLayout.value || isInitializingProject.value) {
       return
     }
 
@@ -293,6 +294,12 @@ const onKeydown = (e: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  setupRouteSync({
+    dockviewApi,
+    hasPanels,
+    isRestoringLayout,
+    isInitializingProject,
+  })
 })
 
 onBeforeUnmount(() => {

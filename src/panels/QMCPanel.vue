@@ -82,7 +82,7 @@
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
         <div
-          v-for="(outputVar) in outputVars"
+          v-for="outputVar in outputVars"
           :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4"
         >

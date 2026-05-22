@@ -1,12 +1,22 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import DockView from '@/views/DockView.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory('/logic-easy/'),
   routes: [
     {
-      path: '/logic-easy/',
-      name: 'dock',
+      path: '/',
+      name: 'home',
+      component: DockView,
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: DockView,
+    },
+    {
+      path: '/project/:projectId',
+      name: 'project',
       component: DockView,
     },
   ],
