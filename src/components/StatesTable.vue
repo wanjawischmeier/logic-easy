@@ -146,6 +146,7 @@ function decreaseOutputBits() {
               @focus="startEditingName(state.nodeId, state.name)"
               @input="bufferStateName(state.nodeId, ($event.target as HTMLInputElement).value)"
               @blur="commitStateName(state.nodeId)"
+              @keydown.enter.prevent="commitStateName(state.nodeId); $event.target.blur()"
             />
           </td>
           <td
