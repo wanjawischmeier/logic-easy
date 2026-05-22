@@ -127,6 +127,7 @@ import {
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import { useClampedSelection } from '@/utility/panelSelection'
 
 interface KVPanelState {
   showFormula: boolean
@@ -141,10 +142,6 @@ const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 const screenshotRef = ref<HTMLElement | null>(null)
 
 // Auto-save panel state when values change
-stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
-  showFormula: showFormula.value,
-  selectedFormulaIndex: currentFormulaIndex.value,
-}))
 
 let disposable: { dispose?: () => void } | null = null
 
@@ -234,6 +231,16 @@ const currentFormulaDisplay = computed(() => {
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),
 )
+
+const { clampedSavedIndex: clampedSavedFormulaIndex } = useClampedSelection(
+  currentFormulaIndex,
+  computed(() => displayAlternativeFormulas.value?.formulas),
+)
+
+stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
+  showFormula: showFormula.value,
+  selectedFormulaIndex: clampedSavedFormulaIndex.value,
+}))
 
 // Watch for local changes and notify DockView
 watch(

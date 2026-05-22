@@ -151,6 +151,7 @@ import {
   type TruthTableData,
 } from '@/projects/truth-table/TruthTableProject'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import { useClampedSelection } from '@/utility/panelSelection'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 
 interface QMCPanelState {
@@ -252,13 +253,6 @@ onBeforeUnmount(() => {
   disposable?.dispose?.()
 })
 
-// Auto-save panel state when values change
-stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
-  selectedTabIndex: selectedTabIndex.value,
-  showHighlights: showHighlights.value,
-  selectedFormulaIndex: selectedFormulaIndex.value,
-}))
-
 // Access state from params
 const {
   inputVars,
@@ -274,6 +268,18 @@ const {
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
+
+const { clampedSavedIndex: clampedSavedFormulaIndex } = useClampedSelection(
+  selectedFormulaIndex,
+  computed(() => alternativeFormulas?.value?.formulas),
+)
+
+// Auto-save panel state when values change
+stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
+  selectedTabIndex: selectedTabIndex.value,
+  showHighlights: showHighlights.value,
+  selectedFormulaIndex: clampedSavedFormulaIndex.value,
+}))
 
 // Watch for local changes and notify DockView
 watch(
