@@ -66,6 +66,12 @@ function commitStateName(stateId: number) {
 
   if (!current) return
 
+  const state = nodes.value.find((s) => s.nodeId === stateId)
+  if (!state) return
+
+  // if no change was made while editing, don't sync the FSM panel
+  if (buffered === undefined || buffered === state.name) return
+
   renameFsmState(current, stateId, buffered)
 }
 
@@ -146,7 +152,10 @@ function decreaseOutputBits() {
               @focus="startEditingName(state.nodeId, state.name)"
               @input="bufferStateName(state.nodeId, ($event.target as HTMLInputElement).value)"
               @blur="commitStateName(state.nodeId)"
-              @keydown.enter.prevent="commitStateName(state.nodeId); $event.target.blur()"
+              @keydown.enter.prevent="
+                commitStateName(state.nodeId)
+                $event.target.blur()
+              "
             />
           </td>
           <td
