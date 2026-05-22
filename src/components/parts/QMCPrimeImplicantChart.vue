@@ -79,19 +79,19 @@
     </div>
 
     <div v-if="props.alternativeFormulas" class="pt-8">
-      <div class="text-xl text-primary-variant p-2">
-        <vue-latex :expression="props.alternativeFormulas.signature" />
-      </div>
-      <div v-for="(formula, index) in props.alternativeFormulas.formulas" :key="index">
-        <FormulaRenderer :latex-expression="formula" />
-      </div>
+      <MinimizedFormulaViewer
+        v-model:selectedIndex="selectedFormulaIndex"
+        :signature="props.alternativeFormulas.signature"
+        :formulas="props.alternativeFormulas.formulas"
+        :function-representation="props.functionRepresentation"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { type TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import FormulaRenderer from '@/components/FormulaRenderer.vue'
+import MinimizedFormulaViewer from '@/components/parts/MinimizedFormulaViewer.vue'
 import { ref, computed, onMounted, nextTick, watch, type StyleValue } from 'vue'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
@@ -113,6 +113,7 @@ interface BoundingBox {
 
 const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<BoundingBox>>([])
+const selectedFormulaIndex = ref(0)
 
 // Find which minterms make each prime implicant essential
 const essentialMinterms = computed(() => {

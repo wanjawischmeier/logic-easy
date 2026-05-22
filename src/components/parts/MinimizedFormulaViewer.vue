@@ -133,12 +133,6 @@ onUnmounted(() => {
   dropdownService.close()
 })
 
-watch(showSelector, (value) => {
-  if (!value) {
-    dropdownService.close()
-  }
-})
-
 const selectedLatex = computed(() => {
   const term = props.formulas[localSelectedIndex.value] ?? props.formulas[0] ?? '0'
   return `${props.signature}${term}`
