@@ -213,11 +213,11 @@ export function getAlternativeMinimalForms(
   // Generate all combinations of variable position choices
   const combinations = cartesianProduct(variablePositions)
 
-  const formulas = combinations.map(combo => {
+  const formulas = Array.from(new Set(combinations.map((combo) => {
     const allTerms = [...sortedConstantTerms, ...combo]
     const termJoiner = isCNF ? '' : ' + '
     return allTerms.join(termJoiner)
-  })
+  })))
 
   return { signature, formulas }
 }

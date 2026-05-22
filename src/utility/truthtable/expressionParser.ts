@@ -277,7 +277,7 @@ export function analyzeExpressions(
     const uniqueTerms = Array.from(new Set(termsAtPos))
 
     if (uniqueTerms.length > 0) {
-      variablePositions.push(termsAtPos)
+      variablePositions.push(uniqueTerms)
     }
   }
 

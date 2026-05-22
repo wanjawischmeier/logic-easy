@@ -22,7 +22,11 @@ export interface WorkerResponse {
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
   couplingTermLatex: string | undefined
-  alternativeFormulas: { signature: string; formulas: string[] } | undefined
+  alternativeFormulas: {
+    signature: string
+    formulas: string[]
+    formulaTermColors: TermColor[][]
+  } | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
 }
@@ -194,14 +198,21 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         qmcResults,
         formulas,
         couplingTermLatex: currentEdgeResult.couplingTermLatex,
-        alternativeFormulas: getAlternativeMinimalForms(
-          currentEdgeResult.qmcResult,
-          truthTable.functionType,
-          truthTable.functionRepresentation,
-          truthTable.inputVars,
-          truthTable.values,
-          truthTable.outputVariableIndex,
-        ),
+        alternativeFormulas: (() => {
+          const altForms = getAlternativeMinimalForms(
+            currentEdgeResult.qmcResult,
+            truthTable.functionType,
+            truthTable.functionRepresentation,
+            truthTable.inputVars,
+            truthTable.values,
+            truthTable.outputVariableIndex,
+          )
+          return {
+            signature: altForms.signature,
+            formulas: altForms.formulas,
+            formulaTermColors: altForms.formulas.map(() => [defaultColor]),
+          }
+        })(),
         selectedFormula: currentEdgeResult.formula,
         formulaTermColors: shouldUseGenericFormulaColors(truthTable)
           ? currentEdgeResult.qmcResult.termColors
@@ -248,7 +259,11 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
     let couplingTermLatex: string | undefined
-    let alternativeFormulas: { signature: string; formulas: string[] } | undefined
+    let alternativeFormulas: {
+      signature: string
+      formulas: string[]
+      formulaTermColors: TermColor[][]
+    } | undefined
     let selectedFormula: Formula | undefined
     let formulaTermColors: TermColor[] | undefined
 
@@ -261,7 +276,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         truthTable.values,
         truthTable.outputVariableIndex,
       )
-      alternativeFormulas = getAlternativeMinimalForms(
+
+      const altForms = getAlternativeMinimalForms(
         currentQmcResult,
         truthTable.functionType,
         truthTable.functionRepresentation,
@@ -269,9 +285,44 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         truthTable.values,
         truthTable.outputVariableIndex,
       )
+
+      // Compute formula-specific term colors for each alternative
+      if (shouldUseGenericFormulaColors(truthTable)) {
+        const formulaColorsList: TermColor[][] = altForms.formulas.map(formula => {
+          // Extract PI terms used in this formula by comparing against QMC result PIs
+          const usedPiIndices = new Set<number>()
+          if (currentQmcResult.pis) {
+            // Try to match formula terms against PI terms
+            currentQmcResult.pis.forEach((pi, piIdx) => {
+              if (formula.includes(pi.term)) {
+                usedPiIndices.add(piIdx)
+              }
+            })
+          }
+
+          // Build color array for terms in this formula
+          const colors: TermColor[] = Array.from(usedPiIndices).map(idx =>
+            currentQmcResult.termColors?.[idx] || defaultColor
+          )
+          return colors.length > 0 ? colors : [defaultColor]
+        })
+
+        alternativeFormulas = {
+          signature: altForms.signature,
+          formulas: altForms.formulas,
+          formulaTermColors: formulaColorsList,
+        }
+      } else {
+        alternativeFormulas = {
+          signature: altForms.signature,
+          formulas: altForms.formulas,
+          formulaTermColors: altForms.formulas.map(() => []),
+        }
+      }
+
       selectedFormula = formulas[currentOutputVar]
 
-      // Map formula terms to prime implicant colors
+      // Map formula terms to prime implicant colors for the first formula (backward compat)
       if (
         selectedFormula &&
         currentQmcResult.pis &&
