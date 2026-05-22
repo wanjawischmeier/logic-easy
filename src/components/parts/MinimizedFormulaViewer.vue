@@ -1,7 +1,7 @@
 <template>
   <div v-if="formulas.length > 0" class="w-full flex justify-center overflow-visible">
     <div class="inline-flex items-center gap-3 min-w-0 max-w-full overflow-visible">
-      <div class="relative shrink-0" ref="dropdownContainer">
+      <div v-if="showSelector" class="relative shrink-0" ref="dropdownContainer">
         <div
           class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5"
         >
@@ -59,11 +59,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
+import type { FunctionRepresentation } from '@/utility/types'
 
 const props = withDefaults(
   defineProps<{
     signature: string
     formulas: string[]
+    functionRepresentation?: FunctionRepresentation
     selectedIndex?: number
     label?: string
   }>(),
@@ -101,6 +103,10 @@ const selectIndex = (index: number) => {
   showDropdown.value = false
 }
 
+const showSelector = computed(
+  () => props.functionRepresentation !== 'Normal' && props.formulas.length > 1,
+)
+
 const hasMultipleFormulas = computed(() => props.formulas.length > 1)
 
 const handleClickOutside = (event: MouseEvent) => {
@@ -115,6 +121,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+})
+
+watch(showSelector, (value) => {
+  if (!value) {
+    showDropdown.value = false
+  }
 })
 
 const selectedLatex = computed(() => {

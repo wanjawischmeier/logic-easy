@@ -60,6 +60,7 @@
             v-model:selectedIndex="currentFormulaIndex"
             :signature="displayAlternativeFormulas.signature"
             :formulas="displayAlternativeFormulas.formulas"
+            :function-representation="functionRepresentation"
           />
         </div>
       </div>
@@ -94,6 +95,7 @@
               v-model:selectedIndex="currentFormulaIndex"
               :signature="displayAlternativeFormulas.signature"
               :formulas="displayAlternativeFormulas.formulas"
+              :function-representation="functionRepresentation"
             />
           </div>
         </div>
