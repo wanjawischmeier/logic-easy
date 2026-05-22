@@ -1,33 +1,56 @@
 <template>
   <div>
     <div class="w-full overflow-auto relative">
-      <table ref="tableRef" class="bg-surface-1 border border-primary table-fixed w-auto select-none relative">
+      <table
+        ref="tableRef"
+        class="bg-surface-1 border border-primary table-fixed w-auto select-none relative"
+      >
         <thead>
           <tr>
-            <th colspan="2"
-              class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1 text-center">
+            <th
+              colspan="2"
+              class="px-3 pt-1 pb-2 text-secondary-variant border-b-4 border-r-4 border-primary bg-surface-1 text-center"
+            >
               Terms
             </th>
-            <th v-for="m in qmcResult?.minterms" :key="m"
-              class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1">
+            <th
+              v-for="m in qmcResult?.minterms"
+              :key="m"
+              class="px-3 text-secondary-variant border-b-4 border-primary bg-surface-1"
+            >
               {{ m }}
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(pi, piIdx) in qmcResult?.pis" :key="pi.term"
-            class="hover:bg-surface-3 transition-color duration-100">
-            <td class="px-4 text-center align-middle border-b border-r border-primary font-mono relative" :style="props.showHighlights !== false ? getBorderStyle(pi, piIdx, true, qmcResult) : {}
-              ">
+          <tr
+            v-for="(pi, piIdx) in qmcResult?.pis"
+            :key="pi.term"
+            class="hover:bg-surface-3 transition-color duration-100"
+          >
+            <td
+              class="px-4 text-center align-middle border-b border-r border-primary font-mono relative"
+              :style="
+                props.showHighlights !== false ? getBorderStyle(pi, piIdx, true, qmcResult) : {}
+              "
+            >
               {{ pi.term }}
             </td>
-            <td class="px-4 align-middle border-b border-r-4 border-primary relative" :style="props.showHighlights !== false ? getBorderStyle(pi, piIdx, false, qmcResult) : {}
-              ">
+            <td
+              class="px-4 align-middle border-b border-r-4 border-primary relative"
+              :style="
+                props.showHighlights !== false ? getBorderStyle(pi, piIdx, false, qmcResult) : {}
+              "
+            >
               <vue-latex :fontsize="14" :expression="termToAlgebraic(pi.term)" />
             </td>
-            <td v-for="m in qmcResult?.minterms" :key="m"
-              class="p-2 z-20 text-center align-middle border-b border-primary relative" :data-pi-idx="piIdx"
-              :data-minterm="m">
+            <td
+              v-for="m in qmcResult?.minterms"
+              :key="m"
+              class="p-2 z-20 text-center align-middle border-b border-primary relative"
+              :data-pi-idx="piIdx"
+              :data-minterm="m"
+            >
               <vue-latex :fontsize="14" :expression="getCellSymbol(pi, m)" />
             </td>
           </tr>
@@ -35,9 +58,23 @@
       </table>
 
       <!-- Bounding boxes for essential prime implicants -->
-      <svg v-if="props.showHighlights !== false" class="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
-        <rect v-for="(box, idx) in boundingBoxes" :key="idx" :x="box.x" :y="box.y" :width="box.width"
-          :height="box.height" :rx="8" :ry="8" :stroke="box.color.border" stroke-width="2" :fill="box.color.fill" />
+      <svg
+        v-if="props.showHighlights !== false"
+        class="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
+      >
+        <rect
+          v-for="(box, idx) in boundingBoxes"
+          :key="idx"
+          :x="box.x"
+          :y="box.y"
+          :width="box.width"
+          :height="box.height"
+          :rx="8"
+          :ry="8"
+          :stroke="box.color.border"
+          stroke-width="2"
+          :fill="box.color.fill"
+        />
       </svg>
     </div>
 
@@ -284,13 +321,13 @@ function getBorderStyle(
 
   return left
     ? {
-      boxShadow: `inset ${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`,
-      backgroundColor: termColor.fill,
-    }
+        boxShadow: `inset ${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`,
+        backgroundColor: termColor.fill,
+      }
     : {
-      boxShadow: `inset -${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`,
-      backgroundColor: termColor.fill,
-    }
+        boxShadow: `inset -${borderWidth} 0 0 0 ${termColor.border}, inset 0 ${borderWidth} 0 0 ${termColor.border}, inset 0 -${borderWidth} 0 0 ${termColor.border}`,
+        backgroundColor: termColor.fill,
+      }
 }
 </script>
 

@@ -1,15 +1,26 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
     <div class="w-full flex flex-wrap text-sm justify-end items-center gap-2">
-      <MultiSelectSwitch :values="viewTabs" :initialSelected="selectedTabIndex"
-        :onSelect="(v, i) => (selectedTabIndex = i)" :highlight-border="true">
+      <MultiSelectSwitch
+        :values="viewTabs"
+        :initialSelected="selectedTabIndex"
+        :onSelect="(v, i) => (selectedTabIndex = i)"
+        :highlight-border="true"
+      >
       </MultiSelectSwitch>
 
       <LegendButton :legend="currentLegend" />
 
-      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :show-function-representation-selection="false" :customSettingSlotLabels="selectedTabIndex === 1 ? { 'show-highlights': 'Show highlights' } : {}
-          ">
+      <SettingsButton
+        :input-vars="inputVars"
+        :output-vars="outputVars"
+        :selected-output-index="outputVariableIndex"
+        :selected-function-type="functionType"
+        :show-function-representation-selection="false"
+        :customSettingSlotLabels="
+          selectedTabIndex === 1 ? { 'show-highlights': 'Show highlights' } : {}
+        "
+      >
         <template v-if="selectedTabIndex === 1" #show-highlights>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showHighlights" />
@@ -21,24 +32,47 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="qmc"
-        :files="downloadFiles" />
+      <DownloadButton
+        :target-ref="screenshotRef"
+        :panel-id="props.params.api.id"
+        filename="qmc"
+        :files="downloadFiles"
+      />
     </div>
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="h-full flex flex-col items-center">
-        <div v-if="(qmcResult?.iterations.length ?? 0) !== 0"
-          class="flex-1 flex items-center justify-center overflow-auto w-full">
-          <QMCGroupingTable v-if="selectedTabIndex === 0" :values="tableValues" :input-vars="inputVars"
-            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :functionType="functionType" :function-representation="functionRepresentation" :qmc-result="qmcResult" />
+        <div
+          v-if="(qmcResult?.iterations.length ?? 0) !== 0"
+          class="flex-1 flex items-center justify-center overflow-auto w-full"
+        >
+          <QMCGroupingTable
+            v-if="selectedTabIndex === 0"
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex"
+            :formulas="{}"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="qmcResult"
+          />
 
-          <QMCPrimeImplicantChart v-else-if="selectedTabIndex === 1" :values="tableValues" :input-vars="inputVars"
-            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :functionType="functionType" :function-representation="functionRepresentation" :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex" :alternative-formulas="alternativeFormulas"
-            :show-highlights="showHighlights" />
+          <QMCPrimeImplicantChart
+            v-else-if="selectedTabIndex === 1"
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex"
+            :formulas="{}"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="qmcResult"
+            :coupling-term-latex="couplingTermLatex"
+            :alternative-formulas="alternativeFormulas"
+            :show-highlights="showHighlights"
+          />
         </div>
         <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full flex-col">
           <div v-if="alternativeFormulas" class="flex flex-col items-center gap-4">
@@ -54,19 +88,40 @@
 
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
-        <div v-for="outputVar in outputVars" :key="`screenshot-${outputVar}-${functionType}`"
-          class="flex flex-col items-center gap-4">
-          <vue-latex :fontsize="14" :expression="`\\text{Output Variable:}${formatLatexIdentifier(outputVar)}`" />
+        <div
+          v-for="outputVar in outputVars"
+          :key="`screenshot-${outputVar}-${functionType}`"
+          class="flex flex-col items-center gap-4"
+        >
+          <vue-latex
+            :fontsize="14"
+            :expression="`\\text{Output Variable:}${formatLatexIdentifier(outputVar)}`"
+          />
 
-          <QMCGroupingTable :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
-            :function-representation="functionRepresentation" :qmc-result="qmcResult" />
+          <QMCGroupingTable
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex"
+            :formulas="{}"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="qmcResult"
+          />
 
-          <QMCPrimeImplicantChart :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="outputVariableIndex" :formulas="{}" :functionType="functionType"
-            :function-representation="functionRepresentation" :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex" :alternative-formulas="alternativeFormulas"
-            :show-highlights="showHighlights" />
+          <QMCPrimeImplicantChart
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex"
+            :formulas="{}"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="qmcResult"
+            :coupling-term-latex="couplingTermLatex"
+            :alternative-formulas="alternativeFormulas"
+            :show-highlights="showHighlights"
+          />
         </div>
       </div>
     </div>

@@ -1,9 +1,14 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
-      <SettingsButton :input-vars="inputVars" :output-vars="outputVars" :selected-output-index="outputVariableIndex"
-        :selected-function-type="functionType" :selected-function-representation="functionRepresentation"
-        :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }">
+      <SettingsButton
+        :input-vars="inputVars"
+        :output-vars="outputVars"
+        :selected-output-index="outputVariableIndex"
+        :selected-function-type="functionType"
+        :selected-function-representation="functionRepresentation"
+        :custom-setting-slot-labels="{ 'show-formula': 'Show formula' }"
+      >
         <template #show-formula>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showFormula" />
@@ -15,49 +20,81 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="kv"
-        :files="downloadFiles" />
+      <DownloadButton
+        :target-ref="screenshotRef"
+        :panel-id="props.params.api.id"
+        filename="kv"
+        :files="downloadFiles"
+      />
     </div>
 
     <div class="h-full" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto">
+      <div
+        data-screenshot-ignore
+        class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto"
+      >
         <div class="flex-1">
-          <KVDiagram :key="`${functionType}-${outputVariableIndex}`" :values="tableValues" :input-vars="inputVars"
-            :output-vars="outputVars" :outputVariableIndex="outputVariableIndex" :formulas="{}"
-            :selected-formula="displaySelectedFormula" :functionType="functionType"
-            :function-representation="functionRepresentation" :qmc-result="displayQmcResult"
-            :formula-term-colors="displayFormulaTermColors" :immutable-cell-mask="immutableCellMask"
-            @values-changed="tableValues = $event" />
+          <KVDiagram
+            :key="`${functionType}-${outputVariableIndex}`"
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="outputVariableIndex"
+            :formulas="{}"
+            :selected-formula="displaySelectedFormula"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="displayQmcResult"
+            :formula-term-colors="displayFormulaTermColors"
+            :immutable-cell-mask="immutableCellMask"
+            @values-changed="tableValues = $event"
+          />
         </div>
 
-        <div v-if="displayAlternativeFormulas && showFormula" class="pt-8 flex-1">
-          <div class="text-xl text-primary-variant p-2">
-            <vue-latex :expression="displayAlternativeFormulas.signature" />
-          </div>
-          <div v-for="(formula, index) in displayAlternativeFormulas.formulas" :key="index" class="flex-1">
-            <FormulaRenderer :latex-expression="formula" />
-          </div>
+        <div
+          v-if="displayAlternativeFormulas && showFormula"
+          class="pt-8 flex-1 w-full flex justify-center overflow-visible"
+        >
+          <MinimizedFormulaViewer
+            v-model:selectedIndex="currentFormulaIndex"
+            :signature="displayAlternativeFormulas.signature"
+            :formulas="displayAlternativeFormulas.formulas"
+          />
         </div>
       </div>
 
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
-        <div v-for="(outputVar, index) in outputVars" :key="`screenshot-${outputVar}-${functionType}`"
-          class="flex flex-col items-center gap-4">
-          <KVDiagram :values="tableValues" :input-vars="inputVars" :output-vars="outputVars"
-            :outputVariableIndex="index" :formulas="{}" :selected-formula="displaySelectedFormula"
-            :functionType="functionType" :function-representation="functionRepresentation"
-            :qmc-result="displayQmcResult" :formula-term-colors="displayFormulaTermColors"
-            :immutable-cell-mask="immutableCellMask" @values-changed="tableValues = $event" />
+        <div
+          v-for="(outputVar, index) in outputVars"
+          :key="`screenshot-${outputVar}-${functionType}`"
+          class="flex flex-col items-center gap-4"
+        >
+          <KVDiagram
+            :values="tableValues"
+            :input-vars="inputVars"
+            :output-vars="outputVars"
+            :outputVariableIndex="index"
+            :formulas="{}"
+            :selected-formula="displaySelectedFormula"
+            :functionType="functionType"
+            :function-representation="functionRepresentation"
+            :qmc-result="displayQmcResult"
+            :formula-term-colors="displayFormulaTermColors"
+            :immutable-cell-mask="immutableCellMask"
+            @values-changed="tableValues = $event"
+          />
 
-          <div v-if="displayAlternativeFormulas" class="w-full">
-            <div class="text-xl text-primary-variant p-2">
-              <vue-latex :expression="displayAlternativeFormulas.signature" />
-            </div>
-            <div v-for="(formula, index) in displayAlternativeFormulas.formulas" :key="index" class="w-full">
-              <FormulaRenderer :latex-expression="formula" />
-            </div>
+          <div
+            v-if="displayAlternativeFormulas"
+            class="w-full flex justify-center overflow-visible"
+          >
+            <MinimizedFormulaViewer
+              v-model:selectedIndex="currentFormulaIndex"
+              :signature="displayAlternativeFormulas.signature"
+              :formulas="displayAlternativeFormulas.formulas"
+            />
           </div>
         </div>
       </div>
@@ -70,7 +107,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
-import FormulaRenderer from '@/components/FormulaRenderer.vue'
+import MinimizedFormulaViewer from '@/components/parts/MinimizedFormulaViewer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import Checkbox from '@/components/parts/Checkbox.vue'
@@ -149,6 +186,7 @@ const {
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
+const currentFormulaIndex = ref(0)
 
 // Display-only remapping for FSM context: remap vars from (a,b,c) to actual FSM names
 const fsmPresentation = computed(() => {
@@ -178,6 +216,16 @@ const displayCouplingTermLatex = computed(
 const displayAlternativeFormulas = computed(
   () => fsmPresentation.value.alternativeFormulas ?? alternativeFormulas.value,
 )
+
+const currentFormulaDisplay = computed(() => {
+  const alts = displayAlternativeFormulas.value
+  if (!alts || alts.formulas.length === 0) return null
+
+  return {
+    formula: alts.formulas[currentFormulaIndex.value] ?? alts.formulas[0] ?? '...',
+    colors: [],
+  }
+})
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),

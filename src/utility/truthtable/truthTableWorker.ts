@@ -8,7 +8,11 @@ import {
   type TermColor,
 } from './colorGenerator'
 import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser'
-import { getFunctionSignature, getCouplingTermLatex, getAlternativeMinimalForms } from './latexGenerator'
+import {
+  getFunctionSignature,
+  getCouplingTermLatex,
+  getAlternativeMinimalForms,
+} from './latexGenerator'
 import type { Operation } from 'logi.js'
 
 // Message types for worker communication
@@ -22,11 +26,13 @@ export interface WorkerResponse {
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
   couplingTermLatex: string | undefined
-  alternativeFormulas: {
-    signature: string
-    formulas: string[]
-    formulaTermColors: TermColor[][]
-  } | undefined
+  alternativeFormulas:
+    | {
+        signature: string
+        formulas: string[]
+        formulaTermColors: TermColor[][]
+      }
+    | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
 }
@@ -259,11 +265,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
     let couplingTermLatex: string | undefined
-    let alternativeFormulas: {
-      signature: string
-      formulas: string[]
-      formulaTermColors: TermColor[][]
-    } | undefined
+    let alternativeFormulas:
+      | {
+          signature: string
+          formulas: string[]
+          formulaTermColors: TermColor[][]
+        }
+      | undefined
     let selectedFormula: Formula | undefined
     let formulaTermColors: TermColor[] | undefined
 
@@ -288,7 +296,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
       // Compute formula-specific term colors for each alternative
       if (shouldUseGenericFormulaColors(truthTable)) {
-        const formulaColorsList: TermColor[][] = altForms.formulas.map(formula => {
+        const formulaColorsList: TermColor[][] = altForms.formulas.map((formula) => {
           // Extract PI terms used in this formula by comparing against QMC result PIs
           const usedPiIndices = new Set<number>()
           if (currentQmcResult.pis) {
@@ -301,8 +309,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           }
 
           // Build color array for terms in this formula
-          const colors: TermColor[] = Array.from(usedPiIndices).map(idx =>
-            currentQmcResult.termColors?.[idx] || defaultColor
+          const colors: TermColor[] = Array.from(usedPiIndices).map(
+            (idx) => currentQmcResult.termColors?.[idx] || defaultColor,
           )
           return colors.length > 0 ? colors : [defaultColor]
         })

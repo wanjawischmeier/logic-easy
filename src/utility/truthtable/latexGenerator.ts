@@ -136,14 +136,12 @@ function getNormalFormLatex(
  */
 function cartesianProduct<T>(arrays: T[][]): T[][] {
   if (arrays.length === 0) return [[]]
-  if (arrays.length === 1) return arrays[0]!.map(item => [item])
+  if (arrays.length === 1) return arrays[0]!.map((item) => [item])
 
   const [first, ...rest] = arrays
   const restProduct = cartesianProduct(rest)
 
-  return first!.flatMap(item =>
-    restProduct.map(combo => [item, ...combo])
-  )
+  return first!.flatMap((item) => restProduct.map((combo) => [item, ...combo]))
 }
 
 /**
@@ -198,7 +196,7 @@ export function getAlternativeMinimalForms(
 
   // Sort constant terms
   const sortedConstantTerms = constantTerms.sort((a, b) =>
-    getTermSortKey(a).localeCompare(getTermSortKey(b))
+    getTermSortKey(a).localeCompare(getTermSortKey(b)),
   )
 
   // If no variable positions, return single formula with just constant terms
@@ -206,18 +204,22 @@ export function getAlternativeMinimalForms(
     const termJoiner = isCNF ? '' : ' + '
     return {
       signature,
-      formulas: [sortedConstantTerms.join(termJoiner)]
+      formulas: [sortedConstantTerms.join(termJoiner)],
     }
   }
 
   // Generate all combinations of variable position choices
   const combinations = cartesianProduct(variablePositions)
 
-  const formulas = Array.from(new Set(combinations.map((combo) => {
-    const allTerms = [...sortedConstantTerms, ...combo]
-    const termJoiner = isCNF ? '' : ' + '
-    return allTerms.join(termJoiner)
-  })))
+  const formulas = Array.from(
+    new Set(
+      combinations.map((combo) => {
+        const allTerms = [...sortedConstantTerms, ...combo]
+        const termJoiner = isCNF ? '' : ' + '
+        return allTerms.join(termJoiner)
+      }),
+    ),
+  )
 
   return { signature, formulas }
 }
