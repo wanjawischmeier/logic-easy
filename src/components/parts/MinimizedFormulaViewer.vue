@@ -60,6 +60,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import type { FunctionRepresentation } from '@/utility/types'
+import { dropdownService } from '@/utility/dropdownService'
 
 const props = withDefaults(
   defineProps<{
@@ -95,12 +96,20 @@ watch(localSelectedIndex, (value) => {
 })
 
 const toggleDropdown = () => {
-  showDropdown.value = !showDropdown.value
+  if (showDropdown.value) {
+    dropdownService.close()
+    return
+  }
+
+  showDropdown.value = true
+  dropdownService.open(() => {
+    showDropdown.value = false
+  })
 }
 
 const selectIndex = (index: number) => {
   localSelectedIndex.value = index
-  showDropdown.value = false
+  dropdownService.close()
 }
 
 const showSelector = computed(
@@ -111,7 +120,7 @@ const hasMultipleFormulas = computed(() => props.formulas.length > 1)
 
 const handleClickOutside = (event: MouseEvent) => {
   if (dropdownContainer.value && !dropdownContainer.value.contains(event.target as Node)) {
-    showDropdown.value = false
+    dropdownService.close()
   }
 }
 
@@ -121,11 +130,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  dropdownService.close()
 })
 
 watch(showSelector, (value) => {
   if (!value) {
-    showDropdown.value = false
+    dropdownService.close()
   }
 })
 
