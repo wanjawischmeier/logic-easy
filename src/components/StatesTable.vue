@@ -154,7 +154,7 @@ function decreaseOutputBits() {
               @blur="commitStateName(state.nodeId)"
               @keydown.enter.prevent="
                 commitStateName(state.nodeId)
-                $event.target.blur()
+                ;($event.target as HTMLInputElement)?.blur()
               "
             />
           </td>
