@@ -44,7 +44,7 @@
           <component
             :is="popupService.current.value.projectPropsComponent"
             :model-value="slotProps.modelValue"
-            @update:model-value="slotProps['onUpdate:modelValue']"
+            @update:model-value="slotProps['onUpdate:model-value']"
             :register-validation="slotProps.registerValidation"
           />
         </ProjectCreationPopup>
@@ -77,7 +77,7 @@ const dockviewApi = shallowRef<DockviewApi | null>(null)
 let panelDisposable: { dispose?: () => void } | null = null
 let layoutChangeDisposable: { dispose?: () => void } | null = null
 
-const { pendingInitialProjectId, setupRouteSync } = useDockViewRouting()
+const { pendingInitialProjectId, setupRouteSync, handleProjectOpenFailure } = useDockViewRouting()
 
 const isInitializingProject = ref(pendingInitialProjectId.value !== null)
 const isRestoringLayout = ref(false)
@@ -152,11 +152,11 @@ const setupPendingProjectLoad = (api: DockviewApi) => {
 
     setTimeout(() => {
       try {
-        projectManager.openProject(projectIdToLoad)
+        projectManager.openProject(projectIdToLoad, handleProjectOpenFailure)
         // Layout restoration will be handled by the watch below
       } catch (error) {
         console.error('Failed to open project on page load:', error)
-        loadingService.hide()
+        handleProjectOpenFailure()
         isInitializingProject.value = false
       }
     }, 100)
