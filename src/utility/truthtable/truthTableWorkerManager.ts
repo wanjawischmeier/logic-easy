@@ -74,8 +74,8 @@ class TruthTableWorkerManager {
       if (response.couplingTermLatex !== undefined) {
         stateManager.state.truthTable.couplingTermLatex = response.couplingTermLatex
       }
-      if (response.alternativeFormulas !== undefined) {
-        stateManager.state.truthTable.alternativeFormulas = response.alternativeFormulas
+      if (response.formulaVariations !== undefined) {
+        stateManager.state.truthTable.formulaVariations = response.formulaVariations
       }
       if (response.selectedFormula !== undefined) {
         stateManager.state.truthTable.selectedFormula = response.selectedFormula

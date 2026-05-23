@@ -70,17 +70,17 @@
             :function-representation="functionRepresentation"
             :qmc-result="qmcResult"
             :coupling-term-latex="couplingTermLatex"
-            :alternative-formulas="alternativeFormulas"
+            :formulaVariations="formulaVariations"
             v-model:selectedFormulaIndex="selectedFormulaIndex"
             :show-highlights="showHighlights"
           />
         </div>
         <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full flex-col">
-          <div v-if="alternativeFormulas" class="flex flex-col items-center gap-4">
+          <div v-if="formulaVariations" class="flex flex-col items-center gap-4">
             <MinimizedFormulaViewer
               v-model:selectedIndex="selectedFormulaIndex"
-              :signature="alternativeFormulas.signature"
-              :formulas="alternativeFormulas.formulas"
+              :signature="formulaVariations.signature"
+              :formulas="formulaVariations.formulas"
               :function-representation="functionRepresentation"
             />
           </div>
@@ -120,7 +120,7 @@
             :function-representation="functionRepresentation"
             :qmc-result="qmcResult"
             :coupling-term-latex="couplingTermLatex"
-            :alternative-formulas="alternativeFormulas"
+            :formulaVariations="formulaVariations"
             :show-highlights="showHighlights"
             v-model:selectedFormulaIndex="selectedFormulaIndex"
           />
@@ -263,7 +263,7 @@ const {
   functionRepresentation,
   qmcResult,
   couplingTermLatex,
-  alternativeFormulas,
+  formulaVariations,
 } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
@@ -271,7 +271,7 @@ let isUpdatingFromState = false
 
 const { clampedSavedIndex: clampedSavedFormulaIndex } = useClampedSelection(
   selectedFormulaIndex,
-  computed(() => alternativeFormulas?.value?.formulas),
+  computed(() => formulaVariations?.value?.formulas),
 )
 
 // Auto-save panel state when values change

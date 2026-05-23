@@ -113,7 +113,7 @@ export interface FsmKVDiagramPresentation {
   selectedFormula?: TruthTableState['selectedFormula']
   formulaTermColors?: TermColor[]
   couplingTermLatex?: string
-  alternativeFormulas?: { signature: string; formulas: string[] }
+  formulaVariations?: { signature: string; formulas: string[] }
 }
 
 export function buildFsmImmutableCellMask(
@@ -197,7 +197,7 @@ export function buildFsmKVDiagramPresentation(
       truthTable.outputVariableIndex,
       { lowercaseInputVars: true },
     ),
-    alternativeFormulas: getAlternativeMinimalForms(
+    formulaVariations: getAlternativeMinimalForms(
       remappedResult,
       truthTable.functionType,
       truthTable.functionRepresentation,

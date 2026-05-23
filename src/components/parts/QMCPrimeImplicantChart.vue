@@ -78,11 +78,11 @@
       </svg>
     </div>
 
-    <div v-if="props.alternativeFormulas" class="pt-8">
+    <div v-if="props.formulaVariations" class="pt-8">
       <MinimizedFormulaViewer
         v-model:selectedIndex="selectedFormulaIndex"
-        :signature="props.alternativeFormulas.signature"
-        :formulas="props.alternativeFormulas.formulas"
+        :signature="props.formulaVariations.signature"
+        :formulas="props.formulaVariations.formulas"
         :function-representation="props.functionRepresentation"
       />
     </div>

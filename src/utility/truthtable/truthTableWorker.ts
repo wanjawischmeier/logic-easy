@@ -26,7 +26,7 @@ export interface WorkerResponse {
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
   couplingTermLatex: string | undefined
-  alternativeFormulas:
+  formulaVariations:
     | {
         signature: string
         formulas: string[]
@@ -204,7 +204,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         qmcResults,
         formulas,
         couplingTermLatex: currentEdgeResult.couplingTermLatex,
-        alternativeFormulas: (() => {
+        formulaVariations: (() => {
           const altForms = getAlternativeMinimalForms(
             currentEdgeResult.qmcResult,
             truthTable.functionType,
@@ -265,7 +265,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
     let couplingTermLatex: string | undefined
-    let alternativeFormulas:
+    let formulaVariations:
       | {
           signature: string
           formulas: string[]
@@ -315,13 +315,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           return colors.length > 0 ? colors : [defaultColor]
         })
 
-        alternativeFormulas = {
+        formulaVariations = {
           signature: altForms.signature,
           formulas: altForms.formulas,
           formulaTermColors: formulaColorsList,
         }
       } else {
-        alternativeFormulas = {
+        formulaVariations = {
           signature: altForms.signature,
           formulas: altForms.formulas,
           formulaTermColors: altForms.formulas.map(() => []),
@@ -351,7 +351,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       qmcResults,
       formulas,
       couplingTermLatex,
-      alternativeFormulas,
+      formulaVariations: formulaVariations,
       selectedFormula,
       formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
     }
@@ -365,7 +365,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       qmcResults: {},
       formulas: {},
       couplingTermLatex: undefined,
-      alternativeFormulas: undefined,
+      formulaVariations: undefined,
       selectedFormula: undefined,
       formulaTermColors: undefined,
     }

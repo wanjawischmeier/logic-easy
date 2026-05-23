@@ -53,13 +53,13 @@
         </div>
 
         <div
-          v-if="displayAlternativeFormulas && showFormula"
+          v-if="displayFormulaVariations && showFormula"
           class="pt-8 flex-1 w-full flex justify-center overflow-visible"
         >
           <MinimizedFormulaViewer
             v-model:selectedIndex="currentFormulaIndex"
-            :signature="displayAlternativeFormulas.signature"
-            :formulas="displayAlternativeFormulas.formulas"
+            :signature="displayFormulaVariations.signature"
+            :formulas="displayFormulaVariations.formulas"
             :function-representation="functionRepresentation"
           />
         </div>
@@ -87,14 +87,11 @@
             @values-changed="tableValues = $event"
           />
 
-          <div
-            v-if="displayAlternativeFormulas"
-            class="w-full flex justify-center overflow-visible"
-          >
+          <div v-if="displayFormulaVariations" class="w-full flex justify-center overflow-visible">
             <MinimizedFormulaViewer
               v-model:selectedIndex="currentFormulaIndex"
-              :signature="displayAlternativeFormulas.signature"
-              :formulas="displayAlternativeFormulas.formulas"
+              :signature="displayFormulaVariations.signature"
+              :formulas="displayFormulaVariations.formulas"
               :function-representation="functionRepresentation"
             />
           </div>
@@ -181,7 +178,7 @@ const {
   functionType,
   functionRepresentation,
   couplingTermLatex,
-  alternativeFormulas,
+  formulaVariations,
   qmcResult,
   formulaTermColors,
 } = TruthTableProject.useState()
@@ -214,12 +211,12 @@ const displayCouplingTermLatex = computed(
   () => fsmPresentation.value.couplingTermLatex ?? couplingTermLatex.value,
 )
 
-const displayAlternativeFormulas = computed(
-  () => fsmPresentation.value.alternativeFormulas ?? alternativeFormulas.value,
+const displayFormulaVariations = computed(
+  () => fsmPresentation.value.formulaVariations ?? formulaVariations.value,
 )
 
 const currentFormulaDisplay = computed(() => {
-  const alts = displayAlternativeFormulas.value
+  const alts = displayFormulaVariations.value
   if (!alts || alts.formulas.length === 0) return null
 
   return {
@@ -234,7 +231,7 @@ const immutableCellMask = computed(() =>
 
 const { clampedSavedIndex: clampedSavedFormulaIndex } = useClampedSelection(
   currentFormulaIndex,
-  computed(() => displayAlternativeFormulas.value?.formulas),
+  computed(() => displayFormulaVariations.value?.formulas),
 )
 
 stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
