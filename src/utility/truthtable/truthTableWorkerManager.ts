@@ -70,10 +70,6 @@ class TruthTableWorkerManager {
         stateManager.state.truthTable.qmcResult = response.qmcResults[currentOutputVar]
       }
 
-      // Update coupling term latex and selected formula for current output variable
-      if (response.couplingTermLatex !== undefined) {
-        stateManager.state.truthTable.couplingTermLatex = response.couplingTermLatex
-      }
       if (response.formulaVariations !== undefined) {
         stateManager.state.truthTable.formulaVariations = response.formulaVariations
       }
@@ -156,7 +152,6 @@ class TruthTableWorkerManager {
       functionType: truthTable.functionType,
       functionRepresentation: truthTable.functionRepresentation,
       qmcResult: toRaw(truthTable.qmcResult),
-      couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: toRaw(truthTable.selectedFormula),
       fsmMode: truthTable.fsmMode,
     }

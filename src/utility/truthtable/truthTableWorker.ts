@@ -13,11 +13,7 @@ import {
   type TermColor,
 } from './colorGenerator'
 import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser'
-import {
-  getFunctionSignature,
-  getCouplingTermLatex,
-  getAlternativeMinimalForms,
-} from './latexGenerator'
+import { getAlternativeMinimalForms } from './latexGenerator'
 import type { Operation } from 'logi.js'
 
 // Message types for worker communication
@@ -30,7 +26,6 @@ export interface WorkerResponse {
   id: number
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
-  couplingTermLatex: string | undefined
   formulaVariations: FormulaVariations | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
@@ -44,9 +39,7 @@ function createEdgeCaseResult(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
-): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
-  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars)
-
+): { qmcResult: QMCResult; formula: Formula } {
   let constant: '0' | '1'
 
   if (type === 'tautology') {
@@ -75,9 +68,7 @@ function createEdgeCaseResult(
     termColors: [defaultColor],
   }
 
-  const couplingTermLatex = signature + constant
-
-  return { qmcResult, formula, couplingTermLatex }
+  return { qmcResult, formula }
 }
 
 async function runMinimization(
@@ -219,7 +210,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         id,
         qmcResults,
         formulas,
-        couplingTermLatex: currentEdgeResult.couplingTermLatex,
         formulaVariations: (() => {
           const altForms = getAlternativeMinimalForms(
             currentEdgeResult.qmcResult,
@@ -286,21 +276,11 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
-    let couplingTermLatex: string | undefined
     let formulaVariations: FormulaVariations | undefined
     let selectedFormula: Formula | undefined
     let formulaTermColors: TermColor[] | undefined
 
     if (currentQmcResult) {
-      couplingTermLatex = getCouplingTermLatex(
-        currentQmcResult,
-        truthTable.functionType,
-        truthTable.functionRepresentation,
-        truthTable.inputVars,
-        truthTable.values,
-        truthTable.outputVariableIndex,
-      )
-
       const altForms = getAlternativeMinimalForms(
         currentQmcResult,
         truthTable.functionType,
@@ -351,7 +331,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       id,
       qmcResults,
       formulas,
-      couplingTermLatex,
       formulaVariations: formulaVariations,
       selectedFormula,
       formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
@@ -365,7 +344,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       id,
       qmcResults: {},
       formulas: {},
-      couplingTermLatex: undefined,
       formulaVariations: undefined,
       selectedFormula: undefined,
       formulaTermColors: undefined,

@@ -6,10 +6,7 @@ import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
 import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
-import {
-  getCouplingTermLatex,
-  getAlternativeMinimalForms,
-} from '@/utility/truthtable/latexGenerator'
+import { getAlternativeMinimalForms } from '@/utility/truthtable/latexGenerator'
 import {
   generateTermColor,
   mapFormulaTermsToPIColors,
@@ -131,7 +128,6 @@ export interface FsmKVDiagramPresentation {
   qmcResult?: QMCResult
   selectedFormula?: TruthTableState['selectedFormula']
   formulaTermColors?: TermColor[]
-  couplingTermLatex?: string
   formulaVariations?: FormulaVariations
 }
 
@@ -185,7 +181,6 @@ export function buildFsmKVDiagramPresentation(
   if (!remappedResult.expressions.length) {
     return {
       qmcResult: remappedResult,
-      couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: truthTable.selectedFormula,
       formulaTermColors: truthTable.formulaTermColors ?? remappedTermColors,
       formulaVariations: remappedFormulaVariations,
@@ -217,15 +212,6 @@ export function buildFsmKVDiagramPresentation(
     qmcResult: remappedResult,
     selectedFormula,
     formulaTermColors,
-    couplingTermLatex: getCouplingTermLatex(
-      remappedResult,
-      truthTable.functionType,
-      truthTable.functionRepresentation,
-      truthTable.inputVars,
-      truthTable.values,
-      truthTable.outputVariableIndex,
-      { lowercaseInputVars: true },
-    ),
     formulaVariations: {
       signature: getAlternativeMinimalForms(
         remappedResult,
@@ -308,7 +294,6 @@ export function exportFsmToTruthTable(
     functionType: fsm.functionType ?? previousState?.functionType ?? defaultFunctionType,
     functionRepresentation: previousState?.functionRepresentation ?? defaultFunctionRepresentation,
     qmcResult: previousState?.qmcResult,
-    couplingTermLatex: previousState?.couplingTermLatex,
     selectedFormula: previousState?.selectedFormula,
     formulaTermColors: previousState?.formulaTermColors,
     fsmMode: true,

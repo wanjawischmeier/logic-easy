@@ -12,9 +12,8 @@ import {
 import { computed } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { registerProjectType } from '@/projects/projectRegistry'
-import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
+import type { QMCResult } from '@/utility/truthtable/minimizer'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
-import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
 
 export type TruthTableCell = 0 | 1 | '-'
 export type TruthTableData = TruthTableCell[][]
@@ -34,7 +33,6 @@ export interface TruthTableState {
   functionType: FunctionType
   functionRepresentation: FunctionRepresentation
   qmcResult?: QMCResult
-  couplingTermLatex?: string
   formulaVariations?: FormulaVariations
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
@@ -63,7 +61,6 @@ export class TruthTableProject extends Project {
       () => state.value?.functionRepresentation ?? defaultFunctionRepresentation,
     )
     const qmcResult = computed(() => state.value?.qmcResult)
-    const couplingTermLatex = computed(() => state.value?.couplingTermLatex)
     const formulaVariations = computed(() => state.value?.formulaVariations)
     const selectedFormula = computed(() => state.value?.selectedFormula)
     const formulaTermColors = computed(() => state.value?.formulaTermColors)
@@ -81,7 +78,6 @@ export class TruthTableProject extends Project {
       functionType,
       functionRepresentation,
       qmcResult,
-      couplingTermLatex,
       formulaVariations,
       selectedFormula,
       formulaTermColors,
@@ -124,12 +120,6 @@ export class TruthTableProject extends Project {
 
     const functionType: FunctionType = defaultFunctionType
     const functionRepresentation: FunctionRepresentation = defaultFunctionRepresentation
-    const couplingTermLatex = getCouplingTermLatex(
-      Minimizer.emptyQMQResult,
-      functionType,
-      functionRepresentation,
-      inputVars,
-    )
 
     // Initialize state
     stateManager.state.truthTable = {
@@ -140,7 +130,6 @@ export class TruthTableProject extends Project {
       outputVariableIndex: 0,
       functionType: functionType,
       functionRepresentation: functionRepresentation,
-      couplingTermLatex: couplingTermLatex,
       fsmMode: false,
     }
 

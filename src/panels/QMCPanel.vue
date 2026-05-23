@@ -69,7 +69,6 @@
             :functionType="functionType"
             :function-representation="functionRepresentation"
             :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex"
             :formulaVariations="formulaVariations"
             v-model:selectedFormulaIndex="selectedFormulaIndex"
             :show-highlights="showHighlights"
@@ -119,7 +118,6 @@
             :functionType="functionType"
             :function-representation="functionRepresentation"
             :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex"
             :formulaVariations="formulaVariations"
             :show-highlights="showHighlights"
             v-model:selectedFormulaIndex="selectedFormulaIndex"
@@ -262,7 +260,6 @@ const {
   functionType,
   functionRepresentation,
   qmcResult,
-  couplingTermLatex,
   formulaVariations,
 } = TruthTableProject.useState()
 
@@ -273,6 +270,10 @@ const formulaVariationLatex = computed(
   () =>
     formulaVariations?.value?.variations.map((variation) => formulaToLatex(variation.formula)) ??
     [],
+)
+
+const selectedFormulaLatex = computed(
+  () => formulaVariationLatex.value[selectedFormulaIndex.value] ?? '',
 )
 
 const { clampedSavedIndex: clampedSavedFormulaIndex } = useClampedSelection(
@@ -324,7 +325,7 @@ const downloadFiles = computed(() => [
     label: 'LaTeX',
     filename: 'kv',
     extension: 'tex',
-    content: () => couplingTermLatex.value,
+    content: () => selectedFormulaLatex.value,
     mimeType: 'text/plain',
     registerWith: 'latex' as const,
   },

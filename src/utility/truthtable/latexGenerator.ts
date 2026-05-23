@@ -30,47 +30,6 @@ export function getFunctionSignature(
 }
 
 /**
- * Generate a binary minterm from a row index
- */
-function getBinaryMinterm(rowIdx: number, inputVars: string[]): string {
-  const binary = rowIdx.toString(2).padStart(inputVars.length, '0')
-  const literals: string[] = []
-
-  for (let i = 0; i < inputVars.length; i++) {
-    const bit = binary[i]
-    const variable = formatLatexIdentifier(inputVars[i]!)
-    if (bit === '1') {
-      literals.push(variable)
-    } else {
-      literals.push(`\\bar{${variable}}`)
-    }
-  }
-
-  return literals.join('')
-}
-
-/**
- * Generate a binary maxterm from a row index
- */
-function getBinaryMaxterm(rowIdx: number, inputVars: string[]): string {
-  const binary = rowIdx.toString(2).padStart(inputVars.length, '0')
-  const literals: string[] = []
-
-  for (let i = 0; i < inputVars.length; i++) {
-    const bit = binary[i]
-    const variable = formatLatexIdentifier(inputVars[i]!)
-    // Maxterm negates the bits (opposite of minterm)
-    if (bit === '0') {
-      literals.push(variable)
-    } else {
-      literals.push(`\\bar{${variable}}`)
-    }
-  }
-
-  return '(' + literals.join(' + ') + ')'
-}
-
-/**
  * Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
  */
 function getTermSortKey(term: string): string {
@@ -241,60 +200,6 @@ export function formulaToLatex(formula: Formula): string {
 }
 
 /**
- * Get LaTeX for normal form (canonical form without minimization)
- */
-function getNormalFormLatex(
-  values: TruthTableState['values'],
-  functionType: FunctionType,
-  inputVars: string[],
-  outputVariableIndex: number,
-): string {
-  if (functionType === 'Disjunctive') {
-    // DNF: collect all minterms (rows where output is 1)
-    const minterms: string[] = []
-
-    for (let rowIdx = 0; rowIdx < values.length; rowIdx++) {
-      const row = values[rowIdx]
-      if (!row) continue
-      const outputValue = row[outputVariableIndex]
-      if (outputValue === 1) {
-        minterms.push(getBinaryMinterm(rowIdx, inputVars))
-      }
-    }
-
-    if (minterms.length === 0) {
-      return '0' // Contradiction
-    }
-    if (minterms.length === Math.pow(2, inputVars.length)) {
-      return '1' // Tautology
-    }
-
-    return minterms.join(' + ')
-  } else {
-    // CNF: collect all maxterms (rows where output is 0)
-    const maxterms: string[] = []
-
-    for (let rowIdx = 0; rowIdx < values.length; rowIdx++) {
-      const row = values[rowIdx]
-      if (!row) continue
-      const outputValue = row[outputVariableIndex]
-      if (outputValue === 0) {
-        maxterms.push(getBinaryMaxterm(rowIdx, inputVars))
-      }
-    }
-
-    if (maxterms.length === 0) {
-      return '1' // Tautology
-    }
-    if (maxterms.length === Math.pow(2, inputVars.length)) {
-      return '0' // Contradiction
-    }
-
-    return maxterms.join('')
-  }
-}
-
-/**
  * Generate the Cartesian product of arrays
  */
 function cartesianProduct<T>(arrays: T[][]): T[][] {
@@ -382,57 +287,4 @@ export function getAlternativeMinimalForms(
   )
 
   return { signature, formulas }
-}
-
-/**
- * Get all coupling terms as an array of LaTeX expressions
- * Returns { signature, terms } where signature is the function signature
- * and terms is an array of LaTeX expressions for each term
- */
-export function getCouplingTermsLatexArray(
-  qmcResult: QMCResult,
-  functionType: FunctionType,
-  functionRepresentation: FunctionRepresentation,
-  inputVars: string[],
-  truthTableValues?: TruthTableState['values'],
-  outputVariableIndex?: number,
-  options?: { lowercaseInputVars?: boolean },
-): { signature: string; terms: string[] } {
-  const { signature, formulas } = getAlternativeMinimalForms(
-    qmcResult,
-    functionType,
-    functionRepresentation,
-    inputVars,
-    truthTableValues,
-    outputVariableIndex,
-    options,
-  )
-
-  return { signature, terms: formulas.map((formula) => formulaToLatex(formula)) }
-}
-
-export function getCouplingTermLatex(
-  qmcResult: QMCResult,
-  functionType: FunctionType,
-  functionRepresentation: FunctionRepresentation,
-  inputVars: string[],
-  truthTableValues?: TruthTableState['values'],
-  outputVariableIndex?: number,
-  options?: { lowercaseInputVars?: boolean },
-): string {
-  const { signature, formulas } = getAlternativeMinimalForms(
-    qmcResult,
-    functionType,
-    functionRepresentation,
-    inputVars,
-    truthTableValues,
-    outputVariableIndex,
-    options,
-  )
-
-  if (formulas.length === 0) {
-    return signature + '0'
-  }
-
-  return signature + formulaToLatex(formulas[0]!)
 }

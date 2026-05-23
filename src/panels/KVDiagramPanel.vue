@@ -178,7 +178,6 @@ const {
   outputVariableIndex,
   functionType,
   functionRepresentation,
-  couplingTermLatex,
   formulaVariations,
   qmcResult,
   formulaTermColors,
@@ -214,12 +213,12 @@ const displayFormulaTermColors = computed(
     formulaTermColors.value,
 )
 
-const displayCouplingTermLatex = computed(
-  () => fsmPresentation.value.couplingTermLatex ?? couplingTermLatex.value,
-)
-
 const displayFormulaVariations = computed(
   () => fsmPresentation.value.formulaVariations ?? formulaVariations.value,
+)
+
+const selectedFormulaLatex = computed(() =>
+  displaySelectedFormula.value ? formulaToLatex(displaySelectedFormula.value) : '',
 )
 
 const displayFormulaVariationLatex = computed(
@@ -292,7 +291,7 @@ const downloadFiles = computed(() => [
     label: 'LaTeX',
     filename: 'kv-diagram',
     extension: 'tex',
-    content: () => couplingTermLatex.value,
+    content: () => selectedFormulaLatex.value,
     mimeType: 'text/plain',
     registerWith: 'latex' as const,
   },
