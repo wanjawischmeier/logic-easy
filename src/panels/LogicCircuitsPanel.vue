@@ -10,6 +10,8 @@ import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
+import FormulaSelector from '@/components/parts/FormulaSelector.vue'
+import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
@@ -17,8 +19,16 @@ import type { Formula, Term } from '@/utility/types'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
-const { inputVars, outputVars, formulas, values, functionType, functionRepresentation } =
-  TruthTableProject.useState()
+const {
+  inputVars,
+  outputVars,
+  formulas,
+  values,
+  functionType,
+  functionRepresentation,
+  formulaVariations,
+  outputVariableIndex,
+} = TruthTableProject.useState()
 
 const panelRef = ref<HTMLElement | null>(null)
 const iframeContainer = ref<HTMLElement | null>(null)
@@ -38,6 +48,7 @@ const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
 
 type LogicCircuitsPanelState = {
   hideManualEditWarning?: boolean
+  selectedFormulaIndex?: number
 }
 
 const hideManualEditWarning = computed(() => {
@@ -57,6 +68,23 @@ function setHideManualEditWarning(value: boolean) {
     hideManualEditWarning: value,
   } as LogicCircuitsPanelState
 }
+
+// Panel persisted state: selected formula index for variations
+const panelState = stateManager.getPanelState<LogicCircuitsPanelState>(
+  LOGIC_CIRCUITS_PANEL_STATE_KEY,
+)
+const selectedFormulaIndex = ref(panelState?.selectedFormulaIndex ?? 0)
+
+stateManager.watchPanelState<LogicCircuitsPanelState>(LOGIC_CIRCUITS_PANEL_STATE_KEY, () => ({
+  hideManualEditWarning: hideManualEditWarning.value,
+  selectedFormulaIndex: selectedFormulaIndex.value,
+}))
+
+const formulaVariationLatex = computed(
+  () =>
+    formulaVariations?.value?.variations.map((variation) => formulaToLatex(variation.formula)) ??
+    [],
+)
 
 function downloadTextAsFile(content: string, filename: string, mimeType = 'text/plain') {
   const blob = new Blob([content], { type: mimeType })
@@ -492,6 +520,12 @@ const methodOptions = lcMethodTypes
           </span>
           <span class="whitespace-nowrap">{{ editWarningInlineText }}</span>
         </div>
+        <FormulaSelector
+          v-if="formulaVariationLatex.length"
+          :formulas="formulaVariationLatex"
+          v-model:selectedIndex="selectedFormulaIndex"
+        />
+
         <SettingsButton
           :selected-function-type="functionType"
           :input-vars="inputVars"
