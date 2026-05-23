@@ -1,15 +1,21 @@
 <template>
   <div class="relative shrink-0" ref="dropdownContainer">
     <div
-      class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5"
+      class="flex group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5"
     >
+      <span
+        v-if="variableName"
+        class="px-2.5 h-8 whitespace-nowrap leading-none text-secondary-variant inline-flex items-center justify-center"
+      >
+        <vue-latex :expression="variableName" :fontsize="14" display-mode />
+      </span>
       <button
         type="button"
         @click.stop="toggleDropdown"
         :disabled="!hasMultipleFormulas"
         :aria-expanded="showDropdown"
         :aria-label="label"
-        class="px-2 py-1.5 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2 flex disabled:cursor-default disabled:opacity-70 disabled:group-hover:bg-transparent"
+        class="px-2 py-1.5 rounded-xs text-white group-hover:bg-primary transition-colors items-center gap-2 flex disabled:cursor-default disabled:opacity-70 disabled:group-hover:bg-transparent"
       >
         <span class="min-w-4 text-center">{{ selectedIndex + 1 }}</span>
         <svg
@@ -60,6 +66,7 @@ const props = withDefaults(
     selectedIndex?: number
     label?: string
     placement?: 'top' | 'bottom'
+    variableName?: string
   }>(),
   { selectedIndex: 0, label: 'Select formula', placement: 'top' },
 )

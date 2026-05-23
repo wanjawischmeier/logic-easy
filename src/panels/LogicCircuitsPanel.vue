@@ -48,7 +48,7 @@ const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
 
 type LogicCircuitsPanelState = {
   hideManualEditWarning?: boolean
-  selectedFormulaIndex?: number
+  selectedFormulaIndices?: Record<string, number>
 }
 
 const hideManualEditWarning = computed(() => {
@@ -73,11 +73,11 @@ function setHideManualEditWarning(value: boolean) {
 const panelState = stateManager.getPanelState<LogicCircuitsPanelState>(
   LOGIC_CIRCUITS_PANEL_STATE_KEY,
 )
-const selectedFormulaIndex = ref(panelState?.selectedFormulaIndex ?? 0)
+const selectedFormulaIndices = ref<Record<string, number>>(panelState?.selectedFormulaIndices ?? {})
 
 stateManager.watchPanelState<LogicCircuitsPanelState>(LOGIC_CIRCUITS_PANEL_STATE_KEY, () => ({
   hideManualEditWarning: hideManualEditWarning.value,
-  selectedFormulaIndex: selectedFormulaIndex.value,
+  selectedFormulaIndices: selectedFormulaIndices.value,
 }))
 
 const currentOutputVar = computed(() => outputVars.value[outputVariableIndex.value])
@@ -99,6 +99,37 @@ const formulaVariationLatex = computed(
     currentFormulaVariationEntry.value?.variations.map((variation) =>
       formulaToLatex(variation.formula),
     ) ?? [],
+)
+
+function getSelectedFormulaIndex(outputVar: string): number {
+  return selectedFormulaIndices.value[outputVar] ?? 0
+}
+
+function setSelectedFormulaIndex(outputVar: string, index: number) {
+  selectedFormulaIndices.value = {
+    ...selectedFormulaIndices.value,
+    [outputVar]: index,
+  }
+}
+
+const variationRows = computed(() =>
+  outputVars.value.flatMap((outputVar) => {
+    const formulasForOutput =
+      formulaVariations.value?.[outputVar]?.variations.map((variation) =>
+        formulaToLatex(variation.formula),
+      ) ?? []
+
+    if (formulasForOutput.length <= 1) {
+      return []
+    }
+
+    return [
+      {
+        outputVar,
+        formulas: formulasForOutput,
+      },
+    ]
+  }),
 )
 
 function downloadTextAsFile(content: string, filename: string, mimeType = 'text/plain') {
@@ -426,7 +457,7 @@ const createLcContent = (method: LCMethodType) => {
 
   if (functionRepresentation.value !== 'Normal') {
     formulaVariationEntries.value.forEach(({ outputVar, variations }) => {
-      const selectedIndex = outputVar === currentOutputVar.value ? selectedFormulaIndex.value : 0
+      const selectedIndex = getSelectedFormulaIndex(outputVar)
       const variation = variations[selectedIndex] ?? variations[0]
       if (variation?.formula) {
         baseFormulas[outputVar] = variation.formula
@@ -505,20 +536,15 @@ async function updateFormulas() {
 
 // Keep the plain object in sync with state and selection
 watch(
-  [() => formulaVariationEntries.value, () => functionRepresentation.value],
+  [
+    () => formulaVariationEntries.value,
+    () => functionRepresentation.value,
+    () => selectedFormulaIndices.value,
+  ],
   () => {
     void updateFormulas()
   },
   { immediate: true, deep: true },
-)
-
-// Recompute LC when the selected variation index or available variations change
-watch(
-  [() => selectedFormulaIndex.value, () => currentFormulaVariationEntry.value],
-  () => {
-    void updateFormulas()
-  },
-  { immediate: true },
 )
 
 const methodOptions = lcMethodTypes
@@ -555,12 +581,15 @@ const methodOptions = lcMethodTypes
           </span>
           <span class="whitespace-nowrap">{{ editWarningInlineText }}</span>
         </div>
-        <FormulaSelector
-          v-if="formulaVariationLatex.length"
-          :placement="'bottom'"
-          :formulas="formulaVariationLatex"
-          v-model:selectedIndex="selectedFormulaIndex"
-        />
+        <div v-for="row in variationRows" :key="row.outputVar" class="flex items-center gap-2">
+          <FormulaSelector
+            :placement="'bottom'"
+            :formulas="row.formulas"
+            :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
+            :variableName="row.outputVar"
+            @update:selectedIndex="(value) => setSelectedFormulaIndex(row.outputVar, value)"
+          />
+        </div>
 
         <SettingsButton
           :selected-function-type="functionType"
