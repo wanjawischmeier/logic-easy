@@ -405,11 +405,26 @@ const sanitizeName = (value: string) =>
 let currentLCContent: LCFile | null = null
 
 const createLcContent = (method: LCMethodType) => {
-  const targetFormulas =
-    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : formulas.value
+  // Base set of formulas per output (canonical or minimized map)
+  const baseFormulas: Record<string, Formula> =
+    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : { ...formulas.value }
+
+  // If variations available, override the currently selected output's formula
+  try {
+    const variations = formulaVariations?.value
+    const selectedOut = outputVars.value[outputVariableIndex.value]
+    if (variations && selectedOut) {
+      const variation = variations.variations[selectedFormulaIndex.value]
+      if (variation && variation.formula) {
+        baseFormulas[selectedOut] = variation.formula
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to apply selected variation to LC export:', err)
+  }
 
   currentLCContent = formulaToLC(
-    targetFormulas,
+    baseFormulas,
     inputVars.value,
     outputVars.value,
     outTypeMap[method],
@@ -486,6 +501,15 @@ watch(
   { immediate: true, deep: true },
 )
 
+// Recompute LC when the selected variation index or available variations change
+watch(
+  [() => selectedFormulaIndex.value, () => formulaVariations?.value],
+  () => {
+    void updateFormulas()
+  },
+  { immediate: true },
+)
+
 const methodOptions = lcMethodTypes
 </script>
 
@@ -522,6 +546,7 @@ const methodOptions = lcMethodTypes
         </div>
         <FormulaSelector
           v-if="formulaVariationLatex.length"
+          :placement="'bottom'"
           :formulas="formulaVariationLatex"
           v-model:selectedIndex="selectedFormulaIndex"
         />

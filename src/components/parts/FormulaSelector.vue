@@ -32,7 +32,9 @@
 
     <div
       v-if="showDropdown"
-      class="absolute left-0 bottom-full mb-2 bg-surface-2 rounded shadow-lg border border-surface-3 z-50"
+      :class="
+        dropdownPositionClass + ' bg-surface-2 rounded shadow-lg border border-surface-3 z-50'
+      "
     >
       <button
         v-for="(_, index) in formulas"
@@ -57,8 +59,9 @@ const props = withDefaults(
     formulas: string[]
     selectedIndex?: number
     label?: string
+    placement?: 'top' | 'bottom'
   }>(),
-  { selectedIndex: 0, label: 'Select formula' },
+  { selectedIndex: 0, label: 'Select formula', placement: 'top' },
 )
 
 const emit = defineEmits<{
@@ -77,6 +80,12 @@ watch(
 watch(localSelectedIndex, (v) => emit('update:selectedIndex', v))
 
 const hasMultipleFormulas = computed(() => props.formulas.length > 1)
+
+const dropdownPositionClass = computed(() =>
+  props.placement === 'bottom'
+    ? 'absolute left-0 top-full mt-2'
+    : 'absolute left-0 bottom-full mb-2',
+)
 
 const toggleDropdown = () => {
   if (showDropdown.value) {
