@@ -3,25 +3,11 @@ import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry'
 import { projectManager } from '@/projects/projectManager'
 import { stateManager } from '@/projects/stateManager'
 import { downloadRegistry } from '@/utility/downloadRegistry'
-import { formulaToLcFile } from '@/utility/LogicCircuitsExport/FormulasToLC'
-import {
-  exportTruthTableTOVHDLboolExpr,
-  exportTruthTableTOVHDLcaseWhen,
-} from '@/utility/VHDL/export'
 import { popupService } from '@/utility/popupService'
 import { formatDate } from '@/utility/dateFormatter'
 import AboutPopup from '../popups/AboutPopup.vue'
-import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
-
-const {
-  state: truthTable,
-  formulas,
-  inputVars,
-  outputVars,
-  functionType,
-} = TruthTableProject.useState()
 
 export function useHeaderMenus(openFileAction: () => Promise<void>) {
   const recentProjectEntries = computed<MenuEntry[]>(() => {

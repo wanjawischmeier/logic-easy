@@ -87,6 +87,13 @@ const currentFormulaVariationEntry = computed(() => {
   return outputVar ? formulaVariations.value?.[outputVar] : undefined
 })
 
+const formulaVariationEntries = computed(() =>
+  outputVars.value.map((outputVar) => ({
+    outputVar,
+    variations: formulaVariations.value?.[outputVar]?.variations ?? [],
+  })),
+)
+
 const formulaVariationLatex = computed(
   () =>
     currentFormulaVariationEntry.value?.variations.map((variation) =>
@@ -415,20 +422,16 @@ let currentLCContent: LCFile | null = null
 const createLcContent = (method: LCMethodType) => {
   // Base set of formulas per output (canonical or minimized map)
   const baseFormulas: Record<string, Formula> =
-    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : { ...formulas.value }
+    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : {}
 
-  // If variations available, override the currently selected output's formula
-  try {
-    const variations = currentFormulaVariationEntry.value
-    const selectedOut = currentOutputVar.value
-    if (variations && selectedOut) {
-      const variation = variations.variations[selectedFormulaIndex.value]
-      if (variation && variation.formula) {
-        baseFormulas[selectedOut] = variation.formula
+  if (functionRepresentation.value !== 'Normal') {
+    formulaVariationEntries.value.forEach(({ outputVar, variations }) => {
+      const selectedIndex = outputVar === currentOutputVar.value ? selectedFormulaIndex.value : 0
+      const variation = variations[selectedIndex] ?? variations[0]
+      if (variation?.formula) {
+        baseFormulas[outputVar] = variation.formula
       }
-    }
-  } catch (err) {
-    console.warn('Failed to apply selected variation to LC export:', err)
+    })
   }
 
   currentLCContent = formulaToLC(
@@ -502,7 +505,7 @@ async function updateFormulas() {
 
 // Keep the plain object in sync with state and selection
 watch(
-  [() => formulas.value],
+  [() => formulaVariationEntries.value, () => functionRepresentation.value],
   () => {
     void updateFormulas()
   },

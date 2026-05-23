@@ -174,7 +174,6 @@ const {
   inputVars,
   outputVars,
   values,
-  selectedFormula,
   outputVariableIndex,
   functionType,
   functionRepresentation,
@@ -197,10 +196,7 @@ const fsmPresentation = computed(() => {
 
 // Use remapped display values when FSM is active, otherwise use direct state
 const displaySelectedFormula = computed(
-  () =>
-    selectedVariation.value?.formula ??
-    fsmPresentation.value.selectedFormula ??
-    selectedFormula.value,
+  () => selectedVariation.value?.formula ?? fsmPresentation.value.selectedFormula,
 )
 
 const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcResult.value)

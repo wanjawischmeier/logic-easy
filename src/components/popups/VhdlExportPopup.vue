@@ -61,7 +61,6 @@ const {
   inputVars,
   outputVars,
   values,
-  formulas,
   functionType,
   formulaVariations,
   outputVariableIndex,
@@ -144,17 +143,12 @@ function doExport() {
   // Boolean export - build a small truth table for the selected output
   const outIdx = selectedOutputIndex.value
   const outName = outputVars.value[outIdx]
+  const selectedVariationEntry = outName ? formulaVariations.value?.[outName] : undefined
 
   let selectedFormula: Formula | undefined
 
-  if (currentVariationEntry.value && (currentVariationEntry.value.variations?.length ?? 0) > 0) {
-    // use selected variation
-    selectedFormula = currentVariationEntry.value.variations[selectedVariationIndex.value]?.formula
-  }
-
-  if (!selectedFormula) {
-    // fallback to minimized formula from formulas map
-    if (outName && formulas.value) selectedFormula = formulas.value[outName]
+  if (selectedVariationEntry && (selectedVariationEntry.variations?.length ?? 0) > 0) {
+    selectedFormula = selectedVariationEntry.variations[selectedVariationIndex.value]?.formula
   }
 
   if (!selectedFormula || !Array.isArray(selectedFormula.terms)) {

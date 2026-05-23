@@ -53,23 +53,13 @@ import FormulaSelector from '@/components/parts/FormulaSelector.vue'
 import { computed, reactive, ref } from 'vue'
 import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC'
-import {
-  TruthTableProject,
-  type TruthTableCell,
-  type TruthTableData,
-} from '@/projects/truth-table/TruthTableProject'
+import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { projectManager } from '@/projects/projectManager'
-import type { Formula, FunctionType, FunctionRepresentation } from '@/utility/types'
+import type { Formula, FunctionType } from '@/utility/types'
+import { Toast } from '@/utility/toastService'
 
-const {
-  inputVars,
-  outputVars,
-  formulas,
-  values,
-  functionType,
-  functionRepresentation,
-  formulaVariations,
-} = TruthTableProject.useState()
+const { inputVars, outputVars, values, functionType, functionRepresentation, formulaVariations } =
+  TruthTableProject.useState()
 
 const methodOptions = ['AND/OR', 'NAND', 'NOR']
 const selectedMethodIndex = ref(0)
@@ -89,17 +79,19 @@ const selectedVariationIndices = reactive<Record<string, number>>({})
 type VariationRow = { outputVar: string; formulas: string[] }
 
 const variationRows = computed<VariationRow[]>(() =>
-  outputVars.value.flatMap((outputVar) => {
-    const variations = formulaVariations.value?.[outputVar]?.variations ?? []
-    if (variations.length <= 1) return []
+  representationOptions[selectedRepresentationIndex.value] === 'Normal'
+    ? []
+    : outputVars.value.flatMap((outputVar) => {
+        const variations = formulaVariations.value?.[outputVar]?.variations ?? []
+        if (variations.length <= 1) return []
 
-    return [
-      {
-        outputVar,
-        formulas: variations.map((variation) => formulaToLatex(variation.formula)),
-      },
-    ]
-  }),
+        return [
+          {
+            outputVar,
+            formulas: variations.map((variation) => formulaToLatex(variation.formula)),
+          },
+        ]
+      }),
 )
 
 function onMethodSelect(_value: unknown, idx: number) {
@@ -153,7 +145,8 @@ function buildExportFormulas(): Record<string, Formula> {
     return generateCanonicalFormulas(selectedType)
   }
 
-  const baseFormulas: Record<string, Formula> = { ...formulas.value }
+  const baseFormulas: Record<string, Formula> = {}
+  let missingVariation = false
 
   outputVars.value.forEach((outputVar) => {
     const entry = formulaVariations.value?.[outputVar]
@@ -161,8 +154,15 @@ function buildExportFormulas(): Record<string, Formula> {
     const selectedVariation = entry?.variations[selectedIndex] ?? entry?.variations[0]
     if (selectedVariation) {
       baseFormulas[outputVar] = selectedVariation.formula
+      return
     }
+
+    missingVariation = true
   })
+
+  if (missingVariation) {
+    return {}
+  }
 
   return baseFormulas
 }
@@ -175,7 +175,13 @@ function doExport() {
         ? 'nor'
         : 'and-or'
 
-  const lc = formulaToLC(buildExportFormulas(), inputVars.value, outputVars.value, outType)
+  const exportFormulas = buildExportFormulas()
+  if (Object.keys(exportFormulas).length === 0 && selectedRepresentationIndex.value !== 0) {
+    Toast.warning('No variations available for this export.')
+    return
+  }
+
+  const lc = formulaToLC(exportFormulas, inputVars.value, outputVars.value, outType)
 
   const blob = new Blob([lc.toString()], { type: 'text/lc' })
   const url = URL.createObjectURL(blob)
