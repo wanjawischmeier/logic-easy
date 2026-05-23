@@ -98,49 +98,12 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
         label: 'LogicCircuits',
         tooltip: '.lc',
         disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-        children: [
-          {
-            label: 'AND/OR',
-            action: () => {
-              formulaToLcFile(
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-                formulas.value,
-                inputVars.value,
-                outputVars.value,
-                functionType.value,
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-          {
-            label: 'NAND',
-            action: () => {
-              formulaToLcFile(
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-                formulas.value,
-                inputVars.value,
-                outputVars.value,
-                functionType.value,
-                'nand',
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-          {
-            label: 'NOR',
-            action: () => {
-              formulaToLcFile(
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-                formulas.value,
-                inputVars.value,
-                outputVars.value,
-                functionType.value,
-                'nor',
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-        ],
+        action: () => {
+          // Open export popup
+          import('@/components/popups/LogicCircuitsExportPopup.vue').then((m) => {
+            popupService.open({ component: m.default })
+          })
+        },
       },
       {
         label: 'VHDL',
