@@ -109,45 +109,11 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
         label: 'VHDL',
         tooltip: '.vhdl',
         disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-        children: [
-          {
-            label: 'Case-When',
-            action: () => {
-              exportTruthTableTOVHDLcaseWhen(
-                truthTable.value,
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-          {
-            label: 'Boolean expressions',
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-            children: [
-              {
-                label: 'Disjunctive',
-                action: () => {
-                  exportTruthTableTOVHDLboolExpr(
-                    truthTable.value,
-                    projectManager.getCurrentProject()?.name ?? 'no name provided',
-                  )
-                },
-                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-              },
-              {
-                label: 'Conjunctive',
-                action: () => {
-                  exportTruthTableTOVHDLboolExpr(
-                    truthTable.value,
-                    projectManager.getCurrentProject()?.name ?? 'no name provided',
-                    'cnf',
-                  )
-                },
-                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-              },
-            ],
-          },
-        ],
+        action: () => {
+          import('@/components/popups/VhdlExportPopup.vue').then((m) => {
+            popupService.open({ component: m.default })
+          })
+        },
       },
       {
         label: 'Screenshots',
