@@ -127,7 +127,6 @@ function buildVariationColors(
 export interface FsmKVDiagramPresentation {
   qmcResult?: QMCResult
   selectedFormula?: TruthTableState['selectedFormula']
-  formulaTermColors?: TermColor[]
   formulaVariations?: FormulaVariations
 }
 
@@ -182,7 +181,6 @@ export function buildFsmKVDiagramPresentation(
     return {
       qmcResult: remappedResult,
       selectedFormula: truthTable.selectedFormula,
-      formulaTermColors: truthTable.formulaTermColors ?? remappedTermColors,
       formulaVariations: remappedFormulaVariations,
     }
   }
@@ -211,7 +209,6 @@ export function buildFsmKVDiagramPresentation(
   return {
     qmcResult: remappedResult,
     selectedFormula,
-    formulaTermColors,
     formulaVariations: {
       signature: getAlternativeMinimalForms(
         remappedResult,
@@ -295,7 +292,6 @@ export function exportFsmToTruthTable(
     functionRepresentation: previousState?.functionRepresentation ?? defaultFunctionRepresentation,
     qmcResult: previousState?.qmcResult,
     selectedFormula: previousState?.selectedFormula,
-    formulaTermColors: previousState?.formulaTermColors,
     fsmMode: true,
   }
 }

@@ -13,7 +13,6 @@ import { computed } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { registerProjectType } from '@/projects/projectRegistry'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
-import type { TermColor } from '@/utility/truthtable/colorGenerator'
 
 export type TruthTableCell = 0 | 1 | '-'
 export type TruthTableData = TruthTableCell[][]
@@ -35,7 +34,6 @@ export interface TruthTableState {
   qmcResult?: QMCResult
   formulaVariations?: FormulaVariations
   selectedFormula?: Formula
-  formulaTermColors?: TermColor[]
   fsmMode?: boolean
 }
 
@@ -63,7 +61,6 @@ export class TruthTableProject extends Project {
     const qmcResult = computed(() => state.value?.qmcResult)
     const formulaVariations = computed(() => state.value?.formulaVariations)
     const selectedFormula = computed(() => state.value?.selectedFormula)
-    const formulaTermColors = computed(() => state.value?.formulaTermColors)
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
 
@@ -80,7 +77,6 @@ export class TruthTableProject extends Project {
       qmcResult,
       formulaVariations,
       selectedFormula,
-      formulaTermColors,
     }
   }
 

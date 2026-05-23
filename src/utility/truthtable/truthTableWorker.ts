@@ -28,7 +28,6 @@ export interface WorkerResponse {
   formulas: Record<string, Formula | undefined>
   formulaVariations: FormulaVariations | undefined
   selectedFormula: Formula | undefined
-  formulaTermColors: TermColor[] | undefined
 }
 
 /**
@@ -232,9 +231,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           }
         })(),
         selectedFormula: currentEdgeResult.formula,
-        formulaTermColors: shouldUseGenericFormulaColors(truthTable)
-          ? currentEdgeResult.qmcResult.termColors
-          : undefined,
       }
 
       self.postMessage(response)
@@ -278,7 +274,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const currentQmcResult = qmcResults[currentOutputVar]
     let formulaVariations: FormulaVariations | undefined
     let selectedFormula: Formula | undefined
-    let formulaTermColors: TermColor[] | undefined
 
     if (currentQmcResult) {
       const altForms = getAlternativeMinimalForms(
@@ -310,21 +305,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       }
 
       selectedFormula = formulas[currentOutputVar]
-
-      // Map formula terms to prime implicant colors for the first formula (backward compat)
-      if (
-        selectedFormula &&
-        currentQmcResult.pis &&
-        currentQmcResult.termColors &&
-        shouldUseGenericFormulaColors(truthTable)
-      ) {
-        formulaTermColors = mapFormulaTermsToPIColors(
-          selectedFormula,
-          currentQmcResult.pis,
-          currentQmcResult.termColors,
-          truthTable.inputVars,
-        )
-      }
     }
 
     const response: WorkerResponse = {
@@ -333,7 +313,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       formulas,
       formulaVariations: formulaVariations,
       selectedFormula,
-      formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
     }
 
     self.postMessage(response)
@@ -346,7 +325,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       formulas: {},
       formulaVariations: undefined,
       selectedFormula: undefined,
-      formulaTermColors: undefined,
     }
     self.postMessage(response)
   }

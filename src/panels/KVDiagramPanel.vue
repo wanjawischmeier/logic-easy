@@ -180,7 +180,6 @@ const {
   functionRepresentation,
   formulaVariations,
   qmcResult,
-  formulaTermColors,
 } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
@@ -206,12 +205,7 @@ const displaySelectedFormula = computed(
 
 const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcResult.value)
 
-const displayFormulaTermColors = computed(
-  () =>
-    selectedVariation.value?.termColors ??
-    fsmPresentation.value.formulaTermColors ??
-    formulaTermColors.value,
-)
+const displayFormulaTermColors = computed(() => selectedVariation.value?.termColors ?? [])
 
 const displayFormulaVariations = computed(
   () => fsmPresentation.value.formulaVariations ?? formulaVariations.value,

@@ -99,9 +99,11 @@ import type {
   TruthTableCell,
   TruthTableState,
 } from '@/projects/truth-table/TruthTableProject'
+import type { TermColor } from '@/utility/truthtable/colorGenerator'
 
 type KVDiagramProps = TruthTableState & {
   immutableCellMask?: boolean[][]
+  formulaTermColors?: TermColor[]
 }
 
 const props = defineProps<KVDiagramProps>()
