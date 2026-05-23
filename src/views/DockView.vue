@@ -44,7 +44,7 @@
           <component
             :is="popupService.current.value.projectPropsComponent"
             :model-value="slotProps.modelValue"
-            @update:modelValue="slotProps['onUpdate:model-value']"
+            @update:model-value="slotProps['onUpdate:modelValue']"
             :register-validation="slotProps.registerValidation"
           />
         </ProjectCreationPopup>
