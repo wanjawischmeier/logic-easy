@@ -3,6 +3,7 @@ import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type {
   Formula,
   FormulaVariations,
+  FormulaVariationsMap,
   FunctionType,
   FunctionRepresentation,
 } from '@/utility/types'
@@ -26,7 +27,7 @@ export interface WorkerResponse {
   id: number
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
-  formulaVariations: FormulaVariations | undefined
+  formulaVariations: FormulaVariationsMap | undefined
   selectedFormula: Formula | undefined
 }
 
@@ -209,27 +210,32 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         id,
         qmcResults,
         formulas,
-        formulaVariations: (() => {
-          const altForms = getAlternativeMinimalForms(
-            currentEdgeResult.qmcResult,
-            truthTable.functionType,
-            truthTable.functionRepresentation,
-            truthTable.inputVars,
-            truthTable.values,
-            truthTable.outputVariableIndex,
-          )
-          return {
-            signature: altForms.signature,
-            variations: altForms.formulas.map((formula) => ({
-              formula,
-              termColors: buildVariationColors(
-                formula,
-                currentEdgeResult.qmcResult,
-                truthTable.inputVars,
-              ),
-            })),
-          }
-        })(),
+        formulaVariations: Object.fromEntries(
+          truthTable.outputVars.map((outputVar) => {
+            const qmcResult = qmcResults[outputVar]
+            if (!qmcResult) return [outputVar, undefined]
+
+            const altForms = getAlternativeMinimalForms(
+              qmcResult,
+              truthTable.functionType,
+              truthTable.functionRepresentation,
+              truthTable.inputVars,
+              truthTable.values,
+              truthTable.outputVars.indexOf(outputVar),
+            )
+
+            return [
+              outputVar,
+              {
+                signature: altForms.signature,
+                variations: altForms.formulas.map((formula) => ({
+                  formula,
+                  termColors: buildVariationColors(formula, qmcResult, truthTable.inputVars),
+                })),
+              },
+            ]
+          }),
+        ) as FormulaVariationsMap,
         selectedFormula: currentEdgeResult.formula,
       }
 
@@ -272,37 +278,36 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
-    let formulaVariations: FormulaVariations | undefined
+    let formulaVariations: FormulaVariationsMap | undefined
     let selectedFormula: Formula | undefined
 
     if (currentQmcResult) {
-      const altForms = getAlternativeMinimalForms(
-        currentQmcResult,
-        truthTable.functionType,
-        truthTable.functionRepresentation,
-        truthTable.inputVars,
-        truthTable.values,
-        truthTable.outputVariableIndex,
-      )
+      formulaVariations = Object.fromEntries(
+        truthTable.outputVars.map((outputVar, outputIndex) => {
+          const qmcResult = qmcResults[outputVar]
+          if (!qmcResult) return [outputVar, undefined]
 
-      // Compute formula-specific term colors for each alternative
-      if (shouldUseGenericFormulaColors(truthTable)) {
-        formulaVariations = {
-          signature: altForms.signature,
-          variations: altForms.formulas.map((formula) => ({
-            formula,
-            termColors: buildVariationColors(formula, currentQmcResult, truthTable.inputVars),
-          })),
-        }
-      } else {
-        formulaVariations = {
-          signature: altForms.signature,
-          variations: altForms.formulas.map((formula) => ({
-            formula,
-            termColors: buildVariationColors(formula, currentQmcResult, truthTable.inputVars),
-          })),
-        }
-      }
+          const altForms = getAlternativeMinimalForms(
+            qmcResult,
+            truthTable.functionType,
+            truthTable.functionRepresentation,
+            truthTable.inputVars,
+            truthTable.values,
+            outputIndex,
+          )
+
+          return [
+            outputVar,
+            {
+              signature: altForms.signature,
+              variations: altForms.formulas.map((formula) => ({
+                formula,
+                termColors: buildVariationColors(formula, qmcResult, truthTable.inputVars),
+              })),
+            },
+          ]
+        }),
+      ) as FormulaVariationsMap
 
       selectedFormula = formulas[currentOutputVar]
     }

@@ -75,10 +75,10 @@
           />
         </div>
         <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full flex-col">
-          <div v-if="formulaVariations" class="flex flex-col items-center gap-4">
+          <div v-if="currentFormulaVariations" class="flex flex-col items-center gap-4">
             <MinimizedFormulaViewer
               v-model:selectedIndex="selectedFormulaIndex"
-              :signature="formulaVariations?.signature ?? ''"
+              :signature="currentFormulaVariations?.signature ?? ''"
               :formulas="formulaVariationLatex"
               :function-representation="functionRepresentation"
             />
@@ -266,11 +266,18 @@ const {
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
 
-const formulaVariationLatex = computed(
-  () =>
-    formulaVariations?.value?.variations.map((variation) => formulaToLatex(variation.formula)) ??
-    [],
-)
+const currentOutputVar = computed(() => outputVars.value[outputVariableIndex.value])
+
+const formulaVariationLatex = computed(() => {
+  const outputVar = currentOutputVar.value
+  const variations = outputVar ? (formulaVariations.value?.[outputVar]?.variations ?? []) : []
+  return variations.map((variation) => formulaToLatex(variation.formula))
+})
+
+const currentFormulaVariations = computed(() => {
+  const outputVar = currentOutputVar.value
+  return outputVar ? formulaVariations.value?.[outputVar] : undefined
+})
 
 const selectedFormulaLatex = computed(
   () => formulaVariationLatex.value[selectedFormulaIndex.value] ?? '',

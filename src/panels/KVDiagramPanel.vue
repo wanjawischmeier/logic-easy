@@ -207,9 +207,13 @@ const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcRe
 
 const displayFormulaTermColors = computed(() => selectedVariation.value?.termColors ?? [])
 
-const displayFormulaVariations = computed(
-  () => fsmPresentation.value.formulaVariations ?? formulaVariations.value,
-)
+const currentOutputVar = computed(() => outputVars.value[outputVariableIndex.value])
+
+const displayFormulaVariations = computed(() => {
+  const variationsMap = fsmPresentation.value.formulaVariations ?? formulaVariations.value
+  const outputVar = currentOutputVar.value
+  return outputVar ? variationsMap?.[outputVar] : undefined
+})
 
 const selectedFormulaLatex = computed(() =>
   displaySelectedFormula.value ? formulaToLatex(displaySelectedFormula.value) : '',

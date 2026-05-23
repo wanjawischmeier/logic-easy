@@ -80,10 +80,18 @@ stateManager.watchPanelState<LogicCircuitsPanelState>(LOGIC_CIRCUITS_PANEL_STATE
   selectedFormulaIndex: selectedFormulaIndex.value,
 }))
 
+const currentOutputVar = computed(() => outputVars.value[outputVariableIndex.value])
+
+const currentFormulaVariationEntry = computed(() => {
+  const outputVar = currentOutputVar.value
+  return outputVar ? formulaVariations.value?.[outputVar] : undefined
+})
+
 const formulaVariationLatex = computed(
   () =>
-    formulaVariations?.value?.variations.map((variation) => formulaToLatex(variation.formula)) ??
-    [],
+    currentFormulaVariationEntry.value?.variations.map((variation) =>
+      formulaToLatex(variation.formula),
+    ) ?? [],
 )
 
 function downloadTextAsFile(content: string, filename: string, mimeType = 'text/plain') {
@@ -411,8 +419,8 @@ const createLcContent = (method: LCMethodType) => {
 
   // If variations available, override the currently selected output's formula
   try {
-    const variations = formulaVariations?.value
-    const selectedOut = outputVars.value[outputVariableIndex.value]
+    const variations = currentFormulaVariationEntry.value
+    const selectedOut = currentOutputVar.value
     if (variations && selectedOut) {
       const variation = variations.variations[selectedFormulaIndex.value]
       if (variation && variation.formula) {
@@ -503,7 +511,7 @@ watch(
 
 // Recompute LC when the selected variation index or available variations change
 watch(
-  [() => selectedFormulaIndex.value, () => formulaVariations?.value],
+  [() => selectedFormulaIndex.value, () => currentFormulaVariationEntry.value],
   () => {
     void updateFormulas()
   },

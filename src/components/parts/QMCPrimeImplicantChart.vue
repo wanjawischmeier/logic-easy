@@ -81,7 +81,7 @@
     <div v-if="formulaLatex.length > 0" class="pt-8">
       <MinimizedFormulaViewer
         v-model:selectedIndex="selectedFormulaIndex"
-        :signature="props.formulaVariations?.signature ?? ''"
+        :signature="currentFormulaVariations?.signature ?? ''"
         :formulas="formulaLatex"
         :function-representation="props.functionRepresentation"
       />
@@ -122,9 +122,16 @@ interface BoundingBox {
 const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<BoundingBox>>([])
 const selectedFormulaIndex = ref(props.selectedFormulaIndex ?? 0)
+const currentOutputVar = computed(() => props.outputVars[props.outputVariableIndex ?? 0])
+const currentFormulaVariations = computed(() => {
+  const outputVar = currentOutputVar.value
+  return outputVar ? props.formulaVariations?.[outputVar] : undefined
+})
 const formulaLatex = computed(
   () =>
-    props.formulaVariations?.variations.map((variation) => formulaToLatex(variation.formula)) ?? [],
+    currentFormulaVariations.value?.variations.map((variation) =>
+      formulaToLatex(variation.formula),
+    ) ?? [],
 )
 
 watch(

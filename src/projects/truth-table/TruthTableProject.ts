@@ -5,7 +5,7 @@ import {
   defaultFunctionRepresentation,
   defaultFunctionType,
   type Formula,
-  type FormulaVariations,
+  type FormulaVariationsMap,
   type FunctionRepresentation,
   type FunctionType,
 } from '@/utility/types'
@@ -32,7 +32,7 @@ export interface TruthTableState {
   functionType: FunctionType
   functionRepresentation: FunctionRepresentation
   qmcResult?: QMCResult
-  formulaVariations?: FormulaVariations
+  formulaVariations?: FormulaVariationsMap
   selectedFormula?: Formula
   fsmMode?: boolean
 }
@@ -59,7 +59,7 @@ export class TruthTableProject extends Project {
       () => state.value?.functionRepresentation ?? defaultFunctionRepresentation,
     )
     const qmcResult = computed(() => state.value?.qmcResult)
-    const formulaVariations = computed(() => state.value?.formulaVariations)
+    const formulaVariations = computed(() => state.value?.formulaVariations ?? {})
     const selectedFormula = computed(() => state.value?.selectedFormula)
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])

@@ -1,12 +1,11 @@
 import type { Operation } from 'logi.js'
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { FormulaVariations } from '@/utility/types'
+import type { FormulaVariationsMap } from '@/utility/types'
 import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
 import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
-import { getAlternativeMinimalForms } from '@/utility/truthtable/latexGenerator'
 import {
   generateTermColor,
   mapFormulaTermsToPIColors,
@@ -127,7 +126,7 @@ function buildVariationColors(
 export interface FsmKVDiagramPresentation {
   qmcResult?: QMCResult
   selectedFormula?: TruthTableState['selectedFormula']
-  formulaVariations?: FormulaVariations
+  formulaVariations?: FormulaVariationsMap
 }
 
 export function buildFsmImmutableCellMask(
@@ -167,14 +166,19 @@ export function buildFsmKVDiagramPresentation(
 
   const remappedResult = remapQmcResultToInputVars(truthTable.qmcResult, truthTable.inputVars)
   const remappedTermColors = mapResultColorsByPiTerm(truthTable.qmcResult, remappedResult)
-  const remappedFormulaVariations: FormulaVariations | undefined = truthTable.formulaVariations
-    ? {
-        signature: truthTable.formulaVariations.signature,
-        variations: truthTable.formulaVariations.variations.map((variation) => ({
-          formula: variation.formula,
-          termColors: variation.termColors,
-        })),
-      }
+  const remappedFormulaVariations: FormulaVariationsMap | undefined = truthTable.formulaVariations
+    ? Object.fromEntries(
+        Object.entries(truthTable.formulaVariations).map(([outputVar, variations]) => [
+          outputVar,
+          {
+            signature: variations.signature,
+            variations: variations.variations.map((variation) => ({
+              formula: variation.formula,
+              termColors: variation.termColors,
+            })),
+          },
+        ]),
+      )
     : undefined
 
   if (!remappedResult.expressions.length) {
@@ -210,28 +214,8 @@ export function buildFsmKVDiagramPresentation(
     qmcResult: remappedResult,
     selectedFormula,
     formulaVariations: {
-      signature: getAlternativeMinimalForms(
-        remappedResult,
-        truthTable.functionType,
-        truthTable.functionRepresentation,
-        truthTable.inputVars,
-        truthTable.values,
-        truthTable.outputVariableIndex,
-        { lowercaseInputVars: true },
-      ).signature,
-      variations: getAlternativeMinimalForms(
-        remappedResult,
-        truthTable.functionType,
-        truthTable.functionRepresentation,
-        truthTable.inputVars,
-        truthTable.values,
-        truthTable.outputVariableIndex,
-        { lowercaseInputVars: true },
-      ).formulas.map((formula) => ({
-        formula,
-        termColors: buildVariationColors(formula, remappedResult, truthTable.inputVars),
-      })),
-    },
+      ...(remappedFormulaVariations ?? {}),
+    } as FormulaVariationsMap,
   }
 }
 

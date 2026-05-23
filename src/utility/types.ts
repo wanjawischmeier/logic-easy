@@ -43,6 +43,8 @@ export interface FormulaVariations {
   variations: FormulaVariation[]
 }
 
+export type FormulaVariationsMap = Record<string, FormulaVariations>
+
 export const Formula = {
   empty: {
     type: 'Disjunctive' as FunctionType,
