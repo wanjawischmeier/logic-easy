@@ -1,5 +1,5 @@
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { FunctionType, FunctionRepresentation } from '../types'
+import type { Formula, FunctionType, FunctionRepresentation, Literal, Term } from '../types'
 import { analyzeExpressions } from './expressionParser'
 import type { QMCResult } from './minimizer'
 
@@ -75,6 +75,169 @@ function getBinaryMaxterm(rowIdx: number, inputVars: string[]): string {
  */
 function getTermSortKey(term: string): string {
   return term.replace(/\\bar\{([a-z])\}/g, '$1')
+}
+
+function buildVariableTokens(inputVars: string[], lowercaseInputVars: boolean): string[] {
+  return inputVars
+    .map((inputVar) => formatLatexIdentifier(inputVar, { lowercase: lowercaseInputVars }))
+    .sort((left, right) => right.length - left.length)
+}
+
+function makeConstantFormula(functionType: FunctionType, constant: '0' | '1'): Formula {
+  return {
+    type: functionType,
+    terms: [{ literals: [{ variable: constant, negated: false }] }],
+  }
+}
+
+function parseFormulaTermText(
+  termText: string,
+  inputVars: string[],
+  lowercaseInputVars: boolean,
+): Term {
+  const normalizedTerm = termText.trim()
+  if (normalizedTerm === '0' || normalizedTerm === '1') {
+    return {
+      literals: [{ variable: normalizedTerm, negated: false }],
+    }
+  }
+
+  const variableTokens = buildVariableTokens(inputVars, lowercaseInputVars)
+  const literals: Literal[] = []
+  let cursor = 0
+
+  while (cursor < normalizedTerm.length) {
+    const remaining = normalizedTerm.slice(cursor)
+
+    if (/^[\s()+]+$/.test(remaining[0] ?? '')) {
+      cursor += 1
+      continue
+    }
+
+    const negatedToken = variableTokens.find((token) => remaining.startsWith(`\\bar{${token}}`))
+    if (negatedToken) {
+      literals.push({ variable: negatedToken, negated: true })
+      cursor += `\\bar{${negatedToken}}`.length
+      continue
+    }
+
+    const directToken = variableTokens.find((token) => remaining.startsWith(token))
+    if (directToken) {
+      literals.push({ variable: directToken, negated: false })
+      cursor += directToken.length
+      continue
+    }
+
+    cursor += 1
+  }
+
+  if (literals.length === 0) {
+    return {
+      literals: [{ variable: '0', negated: false }],
+    }
+  }
+
+  return { literals }
+}
+
+function buildFormulaFromTerms(
+  termTexts: string[],
+  functionType: FunctionType,
+  inputVars: string[],
+  lowercaseInputVars: boolean,
+): Formula {
+  const terms = termTexts.map((termText) =>
+    parseFormulaTermText(termText, inputVars, lowercaseInputVars),
+  )
+
+  if (terms.length === 0) {
+    return makeConstantFormula(functionType, functionType === 'Disjunctive' ? '0' : '1')
+  }
+
+  return {
+    type: functionType,
+    terms,
+  }
+}
+
+function getNormalFormFormula(
+  values: TruthTableState['values'],
+  functionType: FunctionType,
+  inputVars: string[],
+  outputVariableIndex: number,
+): Formula {
+  const terms: Term[] = []
+
+  if (functionType === 'Disjunctive') {
+    for (let rowIdx = 0; rowIdx < values.length; rowIdx++) {
+      const row = values[rowIdx]
+      if (!row || row[outputVariableIndex] !== 1) continue
+
+      const binary = rowIdx.toString(2).padStart(inputVars.length, '0')
+      const literals: Literal[] = []
+      for (let i = 0; i < inputVars.length; i++) {
+        literals.push({
+          variable: inputVars[i]!,
+          negated: binary[i] !== '1',
+        })
+      }
+      terms.push({ literals })
+    }
+
+    if (terms.length === 0) return makeConstantFormula(functionType, '0')
+    if (terms.length === Math.pow(2, inputVars.length))
+      return makeConstantFormula(functionType, '1')
+
+    return { type: functionType, terms }
+  }
+
+  for (let rowIdx = 0; rowIdx < values.length; rowIdx++) {
+    const row = values[rowIdx]
+    if (!row || row[outputVariableIndex] !== 0) continue
+
+    const binary = rowIdx.toString(2).padStart(inputVars.length, '0')
+    const literals: Literal[] = []
+    for (let i = 0; i < inputVars.length; i++) {
+      literals.push({
+        variable: inputVars[i]!,
+        negated: binary[i] === '1',
+      })
+    }
+    terms.push({ literals })
+  }
+
+  if (terms.length === 0) return makeConstantFormula(functionType, '1')
+  if (terms.length === Math.pow(2, inputVars.length)) return makeConstantFormula(functionType, '0')
+
+  return { type: functionType, terms }
+}
+
+export function formulaToLatex(formula: Formula): string {
+  if (formula.terms.length === 0) {
+    return formula.type === 'Disjunctive' ? '0' : '1'
+  }
+
+  const isCNF = formula.type === 'Conjunctive'
+
+  const renderLiteral = (literal: Literal): string => {
+    if (literal.variable === '0' || literal.variable === '1') {
+      return literal.variable
+    }
+
+    const variable = formatLatexIdentifier(literal.variable)
+    return literal.negated ? `\\bar{${variable}}` : variable
+  }
+
+  const renderedTerms = formula.terms.map((term) => {
+    if (term.literals.length === 1) {
+      return renderLiteral(term.literals[0]!)
+    }
+
+    const text = term.literals.map(renderLiteral).join(isCNF ? ' + ' : '')
+    return isCNF ? `(${text})` : text
+  })
+
+  return renderedTerms.join(isCNF ? '' : ' + ')
 }
 
 /**
@@ -156,8 +319,9 @@ export function getAlternativeMinimalForms(
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
   options?: { lowercaseInputVars?: boolean },
-): { signature: string; formulas: string[] } {
+): { signature: string; formulas: Formula[] } {
   const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, options)
+  const lowercaseInputVars = options?.lowercaseInputVars ?? false
 
   // If normal form requested and values provided, return canonical form
   if (
@@ -165,30 +329,24 @@ export function getAlternativeMinimalForms(
     truthTableValues &&
     outputVariableIndex !== undefined
   ) {
-    const normalForm = getNormalFormLatex(
-      truthTableValues,
-      functionType,
-      inputVars,
-      outputVariableIndex,
-    )
-    // For tautology/contradiction, return as single formula
-    if (normalForm === '0' || normalForm === '1') {
-      return { signature, formulas: [normalForm] }
+    return {
+      signature,
+      formulas: [
+        getNormalFormFormula(truthTableValues, functionType, inputVars, outputVariableIndex),
+      ],
     }
-    // For normal form (DNF/CNF), just return as-is (no alternatives in canonical form)
-    return { signature, formulas: [normalForm] }
   }
 
   if (qmcResult.expressions.length === 0) {
-    return { signature, formulas: ['0'] }
+    return { signature, formulas: [makeConstantFormula(functionType, '0')] }
   }
 
   const firstExpr = qmcResult.expressions[0]
   if ((firstExpr as any).name === '1') {
-    return { signature, formulas: ['1'] }
+    return { signature, formulas: [makeConstantFormula(functionType, '1')] }
   }
   if ((firstExpr as any).name === '0') {
-    return { signature, formulas: ['0'] }
+    return { signature, formulas: [makeConstantFormula(functionType, '0')] }
   }
 
   const isCNF = functionType === 'Conjunctive'
@@ -201,10 +359,11 @@ export function getAlternativeMinimalForms(
 
   // If no variable positions, return single formula with just constant terms
   if (variablePositions.length === 0) {
-    const termJoiner = isCNF ? '' : ' + '
     return {
       signature,
-      formulas: [sortedConstantTerms.join(termJoiner)],
+      formulas: [
+        buildFormulaFromTerms(sortedConstantTerms, functionType, inputVars, lowercaseInputVars),
+      ],
     }
   }
 
@@ -212,12 +371,13 @@ export function getAlternativeMinimalForms(
   const combinations = cartesianProduct(variablePositions)
 
   const formulas = Array.from(
-    new Set(
-      combinations.map((combo) => {
-        const allTerms = [...sortedConstantTerms, ...combo]
-        const termJoiner = isCNF ? '' : ' + '
-        return allTerms.join(termJoiner)
-      }),
+    new Set(combinations.map((combo) => JSON.stringify([...sortedConstantTerms, ...combo]))),
+  ).map((serializedTerms) =>
+    buildFormulaFromTerms(
+      JSON.parse(serializedTerms) as string[],
+      functionType,
+      inputVars,
+      lowercaseInputVars,
     ),
   )
 
@@ -248,7 +408,7 @@ export function getCouplingTermsLatexArray(
     options,
   )
 
-  return { signature, terms: formulas }
+  return { signature, terms: formulas.map((formula) => formulaToLatex(formula)) }
 }
 
 export function getCouplingTermLatex(
@@ -274,7 +434,5 @@ export function getCouplingTermLatex(
     return signature + '0'
   }
 
-  const isCNF = functionType === 'Conjunctive'
-  const termJoiner = isCNF ? '' : ' + '
-  return signature + formulas[0]
+  return signature + formulaToLatex(formulas[0]!)
 }

@@ -58,8 +58,8 @@
         >
           <MinimizedFormulaViewer
             v-model:selectedIndex="currentFormulaIndex"
-            :signature="displayFormulaVariations.signature"
-            :formulas="displayFormulaVariations.formulas"
+            :signature="displayFormulaVariations?.signature ?? ''"
+            :formulas="displayFormulaVariationLatex"
             :function-representation="functionRepresentation"
           />
         </div>
@@ -90,8 +90,8 @@
           <div v-if="displayFormulaVariations" class="w-full flex justify-center overflow-visible">
             <MinimizedFormulaViewer
               v-model:selectedIndex="currentFormulaIndex"
-              :signature="displayFormulaVariations.signature"
-              :formulas="displayFormulaVariations.formulas"
+              :signature="displayFormulaVariations?.signature ?? ''"
+              :formulas="displayFormulaVariationLatex"
               :function-representation="functionRepresentation"
             />
           </div>
@@ -123,6 +123,7 @@ import {
   buildFsmKVDiagramPresentation,
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
+import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import { useClampedSelection } from '@/utility/panelSelection'
 
@@ -198,13 +199,19 @@ const fsmPresentation = computed(() => {
 
 // Use remapped display values when FSM is active, otherwise use direct state
 const displaySelectedFormula = computed(
-  () => fsmPresentation.value.selectedFormula ?? selectedFormula.value,
+  () =>
+    selectedVariation.value?.formula ??
+    fsmPresentation.value.selectedFormula ??
+    selectedFormula.value,
 )
 
 const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcResult.value)
 
 const displayFormulaTermColors = computed(
-  () => fsmPresentation.value.formulaTermColors ?? formulaTermColors.value,
+  () =>
+    selectedVariation.value?.termColors ??
+    fsmPresentation.value.formulaTermColors ??
+    formulaTermColors.value,
 )
 
 const displayCouplingTermLatex = computed(
@@ -215,14 +222,16 @@ const displayFormulaVariations = computed(
   () => fsmPresentation.value.formulaVariations ?? formulaVariations.value,
 )
 
-const currentFormulaDisplay = computed(() => {
-  const alts = displayFormulaVariations.value
-  if (!alts || alts.formulas.length === 0) return null
+const displayFormulaVariationLatex = computed(
+  () =>
+    displayFormulaVariations.value?.variations.map((variation) =>
+      formulaToLatex(variation.formula),
+    ) ?? [],
+)
 
-  return {
-    formula: alts.formulas[currentFormulaIndex.value] ?? alts.formulas[0] ?? '...',
-    colors: [],
-  }
+const selectedVariation = computed(() => {
+  const variations = displayFormulaVariations.value?.variations ?? []
+  return variations[currentFormulaIndex.value] ?? variations[0]
 })
 
 const immutableCellMask = computed(() =>
@@ -231,7 +240,7 @@ const immutableCellMask = computed(() =>
 
 const { clampedSavedIndex: clampedSavedFormulaIndex } = useClampedSelection(
   currentFormulaIndex,
-  computed(() => displayFormulaVariations.value?.formulas),
+  displayFormulaVariationLatex,
 )
 
 stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({

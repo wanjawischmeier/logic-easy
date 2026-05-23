@@ -78,11 +78,11 @@
       </svg>
     </div>
 
-    <div v-if="props.formulaVariations" class="pt-8">
+    <div v-if="formulaLatex.length > 0" class="pt-8">
       <MinimizedFormulaViewer
         v-model:selectedIndex="selectedFormulaIndex"
-        :signature="props.formulaVariations.signature"
-        :formulas="props.formulaVariations.formulas"
+        :signature="props.formulaVariations?.signature ?? ''"
+        :formulas="formulaLatex"
         :function-representation="props.functionRepresentation"
       />
     </div>
@@ -96,6 +96,7 @@ import { ref, computed, onMounted, nextTick, watch, type StyleValue } from 'vue'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import type { PrimeImplicantInfo } from 'logi.js'
+import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 
 const BOUNDING_BOX_PADDING = 6
 
@@ -121,6 +122,10 @@ interface BoundingBox {
 const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<BoundingBox>>([])
 const selectedFormulaIndex = ref(props.selectedFormulaIndex ?? 0)
+const formulaLatex = computed(
+  () =>
+    props.formulaVariations?.variations.map((variation) => formulaToLatex(variation.formula)) ?? [],
+)
 
 watch(
   () => props.selectedFormulaIndex,

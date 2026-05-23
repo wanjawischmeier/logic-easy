@@ -1,3 +1,5 @@
+import type { TermColor } from './truthtable/colorGenerator'
+
 export const FunctionType = {
   DNF: 'Disjunctive',
   CNF: 'Conjunctive',
@@ -29,6 +31,16 @@ export interface Term {
 export interface Formula {
   type: FunctionType
   terms: Term[]
+}
+
+export interface FormulaVariation {
+  formula: Formula
+  termColors: TermColor[]
+}
+
+export interface FormulaVariations {
+  signature: string
+  variations: FormulaVariation[]
 }
 
 export const Formula = {

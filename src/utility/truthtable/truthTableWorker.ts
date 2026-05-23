@@ -1,6 +1,11 @@
 import { Minimizer, type QMCResult } from './minimizer'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types'
+import type {
+  Formula,
+  FormulaVariations,
+  FunctionType,
+  FunctionRepresentation,
+} from '@/utility/types'
 import {
   defaultColor,
   generateTermColor,
@@ -26,13 +31,7 @@ export interface WorkerResponse {
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
   couplingTermLatex: string | undefined
-  formulaVariations:
-    | {
-        signature: string
-        formulas: string[]
-        formulaTermColors: TermColor[][]
-      }
-    | undefined
+  formulaVariations: FormulaVariations | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
 }
@@ -135,6 +134,23 @@ function shouldUseGenericFormulaColors(truthTable: TruthTableState): boolean {
   return truthTable.fsmMode !== true
 }
 
+function buildVariationColors(
+  formula: Formula,
+  qmcResult: QMCResult | undefined,
+  inputVars: string[],
+): TermColor[] {
+  if (!qmcResult?.pis?.length || !qmcResult.termColors?.length) {
+    return formula.terms.length > 0 ? [defaultColor] : []
+  }
+
+  try {
+    return mapFormulaTermsToPIColors(formula, qmcResult.pis, qmcResult.termColors, inputVars)
+  } catch (error) {
+    console.warn('[TruthTableWorker] Failed to map variation term colors:', error)
+    return formula.terms.length > 0 ? [defaultColor] : []
+  }
+}
+
 // Web Worker message handler
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const { id, truthTable } = e.data
@@ -215,8 +231,14 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           )
           return {
             signature: altForms.signature,
-            formulas: altForms.formulas,
-            formulaTermColors: altForms.formulas.map(() => [defaultColor]),
+            variations: altForms.formulas.map((formula) => ({
+              formula,
+              termColors: buildVariationColors(
+                formula,
+                currentEdgeResult.qmcResult,
+                truthTable.inputVars,
+              ),
+            })),
           }
         })(),
         selectedFormula: currentEdgeResult.formula,
@@ -265,13 +287,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
     let couplingTermLatex: string | undefined
-    let formulaVariations:
-      | {
-          signature: string
-          formulas: string[]
-          formulaTermColors: TermColor[][]
-        }
-      | undefined
+    let formulaVariations: FormulaVariations | undefined
     let selectedFormula: Formula | undefined
     let formulaTermColors: TermColor[] | undefined
 
@@ -296,35 +312,20 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
       // Compute formula-specific term colors for each alternative
       if (shouldUseGenericFormulaColors(truthTable)) {
-        const formulaColorsList: TermColor[][] = altForms.formulas.map((formula) => {
-          // Extract PI terms used in this formula by comparing against QMC result PIs
-          const usedPiIndices = new Set<number>()
-          if (currentQmcResult.pis) {
-            // Try to match formula terms against PI terms
-            currentQmcResult.pis.forEach((pi, piIdx) => {
-              if (formula.includes(pi.term)) {
-                usedPiIndices.add(piIdx)
-              }
-            })
-          }
-
-          // Build color array for terms in this formula
-          const colors: TermColor[] = Array.from(usedPiIndices).map(
-            (idx) => currentQmcResult.termColors?.[idx] || defaultColor,
-          )
-          return colors.length > 0 ? colors : [defaultColor]
-        })
-
         formulaVariations = {
           signature: altForms.signature,
-          formulas: altForms.formulas,
-          formulaTermColors: formulaColorsList,
+          variations: altForms.formulas.map((formula) => ({
+            formula,
+            termColors: buildVariationColors(formula, currentQmcResult, truthTable.inputVars),
+          })),
         }
       } else {
         formulaVariations = {
           signature: altForms.signature,
-          formulas: altForms.formulas,
-          formulaTermColors: altForms.formulas.map(() => []),
+          variations: altForms.formulas.map((formula) => ({
+            formula,
+            termColors: buildVariationColors(formula, currentQmcResult, truthTable.inputVars),
+          })),
         }
       }
 

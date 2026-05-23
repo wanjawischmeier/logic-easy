@@ -1,6 +1,7 @@
 import type { Operation } from 'logi.js'
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
+import type { FormulaVariations } from '@/utility/types'
 import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
 import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
@@ -108,12 +109,30 @@ function mapResultColorsByPiTerm(
   })
 }
 
+function buildVariationColors(
+  formula: TruthTableState['selectedFormula'],
+  qmcResult: QMCResult | undefined,
+  inputVars: string[],
+): TermColor[] {
+  if (!formula) return []
+  if (!qmcResult?.pis?.length || !qmcResult.termColors?.length) {
+    return formula.terms.length > 0 ? [generateTermColor([])] : []
+  }
+
+  try {
+    return mapFormulaTermsToPIColors(formula, qmcResult.pis, qmcResult.termColors, inputVars)
+  } catch (error) {
+    console.warn('[buildVariationColors] Failed to map variation term colors:', error)
+    return formula.terms.length > 0 ? [generateTermColor([])] : []
+  }
+}
+
 export interface FsmKVDiagramPresentation {
   qmcResult?: QMCResult
   selectedFormula?: TruthTableState['selectedFormula']
   formulaTermColors?: TermColor[]
   couplingTermLatex?: string
-  formulaVariations?: { signature: string; formulas: string[] }
+  formulaVariations?: FormulaVariations
 }
 
 export function buildFsmImmutableCellMask(
@@ -153,6 +172,15 @@ export function buildFsmKVDiagramPresentation(
 
   const remappedResult = remapQmcResultToInputVars(truthTable.qmcResult, truthTable.inputVars)
   const remappedTermColors = mapResultColorsByPiTerm(truthTable.qmcResult, remappedResult)
+  const remappedFormulaVariations: FormulaVariations | undefined = truthTable.formulaVariations
+    ? {
+        signature: truthTable.formulaVariations.signature,
+        variations: truthTable.formulaVariations.variations.map((variation) => ({
+          formula: variation.formula,
+          termColors: variation.termColors,
+        })),
+      }
+    : undefined
 
   if (!remappedResult.expressions.length) {
     return {
@@ -160,6 +188,7 @@ export function buildFsmKVDiagramPresentation(
       couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: truthTable.selectedFormula,
       formulaTermColors: truthTable.formulaTermColors ?? remappedTermColors,
+      formulaVariations: remappedFormulaVariations,
     }
   }
 
@@ -197,15 +226,29 @@ export function buildFsmKVDiagramPresentation(
       truthTable.outputVariableIndex,
       { lowercaseInputVars: true },
     ),
-    formulaVariations: getAlternativeMinimalForms(
-      remappedResult,
-      truthTable.functionType,
-      truthTable.functionRepresentation,
-      truthTable.inputVars,
-      truthTable.values,
-      truthTable.outputVariableIndex,
-      { lowercaseInputVars: true },
-    ),
+    formulaVariations: {
+      signature: getAlternativeMinimalForms(
+        remappedResult,
+        truthTable.functionType,
+        truthTable.functionRepresentation,
+        truthTable.inputVars,
+        truthTable.values,
+        truthTable.outputVariableIndex,
+        { lowercaseInputVars: true },
+      ).signature,
+      variations: getAlternativeMinimalForms(
+        remappedResult,
+        truthTable.functionType,
+        truthTable.functionRepresentation,
+        truthTable.inputVars,
+        truthTable.values,
+        truthTable.outputVariableIndex,
+        { lowercaseInputVars: true },
+      ).formulas.map((formula) => ({
+        formula,
+        termColors: buildVariationColors(formula, remappedResult, truthTable.inputVars),
+      })),
+    },
   }
 }
 

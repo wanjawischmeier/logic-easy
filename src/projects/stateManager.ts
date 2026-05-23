@@ -8,12 +8,12 @@ import { syncFsmStateToTruthTable } from '@/utility/fsm/kvSync'
 /**
  * The current storage version
  */
-export const STORAGE_VERSION: number = 8
+export const STORAGE_VERSION: number = 9
 
 /**
  * All storage versions that are compatible with the current one
  */
-export const COMPATIBLE_STORAGE_VERSIONS: number[] = [8]
+export const COMPATIBLE_STORAGE_VERSIONS: number[] = [9]
 
 /**
  * Everything that describes the state of the app,

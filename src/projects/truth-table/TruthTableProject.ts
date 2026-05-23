@@ -5,6 +5,7 @@ import {
   defaultFunctionRepresentation,
   defaultFunctionType,
   type Formula,
+  type FormulaVariations,
   type FunctionRepresentation,
   type FunctionType,
 } from '@/utility/types'
@@ -34,7 +35,7 @@ export interface TruthTableState {
   functionRepresentation: FunctionRepresentation
   qmcResult?: QMCResult
   couplingTermLatex?: string
-  formulaVariations?: { signature: string; formulas: string[] }
+  formulaVariations?: FormulaVariations
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
   fsmMode?: boolean

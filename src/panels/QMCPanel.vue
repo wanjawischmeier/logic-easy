@@ -79,8 +79,8 @@
           <div v-if="formulaVariations" class="flex flex-col items-center gap-4">
             <MinimizedFormulaViewer
               v-model:selectedIndex="selectedFormulaIndex"
-              :signature="formulaVariations.signature"
-              :formulas="formulaVariations.formulas"
+              :signature="formulaVariations?.signature ?? ''"
+              :formulas="formulaVariationLatex"
               :function-representation="functionRepresentation"
             />
           </div>
@@ -144,7 +144,7 @@ import QMCPrimeImplicantChart from '@/components/parts/QMCPrimeImplicantChart.vu
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import { stateManager } from '@/projects/stateManager'
-import { formatLatexIdentifier } from '@/utility/truthtable/latexGenerator'
+import { formatLatexIdentifier, formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import {
   TruthTableProject,
   type TruthTableCell,
@@ -269,9 +269,15 @@ const {
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
 
+const formulaVariationLatex = computed(
+  () =>
+    formulaVariations?.value?.variations.map((variation) => formulaToLatex(variation.formula)) ??
+    [],
+)
+
 const { clampedSavedIndex: clampedSavedFormulaIndex } = useClampedSelection(
   selectedFormulaIndex,
-  computed(() => formulaVariations?.value?.formulas),
+  formulaVariationLatex,
 )
 
 // Auto-save panel state when values change
