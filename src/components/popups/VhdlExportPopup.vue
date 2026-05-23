@@ -3,22 +3,38 @@
     <div class="flex flex-col gap-5 text-on-surface">
       <div class="flex items-center justify-between gap-4">
         <label class="text-sm text-secondary-variant">Mode</label>
-        <MultiSelectSwitch :values="modeOptions" :initialSelected="selectedModeIndex" :onSelect="onModeSelect" />
+        <MultiSelectSwitch
+          :values="modeOptions"
+          :initialSelected="selectedModeIndex"
+          :onSelect="onModeSelect"
+        />
       </div>
 
       <div v-if="isBooleanMode" class="flex items-center justify-between gap-4">
         <label class="text-sm text-secondary-variant">Boolean Type</label>
-        <MultiSelectSwitch :values="functionTypeOptions" :initialSelected="selectedFunctionTypeIndex" :onSelect="onFunctionTypeSelect" />
+        <MultiSelectSwitch
+          :values="functionTypeOptions"
+          :initialSelected="selectedFunctionTypeIndex"
+          :onSelect="onFunctionTypeSelect"
+        />
       </div>
 
       <div class="flex items-center justify-between gap-4">
         <label class="text-sm text-secondary-variant">Output Variable</label>
-        <MultiSelectSwitch :values="outputVarsList" :initialSelected="selectedOutputIndex" :onSelect="onOutputSelect" />
+        <MultiSelectSwitch
+          :values="outputVarsList"
+          :initialSelected="selectedOutputIndex"
+          :onSelect="onOutputSelect"
+        />
       </div>
 
       <div v-if="showVariationSelector" class="flex items-center justify-between gap-4">
         <label class="text-sm text-secondary-variant">Variation</label>
-        <FormulaSelector :formulas="currentVariationLatex" v-model:selectedIndex="selectedVariationIndex" :placement="'bottom'" />
+        <FormulaSelector
+          :formulas="currentVariationLatex"
+          v-model:selectedIndex="selectedVariationIndex"
+          :placement="'bottom'"
+        />
       </div>
     </div>
   </PopupBase>
@@ -32,20 +48,33 @@ import FormulaSelector from '@/components/parts/FormulaSelector.vue'
 import { computed, ref } from 'vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { projectManager } from '@/projects/projectManager'
-import { exportTruthTableTOVHDLcaseWhen, exportTruthTableTOVHDLboolExpr } from '@/utility/VHDL/export'
+import {
+  exportTruthTableTOVHDLcaseWhen,
+  exportTruthTableTOVHDLboolExpr,
+} from '@/utility/VHDL/export'
 import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import { toRaw } from 'vue'
 import type { Formula, FunctionType } from '@/utility/types'
 
-const { state, inputVars, outputVars, values, formulas, functionType, formulaVariations, outputVariableIndex } =
-  TruthTableProject.useState()
+const {
+  state,
+  inputVars,
+  outputVars,
+  values,
+  formulas,
+  functionType,
+  formulaVariations,
+  outputVariableIndex,
+} = TruthTableProject.useState()
 
 const modeOptions = ['Case-When', 'Boolean']
 const selectedModeIndex = ref(0)
 const isBooleanMode = computed(() => modeOptions[selectedModeIndex.value] === 'Boolean')
 
 const functionTypeOptions = ['Disjunctive', 'Conjunctive']
-const selectedFunctionTypeIndex = ref(Math.max(0, functionTypeOptions.indexOf(functionType.value ?? 'Disjunctive')))
+const selectedFunctionTypeIndex = ref(
+  Math.max(0, functionTypeOptions.indexOf(functionType.value ?? 'Disjunctive')),
+)
 
 const outputVarsList = computed(() => outputVars.value)
 const selectedOutputIndex = ref(outputVariableIndex.value ?? 0)
@@ -59,9 +88,13 @@ const currentVariationEntry = computed(() => {
   return out ? formulaVariations.value?.[out] : undefined
 })
 
-const currentVariationLatex = computed(() => currentVariationEntry.value?.variations.map(v => formulaToLatex(v.formula)) ?? [])
+const currentVariationLatex = computed(
+  () => currentVariationEntry.value?.variations.map((v) => formulaToLatex(v.formula)) ?? [],
+)
 
-const showVariationSelector = computed(() => (currentVariationEntry.value?.variations?.length ?? 0) > 1)
+const showVariationSelector = computed(
+  () => (currentVariationEntry.value?.variations?.length ?? 0) > 1,
+)
 
 function onModeSelect(_v: unknown, idx: number) {
   selectedModeIndex.value = idx
@@ -143,7 +176,11 @@ function doExport() {
     functionRepresentation: 'Minimal' as any,
   }
 
-  exportTruthTableTOVHDLboolExpr(smallTruthTable as any, projectName, selectedFunctionTypeIndex.value === 0 ? 'dnf' : 'cnf')
+  exportTruthTableTOVHDLboolExpr(
+    smallTruthTable as any,
+    projectName,
+    selectedFunctionTypeIndex.value === 0 ? 'dnf' : 'cnf',
+  )
   popupService.close()
 }
 
