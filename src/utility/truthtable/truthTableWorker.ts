@@ -2,7 +2,6 @@ import { Minimizer, type QMCResult } from './minimizer'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type {
   Formula,
-  FormulaVariations,
   FormulaVariationsMap,
   FunctionType,
   FunctionRepresentation,
@@ -27,7 +26,7 @@ export interface WorkerResponse {
   id: number
   qmcResults: Record<string, QMCResult | undefined>
   formulas: Record<string, Formula | undefined>
-  formulaVariations: FormulaVariationsMap | undefined
+  formulaVariations: FormulaVariationsMap
   selectedFormula: Formula | undefined
 }
 
@@ -142,6 +141,67 @@ function buildVariationColors(
   }
 }
 
+function buildFormulaVariationsMap(
+  qmcResults: Record<string, QMCResult | undefined>,
+  formulas: Record<string, Formula | undefined>,
+  truthTable: TruthTableState,
+): FormulaVariationsMap {
+  const normal: Record<string, Formula> = {}
+  const disjunctive: Record<
+    string,
+    { signature: string; variations: { formula: Formula; termColors: TermColor[] }[] }
+  > = {}
+  const conjunctive: Record<
+    string,
+    { signature: string; variations: { formula: Formula; termColors: TermColor[] }[] }
+  > = {}
+
+  for (const outputVar of truthTable.outputVars) {
+    const qmcResult = qmcResults[outputVar]
+    const baseFormula = formulas[outputVar]
+    if (baseFormula) {
+      normal[outputVar] = baseFormula
+    }
+
+    if (!qmcResult) continue
+
+    const dnfForms = getAlternativeMinimalForms(
+      qmcResult,
+      'Disjunctive',
+      truthTable.functionRepresentation,
+      truthTable.inputVars,
+      truthTable.values,
+      truthTable.outputVars.indexOf(outputVar),
+    )
+    const cnfForms = getAlternativeMinimalForms(
+      qmcResult,
+      'Conjunctive',
+      truthTable.functionRepresentation,
+      truthTable.inputVars,
+      truthTable.values,
+      truthTable.outputVars.indexOf(outputVar),
+    )
+
+    disjunctive[outputVar] = {
+      signature: dnfForms.signature,
+      variations: dnfForms.formulas.map((formula) => ({
+        formula,
+        termColors: buildVariationColors(formula, qmcResult, truthTable.inputVars),
+      })),
+    }
+
+    conjunctive[outputVar] = {
+      signature: cnfForms.signature,
+      variations: cnfForms.formulas.map((formula) => ({
+        formula,
+        termColors: buildVariationColors(formula, qmcResult, truthTable.inputVars),
+      })),
+    }
+  }
+
+  return { normal, disjunctive, conjunctive }
+}
+
 // Web Worker message handler
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const { id, truthTable } = e.data
@@ -210,32 +270,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         id,
         qmcResults,
         formulas,
-        formulaVariations: Object.fromEntries(
-          truthTable.outputVars.map((outputVar) => {
-            const qmcResult = qmcResults[outputVar]
-            if (!qmcResult) return [outputVar, undefined]
-
-            const altForms = getAlternativeMinimalForms(
-              qmcResult,
-              truthTable.functionType,
-              truthTable.functionRepresentation,
-              truthTable.inputVars,
-              truthTable.values,
-              truthTable.outputVars.indexOf(outputVar),
-            )
-
-            return [
-              outputVar,
-              {
-                signature: altForms.signature,
-                variations: altForms.formulas.map((formula) => ({
-                  formula,
-                  termColors: buildVariationColors(formula, qmcResult, truthTable.inputVars),
-                })),
-              },
-            ]
-          }),
-        ) as FormulaVariationsMap,
+        formulaVariations: buildFormulaVariationsMap(qmcResults, formulas, truthTable),
         selectedFormula: currentEdgeResult.formula,
       }
 
@@ -278,36 +313,15 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
     // Get the selected output variable's data
     const currentQmcResult = qmcResults[currentOutputVar]
-    let formulaVariations: FormulaVariationsMap | undefined
+    let formulaVariations: FormulaVariationsMap = {
+      normal: {},
+      disjunctive: {},
+      conjunctive: {},
+    }
     let selectedFormula: Formula | undefined
 
     if (currentQmcResult) {
-      formulaVariations = Object.fromEntries(
-        truthTable.outputVars.map((outputVar, outputIndex) => {
-          const qmcResult = qmcResults[outputVar]
-          if (!qmcResult) return [outputVar, undefined]
-
-          const altForms = getAlternativeMinimalForms(
-            qmcResult,
-            truthTable.functionType,
-            truthTable.functionRepresentation,
-            truthTable.inputVars,
-            truthTable.values,
-            outputIndex,
-          )
-
-          return [
-            outputVar,
-            {
-              signature: altForms.signature,
-              variations: altForms.formulas.map((formula) => ({
-                formula,
-                termColors: buildVariationColors(formula, qmcResult, truthTable.inputVars),
-              })),
-            },
-          ]
-        }),
-      ) as FormulaVariationsMap
+      formulaVariations = buildFormulaVariationsMap(qmcResults, formulas, truthTable)
 
       selectedFormula = formulas[currentOutputVar]
     }
@@ -316,7 +330,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       id,
       qmcResults,
       formulas,
-      formulaVariations: formulaVariations,
+      formulaVariations,
       selectedFormula,
     }
 
@@ -328,7 +342,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       id,
       qmcResults: {},
       formulas: {},
-      formulaVariations: undefined,
+      formulaVariations: { normal: {}, disjunctive: {}, conjunctive: {} },
       selectedFormula: undefined,
     }
     self.postMessage(response)

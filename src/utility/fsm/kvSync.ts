@@ -1,7 +1,7 @@
 import type { Operation } from 'logi.js'
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { FormulaVariationsMap } from '@/utility/types'
+import type { FormulaVariation, FormulaVariations, FormulaVariationsMap } from '@/utility/types'
 import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
 import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
@@ -123,6 +123,25 @@ function buildVariationColors(
   }
 }
 
+function remapVariationBranch(
+  branch: Record<string, FormulaVariations> | undefined,
+): Record<string, FormulaVariations> {
+  if (!branch) return {}
+
+  return Object.fromEntries(
+    Object.entries(branch).map(([outputVar, variations]) => [
+      outputVar,
+      {
+        signature: variations.signature,
+        variations: variations.variations.map((variation: FormulaVariation) => ({
+          formula: variation.formula,
+          termColors: variation.termColors,
+        })),
+      },
+    ]),
+  )
+}
+
 export interface FsmKVDiagramPresentation {
   qmcResult?: QMCResult
   selectedFormula?: TruthTableState['selectedFormula']
@@ -167,18 +186,11 @@ export function buildFsmKVDiagramPresentation(
   const remappedResult = remapQmcResultToInputVars(truthTable.qmcResult, truthTable.inputVars)
   const remappedTermColors = mapResultColorsByPiTerm(truthTable.qmcResult, remappedResult)
   const remappedFormulaVariations: FormulaVariationsMap | undefined = truthTable.formulaVariations
-    ? Object.fromEntries(
-        Object.entries(truthTable.formulaVariations).map(([outputVar, variations]) => [
-          outputVar,
-          {
-            signature: variations.signature,
-            variations: variations.variations.map((variation) => ({
-              formula: variation.formula,
-              termColors: variation.termColors,
-            })),
-          },
-        ]),
-      )
+    ? {
+        normal: truthTable.formulaVariations.normal ?? {},
+        disjunctive: remapVariationBranch(truthTable.formulaVariations.disjunctive),
+        conjunctive: remapVariationBranch(truthTable.formulaVariations.conjunctive),
+      }
     : undefined
 
   if (!remappedResult.expressions.length) {
@@ -213,9 +225,7 @@ export function buildFsmKVDiagramPresentation(
   return {
     qmcResult: remappedResult,
     selectedFormula,
-    formulaVariations: {
-      ...(remappedFormulaVariations ?? {}),
-    } as FormulaVariationsMap,
+    formulaVariations: remappedFormulaVariations,
   }
 }
 

@@ -184,6 +184,11 @@ const {
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
 
+const currentVariationMode = computed(() => {
+  if (functionRepresentation.value === 'Normal') return 'normal'
+  return functionType.value === 'Disjunctive' ? 'disjunctive' : 'conjunctive'
+})
+
 // Display-only remapping for FSM context: remap vars from (a,b,c) to actual FSM names
 const fsmPresentation = computed(() => {
   if (!stateManager.state.fsm) return {}
@@ -208,7 +213,8 @@ const currentOutputVar = computed(() => outputVars.value[outputVariableIndex.val
 const displayFormulaVariations = computed(() => {
   const variationsMap = fsmPresentation.value.formulaVariations ?? formulaVariations.value
   const outputVar = currentOutputVar.value
-  return outputVar ? variationsMap?.[outputVar] : undefined
+  if (!outputVar || currentVariationMode.value === 'normal') return undefined
+  return variationsMap[currentVariationMode.value][outputVar]
 })
 
 const selectedFormulaLatex = computed(() =>

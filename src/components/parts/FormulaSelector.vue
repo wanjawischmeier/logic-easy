@@ -5,7 +5,7 @@
     >
       <span
         v-if="variableName"
-        class="px-2.5 h-8 whitespace-nowrap leading-none text-secondary-variant inline-flex items-center justify-center"
+        class="px-2.5 h-8 whitespace-nowrap leading-none select-none text-secondary-variant inline-flex items-center justify-center"
       >
         <vue-latex :expression="variableName" :fontsize="14" display-mode />
       </span>

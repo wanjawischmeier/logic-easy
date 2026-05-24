@@ -55,6 +55,7 @@ import {
 import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import { toRaw } from 'vue'
 import type { Formula, FunctionType } from '@/utility/types'
+import { useFormulaVariations } from '@/utility/truthtable/useFormulaVariations'
 
 const {
   state,
@@ -81,14 +82,23 @@ const selectedOutputIndex = ref(outputVariableIndex.value ?? 0)
 const selectedVariationIndex = ref(0)
 
 const currentOutputVar = computed(() => outputVars.value[selectedOutputIndex.value])
+const selectedFunctionType = computed(() =>
+  selectedFunctionTypeIndex.value === 0 ? 'Disjunctive' : 'Conjunctive',
+)
+
+const { normalForm, minimalForm } = useFormulaVariations(formulaVariations, selectedFunctionType)
 
 const currentVariationEntry = computed(() => {
   const out = currentOutputVar.value
-  return out ? formulaVariations.value?.[out] : undefined
+  if (!out || !isBooleanMode.value) return undefined
+  return minimalForm.value[out]
 })
 
 const currentVariationLatex = computed(
-  () => currentVariationEntry.value?.variations.map((v) => formulaToLatex(v.formula)) ?? [],
+  () =>
+    currentVariationEntry.value?.variations.map((variation) =>
+      formulaToLatex(variation.formula),
+    ) ?? [],
 )
 
 const showVariationSelector = computed(
@@ -143,7 +153,7 @@ function doExport() {
   // Boolean export - build a small truth table for the selected output
   const outIdx = selectedOutputIndex.value
   const outName = outputVars.value[outIdx]
-  const selectedVariationEntry = outName ? formulaVariations.value?.[outName] : undefined
+  const selectedVariationEntry = currentVariationEntry.value
 
   let selectedFormula: Formula | undefined
 

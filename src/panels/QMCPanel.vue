@@ -268,15 +268,24 @@ let isUpdatingFromState = false
 
 const currentOutputVar = computed(() => outputVars.value[outputVariableIndex.value])
 
+const currentVariationMode = computed(() => {
+  if (functionRepresentation.value === 'Normal') return 'normal'
+  return functionType.value === 'Disjunctive' ? 'disjunctive' : 'conjunctive'
+})
+
 const formulaVariationLatex = computed(() => {
   const outputVar = currentOutputVar.value
-  const variations = outputVar ? (formulaVariations.value?.[outputVar]?.variations ?? []) : []
+  if (!outputVar || currentVariationMode.value === 'normal') return []
+
+  const variations =
+    formulaVariations.value[currentVariationMode.value][outputVar]?.variations ?? []
   return variations.map((variation) => formulaToLatex(variation.formula))
 })
 
 const currentFormulaVariations = computed(() => {
   const outputVar = currentOutputVar.value
-  return outputVar ? formulaVariations.value?.[outputVar] : undefined
+  if (!outputVar || currentVariationMode.value === 'normal') return undefined
+  return formulaVariations.value[currentVariationMode.value][outputVar]
 })
 
 const selectedFormulaLatex = computed(

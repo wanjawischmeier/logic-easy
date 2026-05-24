@@ -97,6 +97,7 @@ import type { TermColor } from '@/utility/truthtable/colorGenerator'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import type { PrimeImplicantInfo } from 'logi.js'
 import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
+import { useFormulaVariations } from '@/utility/truthtable/useFormulaVariations'
 
 const BOUNDING_BOX_PADDING = 6
 
@@ -123,13 +124,21 @@ const tableRef = ref<HTMLElement | null>(null)
 const boundingBoxes = ref<Array<BoundingBox>>([])
 const selectedFormulaIndex = ref(props.selectedFormulaIndex ?? 0)
 const currentOutputVar = computed(() => props.outputVars[props.outputVariableIndex ?? 0])
+
+const { normalForm, minimalForm } = useFormulaVariations(
+  () => props.formulaVariations,
+  () => props.functionType,
+)
+
 const currentFormulaVariations = computed(() => {
   const outputVar = currentOutputVar.value
-  return outputVar ? props.formulaVariations?.[outputVar] : undefined
+  if (!outputVar || props.functionRepresentation === 'Normal') return undefined
+  return minimalForm.value[outputVar]
 })
+
 const formulaLatex = computed(
   () =>
-    currentFormulaVariations.value?.variations.map((variation) =>
+    currentFormulaVariations.value?.variations.map((variation: { formula: any }) =>
       formulaToLatex(variation.formula),
     ) ?? [],
 )

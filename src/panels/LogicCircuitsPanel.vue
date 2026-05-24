@@ -15,7 +15,8 @@ import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
-import type { Formula, Term } from '@/utility/types'
+import type { Formula, FormulaVariation, Term } from '@/utility/types'
+import { useFormulaVariations } from '@/utility/truthtable/useFormulaVariations'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
@@ -81,22 +82,26 @@ stateManager.watchPanelState<LogicCircuitsPanelState>(LOGIC_CIRCUITS_PANEL_STATE
 }))
 
 const currentOutputVar = computed(() => outputVars.value[outputVariableIndex.value])
+const { normalForm, minimalForm } = useFormulaVariations(formulaVariations, functionType)
 
 const currentFormulaVariationEntry = computed(() => {
   const outputVar = currentOutputVar.value
-  return outputVar ? formulaVariations.value?.[outputVar] : undefined
+  if (!outputVar || functionRepresentation.value === 'Normal') return undefined
+  return minimalForm.value[outputVar]
 })
 
 const formulaVariationEntries = computed(() =>
-  outputVars.value.map((outputVar) => ({
-    outputVar,
-    variations: formulaVariations.value?.[outputVar]?.variations ?? [],
-  })),
+  functionRepresentation.value === 'Normal'
+    ? []
+    : outputVars.value.map((outputVar) => ({
+        outputVar,
+        variations: minimalForm.value[outputVar]?.variations ?? [],
+      })),
 )
 
 const formulaVariationLatex = computed(
   () =>
-    currentFormulaVariationEntry.value?.variations.map((variation) =>
+    currentFormulaVariationEntry.value?.variations.map((variation: FormulaVariation) =>
       formulaToLatex(variation.formula),
     ) ?? [],
 )
@@ -113,23 +118,25 @@ function setSelectedFormulaIndex(outputVar: string, index: number) {
 }
 
 const variationRows = computed(() =>
-  outputVars.value.flatMap((outputVar) => {
-    const formulasForOutput =
-      formulaVariations.value?.[outputVar]?.variations.map((variation) =>
-        formulaToLatex(variation.formula),
-      ) ?? []
+  functionRepresentation.value === 'Normal'
+    ? []
+    : outputVars.value.flatMap((outputVar) => {
+        const formulasForOutput =
+          minimalForm.value[outputVar]?.variations.map((variation: FormulaVariation) =>
+            formulaToLatex(variation.formula),
+          ) ?? []
 
-    if (formulasForOutput.length <= 1) {
-      return []
-    }
+        if (formulasForOutput.length <= 1) {
+          return []
+        }
 
-    return [
-      {
-        outputVar,
-        formulas: formulasForOutput,
-      },
-    ]
-  }),
+        return [
+          {
+            outputVar,
+            formulas: formulasForOutput,
+          },
+        ]
+      }),
 )
 
 function downloadTextAsFile(content: string, filename: string, mimeType = 'text/plain') {

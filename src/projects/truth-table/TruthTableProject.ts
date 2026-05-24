@@ -59,7 +59,9 @@ export class TruthTableProject extends Project {
       () => state.value?.functionRepresentation ?? defaultFunctionRepresentation,
     )
     const qmcResult = computed(() => state.value?.qmcResult)
-    const formulaVariations = computed(() => state.value?.formulaVariations ?? {})
+    const formulaVariations = computed(
+      () => state.value?.formulaVariations ?? { normal: {}, disjunctive: {}, conjunctive: {} },
+    )
     const selectedFormula = computed(() => state.value?.selectedFormula)
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])

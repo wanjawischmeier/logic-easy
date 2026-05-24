@@ -43,7 +43,11 @@ export interface FormulaVariations {
   variations: FormulaVariation[]
 }
 
-export type FormulaVariationsMap = Record<string, FormulaVariations>
+export interface FormulaVariationsMap {
+  normal: Record<string, Formula>
+  disjunctive: Record<string, FormulaVariations>
+  conjunctive: Record<string, FormulaVariations>
+}
 
 export const Formula = {
   empty: {

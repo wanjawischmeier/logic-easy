@@ -55,8 +55,9 @@ import { formulaToLatex } from '@/utility/truthtable/latexGenerator'
 import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { projectManager } from '@/projects/projectManager'
-import type { Formula, FunctionType } from '@/utility/types'
+import type { Formula, FunctionType, FormulaVariation } from '@/utility/types'
 import { Toast } from '@/utility/toastService'
+import { useFormulaVariations } from '@/utility/truthtable/useFormulaVariations'
 
 const { inputVars, outputVars, values, functionType, functionRepresentation, formulaVariations } =
   TruthTableProject.useState()
@@ -76,19 +77,25 @@ const selectedRepresentationIndex = ref(
 
 const selectedVariationIndices = reactive<Record<string, number>>({})
 
+const selectedFunctionType = computed(() =>
+  selectedFunctionTypeIndex.value === 0 ? 'Disjunctive' : 'Conjunctive',
+)
+
+const { normalForm, minimalForm } = useFormulaVariations(formulaVariations, selectedFunctionType)
+
 type VariationRow = { outputVar: string; formulas: string[] }
 
-const variationRows = computed<VariationRow[]>(() =>
+const variationRows = computed(() =>
   representationOptions[selectedRepresentationIndex.value] === 'Normal'
     ? []
     : outputVars.value.flatMap((outputVar) => {
-        const variations = formulaVariations.value?.[outputVar]?.variations ?? []
+        const variations = minimalForm.value[outputVar]?.variations ?? []
         if (variations.length <= 1) return []
 
         return [
           {
             outputVar,
-            formulas: variations.map((variation) => formulaToLatex(variation.formula)),
+            formulas: variations.map((variation: any) => formulaToLatex(variation.formula)),
           },
         ]
       }),
@@ -146,23 +153,16 @@ function buildExportFormulas(): Record<string, Formula> {
   }
 
   const baseFormulas: Record<string, Formula> = {}
-  let missingVariation = false
 
   outputVars.value.forEach((outputVar) => {
-    const entry = formulaVariations.value?.[outputVar]
+    const entry = minimalForm.value[outputVar]
     const selectedIndex = selectedVariationIndices[outputVar] ?? 0
     const selectedVariation = entry?.variations[selectedIndex] ?? entry?.variations[0]
     if (selectedVariation) {
       baseFormulas[outputVar] = selectedVariation.formula
       return
     }
-
-    missingVariation = true
   })
-
-  if (missingVariation) {
-    return {}
-  }
 
   return baseFormulas
 }
