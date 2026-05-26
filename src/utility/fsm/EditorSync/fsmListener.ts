@@ -11,17 +11,9 @@ let suppressIncomingEditorExport = false
 
 function syncTableToEditor() {
   const newFsm = stateManager.state.fsm
-  console.log('[FSM Sync] syncTableToEditor called', {
-    hasFsm: !!newFsm,
-    isSyncing,
-  })
   if (isSyncing || !newFsm) return
 
   const fsmIframe = (window as any).__fsm_preloaded_iframe
-  console.log('[FSM Sync] iframe lookup', {
-    hasIframe: !!fsmIframe,
-    hasContentWindow: !!fsmIframe?.contentWindow,
-  })
   if (!fsmIframe?.contentWindow) return
 
   const editorPayload = {
@@ -67,27 +59,14 @@ function syncTableToEditor() {
     },
     window.location.origin,
   )
-  console.log('[FSM Sync] posted fsmimport', {
-    stateCount: newFsm.nodes.length,
-    transitionCount: newFsm.transitions.length,
-    fsmType: newFsm.fsmModel,
-  })
 }
 
 // force a single sync to the editor, ignoring the flags
 export function forceSyncTableToEditor(): void {
   const newFsm = stateManager.state.fsm
-  console.log('[FSM Sync] forceSyncTableToEditor called', {
-    hasFsm: !!newFsm,
-    isSyncing,
-  })
   if (!newFsm) return
 
   const fsmIframe = (window as any).__fsm_preloaded_iframe
-  console.log('[FSM Sync] force sync iframe lookup', {
-    hasIframe: !!fsmIframe,
-    hasContentWindow: !!fsmIframe?.contentWindow,
-  })
   if (!fsmIframe?.contentWindow) return
 
   // mark that the next incoming editor export (in response) should be ignored
@@ -128,23 +107,16 @@ export function forceSyncTableToEditor(): void {
     },
     window.location.origin,
   )
-  console.log('[FSM Sync] force posted fsmimport', {
-    stateCount: newFsm.nodes.length,
-    transitionCount: newFsm.transitions.length,
-    fsmType: newFsm.fsmModel,
-  })
 }
 
 // returns true if the export was suppressed
 export function consumeSuppressIncomingEditorExport(): boolean {
   const v = suppressIncomingEditorExport
   suppressIncomingEditorExport = false
-  console.log('[FSM Sync] consumeSuppressIncomingEditorExport', { suppressed: v })
   return v
 }
 
 export function initFsmSyncService() {
-  console.log('[FSM Sync] initFsmSyncService', { isInitialized })
   if (isInitialized) {
     disposeFsmSyncService()
   }
@@ -152,8 +124,6 @@ export function initFsmSyncService() {
   isInitialized = true
 
   iframeReadyHandler = () => syncTableToEditor()
-  console.log('[FSM Sync] attach iframe ready handler')
-
   window.addEventListener('__fsm_preloaded_iframe-ready', iframeReadyHandler as EventListener)
 
   syncScope = effectScope()
@@ -162,7 +132,6 @@ export function initFsmSyncService() {
       () => stateManager.state.fsm,
       () => {
         // updates are handled centralized in project
-        console.log('[FSM Sync] stateManager.state.fsm changed')
         syncTableToEditor()
       },
       { deep: true },
@@ -173,7 +142,6 @@ export function initFsmSyncService() {
 }
 
 export function disposeFsmSyncService() {
-  console.log('[FSM Sync] disposeFsmSyncService')
   if (iframeReadyHandler) {
     window.removeEventListener('__fsm_preloaded_iframe-ready', iframeReadyHandler as EventListener)
     iframeReadyHandler = null
@@ -189,7 +157,6 @@ export function useFsmListener() {
 }
 
 export function setIsSyncing(flag: boolean) {
-  console.log('[FSM Sync] setIsSyncing', { from: isSyncing, to: flag })
   isSyncing = flag
 }
 
