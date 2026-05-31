@@ -118,14 +118,12 @@ export function consumeSuppressIncomingEditorExport(): boolean {
 
 export function initFsmSyncService() {
   if (isInitialized) {
-    syncTableToEditor()
-    return
+    disposeFsmSyncService()
   }
 
   isInitialized = true
 
   iframeReadyHandler = () => syncTableToEditor()
-
   window.addEventListener('__fsm_preloaded_iframe-ready', iframeReadyHandler as EventListener)
 
   syncScope = effectScope()
