@@ -68,11 +68,19 @@ function commitStateName(stateId: number) {
 
   const state = nodes.value.find((s) => s.nodeId === stateId)
   if (!state) return
+  if (buffered === undefined) return
 
-  // if no change was made while editing, don't sync the FSM panel
-  if (buffered === undefined || buffered === state.name) return
+  const nextName = buffered.trim() ? buffered.trim() : `q${stateId}`
+  const duplicateExists = nodes.value.some(
+    (node) =>
+      node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
+  )
+  const resolvedName = duplicateExists ? state.name : nextName
 
-  renameFsmState(current, stateId, buffered)
+  // if no effective change was made while editing, don't sync the FSM panel
+  if (resolvedName === state.name) return
+
+  renameFsmState(current, stateId, resolvedName)
 }
 
 function updateInputBitWidth(nextInputBits: number) {
