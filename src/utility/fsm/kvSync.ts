@@ -36,6 +36,30 @@ function buildPlaceholderVariableMap(inputVars: string[]): Record<string, string
   return map
 }
 
+function resolveTransitionTargetNode(fsm: FsmState, transition: FsmState['transitions'][number]) {
+  if (transition.toNodeId >= 0) {
+    return fsm.nodes.find((node) => node.nodeId === transition.toNodeId)
+  }
+
+  const nodeCount = (fsm.nodes || []).length
+  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
+  if (stateBits === 0) {
+    return fsm.nodes[0]
+  }
+
+  const concreteTarget = normalizeBits(
+    transition.toBinaryId ?? '',
+    Math.max(1, stateBits),
+    'x',
+    'left',
+  )
+  if (!/^[01]+$/.test(concreteTarget)) return undefined
+
+  return fsm.nodes.find(
+    (node) => calcBinaryID(node.nodeId, Math.max(1, stateBits)) === concreteTarget,
+  )
+}
+
 function remapExpressionVariables(
   expression: unknown,
   variableMap: Record<string, string>,
@@ -231,7 +255,13 @@ export function exportFsmToTruthTable(
         ? normalizeBits(calcBinaryID(tr.toNodeId, Math.max(1, stateBits)), stateBits, 'x', 'left')
         : normalizeBits(tr.toBinaryId ?? '', stateBits, 'x', 'left')
     const nextStateCells = toBinary.split('').map(toTruthTableCell)
-    const outputCells = normalizeBits(tr.mealyOutput ?? '', outputBits, 'x', 'right')
+    const targetNode = fsm.fsmModel === 'moore' ? resolveTransitionTargetNode(fsm, tr) : undefined
+    const outputCells = normalizeBits(
+      fsm.fsmModel === 'moore' ? (targetNode?.mooreOutput ?? '') : (tr.mealyOutput ?? ''),
+      outputBits,
+      'x',
+      'right',
+    )
       .split('')
       .map(toTruthTableCell)
 
@@ -318,7 +348,14 @@ export function applyTruthTableToFsm(fsm: FsmState, truthTable: TruthTableState)
     }
 
     if (outputBits > 0) {
-      transition.mealyOutput = outputBitsValue
+      if (fsm.fsmModel === 'moore') {
+        const targetNode = resolveTransitionTargetNode(fsm, transition)
+        if (targetNode) {
+          targetNode.mooreOutput = outputBitsValue
+        }
+      } else {
+        transition.mealyOutput = outputBitsValue
+      }
     }
   }
 }
