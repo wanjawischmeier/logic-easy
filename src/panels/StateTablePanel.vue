@@ -26,20 +26,20 @@ const SpaceKeyIcon = defineComponent({
 const legend: LegendItem[] = [
   {
     component: ArrowKeysIcon,
-    label: 'Arrow keys',
-    description: 'Move between editable transition cells in the table.',
+    label: 'Navigate',
+    description: 'Move between editable transition cells with the arrow keys.',
   },
   {
     component: SpaceKeyIcon,
     label: 'Toggle bit value',
-    description: 'Toggles the currently focused editable cell value.',
+    description: "Toggle the focused editable cell with 'Space'.",
   },
 ]
 </script>
 
 <template>
   <div class="h-full text-white flex flex-col p-2 overflow-auto">
-    <div class="flex justify-end items-center h-10 mb-1 gap-2">
+    <div class="flex justify-end items-center h-10 mb-2 gap-2">
       <LegendButton :legend="legend" />
     </div>
 
