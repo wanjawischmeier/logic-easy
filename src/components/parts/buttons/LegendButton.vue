@@ -18,7 +18,11 @@
 
     <template #content>
       <div class="flex flex-col gap-4 px-2 py-4 min-w-80">
-        <div v-for="item in legend" :key="item.symbol" class="flex items-center gap-3">
+        <div
+          v-for="item in legend"
+          :key="item.label + (item.symbol ?? '')"
+          class="flex items-center gap-3"
+        >
           <div class="text-center text-2xl font-semibold min-w-8 flex items-center justify-center">
             <vue-latex
               v-if="item.symbolType === 'latex'"
@@ -36,12 +40,12 @@
               class="w-6 h-6"
               :class="item.symbol"
             ></div>
-            <component v-else-if="item.component" :is="item.component" class="w-6 h-6" />
+            <component v-else-if="item.component" :is="item.component" />
             <span v-else>{{ item.symbol }}</span>
           </div>
           <div class="flex-1 flex flex-col gap-0.5">
-            <div class="text-sm font-medium">{{ item.label }}</div>
-            <div v-if="item.description" class="text-xs opacity-70">{{ item.description }}</div>
+            <div class="text-sm font-medium text-white">{{ item.label }}</div>
+            <div v-if="item.description" class="text-xs text-white/70">{{ item.description }}</div>
           </div>
         </div>
       </div>
