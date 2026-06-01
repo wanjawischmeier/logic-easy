@@ -275,7 +275,9 @@ onMounted(() => {
     const data = event.data || {}
     if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
       // if we suppressed the next editor export (because we forced a sync), consume suppression and ignore
-      if (consumeSuppressIncomingEditorExport()) return
+      if (consumeSuppressIncomingEditorExport()) {
+        return
+      }
 
       const prevNodes = stateManager.state.fsm?.nodes?.length ?? 0
       let shouldForce = false
@@ -285,12 +287,15 @@ onMounted(() => {
         FsmProject.importEditorExport(data.fsm)
 
         const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
-        // mark whether we should force a single back-sync (do it after resetting isSyncing)
-        shouldForce = nextNodes > prevNodes
+        // Moore currently syncs reliably through the normal table->editor watch.
+        // The extra force-sync is only kept for Mealy to avoid re-entrant loops.
+        shouldForce = nextNodes > prevNodes && stateManager.state.fsm?.fsmModel !== 'moore'
       } finally {
         setTimeout(() => {
           setIsSyncing(false)
-          if (shouldForce) forceSyncTableToEditor()
+          if (shouldForce) {
+            forceSyncTableToEditor()
+          }
         }, 50)
       }
     }
