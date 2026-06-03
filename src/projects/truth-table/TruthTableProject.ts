@@ -7,6 +7,7 @@ import {
   type Formula,
   type FunctionRepresentation,
   type FunctionType,
+  type FormulaVariation,
 } from '@/utility/types'
 import { computed } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
@@ -36,6 +37,7 @@ export interface TruthTableState {
   couplingTermLatex?: string
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
+  variations?: FormulaVariation[]
   fsmMode?: boolean
 }
 
@@ -64,6 +66,7 @@ export class TruthTableProject extends Project {
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex)
     const selectedFormula = computed(() => state.value?.selectedFormula)
     const formulaTermColors = computed(() => state.value?.formulaTermColors)
+    const variations = computed(() => state.value?.variations ?? [])
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
 
@@ -81,6 +84,7 @@ export class TruthTableProject extends Project {
       couplingTermLatex,
       selectedFormula,
       formulaTermColors,
+      variations,
     }
   }
 

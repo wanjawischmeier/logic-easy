@@ -1,6 +1,11 @@
 import { Minimizer, type QMCResult } from './minimizer'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types'
+import type {
+  FunctionType,
+  Formula,
+  FunctionRepresentation,
+  FormulaVariation,
+} from '@/utility/types'
 import {
   defaultColor,
   generateTermColor,
@@ -24,6 +29,52 @@ export interface WorkerResponse {
   couplingTermLatex: string | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
+  variations?: FormulaVariation[]
+}
+
+/**
+ * Compute formula variations from QMC result expressions
+ */
+function computeVariations(
+  qmcResult: QMCResult,
+  functionType: FunctionType,
+  functionRepresentation: FunctionRepresentation,
+  inputVars: string[],
+): FormulaVariation[] {
+  if (!qmcResult.expressions || qmcResult.expressions.length === 0) {
+    return []
+  }
+
+  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, {
+    lowercaseInputVars: true,
+  })
+
+  return qmcResult.expressions.map((expr) => {
+    // Convert expression to formula
+    const formula = flattenCouplingTermsToFormula(expr as Operation, functionType)
+
+    // Create a single-expression QMCResult for latex generation
+    const singleExprResult: QMCResult = {
+      ...qmcResult,
+      expressions: [expr],
+    }
+
+    // Generate latex using the signature + expression latex
+    const latex = getCouplingTermLatex(
+      singleExprResult,
+      functionType,
+      functionRepresentation,
+      inputVars,
+      undefined,
+      undefined,
+      { lowercaseInputVars: true },
+    )
+
+    return {
+      formula,
+      latex,
+    }
+  })
 }
 
 /**
@@ -269,6 +320,17 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       }
     }
 
+    // Compute variations from the current output variable's QMC result
+    let variations: FormulaVariation[] | undefined
+    if (currentQmcResult) {
+      variations = computeVariations(
+        currentQmcResult,
+        truthTable.functionType,
+        truthTable.functionRepresentation,
+        truthTable.inputVars,
+      )
+    }
+
     const response: WorkerResponse = {
       id,
       qmcResults,
@@ -276,6 +338,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       couplingTermLatex,
       selectedFormula,
       formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
+      variations,
     }
 
     self.postMessage(response)

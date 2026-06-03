@@ -57,6 +57,19 @@
           class="pt-8 flex-1"
           :latex-expression="displayCouplingTermLatex"
         />
+
+        <!-- Formula variations (testing) -->
+        <div v-if="variations.length > 0" class="pt-8 flex flex-col gap-4 w-full">
+          <div class="text-xs font-bold">Formula Variations:</div>
+          <div
+            v-for="(variation, index) in variations"
+            :key="`variation-${index}`"
+            class="border border-gray-400 p-2 rounded"
+          >
+            <div class="text-xs mb-2">Variation {{ index + 1 }}:</div>
+            <FormulaRenderer :latex-expression="variation.latex" />
+          </div>
+        </div>
       </div>
 
       <!-- Screenshot-only view -->
@@ -171,6 +184,7 @@ const {
   couplingTermLatex,
   qmcResult,
   formulaTermColors,
+  variations,
 } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))

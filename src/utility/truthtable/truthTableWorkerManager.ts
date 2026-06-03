@@ -80,6 +80,9 @@ class TruthTableWorkerManager {
       if (response.formulaTermColors !== undefined) {
         stateManager.state.truthTable.formulaTermColors = response.formulaTermColors
       }
+      if (response.variations !== undefined) {
+        stateManager.state.truthTable.variations = response.variations
+      }
     }
 
     // Mark as no longer running and record completion time

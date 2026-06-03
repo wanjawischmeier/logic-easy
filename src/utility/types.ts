@@ -38,6 +38,11 @@ export const Formula = {
   },
 }
 
+export interface FormulaVariation {
+  formula: Formula
+  latex: string
+}
+
 export interface ListEntry {
   label: string
   action: () => void
