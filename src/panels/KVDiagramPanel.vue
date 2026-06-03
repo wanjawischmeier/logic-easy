@@ -42,7 +42,7 @@
             :output-vars="outputVars"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
-            :selected-formula="displaySelectedFormula"
+            :selected-formula="selectedVariationFormula"
             :functionType="functionType"
             :function-representation="functionRepresentation"
             :qmc-result="displayQmcResult"
@@ -52,23 +52,14 @@
           />
         </div>
 
-        <FormulaRenderer
-          v-if="displayCouplingTermLatex && showFormula"
-          class="pt-8 flex-1"
-          :latex-expression="displayCouplingTermLatex"
-        />
-
-        <!-- Formula variations (testing) -->
-        <div v-if="displayVariations.length > 0" class="pt-8 flex flex-col gap-4 w-full">
-          <div class="text-xs font-bold">Formula Variations:</div>
-          <div
-            v-for="(variation, index) in displayVariations"
-            :key="`variation-${index}`"
-            class="border border-gray-400 p-2 rounded"
-          >
-            <div class="text-xs mb-2">Variation {{ index + 1 }}:</div>
-            <FormulaRenderer :latex-expression="variation.latex" />
-          </div>
+        <div
+          v-if="displayFormulaVariations.length > 0 && showFormula"
+          class="pt-8 flex-1 w-full flex justify-center overflow-visible"
+        >
+          <VariationViewer
+            v-model:selectedIndex="currentFormulaIndex"
+            :variations="displayFormulaVariations"
+          />
         </div>
       </div>
 
@@ -108,7 +99,7 @@
 <style scoped></style>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed, type ComputedRef } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
@@ -128,6 +119,8 @@ import {
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import type { FormulaVariation } from '@/utility/types'
+import VariationViewer from '@/components/parts/VariationViewer.vue'
 
 interface KVPanelState {
   showFormula: boolean
@@ -138,6 +131,7 @@ const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
 const showFormula = ref(panelState?.showFormula ?? true)
 const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 const screenshotRef = ref<HTMLElement | null>(null)
+const currentFormulaIndex = ref(0)
 
 // Auto-save panel state when values change
 stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
@@ -215,10 +209,16 @@ const displayCouplingTermLatex = computed(
   () => fsmPresentation.value.couplingTermLatex ?? couplingTermLatex.value,
 )
 
-const displayVariations = computed(() => {
+const displayFormulaVariations = computed(() => {
+  const variationsSource = fsmPresentation.value.variations ?? variations.value
   const outputVar = outputVars.value[outputVariableIndex.value]
-  if (!outputVar || !variations.value) return []
-  return variations.value[outputVar] ?? []
+  if (!outputVar || !variationsSource) return []
+  return variationsSource[outputVar] ?? []
+})
+
+const selectedVariationFormula = computed(() => {
+  const variation = displayFormulaVariations.value[currentFormulaIndex.value]
+  return variation?.formula ?? displaySelectedFormula.value
 })
 
 const immutableCellMask = computed(() =>

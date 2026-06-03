@@ -66,7 +66,7 @@ export class TruthTableProject extends Project {
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex)
     const selectedFormula = computed(() => state.value?.selectedFormula)
     const formulaTermColors = computed(() => state.value?.formulaTermColors)
-    const variations = computed(() => state.value?.variations ?? [])
+    const variations = computed(() => state.value?.variations)
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
 
