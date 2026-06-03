@@ -34,7 +34,7 @@
     "jszip": "^3.10.1",
     "katex": "^0.13.24",
     "konva": "^10.0.12",
-    "logi.js": "github:wanjawischmeier/logi.js",
+    "logi.js": "github:wanjawischmeier/logi.js#330f5a18227fb9a7189e7787434d0a50a34bd3ae",
     "lucide-react": "^0.556.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
