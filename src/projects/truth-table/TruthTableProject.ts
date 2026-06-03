@@ -37,7 +37,7 @@ export interface TruthTableState {
   couplingTermLatex?: string
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
-  variations?: FormulaVariation[]
+  variations?: Record<string, FormulaVariation[]>
   fsmMode?: boolean
 }
 

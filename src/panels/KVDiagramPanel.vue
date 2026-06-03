@@ -59,10 +59,10 @@
         />
 
         <!-- Formula variations (testing) -->
-        <div v-if="variations.length > 0" class="pt-8 flex flex-col gap-4 w-full">
+        <div v-if="displayVariations.length > 0" class="pt-8 flex flex-col gap-4 w-full">
           <div class="text-xs font-bold">Formula Variations:</div>
           <div
-            v-for="(variation, index) in variations"
+            v-for="(variation, index) in displayVariations"
             :key="`variation-${index}`"
             class="border border-gray-400 p-2 rounded"
           >
@@ -214,6 +214,12 @@ const displayFormulaTermColors = computed(
 const displayCouplingTermLatex = computed(
   () => fsmPresentation.value.couplingTermLatex ?? couplingTermLatex.value,
 )
+
+const displayVariations = computed(() => {
+  const outputVar = outputVars.value[outputVariableIndex.value]
+  if (!outputVar || !variations.value) return []
+  return variations.value[outputVar] ?? []
+})
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),

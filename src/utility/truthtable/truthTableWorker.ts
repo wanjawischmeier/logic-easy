@@ -29,7 +29,7 @@ export interface WorkerResponse {
   couplingTermLatex: string | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
-  variations?: FormulaVariation[]
+  variations?: Record<string, FormulaVariation[]>
 }
 
 /**
@@ -270,6 +270,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // Build records from results
     const qmcResults: Record<string, QMCResult | undefined> = {}
     const formulas: Record<string, Formula | undefined> = {}
+    const variationsRecord: Record<string, FormulaVariation[]> = {}
 
     for (const { outputVar, result } of qmcResultsArray) {
       qmcResults[outputVar] = result
@@ -279,11 +280,19 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           result.expressions[0]!,
           truthTable.functionType,
         )
+        // Compute variations for this output variable
+        variationsRecord[outputVar] = computeVariations(
+          result,
+          truthTable.functionType,
+          truthTable.functionRepresentation,
+          truthTable.inputVars,
+        )
       } else {
         formulas[outputVar] = {
           type: truthTable.functionType,
           terms: [{ literals: [{ variable: '0', negated: false }] }],
         }
+        variationsRecord[outputVar] = []
       }
     }
 
@@ -320,17 +329,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       }
     }
 
-    // Compute variations from the current output variable's QMC result
-    let variations: FormulaVariation[] | undefined
-    if (currentQmcResult) {
-      variations = computeVariations(
-        currentQmcResult,
-        truthTable.functionType,
-        truthTable.functionRepresentation,
-        truthTable.inputVars,
-      )
-    }
-
     const response: WorkerResponse = {
       id,
       qmcResults,
@@ -338,7 +336,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       couplingTermLatex,
       selectedFormula,
       formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
-      variations,
+      variations: variationsRecord,
     }
 
     self.postMessage(response)
