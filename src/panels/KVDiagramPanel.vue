@@ -77,7 +77,7 @@
             :output-vars="outputVars"
             :outputVariableIndex="index"
             :formulas="{}"
-            :selected-formula="displaySelectedFormula"
+            :selected-formula="selectedVariationFormula"
             :functionType="functionType"
             :function-representation="functionRepresentation"
             :qmc-result="displayQmcResult"
