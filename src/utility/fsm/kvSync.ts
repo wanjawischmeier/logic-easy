@@ -258,6 +258,8 @@ export function exportFsmToTruthTable(
     couplingTermLatex: previousState?.couplingTermLatex,
     selectedFormula: previousState?.selectedFormula,
     formulaTermColors: previousState?.formulaTermColors,
+    variations: previousState?.variations,
+    variationIndex: previousState?.variationIndex ?? 0,
     fsmMode: true,
   }
 }

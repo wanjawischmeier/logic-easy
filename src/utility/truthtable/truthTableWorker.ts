@@ -198,6 +198,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       // Create edge case results for all output variables
       const qmcResults: Record<string, QMCResult | undefined> = {}
       const formulas: Record<string, Formula | undefined> = {}
+      const variationsRecord: Record<string, FormulaVariation[]> = {}
 
       for (const outputVar of truthTable.outputVars) {
         const outputIndex = truthTable.outputVars.indexOf(outputVar)
@@ -212,6 +213,12 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           )
           qmcResults[outputVar] = edgeResult.qmcResult
           formulas[outputVar] = edgeResult.formula
+          variationsRecord[outputVar] = [
+            {
+              formula: edgeResult.formula,
+              latex: edgeResult.couplingTermLatex,
+            },
+          ]
         } else {
           // This output variable is not an edge case, run QMC normally
           const result = await runMinimization(truthTable, outputIndex)
@@ -222,11 +229,18 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
               result.expressions[0]!,
               truthTable.functionType,
             )
+            variationsRecord[outputVar] = computeVariations(
+              result,
+              truthTable.functionType,
+              truthTable.functionRepresentation,
+              truthTable.inputVars,
+            )
           } else {
             formulas[outputVar] = {
               type: truthTable.functionType,
               terms: [{ literals: [{ variable: '0', negated: false }] }],
             }
+            variationsRecord[outputVar] = []
           }
         }
       }
@@ -248,6 +262,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         formulaTermColors: shouldUseGenericFormulaColors(truthTable)
           ? currentEdgeResult.qmcResult.termColors
           : undefined,
+        variations: variationsRecord,
       }
 
       self.postMessage(response)
@@ -311,7 +326,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         truthTable.values,
         truthTable.outputVariableIndex,
       )
-      selectedFormula = formulas[currentOutputVar]
+      const variations = variationsRecord[currentOutputVar]
+      if (variations) {
+        selectedFormula = variations[truthTable.variationIndex]?.formula
+      }
 
       // Map formula terms to prime implicant colors
       if (

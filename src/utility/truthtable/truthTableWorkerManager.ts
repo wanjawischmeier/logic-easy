@@ -1,6 +1,7 @@
 import { stateManager } from '@/projects/stateManager'
 import type { WorkerRequest, WorkerResponse } from './truthTableWorker'
 import { toRaw } from 'vue'
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 
 /**
  * Manager for the truth table worker with cooldown and queuing.
@@ -147,7 +148,7 @@ class TruthTableWorkerManager {
 
     // Serialize the truth table state to remove Vue reactivity proxies
     const truthTable = stateManager.state.truthTable
-    const serializedTruthTable = {
+    const serializedTruthTable: TruthTableState = {
       inputVars: toRaw(truthTable.inputVars),
       outputVars: toRaw(truthTable.outputVars),
       values: toRaw(truthTable.values),
@@ -158,6 +159,8 @@ class TruthTableWorkerManager {
       qmcResult: toRaw(truthTable.qmcResult),
       couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: toRaw(truthTable.selectedFormula),
+      variations: toRaw(truthTable.variations),
+      variationIndex: truthTable.variationIndex,
       fsmMode: truthTable.fsmMode,
     }
 

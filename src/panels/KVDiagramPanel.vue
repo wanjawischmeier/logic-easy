@@ -48,6 +48,7 @@
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
+            :variation-index="variationIndex"
             @values-changed="tableValues = $event"
           />
         </div>
@@ -57,8 +58,9 @@
           class="pt-8 flex-1 w-full flex justify-center overflow-visible"
         >
           <VariationViewer
-            v-model:selectedIndex="currentFormulaIndex"
+            v-model:selectedIndex="variationIndex"
             :variations="displayFormulaVariations"
+            @update:selected-index="handleVariationIndexChange"
           />
         </div>
       </div>
@@ -82,6 +84,7 @@
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
+            :variation-index="variationIndex"
             @values-changed="tableValues = $event"
           />
 
@@ -131,7 +134,6 @@ const panelState = stateManager.getPanelState<KVPanelState>(props.params.api.id)
 const showFormula = ref(panelState?.showFormula ?? true)
 const kvDiagramRef = ref<InstanceType<typeof KVDiagram>>()
 const screenshotRef = ref<HTMLElement | null>(null)
-const currentFormulaIndex = ref(0)
 
 // Auto-save panel state when values change
 stateManager.watchPanelState<KVPanelState>(props.params.api.id, () => ({
@@ -179,6 +181,7 @@ const {
   qmcResult,
   formulaTermColors,
   variations,
+  variationIndex,
 } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
@@ -217,7 +220,7 @@ const displayFormulaVariations = computed(() => {
 })
 
 const selectedVariationFormula = computed(() => {
-  const variation = displayFormulaVariations.value[currentFormulaIndex.value]
+  const variation = displayFormulaVariations.value[variationIndex.value]
   return variation?.formula ?? displaySelectedFormula.value
 })
 
@@ -263,6 +266,11 @@ watch(
   },
   { deep: true },
 )
+
+const handleVariationIndexChange = (value: number) => {
+  if (!stateManager.state.truthTable) return
+  stateManager.state.truthTable.variationIndex = value
+}
 
 const downloadFiles = computed(() => [
   {
