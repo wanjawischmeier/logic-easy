@@ -1,7 +1,10 @@
 <template>
   <div v-if="variations.length > 0" class="w-full flex justify-center overflow-visible">
     <div class="inline-flex items-center gap-3 min-w-0 max-w-full overflow-visible">
-      <div v-if="variations.length > 1" class="relative shrink-0">
+      <div
+        v-if="variations.length > 1 && functionRepresentation === 'Minimal'"
+        class="relative shrink-0"
+      >
         <VariationSelector
           :formulas="latexStrings"
           :selectedIndex="selectedIndex"
@@ -19,11 +22,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
-import type { FormulaVariation } from '@/utility/types'
+import type { FormulaVariation, FunctionRepresentation } from '@/utility/types'
 import VariationSelector from '@/components/parts/VariationSelector.vue'
 
 const props = withDefaults(
   defineProps<{
+    functionRepresentation: FunctionRepresentation
     variations: FormulaVariation[]
     selectedIndex?: number
   }>(),

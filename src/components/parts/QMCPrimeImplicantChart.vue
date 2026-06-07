@@ -85,6 +85,7 @@
       <VariationViewer
         v-model:selectedIndex="currentVariationIndex"
         :variations="displayFormulaVariations"
+        :function-representation="functionRepresentation"
       />
     </div>
   </div>
@@ -96,7 +97,7 @@ import VariationViewer from './VariationViewer.vue'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import type { PrimeImplicantInfo } from 'logi.js'
-import type { FormulaVariation } from '@/utility/types'
+import type { FormulaVariation, FunctionRepresentation } from '@/utility/types'
 
 const BOUNDING_BOX_PADDING = 6
 
@@ -108,6 +109,7 @@ const props = withDefaults(
     couplingTermLatex?: string
     showHighlights?: boolean
     displayFormulaVariations: FormulaVariation[]
+    functionRepresentation: FunctionRepresentation
   }>(),
   {
     showHighlights: true,

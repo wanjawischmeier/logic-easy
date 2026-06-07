@@ -83,6 +83,7 @@
             <VariationViewer
               v-model:selectedIndex="currentVariationIndex"
               :variations="displayFormulaVariations"
+              :function-representation="functionRepresentation"
             />
           </div>
         </div>
@@ -135,7 +136,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import VariationViewer from '@/components/parts/VariationViewer.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'

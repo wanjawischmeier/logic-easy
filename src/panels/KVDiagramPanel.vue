@@ -60,6 +60,7 @@
           <VariationViewer
             v-model:selectedIndex="currentVariationIndex"
             :variations="displayFormulaVariations"
+            :function-representation="functionRepresentation"
           />
         </div>
       </div>

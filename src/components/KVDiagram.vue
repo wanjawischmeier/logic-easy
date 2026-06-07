@@ -62,7 +62,7 @@
               @click="toggleCell(rowCode, colCode)"
             >
               <!-- Highlights -->
-              <div class="absolute inset-0 pointer-events-none">
+              <div v-if="functionRepresentation == 'Minimal'" class="absolute inset-0 pointer-events-none">
                 <div
                   v-for="(highlight, idx) in getHighlights(rIdx, cIdx)"
                   :key="idx"
@@ -110,7 +110,7 @@ type KVDiagramProps = {
   formulas: Record<string, Formula>
   outputVariableIndex: number
   functionType: FunctionType
-  functionRepresentation?: FunctionRepresentation
+  functionRepresentation: FunctionRepresentation
   qmcResult?: QMCResult
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
