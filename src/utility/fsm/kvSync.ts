@@ -110,6 +110,7 @@ export interface FsmKVDiagramPresentation {
   selectedFormula?: TruthTableState['selectedFormula']
   formulaTermColors?: TermColor[]
   couplingTermLatex?: string
+  variations?: TruthTableState['variations']
 }
 
 export function buildFsmImmutableCellMask(
@@ -156,6 +157,7 @@ export function buildFsmKVDiagramPresentation(
       couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: truthTable.selectedFormula,
       formulaTermColors: truthTable.formulaTermColors ?? remappedTermColors,
+      variations: truthTable.variations,
     }
   }
 
@@ -193,6 +195,7 @@ export function buildFsmKVDiagramPresentation(
       truthTable.outputVariableIndex,
       { lowercaseInputVars: true },
     ),
+    variations: truthTable.variations,
   }
 }
 
@@ -255,6 +258,11 @@ export function exportFsmToTruthTable(
     couplingTermLatex: previousState?.couplingTermLatex,
     selectedFormula: previousState?.selectedFormula,
     formulaTermColors: previousState?.formulaTermColors,
+    variations: previousState?.variations,
+    variationIndex:
+      typeof previousState?.variationIndex === 'number'
+        ? {}
+        : (previousState?.variationIndex ?? {}),
     fsmMode: true,
   }
 }

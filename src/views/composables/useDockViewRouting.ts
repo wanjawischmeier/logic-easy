@@ -32,6 +32,17 @@ export function useDockViewRouting() {
   const pendingInitialProjectId = ref<number | null>(routeProjectId.value)
   const isRouteInitiatedProjectChange = ref(false)
 
+  const handleProjectOpenFailure = () => {
+    isRouteInitiatedProjectChange.value = false
+    pendingInitialProjectId.value = null
+    loadingService.hide()
+    projectManager.closeCurrentProject()
+
+    if (route.name !== 'home') {
+      router?.replace({ name: 'home' })
+    }
+  }
+
   const setupRouteSync = (params: {
     dockviewApi: ShallowRef<DockviewApi | null>
     hasPanels: Ref<boolean>
@@ -64,7 +75,7 @@ export function useDockViewRouting() {
 
           if (projectManager.currentProjectInfo?.id !== projectIdFromRoute) {
             isRouteInitiatedProjectChange.value = true
-            projectManager.openProject(projectIdFromRoute)
+            projectManager.openProject(projectIdFromRoute, handleProjectOpenFailure)
           }
           return
         }
@@ -122,5 +133,6 @@ export function useDockViewRouting() {
     routeProjectId,
     pendingInitialProjectId,
     setupRouteSync,
+    handleProjectOpenFailure,
   }
 }

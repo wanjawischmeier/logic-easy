@@ -62,7 +62,10 @@
               @click="toggleCell(rowCode, colCode)"
             >
               <!-- Highlights -->
-              <div class="absolute inset-0 pointer-events-none">
+              <div
+                v-if="functionRepresentation == 'Minimal'"
+                class="absolute inset-0 pointer-events-none"
+              >
                 <div
                   v-for="(highlight, idx) in getHighlights(rIdx, cIdx)"
                   :key="idx"
@@ -84,7 +87,12 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
-import { Formula, FunctionType, defaultFunctionType } from '../utility/types'
+import {
+  Formula,
+  FunctionType,
+  defaultFunctionType,
+  type FunctionRepresentation,
+} from '../utility/types'
 import {
   getLeftVariables,
   getTopVariables,
@@ -94,13 +102,22 @@ import {
 } from '@/utility/truthtable/kvDiagramLayout'
 import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights'
 import { formatLatexIdentifier } from '@/utility/truthtable/latexGenerator'
-import type {
-  TruthTableData,
-  TruthTableCell,
-  TruthTableState,
-} from '@/projects/truth-table/TruthTableProject'
+import type { TruthTableData, TruthTableCell } from '@/projects/truth-table/TruthTableProject'
+import type { QMCResult } from '@/utility/truthtable/minimizer'
+import type { TermColor } from '@/utility/truthtable/colorGenerator'
 
-type KVDiagramProps = TruthTableState & {
+type KVDiagramProps = {
+  inputVars: string[]
+  outputVars: string[]
+  values: TruthTableData
+  formulas: Record<string, Formula>
+  outputVariableIndex: number
+  functionType: FunctionType
+  functionRepresentation: FunctionRepresentation
+  qmcResult?: QMCResult
+  selectedFormula?: Formula
+  formulaTermColors?: TermColor[]
+  variationIndex?: number
   immutableCellMask?: boolean[][]
 }
 

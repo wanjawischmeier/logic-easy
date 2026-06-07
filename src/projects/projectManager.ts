@@ -48,12 +48,12 @@ export class ProjectManager {
   /**
    * Open a project by ID
    */
-  openProject(projectId: number): void
+  openProject(projectId: number, onFailed?: () => void): void
   /**
    * Open a project using a file picker dialog
    */
   openProject(): Promise<void>
-  openProject(projectId?: number): void | Promise<void> {
+  openProject(projectId?: number, onFailed?: () => void): void | Promise<void> {
     if (projectId !== undefined) {
       // Open by ID
       loadingService.show('Opening project...')
@@ -63,11 +63,13 @@ export class ProjectManager {
           if (!project) {
             Toast.error('Failed to open project')
             loadingService.hide()
+            onFailed?.()
           }
         } catch (error) {
           console.error('Failed to open project:', error)
           Toast.error('Failed to open project')
           loadingService.hide()
+          onFailed?.()
         }
       }, 100)
     } else {

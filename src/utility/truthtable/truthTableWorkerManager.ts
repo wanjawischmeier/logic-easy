@@ -1,6 +1,33 @@
 import { stateManager } from '@/projects/stateManager'
 import type { WorkerRequest, WorkerResponse } from './truthTableWorker'
 import { toRaw } from 'vue'
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
+
+function toRawDeep<T>(value: T, seen = new WeakMap<object, unknown>()): T {
+  if (value === null || typeof value !== 'object') {
+    return value
+  }
+
+  const raw = toRaw(value) as object
+  const cached = seen.get(raw)
+  if (cached) {
+    return cached as T
+  }
+
+  if (Array.isArray(raw)) {
+    const clone: unknown[] = []
+    seen.set(raw, clone)
+    raw.forEach((item) => clone.push(toRawDeep(item, seen)))
+    return clone as T
+  }
+
+  const clone: Record<string, unknown> = {}
+  seen.set(raw, clone)
+  Object.entries(raw).forEach(([key, item]) => {
+    clone[key] = toRawDeep(item, seen)
+  })
+  return clone as T
+}
 
 /**
  * Manager for the truth table worker with cooldown and queuing.
@@ -80,6 +107,17 @@ class TruthTableWorkerManager {
       if (response.formulaTermColors !== undefined) {
         stateManager.state.truthTable.formulaTermColors = response.formulaTermColors
       }
+      if (response.variations !== undefined) {
+        stateManager.state.truthTable.variations = response.variations
+        var variationIndex = stateManager.state.truthTable.variationIndex
+        stateManager.state.truthTable.variationIndex = Object.fromEntries(
+          Object.entries(response.variations).map(([outputVar, variations]) => {
+            const current = variationIndex[outputVar] ?? 0
+            const bounded = Math.min(current, variations.length - 1)
+            return [outputVar, bounded]
+          }),
+        )
+      }
     }
 
     // Mark as no longer running and record completion time
@@ -144,17 +182,19 @@ class TruthTableWorkerManager {
 
     // Serialize the truth table state to remove Vue reactivity proxies
     const truthTable = stateManager.state.truthTable
-    const serializedTruthTable = {
-      inputVars: toRaw(truthTable.inputVars),
-      outputVars: toRaw(truthTable.outputVars),
-      values: toRaw(truthTable.values),
-      formulas: toRaw(truthTable.formulas),
+    const serializedTruthTable: TruthTableState = {
+      inputVars: toRawDeep(truthTable.inputVars),
+      outputVars: toRawDeep(truthTable.outputVars),
+      values: toRawDeep(truthTable.values),
+      formulas: toRawDeep(truthTable.formulas),
       outputVariableIndex: truthTable.outputVariableIndex,
       functionType: truthTable.functionType,
       functionRepresentation: truthTable.functionRepresentation,
-      qmcResult: toRaw(truthTable.qmcResult),
+      qmcResult: toRawDeep(truthTable.qmcResult),
       couplingTermLatex: truthTable.couplingTermLatex,
-      selectedFormula: toRaw(truthTable.selectedFormula),
+      selectedFormula: toRawDeep(truthTable.selectedFormula),
+      variations: toRawDeep(truthTable.variations),
+      variationIndex: toRawDeep(truthTable.variationIndex),
       fsmMode: truthTable.fsmMode,
     }
 
@@ -163,7 +203,18 @@ class TruthTableWorkerManager {
       truthTable: serializedTruthTable,
     }
 
-    this.worker.postMessage(request)
+    try {
+      this.worker.postMessage(request)
+    } catch (error) {
+      console.error('[TruthTableWorkerManager] Failed to post worker request:', error)
+      this.isRunning = false
+      this.lastUpdateCompletedTime = Date.now()
+
+      if (this.hasQueuedUpdate) {
+        this.hasQueuedUpdate = false
+        this.scheduleUpdate()
+      }
+    }
   }
 
   /**

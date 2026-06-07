@@ -71,11 +71,21 @@
             :qmc-result="qmcResult"
             :coupling-term-latex="couplingTermLatex"
             :show-highlights="showHighlights"
+            :display-formula-variations="displayFormulaVariations"
+            v-model:current-variation-index="currentVariationIndex"
           />
         </div>
         <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full">
-          <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
-          </FormulaRenderer>
+          <div
+            v-if="displayFormulaVariations.length > 0"
+            class="pt-8 flex-1 w-full flex justify-center overflow-visible"
+          >
+            <VariationViewer
+              v-model:current-variation-index="currentVariationIndex"
+              :variations="displayFormulaVariations"
+              :function-representation="functionRepresentation"
+            />
+          </div>
         </div>
       </div>
 
@@ -113,6 +123,8 @@
             :qmc-result="qmcResult"
             :coupling-term-latex="couplingTermLatex"
             :show-highlights="showHighlights"
+            :display-formula-variations="displayFormulaVariations"
+            v-model:current-variation-index="currentVariationIndex"
           />
         </div>
       </div>
@@ -124,7 +136,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import FormulaRenderer from '@/components/FormulaRenderer.vue'
+import VariationViewer from '@/components/parts/VariationViewer.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
@@ -142,6 +154,7 @@ import {
 } from '@/projects/truth-table/TruthTableProject'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { buildFsmKVDiagramPresentation } from '@/utility/fsm/kvSync'
 
 interface QMCPanelState {
   selectedTabIndex: number
@@ -256,7 +269,46 @@ const {
   functionRepresentation,
   qmcResult,
   couplingTermLatex,
+  variations,
+  variationIndex,
 } = TruthTableProject.useState()
+
+const fsmPresentation = computed(() => {
+  if (!stateManager.state.fsm) return {}
+  if (!stateManager.state.truthTable) return {}
+  // Explicitly access qmcResult to ensure dependency is tracked
+  const qmc = stateManager.state.truthTable.qmcResult
+  if (!qmc) return {}
+  return buildFsmKVDiagramPresentation(stateManager.state.truthTable)
+})
+
+const displayFormulaVariations = computed(() => {
+  const variationsSource = fsmPresentation.value.variations ?? variations.value
+  const outputVar = outputVars.value[outputVariableIndex.value]
+  if (!outputVar || !variationsSource) return []
+  return variationsSource[outputVar] ?? []
+})
+
+const currentVariationIndex = computed({
+  get() {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar) return 0
+
+    const indexMap = variationIndex.value as Record<string, number> | number
+    if (typeof indexMap === 'number') return indexMap
+    return indexMap[outputVar] ?? 0
+  },
+  set(value: number) {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar || !stateManager.state.truthTable) return
+
+    const current = stateManager.state.truthTable.variationIndex
+    stateManager.state.truthTable.variationIndex = {
+      ...(typeof current === 'number' ? {} : current),
+      [outputVar]: value,
+    }
+  },
+})
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
