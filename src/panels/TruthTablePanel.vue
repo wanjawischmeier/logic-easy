@@ -94,7 +94,7 @@ const legend: LegendItem[] = [
   {
     label: 'Search',
     description:
-      "Allows you to quickly search and/or edit the values for a specific row by entering that row's input variable values in binary representation.",
+      "Allows you to quickly search and/or edit the values for a specific row by entering that row's input variable values in binary representation. Hit ENTER to apply and TAB to apply and move to next row.",
     component: SearchIcon,
   },
 ]

@@ -2,7 +2,8 @@
   <div
     v-if="inputVars.length && outputVars.length"
     ref="searchBarRef"
-    class="group flex items-center gap-2 p-0.5 border border-surface-3 hover:border-primary bg-surface-2 rounded transition-colors duration-100"
+    class="group flex items-center gap-2 p-0.5 border bg-surface-2 rounded transition-colors duration-100"
+    :class="pendingCommit ? 'border-secondary' : 'border-surface-3 hover:border-primary'"
     @blur.capture="handleBlur"
     @click.capture="focusFirstEmpty"
     @mousedown.stop
@@ -30,12 +31,19 @@
         type="text"
         maxlength="1"
         :value="getValueAtIndex(index - 1)"
-        class="bit-box-input w-6 h-6 text-center bg-surface-1 border border-surface-3 rounded outline-none focus:border-primary font-mono text-shadow-2xs cursor-default"
+        class="bit-box-input w-6 h-6 text-center bg-surface-1 border border-surface-3 rounded outline-none font-mono text-shadow-2xs cursor-default"
+        :class="pendingCommit ? 'focus:border-secondary' : 'focus:border-primary'"
         @mousedown.prevent="focusFirstEmpty"
         @input="(e) => handleInput(index - 1, e)"
         @keydown.enter.prevent="
           () => {
-            if (searchStep === 2) resetSearch(false)
+            if (searchStep === 2 && pendingCommit) applyEdit(false)
+            else if (searchStep === 2) resetSearch(false)
+          }
+        "
+        @keydown.tab.prevent="
+          () => {
+            if (pendingCommit) applyEdit(true)
           }
         "
         @keydown.escape.prevent="() => resetSearch(false)"
@@ -76,6 +84,7 @@ const blinkGreenRow = ref<number | null>(null)
 const inputRefs = ref<HTMLInputElement[]>([])
 const searchBarRef = ref<HTMLElement | null>(null)
 const isFocussed = ref<boolean>(false)
+const pendingCommit = ref<boolean>(false)
 let isTransitioningStep = false
 
 const searchHint = computed(() => {
@@ -178,6 +187,7 @@ function resetSearch(shouldRefocus: boolean = false) {
   searchInput.value = ''
   searchStep.value = 1
   highlightedRow.value = null
+  pendingCommit.value = false
   emit('highlightedRowChanged', null)
 
   if (shouldRefocus) {
@@ -189,6 +199,60 @@ function resetSearch(shouldRefocus: boolean = false) {
     document.activeElement instanceof HTMLElement && document.activeElement.blur()
     isFocussed.value = false
   }
+}
+
+/**
+ * Apply the pending edit and optionally advance to the next row
+ * @param advanceToNextRow If true, select the next row after applying
+ */
+function applyEdit(advanceToNextRow: boolean = false) {
+  const rowIdx = highlightedRow.value
+  const newValue = searchInput.value
+  if (rowIdx === null) return
+
+  const newValues = props.values.map((row) => [...row])
+  const outputRow = newValues[rowIdx]
+  if (outputRow) {
+    if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
+      const char = newValue[0]
+      outputRow[props.outputVariableIndex] = char === '1' ? 1 : char === '0' ? 0 : '-'
+    } else {
+      for (let i = 0; i < newValue.length; i++) {
+        const char = newValue[i]
+        outputRow[i] = char === '1' ? 1 : char === '0' ? 0 : '-'
+      }
+    }
+    emit('valuesChanged', newValues)
+
+    blinkGreenRow.value = rowIdx
+    emit('blinkGreenRowChanged', rowIdx)
+    setTimeout(() => {
+      blinkGreenRow.value = null
+      emit('blinkGreenRowChanged', null)
+    }, 300)
+  }
+
+  if (advanceToNextRow) {
+    const nextRow = rowIdx + 1
+    if (nextRow < props.values.length) {
+      // Encode next row index as binary input string
+      const bits = props.inputVars.length
+      const nextInput = nextRow.toString(2).padStart(bits, '0')
+      pendingCommit.value = false
+      searchInput.value = ''
+      searchStep.value = 1
+      // Feed the next row's input bits in sequence
+      isTransitioningStep = true
+      searchInput.value = nextInput
+      // The watcher will handle transitioning to step 2
+      nextTick(() => {
+        isTransitioningStep = false
+      })
+      return
+    }
+  }
+
+  resetSearch(false)
 }
 
 /**
@@ -237,42 +301,16 @@ watch(searchInput, (newValue, oldValue) => {
       emit('highlightedRowChanged', rowIndex)
       searchInput.value = ''
       searchStep.value = 2
+      pendingCommit.value = false
       nextTick(() => {
         isTransitioningStep = false
         focusFirstEmpty()
       })
     }
   } else if (searchStep.value === 2 && newValue.length === numBits.value) {
-    console.log('[watch searchInput] Step 2 complete, updating values')
-    // Step 2 complete: update values and reset
-    const rowIdx = highlightedRow.value
-    if (rowIdx !== null) {
-      const newValues = props.values.map((row) => [...row])
-      const outputRow = newValues[rowIdx]
-      if (outputRow) {
-        if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
-          // Only edit the selected output variable
-          const char = newValue[0]
-          outputRow[props.outputVariableIndex] = char === '1' ? 1 : char === '0' ? 0 : '-'
-        } else {
-          // Edit all output variables
-          for (let i = 0; i < newValue.length; i++) {
-            const char = newValue[i]
-            outputRow[i] = char === '1' ? 1 : char === '0' ? 0 : '-'
-          }
-        }
-        emit('valuesChanged', newValues)
-
-        // Blink green
-        blinkGreenRow.value = rowIdx
-        emit('blinkGreenRowChanged', rowIdx)
-        setTimeout(() => {
-          blinkGreenRow.value = null
-          emit('blinkGreenRowChanged', null)
-        }, 300)
-      }
-    }
-    resetSearch()
+    console.log('[watch searchInput] Step 2 complete, waiting for Enter/Tab')
+    // Step 2 complete: wait for user to press Enter or Tab
+    pendingCommit.value = true
   }
 })
 
