@@ -113,7 +113,7 @@ class TruthTableWorkerManager {
         stateManager.state.truthTable.variationIndex = Object.fromEntries(
           Object.entries(response.variations).map(([outputVar, variations]) => {
             const current = variationIndex[outputVar] ?? 0
-            const bounded = Math.min(current, variations.length - 1)
+            const bounded = Math.min(current, Math.max(variations.length - 1, 0))
             return [outputVar, bounded]
           }),
         )
