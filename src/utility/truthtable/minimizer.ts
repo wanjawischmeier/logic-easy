@@ -1,5 +1,5 @@
 import type { TruthTableData, TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { FunctionType } from '@/utility/types'
+import type { Formula, FunctionType } from '@/utility/types'
 import {
   QMC,
   type IterationSnapshot,

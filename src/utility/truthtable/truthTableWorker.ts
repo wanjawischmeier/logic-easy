@@ -32,6 +32,12 @@ export interface WorkerResponse {
   variations?: Record<string, FormulaVariation[]>
 }
 
+export interface EdgeCaseResult {
+  qmcResult: QMCResult
+  formula: Formula
+  couplingTermLatex: string
+}
+
 /**
  * Compute formula variations from QMC result expressions
  */
@@ -44,10 +50,6 @@ function computeVariations(
   if (!qmcResult.expressions || qmcResult.expressions.length === 0) {
     return []
   }
-
-  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, {
-    lowercaseInputVars: true,
-  })
 
   return qmcResult.expressions.map((expr) => {
     // Convert expression to formula
@@ -85,7 +87,7 @@ function createEdgeCaseResult(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
-): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
+): EdgeCaseResult {
   const signature = getFunctionSignature(functionType, functionRepresentation, inputVars)
 
   let constant: '0' | '1'
