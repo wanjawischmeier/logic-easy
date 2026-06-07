@@ -72,8 +72,7 @@ function commitStateName(stateId: number) {
 
   const nextName = buffered.trim() ? buffered.trim() : `q${stateId}`
   const duplicateExists = nodes.value.some(
-    (node) =>
-      node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
+    (node) => node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
   )
   const resolvedName = duplicateExists ? state.name : nextName
 

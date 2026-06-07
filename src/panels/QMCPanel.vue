@@ -81,7 +81,7 @@
             class="pt-8 flex-1 w-full flex justify-center overflow-visible"
           >
             <VariationViewer
-              v-model:selectedIndex="currentVariationIndex"
+              v-model:current-variation-index="currentVariationIndex"
               :variations="displayFormulaVariations"
               :function-representation="functionRepresentation"
             />

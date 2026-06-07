@@ -558,7 +558,7 @@ const methodOptions = lcMethodTypes
             :formulas="row.formulas"
             :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
             :variableName="row.outputVar"
-            @update:selectedIndex="(value) => setSelectedFormulaIndex(row.outputVar, value)"
+            @update:selected-index="(value) => setSelectedFormulaIndex(row.outputVar, value)"
           />
         </div>
         <SettingsButton

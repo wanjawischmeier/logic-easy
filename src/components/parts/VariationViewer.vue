@@ -7,8 +7,7 @@
       >
         <VariationSelector
           :formulas="latexStrings"
-          :selectedIndex="selectedIndex"
-          @update:selectedIndex="(v) => emit('update:selectedIndex', v)"
+          v-model:selected-index="currentVariationIndex"
         />
       </div>
 
@@ -25,25 +24,16 @@ import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import type { FormulaVariation, FunctionRepresentation } from '@/utility/types'
 import VariationSelector from '@/components/parts/VariationSelector.vue'
 
-const props = withDefaults(
-  defineProps<{
-    functionRepresentation: FunctionRepresentation
-    variations: FormulaVariation[]
-    selectedIndex?: number
-  }>(),
-  {
-    selectedIndex: 0,
-  },
-)
-
-const emit = defineEmits<{
-  (e: 'update:selectedIndex', value: number): void
+const currentVariationIndex = defineModel<number>('currentVariationIndex')
+const props = defineProps<{
+  functionRepresentation: FunctionRepresentation
+  variations: FormulaVariation[]
 }>()
 
 const latexStrings = computed(() => props.variations.map((v) => v.latex))
 
 const selectedLatex = computed(() => {
-  const index = props.selectedIndex ?? 0
+  const index = currentVariationIndex.value ?? 0
   return props.variations[index]?.latex ?? '0'
 })
 </script>

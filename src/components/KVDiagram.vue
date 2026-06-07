@@ -62,7 +62,10 @@
               @click="toggleCell(rowCode, colCode)"
             >
               <!-- Highlights -->
-              <div v-if="functionRepresentation == 'Minimal'" class="absolute inset-0 pointer-events-none">
+              <div
+                v-if="functionRepresentation == 'Minimal'"
+                class="absolute inset-0 pointer-events-none"
+              >
                 <div
                   v-for="(highlight, idx) in getHighlights(rIdx, cIdx)"
                   :key="idx"

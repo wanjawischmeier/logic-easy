@@ -58,7 +58,7 @@
           class="pt-8 flex-1 w-full flex justify-center overflow-visible"
         >
           <VariationViewer
-            v-model:selectedIndex="currentVariationIndex"
+            v-model:current-variation-index="currentVariationIndex"
             :variations="displayFormulaVariations"
             :function-representation="functionRepresentation"
           />
@@ -242,7 +242,7 @@ const currentVariationIndex = computed({
 
 const selectedVariationFormula = computed(() => {
   const variation = displayFormulaVariations.value[currentVariationIndex.value]
-  return variation?.formula ?? displaySelectedFormula.value
+  return variation?.formula
 })
 
 const immutableCellMask = computed(() =>
