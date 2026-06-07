@@ -109,6 +109,14 @@ class TruthTableWorkerManager {
       }
       if (response.variations !== undefined) {
         stateManager.state.truthTable.variations = response.variations
+        var variationIndex = stateManager.state.truthTable.variationIndex
+        stateManager.state.truthTable.variationIndex = Object.fromEntries(
+        Object.entries(response.variations).map(([outputVar, variations]) => {
+          const current = variationIndex[outputVar] ?? 0;
+          const bounded = Math.min(current, variations.length - 1);
+          return [outputVar, bounded];
+        })
+      )
       }
     }
 
