@@ -78,29 +78,36 @@
       </svg>
     </div>
 
-    <FormulaRenderer
-      class="pt-8"
-      v-if="props.couplingTermLatex"
-      :latex-expression="props.couplingTermLatex"
-    />
+    <div
+      v-if="displayFormulaVariations.length > 0"
+      class="pt-8 flex-1 w-full flex justify-center overflow-visible"
+    >
+      <VariationViewer
+        v-model:selectedIndex="currentVariationIndex"
+        :variations="displayFormulaVariations"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import { ref, computed, onMounted, nextTick, watch, type StyleValue } from 'vue'
+import VariationViewer from './VariationViewer.vue'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import type { PrimeImplicantInfo } from 'logi.js'
+import type { FormulaVariation } from '@/utility/types'
 
 const BOUNDING_BOX_PADDING = 6
 
+const currentVariationIndex = defineModel<number>('currentVariationIndex')
 const props = withDefaults(
   defineProps<{
     inputVars: string[]
     qmcResult?: QMCResult
     couplingTermLatex?: string
     showHighlights?: boolean
+    displayFormulaVariations: FormulaVariation[]
   }>(),
   {
     showHighlights: true,
