@@ -66,7 +66,21 @@ function commitStateName(stateId: number) {
 
   if (!current) return
 
-  renameFsmState(current, stateId, buffered)
+  const state = nodes.value.find((s) => s.nodeId === stateId)
+  if (!state) return
+  if (buffered === undefined) return
+
+  const nextName = buffered.trim() ? buffered.trim() : `q${stateId}`
+  const duplicateExists = nodes.value.some(
+    (node) =>
+      node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
+  )
+  const resolvedName = duplicateExists ? state.name : nextName
+
+  // if no effective change was made while editing, don't sync the FSM panel
+  if (resolvedName === state.name) return
+
+  renameFsmState(current, stateId, resolvedName)
 }
 
 function updateInputBitWidth(nextInputBits: number) {
@@ -106,7 +120,7 @@ function decreaseOutputBits() {
 
 <template>
   <div class="w-full flex flex-col gap-2 items-center p-2">
-    <h1 class="text-xl font-mono self-start">States</h1>
+    <h1 class="text-xl text-center font-mono">States</h1>
 
     <table class="flex-auto bg-gray-800 border border-primary table-auto select-none mb-0">
       <thead>
@@ -146,6 +160,10 @@ function decreaseOutputBits() {
               @focus="startEditingName(state.nodeId, state.name)"
               @input="bufferStateName(state.nodeId, ($event.target as HTMLInputElement).value)"
               @blur="commitStateName(state.nodeId)"
+              @keydown.enter.prevent="
+                commitStateName(state.nodeId)
+                ;($event.target as HTMLInputElement)?.blur()
+              "
             />
           </td>
           <td

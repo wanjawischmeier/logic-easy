@@ -57,7 +57,7 @@ export class FsmProject extends Project {
   // define fsm editor and table as default panel layout for fsm projects
   static override restoreDefaultPanelLayout() {
     createPanel('state-table', 'State Table')
-    createPanel('fsm-engine', 'FSM Engine', {
+    createPanel('fsm-editor', 'FSM Editor', {
       referencePanel: 'state-table',
       direction: 'right',
     })
