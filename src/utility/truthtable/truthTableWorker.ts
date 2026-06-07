@@ -46,6 +46,8 @@ function computeVariations(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  truthTableValues?: TruthTableState['values'],
+  outputVariableIndex?: number,
 ): FormulaVariation[] {
   if (!qmcResult.expressions || qmcResult.expressions.length === 0) {
     return []
@@ -67,8 +69,8 @@ function computeVariations(
       functionType,
       functionRepresentation,
       inputVars,
-      undefined,
-      undefined,
+      truthTableValues,
+      outputVariableIndex,
       { lowercaseInputVars: true },
     )
 
@@ -309,6 +311,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           truthTable.functionType,
           truthTable.functionRepresentation,
           truthTable.inputVars,
+          truthTable.values,
+          truthTable.outputVariableIndex,
         )
       } else {
         formulas[outputVar] = {
