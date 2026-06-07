@@ -48,7 +48,7 @@
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
-            :variation-index="variationIndex"
+            :variation-index="currentVariationIndex"
             @values-changed="tableValues = $event"
           />
         </div>
@@ -58,9 +58,8 @@
           class="pt-8 flex-1 w-full flex justify-center overflow-visible"
         >
           <VariationViewer
-            v-model:selectedIndex="variationIndex"
+            v-model:selectedIndex="currentVariationIndex"
             :variations="displayFormulaVariations"
-            @update:selected-index="handleVariationIndexChange"
           />
         </div>
       </div>
@@ -84,7 +83,7 @@
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
-            :variation-index="variationIndex"
+            :variation-index="currentVariationIndex"
             @values-changed="tableValues = $event"
           />
 
@@ -219,8 +218,29 @@ const displayFormulaVariations = computed(() => {
   return variationsSource[outputVar] ?? []
 })
 
+const currentVariationIndex = computed({
+  get() {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar) return 0
+
+    const indexMap = variationIndex.value as Record<string, number> | number
+    if (typeof indexMap === 'number') return indexMap
+    return indexMap[outputVar] ?? 0
+  },
+  set(value: number) {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar || !stateManager.state.truthTable) return
+
+    const current = stateManager.state.truthTable.variationIndex
+    stateManager.state.truthTable.variationIndex = {
+      ...(typeof current === 'number' ? {} : current),
+      [outputVar]: value,
+    }
+  },
+})
+
 const selectedVariationFormula = computed(() => {
-  const variation = displayFormulaVariations.value[variationIndex.value]
+  const variation = displayFormulaVariations.value[currentVariationIndex.value]
   return variation?.formula ?? displaySelectedFormula.value
 })
 
@@ -266,11 +286,6 @@ watch(
   },
   { deep: true },
 )
-
-const handleVariationIndexChange = (value: number) => {
-  if (!stateManager.state.truthTable) return
-  stateManager.state.truthTable.variationIndex = value
-}
 
 const downloadFiles = computed(() => [
   {

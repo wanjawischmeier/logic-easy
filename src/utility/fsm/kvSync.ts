@@ -259,7 +259,10 @@ export function exportFsmToTruthTable(
     selectedFormula: previousState?.selectedFormula,
     formulaTermColors: previousState?.formulaTermColors,
     variations: previousState?.variations,
-    variationIndex: previousState?.variationIndex ?? 0,
+    variationIndex:
+      typeof previousState?.variationIndex === 'number'
+        ? {}
+        : (previousState?.variationIndex ?? {}),
     fsmMode: true,
   }
 }

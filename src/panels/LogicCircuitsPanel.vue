@@ -10,15 +10,24 @@ import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
+import VariationSelector from '@/components/parts/VariationSelector.vue'
 import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
-import type { Formula, Term } from '@/utility/types'
+import { Formula as FormulaDefaults, type Formula, type Term } from '@/utility/types'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
-const { inputVars, outputVars, formulas, values, functionType, functionRepresentation } =
-  TruthTableProject.useState()
+const {
+  inputVars,
+  outputVars,
+  formulas,
+  values,
+  functionType,
+  functionRepresentation,
+  variations,
+  variationIndex,
+} = TruthTableProject.useState()
 
 const panelRef = ref<HTMLElement | null>(null)
 const iframeContainer = ref<HTMLElement | null>(null)
@@ -141,6 +150,54 @@ function generateCanonicalFormulas(): Record<string, Formula> {
   })
 
   return canonicalFormulas
+}
+
+const variationRows = computed(() =>
+  outputVars.value
+    .map((outputVar) => ({
+      outputVar,
+      formulas: variations.value?.[outputVar]?.map((variation) => variation.latex) ?? [],
+    }))
+    .filter((row) => row.formulas.length > 0),
+)
+
+const settingsSlotLabels = computed<Record<string, string>>(() => {
+  const labels: Record<string, string> = { method: 'Gate Type' }
+  if (functionRepresentation.value === 'Minimal' && variationRows.value.length > 0) {
+    labels.variations = 'Variations'
+  }
+  return labels
+})
+
+function getSelectedFormulaIndex(outputVar: string): number {
+  const indexMap = variationIndex.value as Record<string, number> | number
+  if (typeof indexMap === 'number') return indexMap
+  return indexMap[outputVar] ?? 0
+}
+
+function setSelectedFormulaIndex(outputVar: string, value: number) {
+  if (!stateManager.state.truthTable) return
+
+  const current = stateManager.state.truthTable.variationIndex
+  stateManager.state.truthTable.variationIndex = {
+    ...(typeof current === 'number' ? {} : current),
+    [outputVar]: value,
+  }
+
+  void updateFormulas()
+}
+
+function generateSelectedVariationFormulas(): Record<string, Formula> {
+  const selectedFormulas: Record<string, Formula> = {}
+
+  outputVars.value.forEach((outputVar) => {
+    const outputVariations = variations.value?.[outputVar]
+    const selectedVariation = outputVariations?.[getSelectedFormulaIndex(outputVar)]
+    selectedFormulas[outputVar] =
+      selectedVariation?.formula ?? formulas.value[outputVar] ?? FormulaDefaults.empty
+  })
+
+  return selectedFormulas
 }
 
 async function foundSignificantChanges(): Promise<boolean> {
@@ -378,7 +435,9 @@ let currentLCContent: LCFile | null = null
 
 const createLcContent = (method: LCMethodType) => {
   const targetFormulas =
-    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : formulas.value
+    functionRepresentation.value === 'Normal'
+      ? generateCanonicalFormulas()
+      : generateSelectedVariationFormulas()
 
   currentLCContent = formulaToLC(
     targetFormulas,
@@ -451,7 +510,7 @@ async function updateFormulas() {
 
 // Keep the plain object in sync with state and selection
 watch(
-  [() => formulas.value],
+  [() => formulas.value, () => variations.value, () => variationIndex.value],
   () => {
     void updateFormulas()
   },
@@ -492,13 +551,23 @@ const methodOptions = lcMethodTypes
           </span>
           <span class="whitespace-nowrap">{{ editWarningInlineText }}</span>
         </div>
+        <div v-for="row in variationRows" :key="row.outputVar" class="shrink-0">
+          <VariationSelector
+            v-if="row.formulas.length > 1"
+            placement="bottom"
+            :formulas="row.formulas"
+            :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
+            :variableName="row.outputVar"
+            @update:selectedIndex="(value) => setSelectedFormulaIndex(row.outputVar, value)"
+          />
+        </div>
         <SettingsButton
           :selected-function-type="functionType"
           :input-vars="inputVars"
           :output-vars="outputVars"
           :show-output-selection="false"
           :show-function-type-selection="true"
-          :custom-setting-slot-labels="{ method: 'Gate Type' }"
+          :custom-setting-slot-labels="settingsSlotLabels"
           :selected-function-representation="functionRepresentation"
         >
           <template #method>

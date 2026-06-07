@@ -87,7 +87,6 @@
 </template>
 
 <script setup lang="ts">
-import { type TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import { ref, computed, onMounted, nextTick, watch, type StyleValue } from 'vue'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
@@ -96,9 +95,17 @@ import type { PrimeImplicantInfo } from 'logi.js'
 
 const BOUNDING_BOX_PADDING = 6
 
-const props = withDefaults(defineProps<TruthTableState & { showHighlights?: boolean }>(), {
-  showHighlights: true,
-})
+const props = withDefaults(
+  defineProps<{
+    inputVars: string[]
+    qmcResult?: QMCResult
+    couplingTermLatex?: string
+    showHighlights?: boolean
+  }>(),
+  {
+    showHighlights: true,
+  },
+)
 
 interface BoundingBox {
   x: number

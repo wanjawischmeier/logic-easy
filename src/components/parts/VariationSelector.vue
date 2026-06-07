@@ -39,7 +39,8 @@
     <div
       v-if="showDropdown"
       :class="
-        dropdownPositionClass + ' bg-surface-2 rounded shadow-lg border border-surface-3 z-50'
+        dropdownPositionClass +
+        ' bg-surface-2 rounded shadow-lg border border-surface-3 z-50 max-h-64 overflow-y-auto'
       "
     >
       <button
@@ -90,8 +91,8 @@ const hasMultipleFormulas = computed(() => props.formulas.length > 1)
 
 const dropdownPositionClass = computed(() =>
   props.placement === 'bottom'
-    ? 'absolute left-0 top-full mt-2'
-    : 'absolute left-0 bottom-full mb-2',
+    ? 'absolute right-0 top-full mt-2'
+    : 'absolute right-0 bottom-full mb-2',
 )
 
 const toggleDropdown = () => {

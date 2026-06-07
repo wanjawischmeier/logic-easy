@@ -136,6 +136,12 @@ async function runMinimization(
   return await Minimizer.runQMC(modifiedTruthTable)
 }
 
+function getVariationIndex(truthTable: TruthTableState, outputVar: string): number {
+  const variationIndex = truthTable.variationIndex as Record<string, number> | number
+  if (typeof variationIndex === 'number') return variationIndex
+  return variationIndex[outputVar] ?? 0
+}
+
 function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermColor[] {
   // Generate colors for each prime implicant based on their term string
   // This ensures consistent coloring between QMC chart and KV diagram
@@ -330,7 +336,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       )
       const variations = variationsRecord[currentOutputVar]
       if (variations) {
-        selectedFormula = variations[truthTable.variationIndex]?.formula
+        selectedFormula = variations[getVariationIndex(truthTable, currentOutputVar)]?.formula
       }
 
       // Map formula terms to prime implicant colors

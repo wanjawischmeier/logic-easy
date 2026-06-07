@@ -38,7 +38,7 @@ export interface TruthTableState {
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
   variations?: Record<string, FormulaVariation[]>
-  variationIndex: number
+  variationIndex: Record<string, number>
   fsmMode?: boolean
 }
 
@@ -68,7 +68,7 @@ export class TruthTableProject extends Project {
     const selectedFormula = computed(() => state.value?.selectedFormula)
     const formulaTermColors = computed(() => state.value?.formulaTermColors)
     const variations = computed(() => state.value?.variations)
-    const variationIndex = computed(() => state.value?.variationIndex ?? 0)
+    const variationIndex = computed(() => state.value?.variationIndex ?? {})
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
 
@@ -141,7 +141,7 @@ export class TruthTableProject extends Project {
       values: values,
       formulas: formulas,
       outputVariableIndex: 0,
-      variationIndex: 0,
+      variationIndex: Object.fromEntries(outputVars.map((outputVar) => [outputVar, 0])),
       functionType: functionType,
       functionRepresentation: functionRepresentation,
       couplingTermLatex: couplingTermLatex,

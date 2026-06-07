@@ -84,10 +84,12 @@
 </template>
 
 <script setup lang="ts">
-import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import { ref, watch } from 'vue'
+import type { QMCResult } from '@/utility/truthtable/minimizer'
 
-const props = defineProps<TruthTableState>()
+const props = defineProps<{
+  qmcResult?: QMCResult
+}>()
 
 const tableRows = ref<any[]>([])
 const hoveredTerm = ref<string | null>(null)
