@@ -15,6 +15,7 @@ import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningP
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
 import { Formula as FormulaDefaults, type Formula, type Term } from '@/utility/types'
+import { getDockviewApi } from '@/utility/dockview/integration'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
@@ -376,6 +377,7 @@ function updateMethodPickerPosition() {
 }
 
 let currentLCHeader: string | undefined = undefined
+let layoutDisposable: any = null
 
 // adjust the view in future lc imports/exports to match the current view.
 async function updateLCHeader() {
@@ -395,6 +397,7 @@ onMounted(() => {
   }
   window.addEventListener('scroll', updateMethodPickerPosition, true)
   window.addEventListener('resize', updateMethodPickerPosition)
+  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateMethodPickerPosition())
 
   installIframeInteractionGuards()
   iframeReadyRebindHandler = () => installIframeInteractionGuards()
@@ -405,6 +408,8 @@ onBeforeUnmount(() => {
   positionObserver?.disconnect()
   window.removeEventListener('scroll', updateMethodPickerPosition, true)
   window.removeEventListener('resize', updateMethodPickerPosition)
+  layoutDisposable?.dispose?.()
+  layoutDisposable = null
   detachIframeGuards?.()
   detachIframeGuards = null
   if (iframeReadyRebindHandler) {
