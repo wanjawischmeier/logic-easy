@@ -8,6 +8,7 @@ type IframeConfig = {
 
 class IframeManager {
   private configs: Map<string, IframeConfig> = new Map()
+  private resetInProgress: Map<string, { cancel: () => void }> = new Map()
 
   register(config: IframeConfig) {
     this.configs.set(config.key, config)
@@ -23,12 +24,19 @@ class IframeManager {
 
   preloadIframe(key: string, src: string) {
     const w = window as unknown as Window & { [key: string]: HTMLIFrameElement | undefined }
-    if (w[key]) {
+
+    // Remove any stale iframe for this key before creating a new one
+    const existing = w[key]
+    if (existing) {
       console.log(`Iframe ${key} already exists`)
       return
     }
 
+    // Hard DOM guard: should never be needed but prevents duplicates if window[key] got out of sync
+    document.querySelectorAll(`iframe[data-iframe-key="${key}"]`).forEach((el) => el.remove())
+
     const iframe = document.createElement('iframe')
+    iframe.dataset.iframeKey = key // tag it so the DOM guard above works
     iframe.src = src
     iframe.style.cssText =
       'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; border: none; display: none;'
@@ -58,9 +66,24 @@ class IframeManager {
       return null
     }
 
+    // Cancel any in-progress reset for this key
+    this.resetInProgress.get(key)?.cancel()
+
+    let cancelled = false
+    this.resetInProgress.set(key, {
+      cancel: () => {
+        cancelled = true
+      },
+    })
+
     try {
       const w = window as unknown as Window & { [key: string]: HTMLIFrameElement | undefined }
+
       const old = w[key]
+      if (old) {
+        old.remove()
+        w[key] = undefined
+      }
 
       const newIframe = document.createElement('iframe')
       newIframe.src = iframeSrc
@@ -68,6 +91,7 @@ class IframeManager {
         'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; border: none;'
 
       document.body.appendChild(newIframe)
+      w[key] = newIframe
 
       await new Promise<void>((resolve, reject) => {
         const timeout = window.setTimeout(() => {
@@ -82,29 +106,27 @@ class IframeManager {
         newIframe.addEventListener('load', onLoad)
       })
 
-      const oldDisplay =
-        old && typeof old.style !== 'undefined' ? old.style.display || 'none' : 'none'
-      newIframe.style.display = oldDisplay
+      // A newer reset superseded us — clean up the iframe we created and bail
+      if (cancelled) {
+        newIframe.remove()
+        if (w[key] === newIframe) w[key] = undefined
+        return null
+      }
 
-      w[key] = newIframe
+      this.resetInProgress.delete(key)
 
       const evt = new CustomEvent(`${key}-ready`, { detail: { iframe: newIframe } })
       window.dispatchEvent(evt)
 
-      if (old && old.parentElement && old !== newIframe) {
-        try {
-          old.remove()
-        } catch (e) {
-          console.warn(`Failed to remove old iframe ${key}`, e)
-        }
-      }
-
       console.log(`Iframe ${key} reset complete`)
       return newIframe
     } catch (err) {
-      console.error(`resetIframe error for ${key}`, err)
-      Toast.error('Failed to reset iframe')
-      window.dispatchEvent(new CustomEvent(`${key}-ready`))
+      if (!cancelled) {
+        console.error(`resetIframe error for ${key}`, err)
+        Toast.error('Failed to reset iframe')
+        window.dispatchEvent(new CustomEvent(`${key}-ready`))
+      }
+      this.resetInProgress.delete(key)
       return null
     }
   }

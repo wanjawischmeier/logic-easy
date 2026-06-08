@@ -9,6 +9,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import { dropdownService } from '@/utility/dropdownService'
 
 const props = defineProps<{
   iframeKey: string
@@ -32,6 +33,8 @@ function getGlobalIframe(): HTMLIFrameElement | undefined {
 function updateIframePosition() {
   preloadedIframe = preloadedIframe || getGlobalIframe()
   if (!preloadedIframe || !containerRef.value) return
+
+  dropdownService.close()
 
   const rect = containerRef.value.getBoundingClientRect()
   const style = preloadedIframe.style
