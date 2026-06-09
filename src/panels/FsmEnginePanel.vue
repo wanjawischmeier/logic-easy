@@ -11,6 +11,7 @@ import {
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
+import { getDockviewApi } from '@/utility/dockview/integration'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
@@ -219,6 +220,7 @@ const legend: LegendItem[] = [
 ]
 
 let messageHandler: ((event: MessageEvent) => void) | null = null
+let layoutDisposable: any = null
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
@@ -249,6 +251,8 @@ onMounted(() => {
   if (panelRef.value) ro.observe(panelRef.value)
   window.addEventListener('scroll', updateLegendPosition, true)
   window.addEventListener('resize', updateLegendPosition)
+  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateLegendPosition())
+  
   // initial position
   updateLegendPosition()
 
