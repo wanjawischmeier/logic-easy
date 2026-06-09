@@ -28,13 +28,13 @@
       />
     </div>
 
-    <div class="h-full" ref="screenshotRef">
+    <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
       <div
         data-screenshot-ignore
-        class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto"
+        class="flex-1 min-h-0 overflow-auto"
       >
-        <div class="flex-1">
+        <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
           <KVDiagram
             :key="`${functionType}-${outputVariableIndex}`"
             :values="tableValues"
@@ -51,17 +51,17 @@
             :variation-index="currentVariationIndex"
             @values-changed="tableValues = $event"
           />
-        </div>
 
-        <div
-          v-if="displayFormulaVariations.length > 0 && showFormula"
-          class="pt-8 flex-1 w-full flex justify-center overflow-visible"
-        >
-          <VariationViewer
-            v-model:current-variation-index="currentVariationIndex"
-            :variations="displayFormulaVariations"
-            :function-representation="functionRepresentation"
-          />
+          <div
+            v-if="displayFormulaVariations.length > 0 && showFormula"
+            class="pt-8 w-full flex justify-center overflow-visible"
+          >
+            <VariationViewer
+              v-model:current-variation-index="currentVariationIndex"
+              :variations="displayFormulaVariations"
+              :function-representation="functionRepresentation"
+            />
+          </div>
         </div>
       </div>
 
