@@ -79,6 +79,7 @@ const emit = defineEmits<{
 const dropdownContainer = ref<HTMLElement | null>(null)
 const showDropdown = ref(false)
 const localSelectedIndex = ref(props.selectedIndex ?? 0)
+let blurCheckTimeout: number | null = null
 
 watch(
   () => props.selectedIndex,
@@ -118,8 +119,25 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+// Blur listener to close on click over iframe
+const handleWindowBlur = () => {
+  if (!showDropdown.value) return
+  if (blurCheckTimeout !== null) window.clearTimeout(blurCheckTimeout)
+  blurCheckTimeout = window.setTimeout(() => {
+    blurCheckTimeout = null
+    if (document.activeElement instanceof HTMLIFrameElement) dropdownService.close()
+  }, 0)
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  window.addEventListener('blur', handleWindowBlur)
+})
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('blur', handleWindowBlur)
+  if (blurCheckTimeout !== null) window.clearTimeout(blurCheckTimeout)
+})
 </script>
 
 <style scoped></style>
