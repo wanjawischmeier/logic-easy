@@ -1,3 +1,8 @@
+/* Prevent dockview view containers from scrolling — each panel manages its own scroll */
+.dv-split-view-container .dv-view-container .dv-view {
+  overflow: hidden !important;
+}
+
 .dockview-theme-abyss {
   /* group / panel background */
   --dv-group-view-background-color: var(--color-elevated);
