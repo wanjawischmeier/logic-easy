@@ -369,7 +369,7 @@ function installIframeInteractionGuards() {
 function updateMethodPickerPosition() {
   if (!panelRef.value) return
   const rect = panelRef.value.getBoundingClientRect()
-  const offset = 12
+  const offset = 8
   downloadButtonStyle.value = {
     right: `${window.innerWidth - rect.right + offset}px`,
     top: `${rect.top + offset}px`,
@@ -526,7 +526,7 @@ const methodOptions = lcMethodTypes
 </script>
 
 <template>
-  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2 p-2">
+  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2">
     <div ref="iframeContainer" class="relative flex-1">
       <IframePanel
         ref="iframePanelRef"
