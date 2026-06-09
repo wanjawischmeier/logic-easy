@@ -40,51 +40,55 @@
       />
     </div>
 
-    <div class="h-full" ref="screenshotRef">
+    <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center">
+      <div data-screenshot-ignore class="flex-1 min-h-0 flex flex-col items-center">
         <div
           v-if="(qmcResult?.iterations.length ?? 0) !== 0"
-          class="flex-1 flex items-center justify-center overflow-auto w-full"
+          class="flex-1 min-h-0 overflow-auto w-full"
         >
-          <QMCGroupingTable
-            v-if="selectedTabIndex === 0"
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :outputVariableIndex="outputVariableIndex"
-            :formulas="{}"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
-          />
-
-          <QMCPrimeImplicantChart
-            v-else-if="selectedTabIndex === 1"
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :outputVariableIndex="outputVariableIndex"
-            :formulas="{}"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex"
-            :show-highlights="showHighlights"
-            :display-formula-variations="displayFormulaVariations"
-            v-model:current-variation-index="currentVariationIndex"
-          />
-        </div>
-        <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full">
-          <div
-            v-if="displayFormulaVariations.length > 0"
-            class="pt-8 flex-1 w-full flex justify-center overflow-visible"
-          >
-            <VariationViewer
-              v-model:current-variation-index="currentVariationIndex"
-              :variations="displayFormulaVariations"
+          <div class="min-h-full w-max min-w-full flex items-center justify-center">
+            <QMCGroupingTable
+              v-if="selectedTabIndex === 0"
+              :values="tableValues"
+              :input-vars="inputVars"
+              :output-vars="outputVars"
+              :outputVariableIndex="outputVariableIndex"
+              :formulas="{}"
+              :functionType="functionType"
               :function-representation="functionRepresentation"
+              :qmc-result="qmcResult"
             />
+
+            <QMCPrimeImplicantChart
+              v-else-if="selectedTabIndex === 1"
+              :values="tableValues"
+              :input-vars="inputVars"
+              :output-vars="outputVars"
+              :outputVariableIndex="outputVariableIndex"
+              :formulas="{}"
+              :functionType="functionType"
+              :function-representation="functionRepresentation"
+              :qmc-result="qmcResult"
+              :coupling-term-latex="couplingTermLatex"
+              :show-highlights="showHighlights"
+              :display-formula-variations="displayFormulaVariations"
+              v-model:current-variation-index="currentVariationIndex"
+            />
+          </div>
+        </div>
+        <div v-else class="flex-1 overflow-auto w-full">
+          <div class="min-h-full min-w-full flex justify-center items-center">
+            <div
+              v-if="displayFormulaVariations.length > 0"
+              class="pt-8 w-full flex justify-center overflow-visible"
+            >
+              <VariationViewer
+                v-model:current-variation-index="currentVariationIndex"
+                :variations="displayFormulaVariations"
+                :function-representation="functionRepresentation"
+              />
+            </div>
           </div>
         </div>
       </div>
