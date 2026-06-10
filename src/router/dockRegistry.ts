@@ -130,9 +130,9 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     id: 'fsm-editor',
-    label: 'Automaton Editor',
+    label: 'State Machine Editor',
     component: FsmEnginePanel,
-    projectType: 'automaton',
+    projectType: 'state-machine',
     requires: {
       view: ['Fsm'],
     },
@@ -278,7 +278,7 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
         break
 
       case 'Fsm':
-        if (!stateManager.state.fsm || currentProjectType !== 'automaton') {
+        if (!stateManager.state.fsm || currentProjectType !== 'state-machine') {
           checkPassed = false
         }
         break

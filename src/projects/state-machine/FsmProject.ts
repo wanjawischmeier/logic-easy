@@ -132,8 +132,8 @@ export {
   toggleTransitionTargetBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 
-registerProjectType('automaton', {
-  name: 'Automaton',
+registerProjectType('state-machine', {
+  name: 'State Machine',
   propsComponent: FsmPropsComponent,
   projectClass: FsmProject,
 })
