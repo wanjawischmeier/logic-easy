@@ -4,6 +4,7 @@ import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue'
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue'
 import StateTablePanel from '@/panels/StateTablePanel.vue'
 import { computed } from 'vue'
+import { projectTypes } from '@/projects/projectRegistry'
 import type { ProjectType } from '@/projects/projectRegistry'
 import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
@@ -80,7 +81,7 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'truth-table',
     label: 'Truth Table',
     component: TruthTablePanel,
-    projectType: 'truth-table',
+    projectType: 'combinatorial-circuit',
     minimumWidth: 500,
     requires: {
       view: ['TruthTable'],
@@ -93,7 +94,7 @@ export const dockRegistry: DockRegistryEntry[] = [
         id: 'kv-diagram',
         label: 'Karnaugh-Veitch',
         component: KVDiagramPanel,
-        projectType: 'truth-table',
+        projectType: 'combinatorial-circuit',
         minimumWidth: 400,
         requires: {
           view: ['Min2InputVars', 'Max4InputVars'],
@@ -103,7 +104,7 @@ export const dockRegistry: DockRegistryEntry[] = [
         id: 'qmc-visualization',
         label: 'Quine McCluskey',
         component: QMCPanel,
-        projectType: 'truth-table',
+        projectType: 'combinatorial-circuit',
         minimumWidth: 400,
         requires: {
           view: ['TruthTable'],
@@ -115,7 +116,6 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'state-table',
     label: 'State Table',
     component: StateTablePanel,
-    projectType: 'fsm',
     requires: {
       view: ['Fsm'],
     },
@@ -130,9 +130,9 @@ export const dockRegistry: DockRegistryEntry[] = [
   },
   {
     id: 'fsm-editor',
-    label: 'FSM Editor',
+    label: 'Automaton Editor',
     component: FsmEnginePanel,
-    projectType: 'fsm',
+    projectType: 'automaton',
     requires: {
       view: ['Fsm'],
     },
@@ -182,12 +182,18 @@ const convertRegistryEntryToMenuEntry = (
 }
 
 export const newMenu = computed<MenuEntry[]>(() => {
-  // Flatten the registry to get only DockEntries with projectType
-  const flatEntries = flattenDockEntries()
-  return flatEntries
-    .filter((entry) => entry.projectType !== undefined)
-    .map((entry) => convertRegistryEntryToMenuEntry(entry, 'CREATE', true))
-    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false))
+  const groups = new Map<string, DockEntry[]>()
+
+  for (const entry of flattenDockEntries()) {
+    if (!entry.projectType) continue
+    if (!groups.has(entry.projectType)) groups.set(entry.projectType, [])
+    groups.get(entry.projectType)!.push(entry)
+  }
+
+  return [...groups.entries()].map(([type, entries]) => ({
+    label: projectTypes[type]?.name ?? type,
+    children: entries.map((entry) => convertRegistryEntryToMenuEntry(entry, 'CREATE', true)),
+  }))
 })
 
 export const viewMenu = computed<MenuEntry[]>(() => {
@@ -265,14 +271,14 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
-        // Only allow for truth-table projects, even if FSM sync created a truth table state
-        if (!stateManager.state.truthTable || currentProjectType !== 'truth-table') {
+        // Only allow for combinatorial-circuit projects, even if FSM sync created a truth table state
+        if (!stateManager.state.truthTable || currentProjectType !== 'combinatorial-circuit') {
           checkPassed = false
         }
         break
 
       case 'Fsm':
-        if (!stateManager.state.fsm || currentProjectType !== 'fsm') {
+        if (!stateManager.state.fsm || currentProjectType !== 'automaton') {
           checkPassed = false
         }
         break

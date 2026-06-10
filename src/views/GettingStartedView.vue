@@ -39,30 +39,38 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, type ComputedRef } from 'vue'
-import { newMenu, type MenuEntry } from '@/router/dockRegistry'
+import { defineComponent, computed } from 'vue'
+import { newMenu } from '@/router/dockRegistry'
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue'
 import { projectManager } from '@/projects/projectManager'
 import { showProjectCreationPopup } from '@/utility/popupService'
 import { formatDate } from '@/utility/dateFormatter'
-
-interface ListEntry {
-  label: string
-  action: () => void
-  disabled?: boolean
-  subtitle?: string
-}
+import type { ListEntry } from '@/utility/types'
 
 export default defineComponent({
   name: 'GettingStartedView',
   components: { DirectoryStyleList },
   setup() {
-    const newProjectEntries: ComputedRef<ListEntry[]> = computed(() =>
-      newMenu.value.map((menuEntry: MenuEntry) => ({
-        label: menuEntry.label,
-        disabled: menuEntry.disabled,
-        action: () => showProjectCreationPopup(menuEntry),
-      })),
+    const newProjectEntries = computed<ListEntry[]>(() =>
+      newMenu.value.map((group) => {
+        const children = group.children
+        if (children?.length === 1) {
+          return {
+            label: group.label,
+            disabled: children[0].disabled,
+            action: () => showProjectCreationPopup(children[0]),
+          }
+        }
+        return {
+          label: group.label,
+          action: () => {},
+          children: children?.map((entry) => ({
+            label: entry.label,
+            disabled: entry.disabled,
+            action: () => showProjectCreationPopup(entry),
+          })),
+        }
+      }),
     )
 
     const recentProjectEntries: ComputedRef<ListEntry[]> = computed(() => {

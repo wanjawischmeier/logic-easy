@@ -160,8 +160,8 @@ export class TruthTableProject extends Project {
   }
 }
 
-registerProjectType('truth-table', {
-  name: 'Truth Table',
+registerProjectType('combinatorial-circuit', {
+  name: 'Combinatorial Circuit',
   propsComponent: TruthTablePropsComponent,
   projectClass: TruthTableProject,
 })
