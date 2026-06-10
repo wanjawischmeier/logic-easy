@@ -102,7 +102,7 @@ export const dockRegistry: DockRegistryEntry[] = [
       },
       {
         id: 'qmc-visualization',
-        label: 'Quine McCluskey',
+        label: 'Quine-McCluskey',
         component: QMCPanel,
         projectType: 'combinatorial-circuit',
         minimumWidth: 400,
