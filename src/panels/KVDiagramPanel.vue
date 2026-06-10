@@ -2,8 +2,8 @@
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType"
         :selected-function-representation="functionRepresentation"
@@ -40,6 +40,8 @@
             :values="tableValues"
             :input-vars="inputVars"
             :output-vars="outputVars"
+            :input-var-labels="inputVarLabels"
+            :output-var-labels="outputVarLabels"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
             :selected-formula="selectedVariationFormula"
@@ -76,6 +78,8 @@
             :values="tableValues"
             :input-vars="inputVars"
             :output-vars="outputVars"
+            :input-var-labels="inputVarLabels"
+            :output-var-labels="outputVarLabels"
             :outputVariableIndex="index"
             :formulas="{}"
             :selected-formula="selectedVariationFormula"
@@ -172,6 +176,10 @@ onBeforeUnmount(() => {
 const {
   inputVars,
   outputVars,
+  inputVarLabels,
+  outputVarLabels,
+  displayInputVars,
+  displayOutputVars,
   values,
   selectedFormula,
   outputVariableIndex,

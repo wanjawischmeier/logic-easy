@@ -22,6 +22,8 @@ defineProps<Partial<IDockviewPanelProps>>()
 const {
   inputVars,
   outputVars,
+  displayInputVars,
+  displayOutputVars,
   formulas,
   values,
   functionType,
@@ -155,8 +157,9 @@ function generateCanonicalFormulas(): Record<string, Formula> {
 
 const variationRows = computed(() =>
   outputVars.value
-    .map((outputVar) => ({
+    .map((outputVar, idx) => ({
       outputVar,
+      displayLabel: displayOutputVars.value[idx] ?? outputVar,
       formulas: variations.value?.[outputVar]?.map((variation) => variation.latex) ?? [],
     }))
     .filter((row) => row.formulas.length > 0),
@@ -450,6 +453,8 @@ const createLcContent = (method: LCMethodType) => {
     outputVars.value,
     outTypeMap[method],
     currentLCHeader,
+    displayInputVars.value,
+    displayOutputVars.value,
   )
   return currentLCContent.toString()
 }
@@ -562,14 +567,14 @@ const methodOptions = lcMethodTypes
             placement="bottom"
             :formulas="row.formulas"
             :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
-            :variableName="row.outputVar"
+            :variableName="row.displayLabel"
             @update:selected-index="(value) => setSelectedFormulaIndex(row.outputVar, value)"
           />
         </div>
         <SettingsButton
           :selected-function-type="functionType"
           :input-vars="inputVars"
-          :output-vars="outputVars"
+          :output-vars="displayOutputVars"
           :show-output-selection="false"
           :show-function-type-selection="true"
           :custom-setting-slot-labels="settingsSlotLabels"

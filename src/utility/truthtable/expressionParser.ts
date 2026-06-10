@@ -195,34 +195,35 @@ export function flattenCouplingTermsToFormula(
 /**
  * Convert Operation to custom LaTeX string (lowercase variables, no operators)
  */
-function operationToLatex(op: Operation, isCNF: boolean = false): string {
+function operationToLatex(
+  op: Operation,
+  isCNF: boolean = false,
+  labelMap?: Record<string, string>,
+): string {
   const name = getOperationName(op)
   if (name !== undefined) {
-    return formatLatexIdentifier(name.toLowerCase())
+    const lower = name.toLowerCase()
+    return formatLatexIdentifier(labelMap?.[lower] ?? lower)
   }
 
   if (getOperationPriority(op) === 15) {
     const inner = getOperationArgs(op)[0]
     if (!inner) return ''
-    return `\\bar{${operationToLatex(inner, isCNF)}}`
+    return `\\overline{${operationToLatex(inner, isCNF, labelMap)}}`
   }
 
   if (getOperationPriority(op) === 8) {
     const args = getOperationArgs(op)
-    if (isCNF) {
-      return args.map((arg) => operationToLatex(arg, isCNF)).join('')
-    } else {
-      return args.map((arg) => operationToLatex(arg, isCNF)).join('')
-    }
+    return args.map((arg) => operationToLatex(arg, isCNF, labelMap)).join('\\,')
   }
 
   if (getOperationPriority(op) === 6) {
     const args = getOperationArgs(op)
     if (isCNF) {
-      const sum = args.map((arg) => operationToLatex(arg, isCNF)).join(' + ')
+      const sum = args.map((arg) => operationToLatex(arg, isCNF, labelMap)).join(' + ')
       return args.length > 1 ? `(${sum})` : sum
     } else {
-      return args.map((arg) => operationToLatex(arg, isCNF)).join(' + ')
+      return args.map((arg) => operationToLatex(arg, isCNF, labelMap)).join(' + ')
     }
   }
 
@@ -232,8 +233,8 @@ function operationToLatex(op: Operation, isCNF: boolean = false): string {
 /**
  * Parse an expression into individual terms
  */
-function getTerms(expr: Operation, isCNF: boolean): string[] {
-  const latex = operationToLatex(expr, isCNF)
+function getTerms(expr: Operation, isCNF: boolean, labelMap?: Record<string, string>): string[] {
+  const latex = operationToLatex(expr, isCNF, labelMap)
   if (isCNF) {
     const matches = latex.match(/\([^)]+\)|[^()\s]+/g) || []
     return matches.map((t) => t.trim())
@@ -248,12 +249,13 @@ function getTerms(expr: Operation, isCNF: boolean): string[] {
 export function analyzeExpressions(
   exprs: Operation[],
   isCNF: boolean,
+  labelMap?: Record<string, string>,
 ): { constantTerms: string[]; variablePositions: string[][] } {
   if (exprs.length === 0) return { constantTerms: [], variablePositions: [] }
   if (exprs.length === 1)
-    return { constantTerms: getTerms(exprs[0]!, isCNF), variablePositions: [] }
+    return { constantTerms: getTerms(exprs[0]!, isCNF, labelMap), variablePositions: [] }
 
-  const allTerms = exprs.map((expr) => getTerms(expr, isCNF))
+  const allTerms = exprs.map((expr) => getTerms(expr, isCNF, labelMap))
 
   // Find common terms across all expressions
   let commonTerms = allTerms[0] ?? []

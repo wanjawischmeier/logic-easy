@@ -12,8 +12,8 @@
       <LegendButton :legend="currentLegend" />
 
       <SettingsButton
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType"
         :show-function-representation-selection="false"
@@ -51,8 +51,8 @@
             <QMCGroupingTable
               v-if="selectedTabIndex === 0"
               :values="tableValues"
-              :input-vars="inputVars"
-              :output-vars="outputVars"
+              :input-vars="displayInputVars"
+              :output-vars="displayOutputVars"
               :outputVariableIndex="outputVariableIndex"
               :formulas="{}"
               :functionType="functionType"
@@ -63,8 +63,8 @@
             <QMCPrimeImplicantChart
               v-else-if="selectedTabIndex === 1"
               :values="tableValues"
-              :input-vars="inputVars"
-              :output-vars="outputVars"
+              :input-vars="displayInputVars"
+              :output-vars="displayOutputVars"
               :outputVariableIndex="outputVariableIndex"
               :formulas="{}"
               :functionType="functionType"
@@ -96,19 +96,19 @@
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
         <div
-          v-for="outputVar in outputVars"
+          v-for="(outputVar, outIdx) in outputVars"
           :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4"
         >
           <vue-latex
             :fontsize="14"
-            :expression="`\\text{Output Variable:}${formatLatexIdentifier(outputVar)}`"
+            :expression="`\\text{Output Variable:}${formatLatexIdentifier(displayOutputVars[outIdx] ?? outputVar)}`"
           />
 
           <QMCGroupingTable
             :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
+            :input-vars="displayInputVars"
+            :output-vars="displayOutputVars"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
             :functionType="functionType"
@@ -118,8 +118,8 @@
 
           <QMCPrimeImplicantChart
             :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
+            :input-vars="displayInputVars"
+            :output-vars="displayOutputVars"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
             :functionType="functionType"
@@ -267,6 +267,8 @@ stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
 const {
   inputVars,
   outputVars,
+  displayInputVars,
+  displayOutputVars,
   values,
   outputVariableIndex,
   functionType,
