@@ -39,7 +39,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue'
+import { defineComponent, computed, type ComputedRef } from 'vue'
 import { newMenu } from '@/router/dockRegistry'
 import DirectoryStyleList from '@/components/parts/DirectoryStyleList.vue'
 import { projectManager } from '@/projects/projectManager'
@@ -54,11 +54,12 @@ export default defineComponent({
     const newProjectEntries = computed<ListEntry[]>(() =>
       newMenu.value.map((group) => {
         const children = group.children
-        if (children?.length === 1) {
+        if (children && children.length === 1) {
+          const entry = children[0]!
           return {
             label: group.label,
-            disabled: children[0].disabled,
-            action: () => showProjectCreationPopup(children[0]),
+            disabled: entry.disabled,
+            action: () => showProjectCreationPopup(entry),
           }
         }
         return {
