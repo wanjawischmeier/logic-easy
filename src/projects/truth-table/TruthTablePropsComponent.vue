@@ -25,9 +25,17 @@
           <svg
             class="w-3 h-3 transition-transform duration-150"
             :class="showInputRename ? 'rotate-90' : ''"
-            viewBox="0 0 6 10" fill="currentColor"
+            viewBox="0 0 6 10"
+            fill="currentColor"
           >
-            <path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path
+              d="M1 1l4 4-4 4"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
           Rename
         </button>
@@ -39,13 +47,15 @@
               v-model="localInputLabels[i]"
               :class="[
                 'w-14 px-1 py-1 text-center text-sm font-mono rounded-xs border bg-surface-2 text-on-surface focus:outline-none transition-colors',
-                localInputLabels[i]?.trim() === '' ? 'border-red-400 focus:border-red-400' : 'border-surface-3 focus:border-primary',
+                localInputLabels[i]?.trim() === ''
+                  ? 'border-red-400 focus:border-red-400'
+                  : 'border-surface-3 focus:border-primary',
               ]"
               maxlength="5"
               @keypress="onlyVarChars"
             />
           </div>
-          <p v-if="inputLabelError" class="text-xs text-red-400">{{ inputLabelError }}</p>
+          <p v-if="inputError" class="text-xs text-red-400">{{ inputError }}</p>
         </div>
       </div>
 
@@ -71,9 +81,17 @@
           <svg
             class="w-3 h-3 transition-transform duration-150"
             :class="showOutputRename ? 'rotate-90' : ''"
-            viewBox="0 0 6 10" fill="currentColor"
+            viewBox="0 0 6 10"
+            fill="currentColor"
           >
-            <path d="M1 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path
+              d="M1 1l4 4-4 4"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
           Rename
         </button>
@@ -85,20 +103,18 @@
               v-model="localOutputLabels[i]"
               :class="[
                 'w-14 px-1 py-1 text-center text-sm font-mono rounded-xs border bg-surface-2 text-on-surface focus:outline-none transition-colors',
-                localOutputLabels[i]?.trim() === '' ? 'border-red-400 focus:border-red-400' : 'border-surface-3 focus:border-primary',
+                localOutputLabels[i]?.trim() === ''
+                  ? 'border-red-400 focus:border-red-400'
+                  : 'border-surface-3 focus:border-primary',
               ]"
               maxlength="5"
               @keypress="onlyVarChars"
             />
           </div>
-          <p v-if="outputLabelError" class="text-xs text-red-400">{{ outputLabelError }}</p>
+          <p v-if="outputError" class="text-xs text-red-400">{{ outputError }}</p>
         </div>
       </div>
     </div>
-
-    <p v-if="labelValidationError" class="mt-3 text-xs text-red-400 text-center">
-      {{ labelValidationError }}
-    </p>
 
     <p class="mt-4 text-xs text-on-surface-disabled text-center">
       Adjust number of variables and optionally rename them.
@@ -138,7 +154,9 @@ const localOutputLabels = ref<string[]>(
 const clamp = (n: number) => Math.min(Math.max(Math.floor(n) || 1, 1), 8)
 
 const inputRange = computed(() => Array.from({ length: clamp(localInputCount.value) }, (_, i) => i))
-const outputRange = computed(() => Array.from({ length: clamp(localOutputCount.value) }, (_, i) => i))
+const outputRange = computed(() =>
+  Array.from({ length: clamp(localOutputCount.value) }, (_, i) => i),
+)
 
 // Resize label arrays when counts change, filling new slots with defaults
 watch(localInputCount, (n) => {
@@ -173,27 +191,22 @@ const outputCountError = computed(() => {
   return undefined
 })
 
-const inputLabelError = computed(() => {
-  if (localInputLabels.value.some((l) => l.trim() === '')) return 'Name cannot be empty'
-  return undefined
-})
+const validVarName = (l: string) => /^[a-zA-Z0-9äöüÄÖÜ_-]+$/.test(l.trim())
 
-const outputLabelError = computed(() => {
-  if (localOutputLabels.value.some((l) => l.trim() === '')) return 'Name cannot be empty'
+function labelError(raw: string[], effective: string[], otherEffective: string[]): string | undefined {
+  if (raw.some((l) => !l.trim())) return 'Name cannot be empty'
+  if (raw.some((l) => !validVarName(l))) return 'Variable names may only contain letters, numbers, and underscores.'
+  const combined = [...effective, ...otherEffective]
+  if (new Set(combined).size < combined.length) return 'All variable names must be unique.'
   return undefined
-})
+}
 
-const labelValidationError = computed(() => {
-  if (inputLabelError.value || outputLabelError.value) return undefined // shown inline
-  for (const label of [...localInputLabels.value, ...localOutputLabels.value]) {
-    if (!/^[a-zA-Z0-9]+$/.test(label.trim())) {
-      return 'Variable names may only contain letters and numbers'
-    }
-  }
-  const all = [...effectiveInputLabels.value, ...effectiveOutputLabels.value]
-  if (new Set(all).size !== all.length) return 'All variable names must be unique'
-  return undefined
-})
+const inputError = computed(() =>
+  labelError(localInputLabels.value, effectiveInputLabels.value, effectiveOutputLabels.value),
+)
+const outputError = computed(() =>
+  labelError(localOutputLabels.value, effectiveOutputLabels.value, effectiveInputLabels.value),
+)
 
 // Only send labels if any differ from the defaults
 const hasCustomInputLabels = computed(() =>
@@ -225,9 +238,8 @@ onMounted(() => {
       const errors = [
         inputCountError.value,
         outputCountError.value,
-        inputLabelError.value,
-        outputLabelError.value,
-        labelValidationError.value,
+        inputError.value,
+        outputError.value,
       ].filter(Boolean)
       return { valid: errors.length === 0, error: errors[0] }
     })
@@ -239,6 +251,6 @@ const onlyNumbers = (event: KeyboardEvent) => {
 }
 
 const onlyVarChars = (event: KeyboardEvent) => {
-  if (!/[a-zA-Z0-9]/.test(event.key)) event.preventDefault()
+  if (!/[a-zA-Z0-9äöüÄÖÜ_-]/.test(event.key)) event.preventDefault()
 }
 </script>
