@@ -23,11 +23,15 @@ export type TruthTableData = TruthTableCell[][]
 export interface TruthTableProps extends BaseProjectProps {
   inputVariableCount: number
   outputVariableCount: number
+  inputVarLabels?: string[]
+  outputVarLabels?: string[]
 }
 
 export interface TruthTableState {
   inputVars: string[]
   outputVars: string[]
+  inputVarLabels?: string[]
+  outputVarLabels?: string[]
   values: TruthTableData
   formulas: Record<string, Formula>
   outputVariableIndex: number
@@ -57,6 +61,18 @@ export class TruthTableProject extends Project {
 
     const inputVars = computed(() => state.value?.inputVars ?? [])
     const outputVars = computed(() => state.value?.outputVars ?? [])
+    const inputVarLabels = computed(() => state.value?.inputVarLabels)
+    const outputVarLabels = computed(() => state.value?.outputVarLabels)
+    const displayInputVars = computed(() =>
+      inputVarLabels.value
+        ? inputVars.value.map((v, i) => inputVarLabels.value![i] ?? v)
+        : inputVars.value,
+    )
+    const displayOutputVars = computed(() =>
+      outputVarLabels.value
+        ? outputVars.value.map((v, i) => outputVarLabels.value![i] ?? v)
+        : outputVars.value,
+    )
     const values = computed(() => stateManager.state.truthTable?.values ?? [])
     const formulas = computed(() => state.value?.formulas ?? {})
     const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0)
@@ -77,6 +93,10 @@ export class TruthTableProject extends Project {
       state,
       inputVars,
       outputVars,
+      inputVarLabels,
+      outputVarLabels,
+      displayInputVars,
+      displayOutputVars,
       outputVar,
       values,
       formulas,
@@ -156,6 +176,8 @@ export class TruthTableProject extends Project {
     stateManager.state.truthTable = {
       inputVars: inputVars,
       outputVars: outputVars,
+      inputVarLabels: props.inputVarLabels,
+      outputVarLabels: props.outputVarLabels,
       values: values,
       formulas: formulas,
       outputVariableIndex: 0,

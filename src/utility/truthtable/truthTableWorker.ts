@@ -48,6 +48,7 @@ function computeVariations(
   inputVars: string[],
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
+  labelMap?: Record<string, string>,
 ): FormulaVariation[] {
   if (!qmcResult.expressions || qmcResult.expressions.length === 0) {
     return []
@@ -71,7 +72,7 @@ function computeVariations(
       inputVars,
       truthTableValues,
       outputVariableIndex,
-      { lowercaseInputVars: true },
+      { labelMap },
     )
 
     return {
@@ -193,6 +194,12 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex]
   if (!currentOutputVar) return
 
+  // Display-only substitution: use labels where provided, internal names for computation
+  const displayInputVars = truthTable.inputVarLabels ?? truthTable.inputVars
+  const labelMap: Record<string, string> | undefined = truthTable.inputVarLabels
+    ? Object.fromEntries(truthTable.inputVars.map((v, i) => [v, truthTable.inputVarLabels![i] ?? v]))
+    : undefined
+
   console.log('[TruthTableWorker] Processing request:', id)
 
   try {
@@ -219,7 +226,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
             outputEdgeCase,
             truthTable.functionType,
             truthTable.functionRepresentation,
-            truthTable.inputVars,
+            displayInputVars,
           )
           qmcResults[outputVar] = edgeResult.qmcResult
           formulas[outputVar] = edgeResult.formula
@@ -243,7 +250,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
               result,
               truthTable.functionType,
               truthTable.functionRepresentation,
-              truthTable.inputVars,
+              displayInputVars,
+              undefined,
+              undefined,
+              labelMap,
             )
           } else {
             formulas[outputVar] = {
@@ -260,7 +270,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         edgeCase,
         truthTable.functionType,
         truthTable.functionRepresentation,
-        truthTable.inputVars,
+        displayInputVars,
       )
 
       const response: WorkerResponse = {
@@ -310,9 +320,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           result,
           truthTable.functionType,
           truthTable.functionRepresentation,
-          truthTable.inputVars,
+          displayInputVars,
           truthTable.values,
           truthTable.outputVariableIndex,
+          labelMap,
         )
       } else {
         formulas[outputVar] = {
@@ -334,9 +345,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         currentQmcResult,
         truthTable.functionType,
         truthTable.functionRepresentation,
-        truthTable.inputVars,
+        displayInputVars,
         truthTable.values,
         truthTable.outputVariableIndex,
+        { labelMap },
       )
       const variations = variationsRecord[currentOutputVar]
       if (variations) {

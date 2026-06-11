@@ -15,8 +15,8 @@
       <LegendButton :legend="legend" />
 
       <SettingsButton
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType"
         :selected-function-representation="functionRepresentation"
@@ -46,8 +46,8 @@
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable
         v-model="tableValues"
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :highlighted-row="highlightedRow"
         :blink-green-row="blinkGreenRow"
         :show-all-output-vars="showAllOutputVars"
@@ -104,8 +104,16 @@ interface TruthTablePanelState {
 }
 
 // Access state from params
-const { inputVars, outputVars, values, outputVariableIndex, functionType, functionRepresentation } =
-  TruthTableProject.useState()
+const {
+  inputVars,
+  outputVars,
+  displayInputVars,
+  displayOutputVars,
+  values,
+  outputVariableIndex,
+  functionType,
+  functionRepresentation,
+} = TruthTableProject.useState()
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<TruthTablePanelState>(props.params.api.id)
@@ -182,7 +190,7 @@ function getTruthTableLatex(): string {
   let latex = `\\begin{tabular}{${colSpec}}\n`
 
   // Add header row
-  const headers = [...inputVars.value, ...outputVars.value]
+  const headers = [...displayInputVars.value, ...displayOutputVars.value]
   latex += headers.join(' & ') + ' \\\\\n\\hline\n'
 
   // Add data rows
