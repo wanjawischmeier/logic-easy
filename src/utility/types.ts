@@ -48,6 +48,7 @@ export interface ListEntry {
   action: () => void
   disabled?: boolean
   subtitle?: string
+  children?: ListEntry[]
 }
 
 export type ListEntries = ListEntry[]

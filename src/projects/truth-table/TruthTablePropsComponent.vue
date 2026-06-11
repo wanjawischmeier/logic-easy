@@ -220,6 +220,7 @@ const hasCustomOutputLabels = computed(() =>
 const fullProps = computed(
   (): TruthTableProps => ({
     name: props.modelValue.name,
+    defaultLayout: props.modelValue.defaultLayout,
     inputVariableCount: clamp(localInputCount.value),
     outputVariableCount: clamp(localOutputCount.value),
     inputVarLabels: hasCustomInputLabels.value ? effectiveInputLabels.value : undefined,

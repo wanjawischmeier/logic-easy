@@ -252,7 +252,7 @@ onMounted(() => {
   window.addEventListener('scroll', updateLegendPosition, true)
   window.addEventListener('resize', updateLegendPosition)
   layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateLegendPosition())
-  
+
   // initial position
   updateLegendPosition()
 
