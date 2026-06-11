@@ -50,16 +50,22 @@ export const popupService = {
  */
 export function showProjectCreationPopup(menuEntry: MenuEntry): boolean {
   const registryEntry = findDockEntry(menuEntry.panelId!)
-  if (!registryEntry?.projectType) return false
+  const projectTypeString = registryEntry?.projectCreationInfo?.projectType
+  if (!projectTypeString) return false
 
-  const projectType = getProjectType(registryEntry.projectType)
+  const projectType = getProjectType(projectTypeString)
+  const props = projectType.projectClass?.defaultProps
+  const defaultLayout = registryEntry.projectCreationInfo?.defaultLayout
+  if (props && defaultLayout) {
+    props.defaultLayout = defaultLayout
+  }
 
   popupService.open({
     projectPropsComponent: projectType.propsComponent,
-    initialProps: projectType.projectClass?.defaultProps,
+    initialProps: props,
     onProjectCreate: async (props: any) => {
-      if (!registryEntry.projectType) return
-      projectManager.createProject(props.name, registryEntry.projectType, props)
+      if (!projectTypeString) return
+      projectManager.createProject(props.name, projectTypeString, props)
     },
   })
   return true

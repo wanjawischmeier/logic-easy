@@ -26,6 +26,11 @@ type Requirements = {
   view?: PanelRequirement[]
 }
 
+type ProjectCreationInfo = {
+  projectType?: ProjectType
+  defaultLayout?: DefaultLayoutType
+}
+
 /**
  * Dock panel entry
  */
@@ -33,7 +38,7 @@ type DockEntry = {
   id: string
   label: string
   component: unknown
-  projectType?: ProjectType
+  projectCreationInfo?: ProjectCreationInfo
   requires?: Requirements
   minimumWidth?: number
 }
@@ -66,6 +71,8 @@ function isDockMenuNode(entry: DockRegistryEntry): entry is DockMenuNode {
   return 'children' in entry && !('id' in entry)
 }
 
+export type DefaultLayoutType = 'TruthTable' | 'SplitKV' | 'SplitQMC'
+
 export type MenuEntry = {
   label: string
   action?: () => void
@@ -74,6 +81,7 @@ export type MenuEntry = {
   children?: MenuEntry[]
   createProject?: boolean
   disabled?: boolean
+  defaultLayout?: DefaultLayoutType
 }
 
 export const dockRegistry: DockRegistryEntry[] = [
@@ -81,7 +89,10 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'truth-table',
     label: 'Truth Table',
     component: TruthTablePanel,
-    projectType: 'combinatorial-circuit',
+    projectCreationInfo: {
+      projectType: 'combinatorial-circuit',
+      defaultLayout: 'SplitKV',
+    },
     minimumWidth: 500,
     requires: {
       view: ['TruthTable'],
@@ -94,7 +105,10 @@ export const dockRegistry: DockRegistryEntry[] = [
         id: 'kv-diagram',
         label: 'Karnaugh-Veitch',
         component: KVDiagramPanel,
-        projectType: 'combinatorial-circuit',
+        projectCreationInfo: {
+          projectType: 'combinatorial-circuit',
+          defaultLayout: 'SplitKV',
+        },
         minimumWidth: 400,
         requires: {
           view: ['Min2InputVars', 'Max4InputVars'],
@@ -104,7 +118,10 @@ export const dockRegistry: DockRegistryEntry[] = [
         id: 'qmc-visualization',
         label: 'Quine-McCluskey',
         component: QMCPanel,
-        projectType: 'combinatorial-circuit',
+        projectCreationInfo: {
+          projectType: 'combinatorial-circuit',
+          defaultLayout: 'SplitQMC',
+        },
         minimumWidth: 400,
         requires: {
           view: ['TruthTable'],
@@ -132,7 +149,9 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'fsm-editor',
     label: 'State Machine Editor',
     component: FsmEnginePanel,
-    projectType: 'state-machine',
+    projectCreationInfo: {
+      projectType: 'state-machine',
+    },
     requires: {
       view: ['Fsm'],
     },
@@ -172,6 +191,7 @@ const convertRegistryEntryToMenuEntry = (
     label: entry.label,
     panelId: entry.id,
     disabled: !checkDockEntryRequirements(entry, requirementType),
+    defaultLayout: entry.projectCreationInfo?.defaultLayout,
   }
 
   if (createProject) {
@@ -185,9 +205,10 @@ export const newMenu = computed<MenuEntry[]>(() => {
   const groups = new Map<string, DockEntry[]>()
 
   for (const entry of flattenDockEntries()) {
-    if (!entry.projectType) continue
-    if (!groups.has(entry.projectType)) groups.set(entry.projectType, [])
-    groups.get(entry.projectType)!.push(entry)
+    const projectType = entry.projectCreationInfo?.projectType
+    if (!projectType) continue
+    if (!groups.has(projectType)) groups.set(projectType, [])
+    groups.get(projectType)!.push(entry)
   }
 
   return [...groups.entries()].map(([type, entries]) => ({

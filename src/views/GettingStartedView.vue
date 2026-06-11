@@ -51,11 +51,13 @@ export default defineComponent({
   name: 'GettingStartedView',
   components: { DirectoryStyleList },
   setup() {
+    console.log(newMenu.value)
     const newProjectEntries = computed<ListEntry[]>(() =>
       newMenu.value.map((group) => {
         const children = group.children
         if (children && children.length === 1) {
           const entry = children[0]!
+          console.log(entry)
           return {
             label: group.label,
             disabled: entry.disabled,

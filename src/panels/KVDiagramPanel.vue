@@ -30,10 +30,7 @@
 
     <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
-      <div
-        data-screenshot-ignore
-        class="flex-1 min-h-0 overflow-auto"
-      >
+      <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
         <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
           <KVDiagram
             :key="`${functionType}-${outputVariableIndex}`"

@@ -1,6 +1,7 @@
 import type { Component } from 'vue'
 import type { ProjectType } from './projectRegistry'
 import type { AppState } from '@/projects/stateManager'
+import type { DefaultLayoutType } from '@/router/dockRegistry'
 
 /**
  * Props define what is needed to initialize a project state
@@ -8,6 +9,7 @@ import type { AppState } from '@/projects/stateManager'
 export interface BaseProjectProps {
   name: string
   [key: string]: unknown
+  defaultLayout?: DefaultLayoutType
 }
 
 /**

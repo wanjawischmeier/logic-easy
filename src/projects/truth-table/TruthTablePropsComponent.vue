@@ -83,6 +83,7 @@ const fullProps = computed(
     name: props.modelValue.name,
     inputVariableCount: localInputCount.value,
     outputVariableCount: localOutputCount.value,
+    defaultLayout: props.modelValue.defaultLayout,
   }),
 )
 

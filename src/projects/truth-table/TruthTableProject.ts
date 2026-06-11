@@ -48,6 +48,7 @@ export class TruthTableProject extends Project {
       name: '',
       inputVariableCount: 4,
       outputVariableCount: 2,
+      defaultLayout: 'TruthTable',
     }
   }
 
@@ -94,12 +95,29 @@ export class TruthTableProject extends Project {
   static override restoreDefaultPanelLayout(props: TruthTableProps) {
     createPanel('truth-table', 'Truth Table')
 
-    // Add KV diagram if input count is between 2 and 4
-    if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
-      createPanel('kv-diagram', 'KV Diagram', {
-        referencePanel: 'truth-table',
-        direction: 'right',
-      })
+    switch (props.defaultLayout) {
+      case 'SplitKV':
+        // Add KV diagram if input count is between 2 and 4
+        if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
+          createPanel('kv-diagram', 'Karnaugh-Veitch', {
+            referencePanel: 'truth-table',
+            direction: 'right',
+          })
+        }
+        break
+
+      case 'SplitQMC':
+        // Add KV diagram if input count is between 2 and 4
+        if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
+          createPanel('qmc-visualization', 'Quine-McCluskey', {
+            referencePanel: 'truth-table',
+            direction: 'right',
+          })
+        }
+        break
+
+      default:
+        break
     }
   }
 
