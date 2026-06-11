@@ -196,8 +196,9 @@ const validVarName = (l: string) => /^[a-zA-Z0-9äöüÄÖÜ_-]+$/.test(l.trim()
 function labelError(raw: string[], effective: string[], otherEffective: string[]): string | undefined {
   if (raw.some((l) => !l.trim())) return 'Name cannot be empty'
   if (raw.some((l) => !validVarName(l))) return 'Variable names may only contain letters, numbers, and underscores.'
-  const combined = [...effective, ...otherEffective]
-  if (new Set(combined).size < combined.length) return 'All variable names must be unique.'
+  if (new Set(effective).size < effective.length) return 'All variable names must be unique.'
+  const otherSet = new Set(otherEffective)
+  if (effective.some((l) => otherSet.has(l))) return 'All variable names must be unique.'
   return undefined
 }
 
