@@ -42,11 +42,11 @@ function getBinaryMinterm(rowIdx: number, inputVars: string[]): string {
     if (bit === '1') {
       literals.push(variable)
     } else {
-      literals.push(`\\bar{${variable}}`)
+      literals.push(`\\overline{${variable}}`)
     }
   }
 
-  return literals.join('')
+  return literals.join('\\,')
 }
 
 /**
@@ -63,7 +63,7 @@ function getBinaryMaxterm(rowIdx: number, inputVars: string[]): string {
     if (bit === '0') {
       literals.push(variable)
     } else {
-      literals.push(`\\bar{${variable}}`)
+      literals.push(`\\overline{${variable}}`)
     }
   }
 
@@ -74,7 +74,7 @@ function getBinaryMaxterm(rowIdx: number, inputVars: string[]): string {
  * Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
  */
 function getTermSortKey(term: string): string {
-  return term.replace(/\\bar\{([a-z])\}/g, '$1')
+  return term.replace(/\\overline\{([^}]+)\}/g, '$1')
 }
 
 /**
@@ -138,7 +138,7 @@ export function getCouplingTermLatex(
   inputVars: string[],
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
-  options?: { lowercaseInputVars?: boolean },
+  options?: { lowercaseInputVars?: boolean; labelMap?: Record<string, string> },
 ): string {
   const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, options)
 
@@ -170,7 +170,11 @@ export function getCouplingTermLatex(
   }
 
   const isCNF = functionType === 'Conjunctive'
-  const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF)
+  const { constantTerms, variablePositions } = analyzeExpressions(
+    qmcResult.expressions,
+    isCNF,
+    options?.labelMap,
+  )
 
   if (variablePositions.length === 0) {
     const termJoiner = isCNF ? '' : ' + '

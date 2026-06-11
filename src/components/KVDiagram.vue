@@ -13,7 +13,7 @@
         <div class="w-14 shrink-0"></div>
         <!-- Centered label over data columns -->
         <div class="flex-1 flex justify-center items-end text-secondary-variant">
-          <vue-latex :expression="topVariables.join('')" display-mode />
+          <vue-latex :expression="topVariables.map(v => formatLatexIdentifier(v)).join('\\,')" display-mode />
         </div>
       </div>
 
@@ -23,7 +23,7 @@
         <div class="h-14 shrink-0"></div>
         <!-- Centered label next to data rows -->
         <div class="flex-1 flex items-center justify-end pr-2 text-secondary-variant">
-          <vue-latex :expression="leftVariables.join('')" display-mode />
+          <vue-latex :expression="leftVariables.map(v => formatLatexIdentifier(v)).join('\\,')" display-mode />
         </div>
       </div>
 
@@ -33,7 +33,7 @@
           <tr>
             <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
               <vue-latex
-                :expression="formatLatexIdentifier(outputVars[outputVariableIndex ?? 0] || 'f')"
+                :expression="formatLatexIdentifier((outputVarLabels?.[outputVariableIndex ?? 0] ?? outputVars[outputVariableIndex ?? 0]) || 'f')"
                 display-mode
               />
             </th>
@@ -109,6 +109,8 @@ import type { TermColor } from '@/utility/truthtable/colorGenerator'
 type KVDiagramProps = {
   inputVars: string[]
   outputVars: string[]
+  inputVarLabels?: string[]
+  outputVarLabels?: string[]
   values: TruthTableData
   formulas: Record<string, Formula>
   outputVariableIndex: number
@@ -128,8 +130,9 @@ const emit = defineEmits<{
 }>()
 
 const variables = computed(() => props.inputVars || [])
-const leftVariables = computed(() => getLeftVariables(variables.value))
-const topVariables = computed(() => getTopVariables(variables.value))
+const displayVariables = computed(() => props.inputVarLabels ?? props.inputVars ?? [])
+const leftVariables = computed(() => getLeftVariables(displayVariables.value))
+const topVariables = computed(() => getTopVariables(displayVariables.value))
 const rowCodes = computed(() => getRowCodes(variables.value.length))
 const colCodes = computed(() => getColCodes(variables.value.length))
 

@@ -185,6 +185,8 @@ class TruthTableWorkerManager {
     const serializedTruthTable: TruthTableState = {
       inputVars: toRawDeep(truthTable.inputVars),
       outputVars: toRawDeep(truthTable.outputVars),
+      inputVarLabels: toRawDeep(truthTable.inputVarLabels),
+      outputVarLabels: toRawDeep(truthTable.outputVarLabels),
       values: toRawDeep(truthTable.values),
       formulas: toRawDeep(truthTable.formulas),
       outputVariableIndex: truthTable.outputVariableIndex,
