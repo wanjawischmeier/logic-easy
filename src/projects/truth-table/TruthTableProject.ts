@@ -117,8 +117,7 @@ export class TruthTableProject extends Project {
 
     switch (props.defaultLayout) {
       case 'SplitKV':
-        // Add KV diagram if input count is between 2 and 4
-        if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
+        if (props.inputVariableCount >= 2) {
           createPanel('kv-diagram', 'Karnaugh-Veitch', {
             referencePanel: 'truth-table',
             direction: 'right',
