@@ -18,7 +18,7 @@
         :aria-pressed="idx === selected"
         :class="[
           compact ? 'px-2.5 py-1.5 whitespace-nowrap text-[11px] leading-none' : 'px-3 py-1.5',
-          'relative z-10 transition-colors duration-100 rounded-xs',
+          'relative z-10 flex items-center justify-center transition-colors duration-100 rounded-xs',
           idx === selected
             ? randomSelectMode
               ? 'bg-linear-to-bl from-primary to-secondary bg-size-[200%_200%] bg-position-[0%_100%] animate-[gradient-flow_2s_ease_infinite]'
@@ -92,20 +92,17 @@ const sliderStyle = computed(() => {
   sliderStyleKey.value
 
   if (selected.value === null || !buttonRefs.value.length) {
-    return { width: '0px', transform: 'translateX(0px)' }
+    return { left: '0px', width: '0px' }
   }
 
   const selectedButton = buttonRefs.value[selected.value]
   if (!selectedButton) {
-    return { width: '0px', transform: 'translateX(0px)' }
+    return { left: '0px', width: '0px' }
   }
 
-  const width = selectedButton.offsetWidth
-  const left = selectedButton.offsetLeft
-
   return {
-    width: `${width}px`,
-    transform: `translateX(${left - buttonRefs.value.length}px)`,
+    left: `${selectedButton.offsetLeft}px`,
+    width: `${selectedButton.offsetWidth}px`,
   }
 })
 
