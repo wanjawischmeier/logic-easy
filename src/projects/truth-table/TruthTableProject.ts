@@ -150,7 +150,7 @@ export class TruthTableProject extends Project {
 
     // Generate variable names
     const inputVars = this.generateVariableNames(props.inputVariableCount, 97)
-    const outputVars = this.generateVariableNames(props.outputVariableCount, 112)
+    const outputVars = this.generateVariableNames(props.outputVariableCount, 107)
 
     // create formulas
     const formulas: Record<string, Formula> = {}

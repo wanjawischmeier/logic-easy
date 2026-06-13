@@ -142,7 +142,7 @@ const showInputRename = ref(false)
 const showOutputRename = ref(false)
 
 const defaultInputName = (i: number) => String.fromCharCode(97 + i)
-const defaultOutputName = (i: number) => String.fromCharCode(112 + i)
+const defaultOutputName = (i: number) => String.fromCharCode(107 + i)
 
 const localInputLabels = ref<string[]>(
   Array.from({ length: props.modelValue.inputVariableCount }, (_, i) => defaultInputName(i)),
