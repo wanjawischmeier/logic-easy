@@ -202,7 +202,9 @@ function updateCentered() {
     return
   }
   containerHeight.value = c.clientHeight
-  scrollTop.value = c.scrollTop
+  if (c.scrollTop !== scrollTop.value) {
+    c.scrollTop = scrollTop.value
+  }
   if (!rowHeightMeasured) {
     const row = t.querySelector<HTMLElement>('tbody tr:not([style])')
     if (row?.offsetHeight) {
