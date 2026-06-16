@@ -33,7 +33,7 @@
           <th
             v-for="output in displayedOutputVars"
             :key="output"
-            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r last:border-r-0 w-24"
+            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r w-24"
           >
             <vue-latex :expression="output" display-mode />
           </th>
@@ -80,10 +80,9 @@
           <td
             v-for="(item, idx) in getDisplayedOutputCells(row)"
             :key="'out-' + item.actualIndex"
-            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-color duration-300"
+            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-r border-primary transition-colors duration-300"
             :class="{
               'bg-surface-1': highlightedRow !== rowIdx && blinkGreenRow !== rowIdx,
-              'border-r': idx !== getDisplayedOutputCells(row).length - 1,
             }"
             @click="toggleCell(rowIdx, item.actualIndex)"
           >
@@ -132,13 +131,20 @@ const BUFFER = 5
 
 const startIdx = computed(() => Math.max(0, Math.floor(scrollTop.value / rowHeight.value) - BUFFER))
 const endIdx = computed(() =>
-  Math.min(props.modelValue.length, Math.ceil((scrollTop.value + containerHeight.value) / rowHeight.value) + BUFFER),
+  Math.min(
+    props.modelValue.length,
+    Math.ceil((scrollTop.value + containerHeight.value) / rowHeight.value) + BUFFER,
+  ),
 )
 const visibleRows = computed(() =>
-  props.modelValue.slice(startIdx.value, endIdx.value).map((row, i) => ({ row, rowIdx: startIdx.value + i })),
+  props.modelValue
+    .slice(startIdx.value, endIdx.value)
+    .map((row, i) => ({ row, rowIdx: startIdx.value + i })),
 )
 const topSpacerHeight = computed(() => startIdx.value * rowHeight.value)
-const bottomSpacerHeight = computed(() => (props.modelValue.length - endIdx.value) * rowHeight.value)
+const bottomSpacerHeight = computed(
+  () => (props.modelValue.length - endIdx.value) * rowHeight.value,
+)
 
 const displayedOutputVars = computed(() => {
   if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
@@ -196,6 +202,7 @@ function updateCentered() {
     return
   }
   containerHeight.value = c.clientHeight
+  scrollTop.value = c.scrollTop
   if (!rowHeightMeasured) {
     const row = t.querySelector<HTMLElement>('tbody tr:not([style])')
     if (row?.offsetHeight) {
