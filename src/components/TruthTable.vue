@@ -206,13 +206,6 @@ onBeforeUnmount(() => {
   tableObserver?.disconnect()
 })
 
-// Recompute whenever data changes
-watch(
-  () => [props.modelValue, props.inputVars, props.outputVars],
-  () => nextTick(updateCentered),
-  { deep: true },
-)
-
 // Scroll highlighted row into view
 watch(
   () => props.highlightedRow,
