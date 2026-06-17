@@ -14,8 +14,10 @@ import VariationSelector from '@/components/parts/VariationSelector.vue'
 import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
+import { hasSignificantChanges } from '@/utility/LogicCircuitsExport/lcChangeDetection'
 import { Formula as FormulaDefaults, type Formula, type Term } from '@/utility/types'
-import { getDockviewApi } from '@/utility/dockview/integration'
+import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
+import { downloadFile } from '@/utility/downloadFile'
 
 defineProps<Partial<IDockviewPanelProps>>()
 
@@ -38,123 +40,37 @@ type IframePanelExpose = {
   getIframe: () => HTMLIFrameElement | undefined
 }
 const iframePanelRef = ref<IframePanelExpose | null>(null)
-const downloadButtonStyle = ref<{ right?: string; top?: string }>({})
-let positionObserver: ResizeObserver | null = null
-const editWarning = ref(false)
-const editWarningMessage =
-  'Manual edits in the inbuild LogicCircuits are not synced to LogicEasy. If you want to edit the circuit in LogicCircuits, export the .lc file, and import it to LogicCircuits.'
-const editWarningInlineText = 'Manual edits are not synced to LogicEasy!'
-let detachIframeGuards: (() => void) | null = null
-let iframeReadyRebindHandler: EventListener | null = null
-const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
 
-type LogicCircuitsPanelState = {
-  hideManualEditWarning?: boolean
+// Pins the teleported toolbar to the panel's top-right corner.
+const { style: toolbarStyle } = useFloatingToolbarPosition(panelRef)
+
+/*
+
+Changable settings
+
+ */
+type LCMethodType = 'AND/OR' | 'NAND' | 'NOR'
+const lcMethodTypes: LCMethodType[] = ['AND/OR', 'NAND', 'NOR']
+const selectedMethod = ref<LCMethodType>('NOR')
+const selectedMethodIndex = computed(() => lcMethodTypes.indexOf(selectedMethod.value))
+
+const outTypeMap: Record<LCMethodType, 'and-or' | 'nand' | 'nor'> = {
+  'AND/OR': 'and-or',
+  NAND: 'nand',
+  NOR: 'nor',
 }
 
-const hideManualEditWarning = computed(() => {
-  return (
-    stateManager.state.panelStates?.[LOGIC_CIRCUITS_PANEL_STATE_KEY]?.hideManualEditWarning === true
-  )
-})
-
-function setHideManualEditWarning(value: boolean) {
-  if (!stateManager.state.panelStates) {
-    stateManager.state.panelStates = {}
-  }
-
-  const panelState = stateManager.state.panelStates[LOGIC_CIRCUITS_PANEL_STATE_KEY] ?? {}
-  stateManager.state.panelStates[LOGIC_CIRCUITS_PANEL_STATE_KEY] = {
-    ...panelState,
-    hideManualEditWarning: value,
-  } as LogicCircuitsPanelState
-}
-
-function downloadTextAsFile(content: string, filename: string, mimeType = 'text/plain') {
-  const blob = new Blob([content], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-async function exportEditedLCFromPopup() {
-  const lcContent = await logicCircuits.exportCurrentLC()
-  if (!lcContent) {
-    downloadTextAsFile(createLcContent(selectedMethod.value), 'logic-circuit.lc', 'text/lc') //fallback to generated content
-    return
-  }
-
-  const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
-  const filenameBase = sanitizeName(projectName) || 'logic-circuit'
-  const filename = `${filenameBase}_edited.lc`
-  downloadTextAsFile(lcContent, filename, 'text/lc')
-}
-
-function syncFromLogicEasyAndDiscardManualEdits(dontShowAgain = false) {
-  if (dontShowAgain) {
-    setHideManualEditWarning(true)
-  }
-
-  editWarning.value = false
+function handleMethodSelect(value: unknown, idx: number) {
+  if (idx == null || idx < 0 || idx >= lcMethodTypes.length) return
+  selectedMethod.value = (value as LCMethodType) ?? lcMethodTypes[idx]
   void updateFormulas()
 }
 
-function openEditWarningPopup() {
-  const currentPopup = popupService.current.value
-  if (
-    currentPopup &&
-    'component' in currentPopup &&
-    currentPopup.component === LogicCircuitsWarningPopup
-  ) {
-    return
-  }
+/*
 
-  popupService.open({
-    component: LogicCircuitsWarningPopup,
-    props: {
-      message: editWarningMessage,
-      exportAction: exportEditedLCFromPopup,
-      syncAction: syncFromLogicEasyAndDiscardManualEdits,
-    },
-  })
-}
+Formula selection setting related stuff
 
-function generateCanonicalFormulas(): Record<string, Formula> {
-  const canonicalFormulas: Record<string, Formula> = {}
-
-  outputVars.value.forEach((outVar, outIdx) => {
-    const terms: Term[] = []
-    const isDNF = functionType.value === 'Disjunctive' // Note: check your FunctionType literals, it might be 'DNF' or 'Disjunctive' depending on your types
-    const targetValue = isDNF ? 1 : 0
-
-    values.value.forEach((row, rowIdx) => {
-      if (row[outIdx] === targetValue) {
-        const literals = inputVars.value.map((inVar, inIdx) => {
-          // Find input bits using binary representation of row index
-          const bitValue = (rowIdx >> (inputVars.value.length - 1 - inIdx)) & 1
-          const negated = isDNF ? bitValue === 0 : bitValue === 1
-
-          return { variable: inVar, negated }
-        })
-        terms.push({ literals })
-      }
-    })
-
-    canonicalFormulas[outVar] = {
-      type: functionType.value,
-      terms,
-    }
-  })
-
-  return canonicalFormulas
-}
-
+*/
 const variationRows = computed(() =>
   outputVars.value
     .map((outputVar, idx) => ({
@@ -191,6 +107,42 @@ function setSelectedFormulaIndex(outputVar: string, value: number) {
   void updateFormulas()
 }
 
+/*
+
+formula preperation for lc
+
+*/
+
+function generateCanonicalFormulas(): Record<string, Formula> {
+  const canonicalFormulas: Record<string, Formula> = {}
+
+  outputVars.value.forEach((outVar, outIdx) => {
+    const terms: Term[] = []
+    const isDNF = functionType.value === 'Disjunctive'
+    const targetValue = isDNF ? 1 : 0
+
+    values.value.forEach((row, rowIdx) => {
+      if (row[outIdx] === targetValue) {
+        const literals = inputVars.value.map((inVar, inIdx) => {
+          // Find input bits using binary representation of row index
+          const bitValue = (rowIdx >> (inputVars.value.length - 1 - inIdx)) & 1
+          const negated = isDNF ? bitValue === 0 : bitValue === 1
+
+          return { variable: inVar, negated }
+        })
+        terms.push({ literals })
+      }
+    })
+
+    canonicalFormulas[outVar] = {
+      type: functionType.value,
+      terms,
+    }
+  })
+
+  return canonicalFormulas
+}
+
 function generateSelectedVariationFormulas(): Record<string, Formula> {
   const selectedFormulas: Record<string, Formula> = {}
 
@@ -204,85 +156,187 @@ function generateSelectedVariationFormulas(): Record<string, Formula> {
   return selectedFormulas
 }
 
-async function foundSignificantChanges(): Promise<boolean> {
+/*
+ lc generate related stuff
+ */
+let currentLCContent: LCFile | null = null
+let currentLCHeader: string | undefined = undefined
+let lastFileContent = ''
+
+// adjust the view in future lc imports/exports to match the current view.
+async function updateLCHeader() {
   const newLC = await logicCircuits.exportCurrentLC()
 
-  if (!newLC) return true
-  if (!currentLCContent) return false
+  if (!newLC) return
 
-  // check element changes
-  const newElems = newLC.match(/\[([^\]]*)\]/g)?.[1]
-
-  const lastElements = currentLCContent.elements.toString() // your already-parsed elements
-
-  const newIs = (newElems?.match(/i/g) ?? []).length
-  const newNs = (newElems?.match(/n/g) ?? []).length
-
-  const lastIs = (lastElements.match(/i/g) ?? []).length
-  const lastNs = (lastElements.match(/n/g) ?? []).length
-
-  const newCoords = newElems
-    ?.match(/\{([^}]*)\}/g)
-    ?.map((s) =>
-      s
-        .slice(1, -1)
-        .split(',')
-        .slice(1, 3)
-        .map((v) => v.trim().slice(0, -1))
-        .join(''),
-    )
-    .join('')
-
-  const lastCoords = lastElements
-    .match(/\{([^}]*)\}/g)
-    ?.map((s) =>
-      s
-        .slice(1, -1)
-        .split(',')
-        .slice(1, 3)
-        .map((v) => v.trim().slice(0, -1))
-        .join(''),
-    )
-    .join('')
-
-  if (newIs !== lastIs || newNs !== lastNs || newCoords !== lastCoords) return true
-
-  // check node changes
-  const newNodes = newLC.match(/\[([^\]]*)\]/g)?.[2]
-  const lastNodes = currentLCContent.nodes.toString()
-
-  const newNodeCount = (newNodes?.match(/{/g) ?? []).length
-  const oldNodeCount = (lastNodes.match(/{/g) ?? []).length
-
-  const newFreeNodes = (newNodes?.match(/\d+,\d+/g) ?? []).length
-  const oldFreeNodes = (lastNodes.match(/\d+,\d+/g) ?? []).length
-
-  if (newNodeCount !== oldNodeCount) return true
-  if (newFreeNodes !== oldFreeNodes) return true
-
-  // check connection changes
-  const newConns = newLC.match(/\[([^\]]*)\]/g)?.[3]
-  const lastConns = currentLCContent.connections.toString()
-
-  const newConnCount = (newConns?.match(/{/g) ?? []).length
-  const oldConnCount = (lastConns.match(/{/g) ?? []).length
-
-  if (newConnCount !== oldConnCount) return true
-
-  //check for text changes
-  const newTexts = newLC.match(/\[([^\]]*)\]/g)?.[4]
-  const lastTexts = currentLCContent.texts.toString()
-  const extractLabels = (block: string) =>
-    block.match(/\{[^}]+\}/g)?.map((s) => s.slice(1, -1).split(',')[4] ?? '') ?? []
-
-  const newLabels = extractLabels(newTexts ?? '')
-  const lastLabels = extractLabels(lastTexts)
-
-  if (newLabels.join(',') !== lastLabels.join(',')) return true
-
-  return false
+  currentLCHeader = newLC.match(/\[([^\]]*)\]/g)?.[0]
 }
 
+// Sanitize names for filenames: replace non-alphanumeric chars with '_' and collapse underscores
+const sanitizeName = (value: string) =>
+  value
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+
+const createLcContent = (method: LCMethodType) => {
+  const targetFormulas =
+    functionRepresentation.value === 'Normal'
+      ? generateCanonicalFormulas()
+      : generateSelectedVariationFormulas()
+
+  currentLCContent = formulaToLC(
+    targetFormulas,
+    inputVars.value,
+    outputVars.value,
+    outTypeMap[method],
+    currentLCHeader,
+    displayInputVars.value,
+    displayOutputVars.value,
+  )
+  return currentLCContent.toString()
+}
+
+async function updateFormulas() {
+  if (editWarning.value && !hideManualEditWarning.value) {
+    openEditWarningPopup()
+    return
+  }
+
+  const fileContent = createLcContent(selectedMethod.value)
+
+  // Avoid updating if content hasn't changed to prevent unnecessary reloads
+  if (fileContent === lastFileContent) {
+    return
+  }
+
+  const success = await logicCircuits.loadFile({
+    content: fileContent,
+  })
+
+  if (!success) {
+    console.error('Failed to load file')
+    return
+  }
+
+  editWarning.value = false
+
+  lastFileContent = fileContent
+}
+
+const logicCircuitDownloadFiles = computed(() => {
+  if (!inputVars.value.length || !outputVars.value.length) {
+    return []
+  }
+
+  const selected = selectedMethod.value
+
+  const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
+  const baseName = sanitizeName(projectName)
+
+  // Offer only the currently selected method as the downloadable file.
+  return [
+    {
+      label: selected + '-Circuit',
+      // filename directly reflects the selected method (sanitized)
+      filename: `${baseName}_${sanitizeName(String(selected))}-Circuit`,
+      extension: 'lc',
+      content: () => createLcContent(selected),
+      mimeType: 'text/lc',
+      appendDate: false,
+    },
+  ]
+})
+
+// Keep the iframe in sync with state and selection.
+watch(
+  [() => formulas.value, () => variations.value, () => variationIndex.value],
+  () => {
+    void updateFormulas()
+  },
+  { immediate: true, deep: true },
+)
+
+/*
+Manual edit warning related stuff
+*/
+const editWarning = ref(false)
+const editWarningMessage =
+  'Manual edits in the inbuild LogicCircuits are not synced to LogicEasy. If you want to edit the circuit in LogicCircuits, export the .lc file, and import it to LogicCircuits.'
+const editWarningInlineText = 'Manual edits are not synced to LogicEasy!'
+const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
+
+type LogicCircuitsPanelState = {
+  hideManualEditWarning?: boolean
+}
+
+const hideManualEditWarning = computed(() => {
+  return (
+    stateManager.state.panelStates?.[LOGIC_CIRCUITS_PANEL_STATE_KEY]?.hideManualEditWarning === true
+  )
+})
+
+function setHideManualEditWarning(value: boolean) {
+  if (!stateManager.state.panelStates) {
+    stateManager.state.panelStates = {}
+  }
+
+  const panelState = stateManager.state.panelStates[LOGIC_CIRCUITS_PANEL_STATE_KEY] ?? {}
+  stateManager.state.panelStates[LOGIC_CIRCUITS_PANEL_STATE_KEY] = {
+    ...panelState,
+    hideManualEditWarning: value,
+  } as LogicCircuitsPanelState
+}
+
+async function exportEditedLCFromPopup() {
+  const lcContent = await logicCircuits.exportCurrentLC()
+  if (!lcContent) {
+    downloadFile(createLcContent(selectedMethod.value), 'logic-circuit.lc', 'text/lc') //fallback to generated content
+    return
+  }
+
+  const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
+  const filenameBase = sanitizeName(projectName) || 'logic-circuit'
+  const filename = `${filenameBase}_edited.lc`
+  downloadFile(lcContent, filename, 'text/lc')
+}
+
+function syncFromLogicEasyAndDiscardManualEdits(dontShowAgain = false) {
+  if (dontShowAgain) {
+    setHideManualEditWarning(true)
+  }
+
+  editWarning.value = false
+  void updateFormulas()
+}
+
+function openEditWarningPopup() {
+  const currentPopup = popupService.current.value
+  if (
+    currentPopup &&
+    'component' in currentPopup &&
+    currentPopup.component === LogicCircuitsWarningPopup
+  ) {
+    return
+  }
+
+  popupService.open({
+    component: LogicCircuitsWarningPopup,
+    props: {
+      message: editWarningMessage,
+      exportAction: exportEditedLCFromPopup,
+      syncAction: syncFromLogicEasyAndDiscardManualEdits,
+    },
+  })
+}
+
+/*
+
+Iframe related stuff
+
+*/
+let detachIframeGuards: (() => void) | null = null
+let iframeReadyRebindHandler: EventListener | null = null
 let changeDetectionInFlight = false
 
 async function refreshSignificantChangeWarning() {
@@ -292,7 +346,10 @@ async function refreshSignificantChangeWarning() {
 
   changeDetectionInFlight = true
   try {
-    editWarning.value = await foundSignificantChanges()
+    const newLC = await logicCircuits.exportCurrentLC()
+    if (!newLC) editWarning.value = true
+    else if (!currentLCContent) editWarning.value = false
+    else editWarning.value = hasSignificantChanges(newLC, currentLCContent)
   } finally {
     changeDetectionInFlight = false
   }
@@ -369,50 +426,13 @@ function installIframeInteractionGuards() {
   }
 }
 
-function updateMethodPickerPosition() {
-  if (!panelRef.value) return
-  const rect = panelRef.value.getBoundingClientRect()
-  const offset = 8
-  downloadButtonStyle.value = {
-    right: `${window.innerWidth - rect.right + offset}px`,
-    top: `${rect.top + offset}px`,
-  }
-}
-
-let currentLCHeader: string | undefined = undefined
-let layoutDisposable: any = null
-
-// adjust the view in future lc imports/exports to match the current view.
-async function updateLCHeader() {
-  console.log('LogicCircuits view updated via zoom or drag')
-  const newLC = await logicCircuits.exportCurrentLC()
-
-  if (!newLC) return
-
-  currentLCHeader = newLC.match(/\[([^\]]*)\]/g)?.[0]
-}
-
 onMounted(() => {
-  updateMethodPickerPosition()
-  positionObserver = new ResizeObserver(() => updateMethodPickerPosition())
-  if (panelRef.value) {
-    positionObserver.observe(panelRef.value)
-  }
-  window.addEventListener('scroll', updateMethodPickerPosition, true)
-  window.addEventListener('resize', updateMethodPickerPosition)
-  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateMethodPickerPosition())
-
   installIframeInteractionGuards()
   iframeReadyRebindHandler = () => installIframeInteractionGuards()
   window.addEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
 })
 
 onBeforeUnmount(() => {
-  positionObserver?.disconnect()
-  window.removeEventListener('scroll', updateMethodPickerPosition, true)
-  window.removeEventListener('resize', updateMethodPickerPosition)
-  layoutDisposable?.dispose?.()
-  layoutDisposable = null
   detachIframeGuards?.()
   detachIframeGuards = null
   if (iframeReadyRebindHandler) {
@@ -420,114 +440,6 @@ onBeforeUnmount(() => {
     iframeReadyRebindHandler = null
   }
 })
-
-type LCMethodType = 'AND/OR' | 'NAND' | 'NOR'
-const lcMethodTypes: LCMethodType[] = ['AND/OR', 'NAND', 'NOR']
-const selectedMethod = ref<LCMethodType>('NOR')
-const selectedMethodIndex = computed(() => lcMethodTypes.indexOf(selectedMethod.value))
-
-const outTypeMap: Record<LCMethodType, 'and-or' | 'nand' | 'nor'> = {
-  'AND/OR': 'and-or',
-  NAND: 'nand',
-  NOR: 'nor',
-}
-
-// Sanitize names for filenames: replace non-alphanumeric chars with '_' and collapse underscores
-const sanitizeName = (value: string) =>
-  value
-    .replace(/[^a-zA-Z0-9]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '')
-
-let currentLCContent: LCFile | null = null
-
-const createLcContent = (method: LCMethodType) => {
-  const targetFormulas =
-    functionRepresentation.value === 'Normal'
-      ? generateCanonicalFormulas()
-      : generateSelectedVariationFormulas()
-
-  currentLCContent = formulaToLC(
-    targetFormulas,
-    inputVars.value,
-    outputVars.value,
-    outTypeMap[method],
-    currentLCHeader,
-    displayInputVars.value,
-    displayOutputVars.value,
-  )
-  return currentLCContent.toString()
-}
-
-const logicCircuitDownloadFiles = computed(() => {
-  if (!inputVars.value.length || !outputVars.value.length) {
-    return []
-  }
-
-  const selected = selectedMethod.value
-
-  const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
-  const baseName = sanitizeName(projectName)
-
-  // Offer only the currently selected method as the downloadable file.
-  return [
-    {
-      label: selected + '-Circuit',
-      // filename directly reflects the selected method (sanitized)
-      filename: `${baseName}_${sanitizeName(String(selected))}-Circuit`,
-      extension: 'lc',
-      content: () => createLcContent(selected),
-      mimeType: 'text/lc',
-      appendDate: false,
-    },
-  ]
-})
-
-function handleMethodSelect(value: unknown, idx: number) {
-  if (idx == null || idx < 0 || idx >= lcMethodTypes.length) return
-  selectedMethod.value = (value as LCMethodType) ?? lcMethodTypes[idx]
-  void updateFormulas()
-}
-
-let lastFileContent = ''
-
-async function updateFormulas() {
-  if (editWarning.value && !hideManualEditWarning.value) {
-    openEditWarningPopup()
-    return
-  }
-
-  const fileContent = createLcContent(selectedMethod.value)
-
-  // Avoid updating if content hasn't changed to prevent unnecessary reloads
-  if (fileContent === lastFileContent) {
-    return
-  }
-
-  const success = await logicCircuits.loadFile({
-    content: fileContent,
-  })
-
-  if (!success) {
-    console.error('Failed to load file')
-    return
-  }
-
-  editWarning.value = false
-
-  lastFileContent = fileContent
-}
-
-// Keep the plain object in sync with state and selection
-watch(
-  [() => formulas.value, () => variations.value, () => variationIndex.value],
-  () => {
-    void updateFormulas()
-  },
-  { immediate: true, deep: true },
-)
-
-const methodOptions = lcMethodTypes
 </script>
 
 <template>
@@ -546,7 +458,7 @@ const methodOptions = lcMethodTypes
       <div
         id="lc-download-button"
         class="fixed z-10 flex items-center gap-2 text-sm"
-        :style="downloadButtonStyle"
+        :style="toolbarStyle"
       >
         <div
           v-if="editWarning"
@@ -582,7 +494,7 @@ const methodOptions = lcMethodTypes
         >
           <template #method>
             <MultiSelectSwitch
-              :values="methodOptions"
+              :values="lcMethodTypes"
               :initial-selected="selectedMethodIndex"
               :onSelect="handleMethodSelect"
             />
