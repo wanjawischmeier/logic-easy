@@ -1,4 +1,5 @@
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject.ts'
+import { downloadFile } from '@/utility/downloadFile'
 
 /**
  * Export truth table to VHDL using case when statements
@@ -252,23 +253,5 @@ function getInputValue(rowIdx: number, colIdx: number, inputVarCount: number) {
   return (rowIdx >> shiftAmount) & 1
 }
 
-/**
- * Download content as a file
- * @param content
- * @param filename
- */
-const downloadAsFile = (content: string, filename: string) => {
-  const blob = new Blob([content], {
-    type: 'text/vhdl',
-  })
-
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', filename)
-  link.style.visibility = 'hidden'
-
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
+const downloadAsFile = (content: string, filename: string) =>
+  downloadFile(content, filename, 'text/vhdl')

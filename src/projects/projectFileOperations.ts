@@ -1,5 +1,6 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import type { StoredProject } from './Project'
+import { downloadFile } from '@/utility/downloadFile'
 
 /**
  * File import/export operations for projects
@@ -24,17 +25,7 @@ export class ProjectFileOperations {
     }
 
     const dataStr = JSON.stringify(project, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${project.name}.le`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    URL.revokeObjectURL(url)
+    downloadFile(dataStr, `${project.name}.le`, 'application/json')
     return true
   }
 
