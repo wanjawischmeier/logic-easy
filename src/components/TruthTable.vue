@@ -33,21 +33,19 @@
           <th
             v-for="output in displayedOutputVars"
             :key="output"
-            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r last:border-r-0 w-24"
+            class="px-3 text-primary-variant border-b-4 border-primary bg-surface-1 border-r w-24"
           >
             <vue-latex :expression="output" display-mode />
           </th>
         </tr>
       </thead>
       <tbody>
+        <tr v-if="topSpacerHeight" :style="{ height: topSpacerHeight + 'px' }">
+          <td :colspan="inputVars.length + outputVars.length + 1" />
+        </tr>
         <tr
-          v-for="(row, rowIdx) in modelValue"
+          v-for="{ row, rowIdx } in visibleRows"
           :key="rowIdx"
-          :ref="
-            (el) => {
-              if (el) rowRefs[rowIdx] = el as HTMLElement
-            }
-          "
           :class="{
             'bg-yellow-200/50': highlightedRow === rowIdx,
             'bg-green-200/50': blinkGreenRow === rowIdx,
@@ -75,28 +73,26 @@
             }"
           >
             <div class="flex-1 flex items-center justify-center">
-              <vue-latex
-                :fontsize="12"
-                :expression="getInputValue(rowIdx, colIdx).toString()"
-                display-mode
-              />
+              <span class="tt-cell-value">{{ getInputValue(rowIdx, colIdx) }}</span>
             </div>
           </td>
           <!-- Editable Output Columns -->
           <td
             v-for="(item, idx) in getDisplayedOutputCells(row)"
             :key="'out-' + item.actualIndex"
-            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-primary transition-color duration-300"
+            class="text-lg font-mono text-center align-middle cursor-pointer hover:bg-surface-3 border-b border-r border-primary transition-colors duration-300"
             :class="{
               'bg-surface-1': highlightedRow !== rowIdx && blinkGreenRow !== rowIdx,
-              'border-r': idx !== getDisplayedOutputCells(row).length - 1,
             }"
             @click="toggleCell(rowIdx, item.actualIndex)"
           >
             <div class="flex-1 flex items-center justify-center">
-              <vue-latex :fontsize="12" :expression="item.cell.toString()" display-mode />
+              <span class="tt-cell-value">{{ item.cell }}</span>
             </div>
           </td>
+        </tr>
+        <tr v-if="bottomSpacerHeight" :style="{ height: bottomSpacerHeight + 'px' }">
+          <td :colspan="inputVars.length + outputVars.length + 1" />
         </tr>
       </tbody>
     </table>
@@ -124,9 +120,31 @@ const emit = defineEmits<{
 
 const containerRef = ref<HTMLElement | null>(null)
 const tableRef = ref<HTMLElement | null>(null)
-const rowRefs = ref<Record<number, HTMLElement>>({})
 const centeredHorizontally = ref(true)
 const centeredVertically = ref(true)
+
+const scrollTop = ref(0)
+const containerHeight = ref(600)
+const rowHeight = ref(36)
+let rowHeightMeasured = false
+const BUFFER = 5
+
+const startIdx = computed(() => Math.max(0, Math.floor(scrollTop.value / rowHeight.value) - BUFFER))
+const endIdx = computed(() =>
+  Math.min(
+    props.modelValue.length,
+    Math.ceil((scrollTop.value + containerHeight.value) / rowHeight.value) + BUFFER,
+  ),
+)
+const visibleRows = computed(() =>
+  props.modelValue
+    .slice(startIdx.value, endIdx.value)
+    .map((row, i) => ({ row, rowIdx: startIdx.value + i })),
+)
+const topSpacerHeight = computed(() => startIdx.value * rowHeight.value)
+const bottomSpacerHeight = computed(
+  () => (props.modelValue.length - endIdx.value) * rowHeight.value,
+)
 
 const displayedOutputVars = computed(() => {
   if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
@@ -138,7 +156,6 @@ const displayedOutputVars = computed(() => {
 let containerObserver: ResizeObserver | null = null
 let tableObserver: ResizeObserver | null = null
 
-// Get displayed output cells based on showAllOutputVars
 function getDisplayedOutputCells(row: any[]) {
   if (props.showAllOutputVars === false && typeof props.outputVariableIndex === 'number') {
     return [
@@ -152,7 +169,6 @@ function getDisplayedOutputCells(row: any[]) {
   return row.map((cell, idx) => ({ cell, actualIndex: idx, displayIndex: idx }))
 }
 
-// colIdx is the index within the output array (modelValue[row])
 function toggleCell(rowIdx: number, colIdx: number) {
   const newValues = props.modelValue.map((row) => [...row])
   const row = newValues[rowIdx]
@@ -169,9 +185,12 @@ function toggleCell(rowIdx: number, colIdx: number) {
 }
 
 function getInputValue(rowIdx: number, colIdx: number) {
-  // MSB is at index 0
   const shiftAmount = props.inputVars.length - 1 - colIdx
   return (rowIdx >> shiftAmount) & 1
+}
+
+function onScroll() {
+  scrollTop.value = containerRef.value?.scrollTop ?? 0
 }
 
 function updateCentered() {
@@ -182,15 +201,24 @@ function updateCentered() {
     centeredVertically.value = true
     return
   }
-  // If table height fits, center it. Otherwise align to allow scrolling
+  containerHeight.value = c.clientHeight
+  if (c.scrollTop !== scrollTop.value) {
+    c.scrollTop = scrollTop.value
+  }
+  if (!rowHeightMeasured) {
+    const row = t.querySelector<HTMLElement>('tbody tr:not([style])')
+    if (row?.offsetHeight) {
+      rowHeight.value = row.offsetHeight
+      rowHeightMeasured = true
+    }
+  }
   centeredHorizontally.value = t.scrollWidth <= c.clientWidth
   centeredVertically.value = t.scrollHeight <= c.clientHeight
 }
 
 onMounted(() => {
-  // Wait for DOM updates then compute
   nextTick(updateCentered)
-
+  containerRef.value?.addEventListener('scroll', onScroll, { passive: true })
   if (containerRef.value) {
     containerObserver = new ResizeObserver(() => nextTick(updateCentered))
     containerObserver.observe(containerRef.value)
@@ -204,24 +232,29 @@ onMounted(() => {
 onBeforeUnmount(() => {
   containerObserver?.disconnect()
   tableObserver?.disconnect()
+  containerRef.value?.removeEventListener('scroll', onScroll)
 })
 
-// Recompute whenever data changes
 watch(
   () => [props.modelValue, props.inputVars, props.outputVars],
   () => nextTick(updateCentered),
   { deep: true },
 )
 
-// Scroll highlighted row into view
 watch(
   () => props.highlightedRow,
   (rowIdx) => {
-    if (typeof rowIdx === 'number' && rowRefs.value[rowIdx]) {
-      nextTick(() => {
-        rowRefs.value[rowIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      })
+    if (typeof rowIdx === 'number' && containerRef.value) {
+      const top = rowIdx * rowHeight.value - containerHeight.value / 2 + rowHeight.value / 2
+      containerRef.value.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     }
   },
 )
 </script>
+
+<style scoped>
+.tt-cell-value {
+  font-family: KaTeX_Main, serif;
+  font-size: 1rem;
+}
+</style>
