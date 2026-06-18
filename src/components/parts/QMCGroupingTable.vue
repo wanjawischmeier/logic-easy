@@ -52,10 +52,10 @@
                   :class="[
                     cell.bgColor,
                     { 'prime-highlight-left': cell.isPrime },
-                    isHighlighted(cell.term) ? 'bg-yellow-200/50' : '',
+                    isHighlighted(cell) ? 'bg-yellow-200/50' : '',
                   ]"
-                  @mouseenter="hoveredTerm = cell.term"
-                  @mouseleave="hoveredTerm = null"
+                  @mouseenter="hoveredCellId = cell.id"
+                  @mouseleave="hoveredCellId = null"
                 >
                   {{ cell.index }}
                 </td>
@@ -67,10 +67,10 @@
                       'border-r-4': Number(cellIdx) < (qmcResult?.iterations?.length ?? 0) - 1,
                       'prime-highlight-right': cell.isPrime,
                     },
-                    isHighlighted(cell.term) ? 'bg-yellow-200/50' : '',
+                    isHighlighted(cell) ? 'bg-yellow-200/50' : '',
                   ]"
-                  @mouseenter="hoveredTerm = cell.term"
-                  @mouseleave="hoveredTerm = null"
+                  @mouseenter="hoveredCellId = cell.id"
+                  @mouseleave="hoveredCellId = null"
                 >
                   {{ cell.term }}
                 </td>
@@ -91,13 +91,39 @@ const props = defineProps<{
   qmcResult?: QMCResult
 }>()
 
-const tableRows = ref<any[]>([])
-const hoveredTerm = ref<string | null>(null)
-const termRelationships = ref<Map<string, { parents: string[]; children: string[] }>>(new Map())
+interface TableCell {
+  id: string
+  index: string | number
+  term: string
+  bgColor: string
+  isPrime: boolean
+  iteration: number
+  parents: string[]
+  parentIds: string[]
+  childIds: string[]
+}
+
+interface TableRow {
+  cells: TableCell[]
+}
+
+interface KClassRows {
+  k: number
+  rows: TableRow[]
+}
+
+const tableRows = ref<KClassRows[]>([])
+const hoveredCellId = ref<string | null>(null)
+const cellById = ref<Map<string, TableCell>>(new Map())
 
 watch(
   () => [props.qmcResult?.iterations, props.qmcResult?.pis],
   () => {
+    props.qmcResult?.iterations?.forEach((iter: any, idx: number) => {
+      if (idx > 0) {
+        console.log(`Iteration ${idx} joins:`, JSON.stringify(iter.joins, null, 2))
+      }
+    })
     buildTableRows()
   },
   { immediate: true, deep: true },
@@ -106,6 +132,7 @@ watch(
 function buildTableRows() {
   if (!props.qmcResult?.pis) return
   if (!props.qmcResult?.iterations || props.qmcResult?.iterations.length === 0) return
+  const iterations = props.qmcResult.iterations
 
   const piTerms = new Set(props.qmcResult?.pis.map((p: any) => p.term))
 
@@ -114,7 +141,7 @@ function buildTableRows() {
   const termToGroupColor = new Map<string, Map<number, string>>() // term -> iteration -> color
   const termToKClass = new Map<string, number>() // term -> K-class (from iteration 0)
 
-  props.qmcResult?.iterations.forEach((iter: any, iterIdx: number) => {
+  iterations.forEach((iter: any, iterIdx: number) => {
     const groups = iter.groups || {}
     const sortedK = Object.keys(groups).sort((a, b) => Number(a) - Number(b))
     let groupColorIndex = 0
@@ -140,36 +167,43 @@ function buildTableRows() {
     })
   })
 
-  // Build term relationships for hover highlighting
-  termRelationships.value.clear()
-  for (let iterIdx = 1; iterIdx < props.qmcResult?.iterations.length; iterIdx++) {
-    const iter = props.qmcResult?.iterations[iterIdx]
-    const joins = iter?.joins || []
-    joins.forEach((join: any) => {
-      const joinTerm = join.term
-      const parents = join.parents || []
+  // Collect entries per K-class per iteration
+  const kClassEntries = new Map<number, Map<number, TableCell[]>>() // kClass -> iteration -> entries[]
+  const entriesByIterationAndTerm = new Map<number, Map<string, TableCell[]>>()
+  const nextCellById = new Map<string, TableCell>()
 
-      // Add children to parents
-      parents.forEach((parent: string) => {
-        if (!termRelationships.value.has(parent)) {
-          termRelationships.value.set(parent, { parents: [], children: [] })
-        }
-        termRelationships.value.get(parent)!.children.push(joinTerm)
-      })
+  const createCell = (cell: Omit<TableCell, 'childIds'>): TableCell => {
+    const nextCell = { ...cell, childIds: [] }
+    nextCellById.set(nextCell.id, nextCell)
 
-      // Add parents to join
-      if (!termRelationships.value.has(joinTerm)) {
-        termRelationships.value.set(joinTerm, { parents: [], children: [] })
-      }
-      termRelationships.value.get(joinTerm)!.parents = parents
-    })
+    if (!entriesByIterationAndTerm.has(nextCell.iteration)) {
+      entriesByIterationAndTerm.set(nextCell.iteration, new Map())
+    }
+    const iterEntries = entriesByIterationAndTerm.get(nextCell.iteration)!
+    if (!iterEntries.has(nextCell.term)) {
+      iterEntries.set(nextCell.term, [])
+    }
+    iterEntries.get(nextCell.term)!.push(nextCell)
+
+    return nextCell
   }
 
-  // Collect entries per K-class per iteration
-  const kClassEntries = new Map<number, Map<number, any[]>>() // kClass -> iteration -> entries[]
+  const getParentCombinations = (parents: string[], previousIteration: number): TableCell[][] => {
+    const parentOptions = parents.map(
+      (parent) => entriesByIterationAndTerm.get(previousIteration)?.get(parent) || [],
+    )
+
+    if (parentOptions.some((options) => options.length === 0)) return []
+
+    return parentOptions.reduce<TableCell[][]>(
+      (combinations, options) =>
+        combinations.flatMap((combination) => options.map((option) => [...combination, option])),
+      [[]],
+    )
+  }
 
   // Process iteration 0 minterms
-  const iter0 = props.qmcResult?.iterations[0]
+  const iter0 = iterations[0]
   if (!iter0 || !iter0.groups) return
 
   const sortedK = Object.keys(iter0.groups).sort((a, b) => Number(a) - Number(b))
@@ -188,90 +222,105 @@ function buildTableRows() {
     terms.forEach((term: string) => {
       if (!term) return
       const bgColor = termToGroupColor.get(term)?.get(0) || 'bg-surface-1'
-      kClassEntries
-        .get(kNum)!
-        .get(0)!
-        .push({
-          index: decimalFromBinary(term),
-          term: term,
-          bgColor: bgColor,
-          isPrime: piTerms.has(term),
-        })
+      const entry = createCell({
+        id: `i0:${term}:${kClassEntries.get(kNum)!.get(0)!.length}`,
+        index: decimalFromBinary(term),
+        term: term,
+        bgColor: bgColor,
+        isPrime: piTerms.has(term),
+        iteration: 0,
+        parents: [],
+        parentIds: [],
+      })
+
+      kClassEntries.get(kNum)!.get(0)!.push(entry)
     })
   })
 
   // Helper function to find K-class by tracing back to iteration 0
-  const findKClass = (term: string): number => {
-    if (termToKClass.has(term)) {
-      return termToKClass.get(term)!
+  const findKClass = (cell: TableCell): number => {
+    if (termToKClass.has(cell.term)) {
+      return termToKClass.get(cell.term)!
     }
-    // If not in iteration 0, trace back through relationships
-    const rels = termRelationships.value.get(term)
-    if (rels && rels.parents.length > 0) {
-      return findKClass(rels.parents[0]!)
-    }
+
+    const firstParentId = cell.parentIds[0]
+    const firstParent = firstParentId ? nextCellById.get(firstParentId) : null
+    if (firstParent) return findKClass(firstParent)
+
     return 0
   }
 
   // Process subsequent iterations' joins
-  for (let iterIdx = 1; iterIdx < props.qmcResult?.iterations.length; iterIdx++) {
-    const iter = props.qmcResult?.iterations[iterIdx]
+  for (let iterIdx = 1; iterIdx < iterations.length; iterIdx++) {
+    const iter = iterations[iterIdx]
     const joins = iter?.joins || []
+    let joinEntryIdx = 0
 
     joins.forEach((join: any) => {
       const joinTerm = join.term
       const bgColor = termToGroupColor.get(joinTerm)?.get(iterIdx) || 'bg-surface-1'
+      const parents = join.parents || []
+      const parentCombinations = getParentCombinations(parents, iterIdx - 1)
 
-      // Determine K-class from first parent, recursively tracing to iteration 0
-      const firstParent = join.parents?.[0]
-      const kClass = firstParent ? findKClass(firstParent) : 0
-
-      // Store K-class for this term for future lookups
-      termToKClass.set(joinTerm, kClass)
-
-      if (!kClassEntries.has(kClass)) {
-        kClassEntries.set(kClass, new Map())
-      }
-      if (!kClassEntries.get(kClass)!.has(iterIdx)) {
-        kClassEntries.get(kClass)!.set(iterIdx, [])
-      }
-
-      kClassEntries
-        .get(kClass)!
-        .get(iterIdx)!
-        .push({
+      parentCombinations.forEach((parentCombination) => {
+        const parentIds = parentCombination.map((parent) => parent.id)
+        const entry = createCell({
+          id: `i${iterIdx}:${joinTerm}:${joinEntryIdx++}`,
           index: join.minterms ? join.minterms.join(', ') : '',
           term: joinTerm,
           bgColor: bgColor,
           isPrime: piTerms.has(joinTerm),
+          iteration: iterIdx,
+          parents: parents,
+          parentIds: parentIds,
         })
+
+        parentIds.forEach((parentId) => nextCellById.get(parentId)?.childIds.push(entry.id))
+
+        // Determine K-class from first parent, recursively tracing to iteration 0.
+        const kClass = parentCombination[0] ? findKClass(parentCombination[0]) : 0
+
+        // Store K-class for this term for future lookups.
+        termToKClass.set(joinTerm, kClass)
+
+        if (!kClassEntries.has(kClass)) {
+          kClassEntries.set(kClass, new Map())
+        }
+        if (!kClassEntries.get(kClass)!.has(iterIdx)) {
+          kClassEntries.get(kClass)!.set(iterIdx, [])
+        }
+
+        kClassEntries.get(kClass)!.get(iterIdx)!.push(entry)
+      })
     })
   }
+
+  cellById.value = nextCellById
 
   // Build compact rows by filling columns vertically
   const sortedKs = Array.from(kClassEntries.keys()).sort((a, b) => a - b)
   tableRows.value = sortedKs.map((k) => {
-    if (!props.qmcResult?.iterations) return
     const iterMap = kClassEntries.get(k)!
 
     // Find max entries across all iterations for this K-class
     let maxRows = 0
-    for (let i = 0; i < props.qmcResult?.iterations.length; i++) {
+    for (let i = 0; i < iterations.length; i++) {
       const entries = iterMap.get(i) || []
       maxRows = Math.max(maxRows, entries.length)
     }
 
     // Build rows by filling vertically
-    const rows = []
+    const rows: TableRow[] = []
     for (let rowIdx = 0; rowIdx < maxRows; rowIdx++) {
-      const cells = []
-      for (let iterIdx = 0; iterIdx < props.qmcResult?.iterations.length; iterIdx++) {
+      const cells: TableCell[] = []
+      for (let iterIdx = 0; iterIdx < iterations.length; iterIdx++) {
         const entries = iterMap.get(iterIdx) || []
-        if (rowIdx < entries.length) {
-          cells.push(entries[rowIdx])
+        const entry = entries[rowIdx]
+        if (entry) {
+          cells.push(entry)
         } else {
           // Empty cell
-          cells.push({ index: '', term: '', bgColor: 'bg-surface-1', isPrime: false })
+          cells.push(createEmptyCell(iterIdx, rowIdx))
         }
       }
       rows.push({ cells })
@@ -285,73 +334,47 @@ function decimalFromBinary(binary: string): number {
   return parseInt(binary.replace(/-/g, '0'), 2)
 }
 
-// Parse minterms from cell index (can be single number or comma-separated string)
-function getMinterms(indexValue: string | number): Set<number> {
-  if (typeof indexValue === 'number') {
-    return new Set([indexValue])
+function createEmptyCell(iteration: number, rowIdx: number): TableCell {
+  return {
+    id: `empty:${iteration}:${rowIdx}`,
+    index: '',
+    term: '',
+    bgColor: 'bg-surface-1',
+    isPrime: false,
+    iteration,
+    parents: [],
+    parentIds: [],
+    childIds: [],
   }
-  if (!indexValue) return new Set()
-
-  const minterms = indexValue
-    .toString()
-    .split(',')
-    .map((s) => parseInt(s.trim()))
-    .filter((n) => !isNaN(n))
-  return new Set(minterms)
 }
 
-// Check if set A is a subset of set B
-function isSubset(a: Set<number>, b: Set<number>): boolean {
-  if (a.size > b.size) return false
-  for (const item of a) {
-    if (!b.has(item)) return false
+function collectRelatedCellIds(startId: string, direction: 'parents' | 'children'): Set<string> {
+  const visited = new Set<string>()
+  const pending = [startId]
+
+  while (pending.length > 0) {
+    const currentId = pending.pop()
+    if (!currentId || visited.has(currentId)) continue
+
+    visited.add(currentId)
+    const currentCell = cellById.value.get(currentId)
+    if (!currentCell) continue
+
+    const nextIds = direction === 'parents' ? currentCell.parentIds : currentCell.childIds
+    pending.push(...nextIds)
   }
-  return true
+
+  return visited
 }
 
-function isHighlighted(term: string): boolean {
-  if (!term || !hoveredTerm.value) return false
-  if (term === hoveredTerm.value) return true
+function isHighlighted(cell: TableCell): boolean {
+  if (!cell.term || !hoveredCellId.value) return false
+  if (cell.id === hoveredCellId.value) return true
 
-  // Find the hovered cell to get its minterms
-  let hoveredCell: any = null
-  let candidateCell: any = null
+  const ancestors = collectRelatedCellIds(hoveredCellId.value, 'parents')
+  const descendants = collectRelatedCellIds(hoveredCellId.value, 'children')
 
-  for (const kClass of tableRows.value) {
-    for (const row of kClass.rows) {
-      for (const cell of row.cells) {
-        if (cell.term === hoveredTerm.value) {
-          hoveredCell = cell
-        }
-        if (cell.term === term) {
-          candidateCell = cell
-        }
-      }
-    }
-  }
-
-  if (!hoveredCell || !candidateCell) return false
-
-  const hoveredMinterms = getMinterms(hoveredCell.index)
-  const candidateMinterms = getMinterms(candidateCell.index)
-
-  // Highlight if hovered minterms are a subset of candidate (descendant)
-  if (
-    isSubset(hoveredMinterms, candidateMinterms) &&
-    hoveredMinterms.size < candidateMinterms.size
-  ) {
-    return true
-  }
-
-  // Highlight if candidate minterms are a subset of hovered (ancestor)
-  if (
-    isSubset(candidateMinterms, hoveredMinterms) &&
-    candidateMinterms.size < hoveredMinterms.size
-  ) {
-    return true
-  }
-
-  return false
+  return ancestors.has(cell.id) || descendants.has(cell.id)
 }
 </script>
 

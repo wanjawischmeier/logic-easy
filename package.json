@@ -34,7 +34,7 @@
     "jszip": "^3.10.1",
     "katex": "^0.13.24",
     "konva": "^10.0.12",
-    "logi.js": "github:wanjawischmeier/logi.js#5b3d8b9845fcf918c74214a2912997b472870cb0",
+    "logi.js": "github:wanjawischmeier/logi.js#9537185a6138ed14d4d488a6976dd58bb3d3696d",
     "lucide-react": "^0.556.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
@@ -70,5 +70,10 @@
   },
   "workspaces": [
     "src/fsm-engine"
-  ]
+  ],
+  "allowScripts": {
+    "vue-demi@0.14.10": true,
+    "github:wanjawischmeier/logi.js#9537185a6138ed14d4d488a6976dd58bb3d3696d": true,
+    "esbuild@0.27.7": true
+  }
 }
