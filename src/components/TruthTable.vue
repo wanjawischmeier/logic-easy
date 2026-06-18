@@ -235,12 +235,7 @@ onBeforeUnmount(() => {
   containerRef.value?.removeEventListener('scroll', onScroll)
 })
 
-watch(
-  () => [props.modelValue, props.inputVars, props.outputVars],
-  () => nextTick(updateCentered),
-  { deep: true },
-)
-
+// Scroll highlighted row into view
 watch(
   () => props.highlightedRow,
   (rowIdx) => {
