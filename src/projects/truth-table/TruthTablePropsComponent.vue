@@ -11,7 +11,7 @@
             type="number"
             v-model.number="localInputCount"
             min="1"
-            max="8"
+            max="10"
             class="w-20 p-2 rounded border"
             @keypress="onlyNumbers"
           />
@@ -67,7 +67,7 @@
             type="number"
             v-model.number="localOutputCount"
             min="1"
-            max="8"
+            max="16"
             class="w-20 p-2 rounded border"
             @keypress="onlyNumbers"
           />
@@ -142,7 +142,7 @@ const showInputRename = ref(false)
 const showOutputRename = ref(false)
 
 const defaultInputName = (i: number) => String.fromCharCode(97 + i)
-const defaultOutputName = (i: number) => String.fromCharCode(112 + i)
+const defaultOutputName = (i: number) => String.fromCharCode(107 + i)
 
 const localInputLabels = ref<string[]>(
   Array.from({ length: props.modelValue.inputVariableCount }, (_, i) => defaultInputName(i)),
@@ -151,22 +151,23 @@ const localOutputLabels = ref<string[]>(
   Array.from({ length: props.modelValue.outputVariableCount }, (_, i) => defaultOutputName(i)),
 )
 
-const clamp = (n: number) => Math.min(Math.max(Math.floor(n) || 1, 1), 8)
+const clampInput = (n: number) => Math.min(Math.max(Math.floor(n) || 1, 1), 10)
+const clampOutput = (n: number) => Math.min(Math.max(Math.floor(n) || 1, 1), 16)
 
-const inputRange = computed(() => Array.from({ length: clamp(localInputCount.value) }, (_, i) => i))
+const inputRange = computed(() => Array.from({ length: clampInput(localInputCount.value) }, (_, i) => i))
 const outputRange = computed(() =>
-  Array.from({ length: clamp(localOutputCount.value) }, (_, i) => i),
+  Array.from({ length: clampOutput(localOutputCount.value) }, (_, i) => i),
 )
 
 // Resize label arrays when counts change, filling new slots with defaults
 watch(localInputCount, (n) => {
-  const c = clamp(n)
+  const c = clampInput(n)
   const arr = localInputLabels.value
   while (arr.length < c) arr.push(defaultInputName(arr.length))
   if (arr.length > c) localInputLabels.value = arr.slice(0, c)
 })
 watch(localOutputCount, (n) => {
-  const c = clamp(n)
+  const c = clampOutput(n)
   const arr = localOutputLabels.value
   while (arr.length < c) arr.push(defaultOutputName(arr.length))
   if (arr.length > c) localOutputLabels.value = arr.slice(0, c)
@@ -181,13 +182,13 @@ const effectiveOutputLabels = computed(() =>
 
 const inputCountError = computed(() => {
   if (localInputCount.value < 1) return 'Must be at least 1'
-  if (localInputCount.value > 8) return 'Must be at most 8'
+  if (localInputCount.value > 10) return 'Must be at most 10'
   return undefined
 })
 
 const outputCountError = computed(() => {
   if (localOutputCount.value < 1) return 'Must be at least 1'
-  if (localOutputCount.value > 8) return 'Must be at most 8'
+  if (localOutputCount.value > 16) return 'Must be at most 16'
   return undefined
 })
 
@@ -221,8 +222,8 @@ const fullProps = computed(
   (): TruthTableProps => ({
     name: props.modelValue.name,
     defaultLayout: props.modelValue.defaultLayout,
-    inputVariableCount: clamp(localInputCount.value),
-    outputVariableCount: clamp(localOutputCount.value),
+    inputVariableCount: clampInput(localInputCount.value),
+    outputVariableCount: clampOutput(localOutputCount.value),
     inputVarLabels: hasCustomInputLabels.value ? effectiveInputLabels.value : undefined,
     outputVarLabels: hasCustomOutputLabels.value ? effectiveOutputLabels.value : undefined,
   }),

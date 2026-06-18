@@ -268,88 +268,70 @@ export interface Highlight {
 }
 
 /**
- * Calculate highlights for a specific cell in the K-V diagram given the current terms.
+ * Calculate highlights for every cell in the K-V diagram in a single pass.
  *
- * @param rowIndexRow index of the cell to evaluate.
- * @param colIndexColumn index of the cell to evaluate.
- * @param rowCodesAll row binary codes.
- * @param colCodesAll column binary codes.
- * @param termColors Array of colors for each term.
- * @returns Array of Highlight objects to render for the given cell.
+ * Coverage is computed once for the whole grid. Returns a [row][col] grid of Highlight arrays
  */
-export function calculateHighlights(
-  rowIndex: number,
-  colIndex: number,
+export function calculateHighlightGrid(
   rowCodes: string[],
   colCodes: string[],
   terms: Term[],
   functionType: FunctionType,
   inputVars: string[],
   termColors: TermColor[],
-): Highlight[] {
-  const rowCode = rowCodes[rowIndex]
-  const colCode = colCodes[colIndex]
+): Highlight[][][] {
+  const rows = rowCodes.length
+  const cols = colCodes.length
+  const grid: Highlight[][][] = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => [] as Highlight[]),
+  )
 
-  if (!rowCode || !colCode) return []
+  if (!terms || terms.length === 0) return grid
 
-  // Check for constant formulas
+  const isCNF = functionType === FunctionType.CNF
+
+  // Constant formulas: decide once for the whole grid.
   const isConstant1 =
     terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '1'
   const isConstant0 =
     terms.length === 1 && terms[0]?.literals.length === 1 && terms[0]?.literals[0]?.variable === '0'
 
-  if (functionType === FunctionType.DNF) {
-    // DNF constant 1 (tautology): highlight all cells
-    if (isConstant1) {
-      // For tautology in DNF, we need a color - use default color if none provided
-      const color = termColors[0] || defaultColor
-      return [
-        createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color),
-      ]
+  // DNF: const1 -> all, const0 -> none. inverted for CNF.
+  const highlightNone = isCNF ? isConstant1 : isConstant0
+  const highlightAll = isCNF ? isConstant0 : isConstant1
+  if (highlightNone) return grid
+  if (highlightAll) {
+    const color = termColors[0] || defaultColor
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        grid[r]![c] = [createFullCoverageHighlight(r, c, rows, cols, color)]
+      }
     }
-    // DNF constant 0 (contradiction): highlight no cells
-    if (isConstant0) {
-      return []
-    }
-  } else {
-    // CNF mode
-    // CNF constant 1 (tautology): highlight no cells (because CNF highlights zeros)
-    if (isConstant1) {
-      return []
-    }
-    // CNF constant 0 (contradiction): highlight all cells
-    if (isConstant0) {
-      // For contradiction in CNF, we need a color - use default color if none provided
-      const color = termColors[0] || defaultColor
-      return [
-        createFullCoverageHighlight(rowIndex, colIndex, rowCodes.length, colCodes.length, color),
-      ]
-    }
-
-    // Pre-calculate coverage for CNF check
-    const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars)
-
-    // CNF: For a CNF formula to be FALSE, at least one clause must be FALSE
-    // A clause (sum) is FALSE when ALL its literals are false
-    // So we highlight cells where at least one clause is completely false
-    const anyClauseFalse = terms.some((_, termIndex) => {
-      return !coverage[termIndex]?.[rowIndex]?.[colIndex]
-    })
-
-    if (!anyClauseFalse) return [] // Cell doesn't contribute to making formula false
+    return grid
   }
 
-  // Pre-calculate coverage for all cells once
+  // Pre-calculate coverage for the whole grid once.
   const coverage = calculateAllCoverage(terms, rowCodes, colCodes, functionType, inputVars)
 
-  return inferHighlightFromCoverage(
-    terms,
-    coverage,
-    rowCodes,
-    colCodes,
-    rowIndex,
-    colIndex,
-    functionType,
-    termColors,
-  )
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (isCNF) {
+        // CNF: highlight only cells where at least one clause is completely false.
+        const anyClauseFalse = terms.some((_, termIndex) => !coverage[termIndex]?.[r]?.[c])
+        if (!anyClauseFalse) continue
+      }
+      grid[r]![c] = inferHighlightFromCoverage(
+        terms,
+        coverage,
+        rowCodes,
+        colCodes,
+        r,
+        c,
+        functionType,
+        termColors,
+      )
+    }
+  }
+
+  return grid
 }

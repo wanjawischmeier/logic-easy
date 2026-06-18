@@ -14,7 +14,6 @@ export type PanelRequirement =
   | 'TruthTable'
   | 'Fsm'
   | 'Min2InputVars'
-  | 'Max4InputVars'
   | 'NotSupported'
 export type RequirementType = 'CREATE' | 'VIEW'
 
@@ -111,7 +110,7 @@ export const dockRegistry: DockRegistryEntry[] = [
         },
         minimumWidth: 400,
         requires: {
-          view: ['Min2InputVars', 'Max4InputVars'],
+          view: ['Min2InputVars'],
         },
       },
       {
@@ -307,13 +306,6 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
       case 'Min2InputVars':
         // Require at least 2 minimizer input variables
         if (getAvailableInputVarCount() < 2) {
-          checkPassed = false
-        }
-        break
-
-      case 'Max4InputVars':
-        // Require less than 5 minimizer input variables
-        if (getAvailableInputVarCount() > 4) {
           checkPassed = false
         }
         break
