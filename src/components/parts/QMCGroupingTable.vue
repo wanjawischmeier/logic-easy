@@ -127,11 +127,6 @@ const cellById = ref<Map<string, TableCell>>(new Map())
 watch(
   () => [props.qmcResult?.iterations, props.qmcResult?.pis],
   () => {
-    props.qmcResult?.iterations?.forEach((iter: any, idx: number) => {
-      if (idx > 0) {
-        console.log(`Iteration ${idx} joins:`, JSON.stringify(iter.joins, null, 2))
-      }
-    })
     buildTableRows()
   },
   { immediate: true, deep: true },
