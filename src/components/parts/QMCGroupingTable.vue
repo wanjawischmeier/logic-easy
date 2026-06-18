@@ -16,7 +16,13 @@
                 class="px-8 py-1 text-secondary-variant border-r border-primary bg-surface-1 text-center"
                 :class="{ 'border-r-4': idx < (qmcResult?.iterations?.length ?? 0) - 1 }"
               >
-                {{ idx === 0 ? 'Minterms' : `Iteration ${idx}` }}
+                {{
+                  idx === 0
+                    ? functionType == 'Disjunctive'
+                      ? 'Minterms'
+                      : 'Maxterms'
+                    : `Iteration ${idx}`
+                }}
               </th>
             </template>
           </tr>
@@ -86,9 +92,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
+import type { FunctionType } from '@/utility/types'
 
 const props = defineProps<{
   qmcResult?: QMCResult
+  functionType: FunctionType
 }>()
 
 interface TableCell {

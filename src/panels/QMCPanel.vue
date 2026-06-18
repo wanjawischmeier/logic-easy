@@ -114,6 +114,7 @@
             :functionType="functionType"
             :function-representation="functionRepresentation"
             :qmc-result="qmcResult"
+            :function-type="functionType"
           />
 
           <QMCPrimeImplicantChart
