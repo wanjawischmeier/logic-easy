@@ -88,6 +88,16 @@ export class StateManager {
     )
   }
 
+  /**
+   * Reset the app state in place so existing reactive references stay valid.
+   */
+  resetState(): void {
+    Object.keys(this.state).forEach((key) => {
+      delete (this.state as Record<string, unknown>)[key]
+    })
+    Object.assign(this.state, StateManager.defaultState)
+  }
+
   // temporarily suppress FSM <-> TruthTable sync to avoid loops
   suppressFsmSync(callback: () => void) {
     this.isSyncingFromFsm = true
