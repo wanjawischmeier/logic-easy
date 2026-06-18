@@ -169,6 +169,7 @@ export class TruthTableProject extends Project {
       functionType,
       functionRepresentation,
       inputVars,
+      props.outputVarLabels?.[0] ?? outputVars[0]!,
     )
 
     // Initialize state

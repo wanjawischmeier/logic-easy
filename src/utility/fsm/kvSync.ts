@@ -191,6 +191,7 @@ export function buildFsmKVDiagramPresentation(
       truthTable.functionType,
       truthTable.functionRepresentation,
       truthTable.inputVars,
+      truthTable.outputVars[truthTable.outputVariableIndex]!,
       truthTable.values,
       truthTable.outputVariableIndex,
       { lowercaseInputVars: true },
