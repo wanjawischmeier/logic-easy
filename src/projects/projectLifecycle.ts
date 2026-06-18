@@ -73,9 +73,7 @@ export class ProjectLifecycleManager {
    * Clears all keys in the current state
    */
   private clearState(): void {
-    Object.keys(stateManager.state).forEach(
-      (key) => delete (stateManager.state as Record<string, unknown>)[key],
-    )
+    stateManager.resetState()
   }
 
   /**
