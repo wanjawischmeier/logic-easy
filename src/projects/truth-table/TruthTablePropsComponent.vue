@@ -154,7 +154,9 @@ const localOutputLabels = ref<string[]>(
 const clampInput = (n: number) => Math.min(Math.max(Math.floor(n) || 1, 1), 10)
 const clampOutput = (n: number) => Math.min(Math.max(Math.floor(n) || 1, 1), 16)
 
-const inputRange = computed(() => Array.from({ length: clampInput(localInputCount.value) }, (_, i) => i))
+const inputRange = computed(() =>
+  Array.from({ length: clampInput(localInputCount.value) }, (_, i) => i),
+)
 const outputRange = computed(() =>
   Array.from({ length: clampOutput(localOutputCount.value) }, (_, i) => i),
 )
@@ -194,9 +196,14 @@ const outputCountError = computed(() => {
 
 const validVarName = (l: string) => /^[a-zA-Z0-9äöüÄÖÜ_-]+$/.test(l.trim())
 
-function labelError(raw: string[], effective: string[], otherEffective: string[]): string | undefined {
+function labelError(
+  raw: string[],
+  effective: string[],
+  otherEffective: string[],
+): string | undefined {
   if (raw.some((l) => !l.trim())) return 'Name cannot be empty'
-  if (raw.some((l) => !validVarName(l))) return 'Variable names may only contain letters, numbers, and underscores.'
+  if (raw.some((l) => !validVarName(l)))
+    return 'Variable names may only contain letters, numbers, and underscores.'
   if (new Set(effective).size < effective.length) return 'All variable names must be unique.'
   const otherSet = new Set(otherEffective)
   if (effective.some((l) => otherSet.has(l))) return 'All variable names must be unique.'
