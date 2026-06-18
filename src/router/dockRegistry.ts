@@ -88,7 +88,7 @@ export const dockRegistry: DockRegistryEntry[] = [
       projectType: 'combinatorial-circuit',
       defaultLayout: 'SplitKV',
     },
-    minimumWidth: 500,
+    minimumWidth: 400,
     requires: {
       view: ['TruthTable'],
     },
@@ -104,7 +104,7 @@ export const dockRegistry: DockRegistryEntry[] = [
           projectType: 'combinatorial-circuit',
           defaultLayout: 'SplitKV',
         },
-        minimumWidth: 400,
+        minimumWidth: 300,
         requires: {
           view: ['Min2InputVars'],
         },
@@ -117,7 +117,7 @@ export const dockRegistry: DockRegistryEntry[] = [
           projectType: 'combinatorial-circuit',
           defaultLayout: 'SplitQMC',
         },
-        minimumWidth: 400,
+        minimumWidth: 300,
         requires: {
           view: ['TruthTable'],
         },
@@ -128,6 +128,7 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'state-table',
     label: 'State Table',
     component: StateTablePanel,
+    minimumWidth: 400,
     requires: {
       view: ['Fsm'],
     },
@@ -136,6 +137,7 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'lc-iframe',
     label: 'Logic Circuits',
     component: LogicCircuitsPanel,
+    minimumWidth: 400,
     requires: {
       view: ['TruthTable'],
     },
@@ -144,6 +146,7 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'fsm-editor',
     label: 'State Machine Editor',
     component: FsmEnginePanel,
+    minimumWidth: 400,
     projectCreationInfo: {
       projectType: 'state-machine',
     },

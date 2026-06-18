@@ -122,6 +122,8 @@ function onCancel() {
 
 function onCreate() {
   if (isValid.value) {
+    projectName.value = projectName.value.trim()
+    projectProps.value = { ...projectProps.value, name: projectName.value }
     emit('create', projectProps.value)
   }
 }

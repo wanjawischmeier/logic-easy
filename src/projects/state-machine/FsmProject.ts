@@ -14,7 +14,7 @@ import { defaultFunctionType } from '@/utility/types'
 export class FsmProject extends Project {
   static override get defaultProps(): FsmProps {
     return {
-      name: 'FSM',
+      name: 'State Machine ',
       initialFsmType: 'mealy',
       initialInputBits: 1,
       initialOutputBits: 1,

@@ -46,6 +46,7 @@ function computeVariations(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  outputVariableName: string,
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
   labelMap?: Record<string, string>,
@@ -70,6 +71,7 @@ function computeVariations(
       functionType,
       functionRepresentation,
       inputVars,
+      outputVariableName,
       truthTableValues,
       outputVariableIndex,
       { labelMap },
@@ -90,8 +92,14 @@ function createEdgeCaseResult(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  outputVariableName: string,
 ): EdgeCaseResult {
-  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars)
+  const signature = getFunctionSignature(
+    functionType,
+    functionRepresentation,
+    inputVars,
+    outputVariableName,
+  )
 
   let constant: '0' | '1'
 
@@ -196,6 +204,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
   // Display-only substitution: use labels where provided, internal names for computation
   const displayInputVars = truthTable.inputVarLabels ?? truthTable.inputVars
+  const displayOutputVars = truthTable.outputVarLabels ?? truthTable.outputVars
+  const currentOutputName = displayOutputVars[truthTable.outputVariableIndex] ?? currentOutputVar
   const labelMap: Record<string, string> | undefined = truthTable.inputVarLabels
     ? Object.fromEntries(
         truthTable.inputVars.map((v, i) => [v, truthTable.inputVarLabels![i] ?? v]),
@@ -224,11 +234,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         const outputEdgeCase = detectTautologyOrContradiction(truthTable.values, outputIndex)
 
         if (outputEdgeCase !== null) {
+          const outputVariableName = displayOutputVars[outputIndex] ?? outputVar
           const edgeResult = createEdgeCaseResult(
             outputEdgeCase,
             truthTable.functionType,
             truthTable.functionRepresentation,
             displayInputVars,
+            outputVariableName,
           )
           qmcResults[outputVar] = edgeResult.qmcResult
           formulas[outputVar] = edgeResult.formula
@@ -253,6 +265,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
               truthTable.functionType,
               truthTable.functionRepresentation,
               displayInputVars,
+              displayOutputVars[outputIndex] ?? outputVar,
               undefined,
               undefined,
               labelMap,
@@ -273,6 +286,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         truthTable.functionType,
         truthTable.functionRepresentation,
         displayInputVars,
+        currentOutputName,
       )
 
       const response: WorkerResponse = {
@@ -295,11 +309,11 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
       const result = await runMinimization(truthTable, index)
       if (!result || !result.pis) {
-        return { outputVar, result }
+        return { outputVar, index, result }
       }
 
       result.termColors = mapResultColors(truthTable, result)
-      return { outputVar, result }
+      return { outputVar, index, result }
     })
 
     const qmcResultsArray = await Promise.all(qmcPromises)
@@ -309,7 +323,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const formulas: Record<string, Formula | undefined> = {}
     const variationsRecord: Record<string, FormulaVariation[]> = {}
 
-    for (const { outputVar, result } of qmcResultsArray) {
+    for (const { outputVar, index, result } of qmcResultsArray) {
       qmcResults[outputVar] = result
 
       if (result && result.expressions && result.expressions.length > 0) {
@@ -323,8 +337,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           truthTable.functionType,
           truthTable.functionRepresentation,
           displayInputVars,
+          displayOutputVars[index] ?? outputVar,
           truthTable.values,
-          truthTable.outputVariableIndex,
+          index,
           labelMap,
         )
       } else {
@@ -348,6 +363,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         truthTable.functionType,
         truthTable.functionRepresentation,
         displayInputVars,
+        currentOutputName,
         truthTable.values,
         truthTable.outputVariableIndex,
         { labelMap },
