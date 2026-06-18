@@ -17,7 +17,7 @@ import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
 import { Formula as FormulaDefaults, type Formula, type Term } from '@/utility/types'
 import { getDockviewApi } from '@/utility/dockview/integration'
 
-defineProps<Partial<IDockviewPanelProps>>()
+const props = defineProps<Partial<IDockviewPanelProps>>()
 
 const {
   inputVars,
@@ -46,6 +46,7 @@ const editWarningMessage =
 const editWarningInlineText = 'Manual edits are not synced to LogicEasy!'
 let detachIframeGuards: (() => void) | null = null
 let iframeReadyRebindHandler: EventListener | null = null
+let visibilityDisposable: { dispose?: () => void } | null = null
 const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
 
 type LogicCircuitsPanelState = {
@@ -405,6 +406,14 @@ onMounted(() => {
   installIframeInteractionGuards()
   iframeReadyRebindHandler = () => installIframeInteractionGuards()
   window.addEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
+
+  visibilityDisposable =
+    props.params?.api?.onDidVisibilityChange(() => {
+      if (props.params?.api?.isVisible && pendingUpdate) {
+        pendingUpdate = false
+        void updateFormulas()
+      }
+    }) ?? null
 })
 
 onBeforeUnmount(() => {
@@ -419,6 +428,8 @@ onBeforeUnmount(() => {
     window.removeEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
     iframeReadyRebindHandler = null
   }
+  visibilityDisposable?.dispose?.()
+  visibilityDisposable = null
 })
 
 type LCMethodType = 'AND/OR' | 'NAND' | 'NOR'
@@ -490,8 +501,14 @@ function handleMethodSelect(value: unknown, idx: number) {
 }
 
 let lastFileContent = ''
+let pendingUpdate = false
 
 async function updateFormulas() {
+  if (props.params?.api && !props.params.api.isVisible) {
+    pendingUpdate = true
+    return
+  }
+
   if (editWarning.value && !hideManualEditWarning.value) {
     openEditWarningPopup()
     return
