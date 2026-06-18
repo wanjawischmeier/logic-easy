@@ -197,7 +197,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // Display-only substitution: use labels where provided, internal names for computation
   const displayInputVars = truthTable.inputVarLabels ?? truthTable.inputVars
   const labelMap: Record<string, string> | undefined = truthTable.inputVarLabels
-    ? Object.fromEntries(truthTable.inputVars.map((v, i) => [v, truthTable.inputVarLabels![i] ?? v]))
+    ? Object.fromEntries(
+        truthTable.inputVars.map((v, i) => [v, truthTable.inputVarLabels![i] ?? v]),
+      )
     : undefined
 
   console.log('[TruthTableWorker] Processing request:', id)

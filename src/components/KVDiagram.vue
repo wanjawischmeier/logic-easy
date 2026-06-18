@@ -13,7 +13,10 @@
         <div class="w-14 shrink-0"></div>
         <!-- Centered label over data columns -->
         <div class="flex-1 flex justify-center items-end text-secondary-variant">
-          <vue-latex :expression="topVariables.map(v => formatLatexIdentifier(v)).join('\\,')" display-mode />
+          <vue-latex
+            :expression="topVariables.map((v) => formatLatexIdentifier(v)).join('\\,')"
+            display-mode
+          />
         </div>
       </div>
 
@@ -23,7 +26,10 @@
         <div class="h-14 shrink-0"></div>
         <!-- Centered label next to data rows -->
         <div class="flex-1 flex items-center justify-end pr-2 text-secondary-variant">
-          <vue-latex :expression="leftVariables.map(v => formatLatexIdentifier(v)).join('\\,')" display-mode />
+          <vue-latex
+            :expression="leftVariables.map((v) => formatLatexIdentifier(v)).join('\\,')"
+            display-mode
+          />
         </div>
       </div>
 
@@ -33,7 +39,13 @@
           <tr>
             <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
               <vue-latex
-                :expression="formatLatexIdentifier((outputVarLabels?.[outputVariableIndex ?? 0] ?? outputVars[outputVariableIndex ?? 0]) || 'f')"
+                :expression="
+                  formatLatexIdentifier(
+                    (outputVarLabels?.[outputVariableIndex ?? 0] ??
+                      outputVars[outputVariableIndex ?? 0]) ||
+                      'f',
+                  )
+                "
                 display-mode
               />
             </th>

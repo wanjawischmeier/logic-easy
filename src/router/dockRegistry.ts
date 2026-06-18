@@ -10,11 +10,7 @@ import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import QMCPanel from '@/panels/QMCPanel.vue'
 
-export type PanelRequirement =
-  | 'TruthTable'
-  | 'Fsm'
-  | 'Min2InputVars'
-  | 'NotSupported'
+export type PanelRequirement = 'TruthTable' | 'Fsm' | 'Min2InputVars' | 'NotSupported'
 export type RequirementType = 'CREATE' | 'VIEW'
 
 /**
