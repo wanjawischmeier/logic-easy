@@ -32,12 +32,7 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton
-        :target-ref="screenshotRef"
-        :panel-id="props.params.api.id"
-        filename="qmc"
-        :files="downloadFiles"
-      />
+      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="qmc" />
     </div>
 
     <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
@@ -351,15 +346,4 @@ watch(
   },
   { deep: true },
 )
-
-const downloadFiles = computed(() => [
-  {
-    label: 'LaTeX',
-    filename: 'kv',
-    extension: 'tex',
-    content: () => couplingTermLatex.value,
-    mimeType: 'text/plain',
-    registerWith: 'latex' as const,
-  },
-])
 </script>
