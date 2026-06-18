@@ -49,7 +49,7 @@ export interface TruthTableState {
 export class TruthTableProject extends Project {
   static override get defaultProps(): TruthTableProps {
     return {
-      name: '',
+      name: 'Combinatorial Circuit ',
       inputVariableCount: 4,
       outputVariableCount: 2,
       defaultLayout: 'TruthTable',
