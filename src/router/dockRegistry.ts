@@ -13,6 +13,7 @@ import QMCPanel from '@/panels/QMCPanel.vue'
 export type PanelRequirement =
   | 'TruthTable'
   | 'Fsm'
+  | 'LogicCircuits'
   | 'Min2InputVars'
   | 'Max4InputVars'
   | 'NotSupported'
@@ -142,7 +143,7 @@ export const dockRegistry: DockRegistryEntry[] = [
     label: 'Logic Circuits',
     component: LogicCircuitsPanel,
     requires: {
-      view: ['TruthTable'],
+      view: ['LogicCircuits'],
     },
   },
   {
@@ -300,6 +301,16 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
 
       case 'Fsm':
         if (!stateManager.state.fsm || currentProjectType !== 'state-machine') {
+          checkPassed = false
+        }
+        break
+
+      case 'LogicCircuits':
+        // Available for both combinatorial-circuit and state-machine projects
+        if (
+          !(stateManager.state.truthTable && currentProjectType === 'combinatorial-circuit') &&
+          !(stateManager.state.fsm && currentProjectType === 'state-machine')
+        ) {
           checkPassed = false
         }
         break

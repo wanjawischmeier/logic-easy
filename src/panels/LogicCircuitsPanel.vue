@@ -3,7 +3,12 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { logicCircuits } from '@/utility/logicCircuitsWrapper'
-import { formulaToLC } from '@/utility/LogicCircuitsExport/FormulasToLC'
+import {
+  formulaToLC,
+  generateCanonicalFormulas,
+  generateSelectedVariationFormulas,
+} from '@/utility/LogicCircuitsExport/FormulasToLC'
+import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
 import IframePanel from '@/components/IFramePanel.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import { stateManager } from '@/projects/stateManager'
@@ -15,7 +20,6 @@ import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningP
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
 import { hasSignificantChanges } from '@/utility/LogicCircuitsExport/lcChangeDetection'
-import { Formula as FormulaDefaults, type Formula, type Term } from '@/utility/types'
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import { downloadFile } from '@/utility/downloadFile'
 
@@ -108,55 +112,6 @@ function setSelectedFormulaIndex(outputVar: string, value: number) {
 }
 
 /*
-
-formula preperation for lc
-
-*/
-
-function generateCanonicalFormulas(): Record<string, Formula> {
-  const canonicalFormulas: Record<string, Formula> = {}
-
-  outputVars.value.forEach((outVar, outIdx) => {
-    const terms: Term[] = []
-    const isDNF = functionType.value === 'Disjunctive'
-    const targetValue = isDNF ? 1 : 0
-
-    values.value.forEach((row, rowIdx) => {
-      if (row[outIdx] === targetValue) {
-        const literals = inputVars.value.map((inVar, inIdx) => {
-          // Find input bits using binary representation of row index
-          const bitValue = (rowIdx >> (inputVars.value.length - 1 - inIdx)) & 1
-          const negated = isDNF ? bitValue === 0 : bitValue === 1
-
-          return { variable: inVar, negated }
-        })
-        terms.push({ literals })
-      }
-    })
-
-    canonicalFormulas[outVar] = {
-      type: functionType.value,
-      terms,
-    }
-  })
-
-  return canonicalFormulas
-}
-
-function generateSelectedVariationFormulas(): Record<string, Formula> {
-  const selectedFormulas: Record<string, Formula> = {}
-
-  outputVars.value.forEach((outputVar) => {
-    const outputVariations = variations.value?.[outputVar]
-    const selectedVariation = outputVariations?.[getSelectedFormulaIndex(outputVar)]
-    selectedFormulas[outputVar] =
-      selectedVariation?.formula ?? formulas.value[outputVar] ?? FormulaDefaults.empty
-  })
-
-  return selectedFormulas
-}
-
-/*
  lc generate related stuff
  */
 let currentLCContent: LCFile | null = null
@@ -179,11 +134,30 @@ const sanitizeName = (value: string) =>
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '')
 
+const isFsmProject = computed(
+  () => projectManager.getCurrentProject()?.projectType === 'state-machine',
+)
+
 const createLcContent = (method: LCMethodType) => {
+  if (isFsmProject.value) {
+    currentLCContent = stateMachineToLC(currentLCHeader)
+    return currentLCContent.toString()
+  }
+
   const targetFormulas =
     functionRepresentation.value === 'Normal'
-      ? generateCanonicalFormulas()
-      : generateSelectedVariationFormulas()
+      ? generateCanonicalFormulas(
+          inputVars.value,
+          outputVars.value,
+          values.value,
+          functionType.value,
+        )
+      : generateSelectedVariationFormulas(
+          outputVars.value,
+          variations.value,
+          variationIndex.value,
+          formulas.value,
+        )
 
   currentLCContent = formulaToLC(
     targetFormulas,
@@ -197,7 +171,7 @@ const createLcContent = (method: LCMethodType) => {
   return currentLCContent.toString()
 }
 
-async function updateFormulas() {
+async function updateFormulas(force = false) {
   if (editWarning.value && !hideManualEditWarning.value) {
     openEditWarningPopup()
     return
@@ -206,7 +180,7 @@ async function updateFormulas() {
   const fileContent = createLcContent(selectedMethod.value)
 
   // Avoid updating if content hasn't changed to prevent unnecessary reloads
-  if (fileContent === lastFileContent) {
+  if (!force && fileContent === lastFileContent) {
     return
   }
 
@@ -225,14 +199,28 @@ async function updateFormulas() {
 }
 
 const logicCircuitDownloadFiles = computed(() => {
+  const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
+  const baseName = sanitizeName(projectName) || 'logic-circuit'
+
+  //fsm file download
+  if (isFsmProject.value) {
+    return [
+      {
+        label: projectName,
+        filename: baseName,
+        extension: 'lc',
+        content: () => createLcContent(selectedMethod.value),
+        mimeType: 'text/lc',
+        appendDate: false,
+      },
+    ]
+  }
+
   if (!inputVars.value.length || !outputVars.value.length) {
     return []
   }
 
   const selected = selectedMethod.value
-
-  const projectName = projectManager.getCurrentProject()?.name ?? 'logic-circuit'
-  const baseName = sanitizeName(projectName)
 
   // Offer only the currently selected method as the downloadable file.
   return [
@@ -428,7 +416,12 @@ function installIframeInteractionGuards() {
 
 onMounted(() => {
   installIframeInteractionGuards()
-  iframeReadyRebindHandler = () => installIframeInteractionGuards()
+  // force reload of lc on load
+  void updateFormulas(true)
+  iframeReadyRebindHandler = () => {
+    installIframeInteractionGuards()
+    void updateFormulas(true)
+  }
   window.addEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
 })
 
@@ -473,33 +466,36 @@ onBeforeUnmount(() => {
           </span>
           <span class="whitespace-nowrap">{{ editWarningInlineText }}</span>
         </div>
-        <div v-for="row in variationRows" :key="row.outputVar" class="shrink-0">
-          <VariationSelector
-            v-if="row.formulas.length > 1"
-            placement="bottom"
-            :formulas="row.formulas"
-            :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
-            :variableName="row.displayLabel"
-            @update:selected-index="(value) => setSelectedFormulaIndex(row.outputVar, value)"
-          />
-        </div>
-        <SettingsButton
-          :selected-function-type="functionType"
-          :input-vars="inputVars"
-          :output-vars="displayOutputVars"
-          :show-output-selection="false"
-          :show-function-type-selection="true"
-          :custom-setting-slot-labels="settingsSlotLabels"
-          :selected-function-representation="functionRepresentation"
-        >
-          <template #method>
-            <MultiSelectSwitch
-              :values="lcMethodTypes"
-              :initial-selected="selectedMethodIndex"
-              :onSelect="handleMethodSelect"
+        <!-- ponytail: combinatorial-circuit settings only; FSM has none yet -->
+        <template v-if="!isFsmProject">
+          <div v-for="row in variationRows" :key="row.outputVar" class="shrink-0">
+            <VariationSelector
+              v-if="row.formulas.length > 1"
+              placement="bottom"
+              :formulas="row.formulas"
+              :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
+              :variableName="row.displayLabel"
+              @update:selected-index="(value) => setSelectedFormulaIndex(row.outputVar, value)"
             />
-          </template>
-        </SettingsButton>
+          </div>
+          <SettingsButton
+            :selected-function-type="functionType"
+            :input-vars="inputVars"
+            :output-vars="displayOutputVars"
+            :show-output-selection="false"
+            :show-function-type-selection="true"
+            :custom-setting-slot-labels="settingsSlotLabels"
+            :selected-function-representation="functionRepresentation"
+          >
+            <template #method>
+              <MultiSelectSwitch
+                :values="lcMethodTypes"
+                :initial-selected="selectedMethodIndex"
+                :onSelect="handleMethodSelect"
+              />
+            </template>
+          </SettingsButton>
+        </template>
         <DownloadButton
           :panel-id="params.api.id"
           :target-ref="iframeContainer"
