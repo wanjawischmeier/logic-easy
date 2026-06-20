@@ -71,6 +71,7 @@ import { dockviewService } from '@/utility/dockview/service'
 import type { BaseProjectProps } from '@/projects/Project'
 import { Toast } from '@/utility/toastService'
 import { useDockViewRouting } from './composables/useDockViewRouting'
+import { log } from '@/utility/log.ts'
 
 const componentsForDockview = dockComponents
 const dockviewApi = shallowRef<DockviewApi | null>(null)
@@ -84,7 +85,7 @@ const isRestoringLayout = ref(false)
 const hasPanels = ref(pendingInitialProjectId.value !== null)
 
 if (pendingInitialProjectId.value !== null) {
-  console.log('Pending project to load on page load:', pendingInitialProjectId.value)
+  log.debug('Pending project to load on page load:', pendingInitialProjectId.value)
   loadingService.show('Loading page...')
 } else {
   // No project to load, ensure loading screen is hidden
@@ -119,22 +120,22 @@ const restoreLayout = async (api: DockviewApi, isProjectChange = false) => {
   if (savedLayout) {
     try {
       api.fromJSON(savedLayout as SerializedDockview)
-      console.log('Loaded layout from project state')
+      log.info('Loaded layout from project state')
 
       // Check if any panels were restored
       if (api.panels.length === 0) {
-        console.log('No panels in saved layout, restoring default layout')
+        log.info('No panels in saved layout, restoring default layout')
         restoreDefaultLayout()
       }
     } catch (err) {
-      console.error('Failed to load layout from project state:', err)
-      console.warn('Falling back to default layout')
+      log.error('Failed to load layout from project state:', err)
+      log.warn('Falling back to default layout')
       Toast.warning('Failed to load project layout, using default')
       restoreDefaultLayout()
     }
   } else {
     // No saved layout, load default
-    console.log('No saved layout, loading default')
+    log.info('No saved layout, loading default')
     restoreDefaultLayout()
   }
 
@@ -147,7 +148,7 @@ const setupPendingProjectLoad = (api: DockviewApi) => {
     const projectIdToLoad = pendingInitialProjectId.value
     pendingInitialProjectId.value = null
 
-    console.log('Dockview ready, loading pending project:', projectIdToLoad)
+    log.info('Dockview ready, loading pending project:', projectIdToLoad)
     loadingService.show('Opening project...')
 
     setTimeout(() => {
@@ -155,7 +156,7 @@ const setupPendingProjectLoad = (api: DockviewApi) => {
         projectManager.openProject(projectIdToLoad, handleProjectOpenFailure)
         // Layout restoration will be handled by the watch below
       } catch (error) {
-        console.error('Failed to open project on page load:', error)
+        log.error('Failed to open project on page load:', error)
         handleProjectOpenFailure()
         isInitializingProject.value = false
       }
@@ -185,7 +186,7 @@ const setupProjectChangeWatcher = (api: DockviewApi) => {
           newVal.projectId !== oldVal?.projectId
 
         if (newProjectInfo) {
-          console.log(
+          log.debug(
             isProjectChange
               ? `Project changed to: ${projectManager.projectString(newProjectInfo)}`
               : `Initial project loaded: ${projectManager.projectString(newProjectInfo)}`,
@@ -201,7 +202,7 @@ const setupProjectChangeWatcher = (api: DockviewApi) => {
             }, 100)
           })
           .catch((err) => {
-            console.error('Failed to restore layout:', err)
+            log.error('Failed to restore layout:', err)
             loadingService.hide()
             isInitializingProject.value = false
           })
@@ -244,9 +245,9 @@ const setupLayoutAutoSave = (api: DockviewApi) => {
     try {
       const layout = api.toJSON()
       stateManager.state.dockviewLayout = layout
-      console.log('Layout saved to project state')
+      log.info('Layout saved to project state')
     } catch (err) {
-      console.error('Failed to save layout:', err)
+      log.error('Failed to save layout:', err)
       Toast.error('Failed to save project layout')
     }
   })

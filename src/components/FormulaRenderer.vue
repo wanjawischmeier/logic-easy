@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import { log } from '@/utility/log'
 import { Toast } from '@/utility/toastService'
 import { ref } from 'vue'
 
@@ -53,7 +54,7 @@ async function copyLatex() {
     copied.value = true
     setTimeout(() => (copied.value = false), 1400)
   } catch (error) {
-    console.error(`Failed to copy formula to clipboard: ${error}`)
+    log.error(`Failed to copy formula to clipboard: ${error}`)
     Toast.error('Failed to copy formula to clipboard')
   } finally {
     const btn = document.getElementById('copy-to-clipboard') as HTMLButtonElement | null

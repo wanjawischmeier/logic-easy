@@ -76,6 +76,7 @@ import type { IDockviewPanelProps } from 'dockview-vue'
 import Checkbox from '@/components/parts/Checkbox.vue'
 import SearchIcon from '@/components/icons/SearchIcon.vue'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { log } from '@/utility/log'
 
 const legend: LegendItem[] = [
   {
@@ -139,11 +140,11 @@ watch(
 
     if (isUpdatingFromState) {
       isUpdatingFromState = false
-      console.log('[TruthTablePanel] Skipping update (isUpdatingFromState)')
+      log.debug('[TruthTablePanel] Skipping update (isUpdatingFromState)')
       return
     }
 
-    console.log('[TruthTablePanel] Calling updateTruthTable')
+    log.debug('[TruthTablePanel] Calling updateTruthTable')
     Object.assign(stateManager.state.truthTable.values, newVal)
     truthTableWorkerManager.update()
   },
@@ -154,7 +155,7 @@ watch(
 watch(
   () => values.value,
   (newVal) => {
-    console.log('[TruthTablePanel] state.value.values changed:', newVal)
+    log.debug('[TruthTablePanel] state.value.values changed:', newVal)
     if (!newVal) return
     isUpdatingFromState = true
     tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])

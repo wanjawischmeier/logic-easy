@@ -15,6 +15,7 @@ import { registerProjectType } from '@/projects/projectRegistry'
 import { Minimizer, type QMCResult } from '@/utility/truthtable/minimizer'
 import type { TermColor } from '@/utility/truthtable/colorGenerator'
 import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
+import { log } from '@/utility/log.ts'
 
 export type TruthTableCell = 0 | 1 | '-'
 export type TruthTableData = TruthTableCell[][]
@@ -145,7 +146,7 @@ export class TruthTableProject extends Project {
   }
 
   static override createState(props: TruthTableProps) {
-    console.log('[TruthTableProject.createState] Initializing project state')
+    log.debug('[TruthTableProject.createState] Initializing project state')
 
     // Generate variable names
     const inputVars = this.generateVariableNames(props.inputVariableCount, 97)
@@ -188,7 +189,7 @@ export class TruthTableProject extends Project {
       fsmMode: false,
     }
 
-    console.log('[TruthTableProject.createState] State initialized:', {
+    log.debug('[TruthTableProject.createState] State initialized:', {
       inputVars: inputVars,
       outputVars: outputVars,
       hasValues: !!values,

@@ -1,4 +1,5 @@
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject.ts'
+import { log } from '../log'
 
 /**
  * Export truth table to VHDL using case when statements
@@ -43,7 +44,7 @@ export function exportTruthTableTOVHDLcaseWhen(
   project_name: string,
 ) {
   if (!truthTable) {
-    console.error('No truth table data to export.')
+    log.error('No truth table data to export.')
     return
   }
   const vhdlLines: string[] = []
@@ -149,7 +150,7 @@ export function exportTruthTableTOVHDLboolExpr(
   type: 'dnf' | 'cnf' = 'dnf',
 ) {
   if (!truthTable) {
-    console.error('No truth table data to export.')
+    log.error('No truth table data to export.')
     return
   }
   const vhdlLines: string[] = []
@@ -169,7 +170,7 @@ export function exportTruthTableTOVHDLboolExpr(
   vhdlLines.push('begin')
 
   if (!truthTable.formulas) {
-    console.error('No formulas to export.')
+    log.error('No formulas to export.')
     return
   }
 
@@ -178,7 +179,7 @@ export function exportTruthTableTOVHDLboolExpr(
     const formula = truthTable.selectedFormula
     if (!formula || !Array.isArray(formula.terms)) {
       // TODO: why wouldn't it be an array?
-      console.warn(`No DNF terms for output ${outputVar}.`)
+      log.warn(`No DNF terms for output ${outputVar}.`)
       return // continue to next outputVar
     }
 

@@ -9,6 +9,7 @@ import Toast from 'vue-toastification'
 import '@/style/toastification.css'
 import { useScreenSize } from '@/utility/useScreenSize'
 import ScreenTooSmallView from '@/views/ScreenTooSmallView.vue'
+import { log } from '@/utility/log'
 
 const App = defineComponent({
   name: 'App',
@@ -31,7 +32,7 @@ const App = defineComponent({
 
 const app = createApp(App)
 app.config.errorHandler = (err) => {
-  console.log(err)
+  log.error(err)
 }
 
 // Register a global custom directive called `v-focus`
@@ -63,5 +64,6 @@ app.mount(document.getElementById('app')!)
 
 // Preload all registered iframes after app has mounted
 setTimeout(() => {
+  (window as any).__DEV__ = import.meta.env.DEV
   iframeManager.preloadAll()
 }, 0)

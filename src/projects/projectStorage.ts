@@ -1,5 +1,6 @@
 import { Toast } from '@/utility/toastService'
 import type { ProjectMetadata, StoredProject } from './Project'
+import { log } from '@/utility/log'
 
 const PROJECT_METADATA_KEY = 'logic-easy-projects-metadata'
 const PROJECT_KEY_PREFIX = 'logic-easy-project-'
@@ -27,7 +28,7 @@ export class ProjectStorage {
       }
       return JSON.parse(stored) as ProjectMetadata
     } catch (error) {
-      console.error('Failed to load project metadata:', error)
+      log.error('Failed to load project metadata:', error)
       Toast.error('Failed to load project metadata')
       return { projects: [] }
     }
@@ -40,7 +41,7 @@ export class ProjectStorage {
     try {
       localStorage.setItem(PROJECT_METADATA_KEY, JSON.stringify(metadata))
     } catch (error) {
-      console.error('Failed to save project metadata:', error)
+      log.error('Failed to save project metadata:', error)
       Toast.error('Failed to save project metadata')
     }
   }
@@ -53,7 +54,7 @@ export class ProjectStorage {
       const stored = localStorage.getItem(CURRENT_PROJECT_KEY)
       return stored ? parseInt(stored, 10) : null
     } catch (error) {
-      console.error('Failed to load current project ID:', error)
+      log.error('Failed to load current project ID:', error)
       Toast.error('Failed to load current project id')
       return null
     }
@@ -70,7 +71,7 @@ export class ProjectStorage {
         localStorage.removeItem(CURRENT_PROJECT_KEY)
       }
     } catch (error) {
-      console.error('Failed to save current project ID:', error)
+      log.error('Failed to save current project ID:', error)
       Toast.error('Failed to save current project id')
     }
   }
@@ -87,7 +88,7 @@ export class ProjectStorage {
       }
       return JSON.parse(stored) as StoredProject
     } catch (error) {
-      console.error(`Failed to load project ${projectId}:`, error)
+      log.error(`Failed to load project ${projectId}:`, error)
       Toast.error('Failed to load project')
       return null
     }
@@ -101,7 +102,7 @@ export class ProjectStorage {
       const key = this.getProjectKey(project.id)
       localStorage.setItem(key, JSON.stringify(project))
     } catch (error) {
-      console.error(`Failed to save project ${project.id}:`, error)
+      log.error(`Failed to save project ${project.id}:`, error)
       Toast.error('Failed to save project')
     }
   }
@@ -114,7 +115,7 @@ export class ProjectStorage {
       const key = this.getProjectKey(projectId)
       localStorage.removeItem(key)
     } catch (error) {
-      console.error(`Failed to remove project ${projectId}:`, error)
+      log.error(`Failed to remove project ${projectId}:`, error)
       Toast.error('Failed to remove project')
     }
   }
@@ -136,7 +137,7 @@ export class ProjectStorage {
         }
       }
     } catch (error) {
-      console.error('Failed to scan projects in localStorage:', error)
+      log.error('Failed to scan projects in localStorage:', error)
       Toast.error('Failed to scan projects')
     }
     return projectIds

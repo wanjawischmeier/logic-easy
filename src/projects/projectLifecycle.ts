@@ -4,6 +4,7 @@ import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { StoredProject } from '@/projects/Project'
 import { COMPATIBLE_STORAGE_VERSIONS, stateManager, STORAGE_VERSION } from '@/projects/stateManager'
 import { projectTypes } from '@/projects/projectRegistry'
+import { log } from '@/utility/log'
 
 /**
  * Manages current project state (opening, closing, tracking current project)
@@ -82,19 +83,19 @@ export class ProjectLifecycleManager {
   open(projectId: number): StoredProject | null {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
-      console.warn(`Failed to open project with id ${projectId}: Couldn't load from storage`)
+      log.warn(`Failed to open project with id ${projectId}: Couldn't load from storage`)
       return null
     }
 
     if (!COMPATIBLE_STORAGE_VERSIONS.includes(project.state.version)) {
-      console.warn(
+      log.warn(
         `Failed to open project with id ${projectId}:
 Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}, compatible: [${COMPATIBLE_STORAGE_VERSIONS}])`,
       )
       return null
     }
 
-    console.log('[ProjectLifecycle.open] Loaded project from storage:', {
+    log.info('[ProjectLifecycle.open] Loaded project from storage:', {
       projectId,
       projectType: project.projectType,
       hasState: !!project.state,
@@ -105,18 +106,18 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     // Validate that project type exists in registry
     const projectTypeInfo = projectTypes[project.projectType]
     if (!projectTypeInfo) {
-      console.error(`No project type registered: ${project.projectType}`)
+      log.error(`No project type registered: ${project.projectType}`)
       return null
     }
 
     // Check if state is empty (newly created project that hasn't been initialized)
     const hasState = project.state && Object.keys(project.state).length > 0
     if (!hasState) {
-      console.warn('[ProjectLifecycle.open] Project has empty state - may need initialization')
+      log.warn('[ProjectLifecycle.open] Project has empty state - may need initialization')
     }
 
     if (!(projectTypeInfo.projectClass?.validateState(project.state) ?? false)) {
-      console.error('[ProjectLifecycle.open] Project state failed type specific validation')
+      log.error('[ProjectLifecycle.open] Project state failed type specific validation')
       return null
     }
 
@@ -130,7 +131,7 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     // Copy over shared state properties
     Object.assign(stateManager.state, project.state)
 
-    console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
+    log.debug('[ProjectLifecycle.open] After assigning to stateManager:', {
       stateManagerState: stateManager.state,
     })
 
@@ -150,7 +151,7 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     const projectInfo = this.currentInfo
     if (!projectInfo) return
 
-    console.log(`Closing project: ${this.metadataManager.projectString(projectInfo)}`)
+    log.info(`Closing project: ${this.metadataManager.projectString(projectInfo)}`)
     this.currentProjectId.value = null
     ProjectStorage.saveCurrentProjectId(null)
 

@@ -1,6 +1,7 @@
 import { LCFile } from './LCFile'
 import type { Element } from './Elements'
 import type { Formula, FunctionType, Literal, Term } from '@/utility/types.ts'
+import { log } from '../log'
 
 interface NormalizedFormula {
   terms: Term[]
@@ -151,7 +152,7 @@ export function formulaToLC(
   //build logic for each output variable
   const lampsByOutput = new Map<string, Element>() //lamp map output variablename -> lamp element
   outputVars.forEach((outputVar, outIdx) => {
-    console.log('Processing output variable:', formulas[outputVar])
+    log.debug('Processing output variable:', formulas[outputVar])
     const formulaType = (
       formulas[outputVar]?.type === 'Disjunctive' ? 'Disjunctive' : 'Conjunctive'
     ) as FunctionType

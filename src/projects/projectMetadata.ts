@@ -1,6 +1,7 @@
 import { reactive, type UnwrapNestedRefs } from 'vue'
 import { ProjectStorage } from '@/projects/projectStorage'
 import type { ProjectMetadata, ProjectInfo, StoredProject } from './Project'
+import { log } from '@/utility/log'
 
 /**
  * Maximum number of projects that are kept in local storage
@@ -79,7 +80,7 @@ export class ProjectMetadataManager {
         ProjectStorage.removeProject(oldestProject.id)
         this.remove(oldestProject.id)
 
-        console.log(`Removed oldest project: ${this.projectString(oldestProject)}`)
+        log.info(`Removed oldest project: ${this.projectString(oldestProject)}`)
       }
     }
   }
@@ -101,7 +102,7 @@ export class ProjectMetadataManager {
       return
     }
 
-    console.warn(
+    log.warn(
       `No metadata found: Rebuilding metadata from ${projectIds.length} projects in localStorage`,
     )
 

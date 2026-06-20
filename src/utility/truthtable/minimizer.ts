@@ -8,6 +8,7 @@ import {
   type QMCDetailedExpressionsObjects,
 } from 'logi.js'
 import type { TermColor } from './colorGenerator'
+import { log } from '../log'
 
 export interface QMCResult {
   iterations: IterationSnapshot[]
@@ -99,17 +100,17 @@ export class Minimizer {
 
   // Run QMC when data changes
   static async runQMC(truthTable: TruthTableState): Promise<QMCResult | undefined> {
-    console.log('=== runQMC called ===')
-    console.log('props.values:', truthTable.values)
-    console.log('props.selectedOutputIndex:', truthTable.outputVariableIndex)
-    console.log('props.outputVars:', truthTable.outputVars)
+    log.debug('=== runQMC called ===')
+    log.debug('props.values:', truthTable.values)
+    log.debug('props.selectedOutputIndex:', truthTable.outputVariableIndex)
+    log.debug('props.outputVars:', truthTable.outputVars)
 
     if (truthTable.values.length === 0) {
-      console.log('No values, returning')
+      log.debug('No values, returning')
       return
     }
     if (truthTable.outputVariableIndex >= truthTable.outputVars.length) {
-      console.log('Invalid output index, returning')
+      log.debug('Invalid output index, returning')
       return
     }
 
@@ -121,34 +122,34 @@ export class Minimizer {
     )
     const dc = this.calculateDontCares(truthTable.values, truthTable.outputVariableIndex)
 
-    console.log('Calculated minterms:', mt)
-    console.log("Calculated don't-cares:", dc)
+    log.debug('Calculated minterms:', mt)
+    log.debug("Calculated don't-cares:", dc)
 
     if (mt.length === 0) {
-      console.log('No minterms - clearing display')
+      log.debug('No minterms - clearing display')
       // No minterms - clear the display
       return this.emptyQMQResult
     }
 
     const numInputVars = truthTable.inputVars.length
-    console.log('Running QMC with minterms:', mt)
+    log.debug('Running QMC with minterms:', mt)
 
     let detailedResult: QMCDetailedExpressionsObjects
     try {
       detailedResult = qmc.solve(mt, dc, true, true, numInputVars) as QMCDetailedExpressionsObjects
     } catch (error) {
-      console.error('QMC solve failed:', error)
+      log.error('QMC solve failed:', error)
       // Return empty result on QMC library error
       return this.emptyQMQResult
     }
 
     const d = detailedResult.details
     if (!d) {
-      console.log('No details from QMC')
+      log.debug('No details from QMC')
       return
     }
 
-    console.log('QMC result:', detailedResult)
+    log.debug('QMC result:', detailedResult)
     const sortedMinterms = (d.minterms || []).slice().sort((a: number, b: number) => a - b)
 
     return {
