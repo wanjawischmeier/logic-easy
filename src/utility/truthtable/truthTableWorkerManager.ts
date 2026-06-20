@@ -1,5 +1,5 @@
 import { stateManager } from '@/projects/stateManager'
-import type { WorkerRequest, WorkerResponse } from './truthTableWorker'
+import type { WorkerCacheSnapshot, WorkerRequest, WorkerResponse } from './truthTableWorker'
 import { toRaw } from 'vue'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 
@@ -45,6 +45,8 @@ class TruthTableWorkerManager {
   private isRunning = false
   private hasQueuedUpdate = false
   private lastUpdateCompletedTime = 0
+  private lastCompletedCache: WorkerCacheSnapshot | null = null
+  private activeRequestTruthTable: WorkerCacheSnapshot['truthTable'] | null = null
   private readonly DEBOUNCE_MS = 100
 
   constructor() {
@@ -65,6 +67,7 @@ class TruthTableWorkerManager {
       this.worker.onerror = (error) => {
         console.error('[TruthTableWorkerManager] Worker error:', error)
         this.isRunning = false
+        this.activeRequestTruthTable = null
         this.lastUpdateCompletedTime = Date.now()
 
         // If there's a queued update, try again
@@ -118,10 +121,23 @@ class TruthTableWorkerManager {
           }),
         )
       }
+
+      this.lastCompletedCache = {
+        truthTable: this.activeRequestTruthTable
+          ? toRawDeep(this.activeRequestTruthTable)
+          : {
+              inputVars: toRawDeep(stateManager.state.truthTable.inputVars),
+              outputVars: toRawDeep(stateManager.state.truthTable.outputVars),
+              values: toRawDeep(stateManager.state.truthTable.values),
+              functionType: stateManager.state.truthTable.functionType,
+            },
+        qmcResults: toRawDeep(response.qmcResults),
+      }
     }
 
     // Mark as no longer running and record completion time
     this.isRunning = false
+    this.activeRequestTruthTable = null
     this.lastUpdateCompletedTime = Date.now()
 
     // If there's a queued update, schedule it with cooldown
@@ -203,6 +219,13 @@ class TruthTableWorkerManager {
     const request: WorkerRequest = {
       id,
       truthTable: serializedTruthTable,
+      previous: this.lastCompletedCache ?? undefined,
+    }
+    this.activeRequestTruthTable = {
+      inputVars: serializedTruthTable.inputVars,
+      outputVars: serializedTruthTable.outputVars,
+      values: serializedTruthTable.values,
+      functionType: serializedTruthTable.functionType,
     }
 
     try {
@@ -210,6 +233,7 @@ class TruthTableWorkerManager {
     } catch (error) {
       console.error('[TruthTableWorkerManager] Failed to post worker request:', error)
       this.isRunning = false
+      this.activeRequestTruthTable = null
       this.lastUpdateCompletedTime = Date.now()
 
       if (this.hasQueuedUpdate) {
@@ -250,6 +274,9 @@ class TruthTableWorkerManager {
       this.worker.terminate()
       this.worker = null
     }
+
+    this.lastCompletedCache = null
+    this.activeRequestTruthTable = null
   }
 }
 
