@@ -8,12 +8,17 @@ import {
   exportTruthTableTOVHDLboolExpr,
   exportTruthTableTOVHDLcaseWhen,
 } from '@/utility/VHDL/export'
+import { exportFsmToVHDLmealy } from '@/utility/VHDL/fsmExport'
+import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
+import { downloadFile } from '@/utility/downloadFile'
 import { popupService } from '@/utility/popupService'
 import { formatDate } from '@/utility/dateFormatter'
 import AboutPopup from '../popups/AboutPopup.vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
+import { FsmProject } from '@/projects/state-machine/FsmProject'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
+const isFsm = computed(() => projectManager.currentProjectInfo?.projectType === 'state-machine')
 
 const {
   state: truthTable,
@@ -22,6 +27,8 @@ const {
   outputVars,
   functionType,
 } = TruthTableProject.useState()
+
+const { state: fsmState } = FsmProject.useState()
 
 export function useHeaderMenus(openFileAction: () => Promise<void>) {
   const recentProjectEntries = computed<MenuEntry[]>(() => {
@@ -98,93 +105,121 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
         label: 'LogicCircuits',
         tooltip: '.lc',
         disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-        children: [
-          {
-            label: 'AND/OR',
-            action: () => {
-              formulaToLcFile(
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-                formulas.value,
-                inputVars.value,
-                outputVars.value,
-                functionType.value,
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-          {
-            label: 'NAND',
-            action: () => {
-              formulaToLcFile(
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-                formulas.value,
-                inputVars.value,
-                outputVars.value,
-                functionType.value,
-                'nand',
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-          {
-            label: 'NOR',
-            action: () => {
-              formulaToLcFile(
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-                formulas.value,
-                inputVars.value,
-                outputVars.value,
-                functionType.value,
-                'nor',
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-        ],
-      },
-      {
-        label: 'VHDL',
-        tooltip: '.vhdl',
-        disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-        children: [
-          {
-            label: 'Case-When',
-            action: () => {
-              exportTruthTableTOVHDLcaseWhen(
-                truthTable.value,
-                projectManager.getCurrentProject()?.name ?? 'no name provided',
-              )
-            },
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-          },
-          {
-            label: 'Boolean expressions',
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-            children: [
+        children: isFsm.value
+          ? [
               {
-                label: 'Disjunctive',
+                label: 'State machine',
                 action: () => {
-                  exportTruthTableTOVHDLboolExpr(
-                    truthTable.value,
+                  const name = projectManager.getCurrentProject()?.name ?? 'no name'
+                  downloadFile(
+                    stateMachineToLC().toString(),
+                    name.replace(/\s+/g, '_') + '.lc',
+                    'text/lc',
+                  )
+                },
+                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+              },
+            ]
+          : [
+              {
+                label: 'AND/OR',
+                action: () => {
+                  formulaToLcFile(
                     projectManager.getCurrentProject()?.name ?? 'no name provided',
+                    formulas.value,
+                    inputVars.value,
+                    outputVars.value,
+                    functionType.value,
                   )
                 },
                 disabled: !hasCurrentProject.value || stateManager.isSaving.value,
               },
               {
-                label: 'Conjunctive',
+                label: 'NAND',
                 action: () => {
-                  exportTruthTableTOVHDLboolExpr(
-                    truthTable.value,
+                  formulaToLcFile(
                     projectManager.getCurrentProject()?.name ?? 'no name provided',
-                    'cnf',
+                    formulas.value,
+                    inputVars.value,
+                    outputVars.value,
+                    functionType.value,
+                    'nand',
+                  )
+                },
+                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+              },
+              {
+                label: 'NOR',
+                action: () => {
+                  formulaToLcFile(
+                    projectManager.getCurrentProject()?.name ?? 'no name provided',
+                    formulas.value,
+                    inputVars.value,
+                    outputVars.value,
+                    functionType.value,
+                    'nor',
                   )
                 },
                 disabled: !hasCurrentProject.value || stateManager.isSaving.value,
               },
             ],
-          },
-        ],
+      },
+      {
+        label: 'VHDL',
+        tooltip: '.vhdl',
+        disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+        children: isFsm.value
+          ? [
+              {
+                label: 'State machine',
+                action: () => {
+                  exportFsmToVHDLmealy(
+                    fsmState.value,
+                    projectManager.getCurrentProject()?.name ?? 'no name',
+                  )
+                },
+                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+              },
+            ]
+          : [
+              {
+                label: 'Case-When',
+                action: () => {
+                  exportTruthTableTOVHDLcaseWhen(
+                    truthTable.value,
+                    projectManager.getCurrentProject()?.name ?? 'no name provided',
+                  )
+                },
+                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+              },
+              {
+                label: 'Boolean expressions',
+                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+                children: [
+                  {
+                    label: 'Disjunctive',
+                    action: () => {
+                      exportTruthTableTOVHDLboolExpr(
+                        truthTable.value,
+                        projectManager.getCurrentProject()?.name ?? 'no name provided',
+                      )
+                    },
+                    disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+                  },
+                  {
+                    label: 'Conjunctive',
+                    action: () => {
+                      exportTruthTableTOVHDLboolExpr(
+                        truthTable.value,
+                        projectManager.getCurrentProject()?.name ?? 'no name provided',
+                        'cnf',
+                      )
+                    },
+                    disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+                  },
+                ],
+              },
+            ],
       },
       {
         label: 'Screenshots',
