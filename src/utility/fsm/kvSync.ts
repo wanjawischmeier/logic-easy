@@ -13,6 +13,7 @@ import {
 } from '@/utility/truthtable/colorGenerator'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 import { stateManager } from '@/projects/stateManager'
+import { log } from '../log'
 
 function buildNames(prefix: string, bits: number, suffix: string): string[] {
   return Array.from({ length: bits }, (_, index) => `${prefix}_${bits - 1 - index}^${suffix}`)
@@ -178,7 +179,7 @@ export function buildFsmKVDiagramPresentation(
       truthTable.inputVars,
     )
   } catch (error) {
-    console.warn('[buildFsmKVDiagramPresentation] Failed to map formula term colors:', error)
+    log.warn('[buildFsmKVDiagramPresentation] Failed to map formula term colors:', error)
     formulaTermColors = remappedResult.termColors
   }
 

@@ -60,6 +60,7 @@ import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
 import SearchIcon from '@/components/icons/SearchIcon.vue'
 import PencilIcon from '@/components/icons/PencilIcon.vue'
 import { computed, watch, ref, nextTick } from 'vue'
+import { log } from '@/utility/log'
 
 const props = defineProps<{
   inputVars: string[]
@@ -113,7 +114,7 @@ function updateBitAtIndex(index: number, value: string) {
 
   chars[index] = value
   searchInput.value = chars.join('')
-  console.log('[updateBitAtIndex] new searchInput:', searchInput.value)
+  log.debug('[updateBitAtIndex] new searchInput:', searchInput.value)
 }
 
 function getValueAtIndex(index: number): string {
@@ -125,7 +126,6 @@ function getValueAtIndex(index: number): string {
  * Focus the first empty input field
  */
 function focusFirstEmpty() {
-  console.log('foo')
   isFocussed.value = true
   nextTick(() => {
     for (let i = 0; i < inputRefs.value.length; i++) {
@@ -159,7 +159,7 @@ function handleInput(index: number, e: Event) {
   target.value = filtered
 
   if (filtered && index < numBits.value - 1) {
-    console.log('[handleInput] moving to next input, index + 1 =', index + 1)
+    log.debug('[handleInput] moving to next input, index + 1 =', index + 1)
     // Move to next input
     nextTick(() => {
       inputRefs.value[index + 1]?.focus()
@@ -292,7 +292,7 @@ function exit(e: MouseEvent) {
 // Auto-advance when input is complete
 watch(searchInput, (newValue, oldValue) => {
   if (searchStep.value === 1 && newValue.length === props.inputVars.length) {
-    console.log('[watch searchInput] Step 1 complete, moving to step 2')
+    log.debug('[watch searchInput] Step 1 complete, moving to step 2')
     // Step 1 complete: move to step 2
     const rowIndex = parseInt(newValue, 2)
     if (rowIndex >= 0 && rowIndex < props.values.length) {
@@ -308,7 +308,7 @@ watch(searchInput, (newValue, oldValue) => {
       })
     }
   } else if (searchStep.value === 2 && newValue.length === numBits.value) {
-    console.log('[watch searchInput] Step 2 complete, waiting for Enter/Tab')
+    log.debug('[watch searchInput] Step 2 complete, waiting for Enter/Tab')
     // Step 2 complete: wait for user to press Enter or Tab
     pendingCommit.value = true
   }

@@ -2,6 +2,7 @@ import { stateManager } from '@/projects/stateManager'
 import type { WorkerRequest, WorkerResponse } from './truthTableWorker'
 import { toRaw } from 'vue'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
+import { log } from '../log'
 
 function toRawDeep<T>(value: T, seen = new WeakMap<object, unknown>()): T {
   if (value === null || typeof value !== 'object') {
@@ -63,7 +64,7 @@ class TruthTableWorkerManager {
       }
 
       this.worker.onerror = (error) => {
-        console.error('[TruthTableWorkerManager] Worker error:', error)
+        log.error('[TruthTableWorkerManager] Worker error:', error)
         this.isRunning = false
         this.lastUpdateCompletedTime = Date.now()
 
@@ -74,12 +75,12 @@ class TruthTableWorkerManager {
         }
       }
     } catch (error) {
-      console.error('[TruthTableWorkerManager] Failed to create worker:', error)
+      log.error('[TruthTableWorkerManager] Failed to create worker:', error)
     }
   }
 
   private handleWorkerResponse(response: WorkerResponse) {
-    console.log('[TruthTableWorkerManager] Received response:', response.id)
+    log.debug('[TruthTableWorkerManager] Received response:', response.id)
 
     // Update the state with the results
     if (stateManager.state.truthTable) {
@@ -126,7 +127,7 @@ class TruthTableWorkerManager {
 
     // If there's a queued update, schedule it with cooldown
     if (this.hasQueuedUpdate) {
-      console.log('[TruthTableWorkerManager] Processing queued update after cooldown')
+      log.info('[TruthTableWorkerManager] Processing queued update after cooldown')
       this.hasQueuedUpdate = false
       this.scheduleUpdate()
     }
@@ -144,32 +145,32 @@ class TruthTableWorkerManager {
 
     if (cooldownRemaining > 0) {
       // Still in cooldown period, schedule for later
-      console.log(`[TruthTableWorkerManager] Scheduling update in ${cooldownRemaining}ms`)
+      log.info(`[TruthTableWorkerManager] Scheduling update in ${cooldownRemaining}ms`)
       this.cooldownTimer = window.setTimeout(() => {
         this.cooldownTimer = null
         this.executeUpdate()
       }, cooldownRemaining)
     } else {
       // Cooldown period has passed, execute immediately
-      console.log('[TruthTableWorkerManager] Cooldown passed, executing immediately')
+      log.info('[TruthTableWorkerManager] Cooldown passed, executing immediately')
       this.executeUpdate()
     }
   }
 
   private executeUpdate() {
     if (!this.worker) {
-      console.warn('[TruthTableWorkerManager] Worker not initialized')
+      log.warn('[TruthTableWorkerManager] Worker not initialized')
       return
     }
 
     if (!stateManager.state.truthTable) {
-      console.warn('[TruthTableWorkerManager] No truth table state found')
+      log.warn('[TruthTableWorkerManager] No truth table state found')
       return
     }
 
     // If already running, mark that we have a queued update
     if (this.isRunning) {
-      console.log('[TruthTableWorkerManager] Update already running, queueing this one')
+      log.info('[TruthTableWorkerManager] Update already running, queueing this one')
       this.hasQueuedUpdate = true
       return
     }
@@ -178,7 +179,7 @@ class TruthTableWorkerManager {
     this.isRunning = true
     const id = ++this.requestId
 
-    console.log('[TruthTableWorkerManager] Sending request:', id)
+    log.debug('[TruthTableWorkerManager] Sending request:', id)
 
     // Serialize the truth table state to remove Vue reactivity proxies
     const truthTable = stateManager.state.truthTable
@@ -208,7 +209,7 @@ class TruthTableWorkerManager {
     try {
       this.worker.postMessage(request)
     } catch (error) {
-      console.error('[TruthTableWorkerManager] Failed to post worker request:', error)
+      log.error('[TruthTableWorkerManager] Failed to post worker request:', error)
       this.isRunning = false
       this.lastUpdateCompletedTime = Date.now()
 
@@ -224,7 +225,7 @@ class TruthTableWorkerManager {
    * This will respect cooldown periods and queue appropriately.
    */
   public update() {
-    console.log('[TruthTableWorkerManager] Update requested')
+    log.info('[TruthTableWorkerManager] Update requested')
 
     // If currently running, just mark that we have a queued update
     if (this.isRunning) {

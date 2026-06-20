@@ -46,18 +46,19 @@ import { projectManager } from '@/projects/projectManager'
 import { showProjectCreationPopup } from '@/utility/popupService'
 import { formatDate } from '@/utility/dateFormatter'
 import type { ListEntry } from '@/utility/types'
+import { log } from '@/utility/log'
 
 export default defineComponent({
   name: 'GettingStartedView',
   components: { DirectoryStyleList },
   setup() {
-    console.log(newMenu.value)
+    log.debug(newMenu.value)
     const newProjectEntries = computed<ListEntry[]>(() =>
       newMenu.value.map((group) => {
         const children = group.children
         if (children && children.length === 1) {
           const entry = children[0]!
-          console.log(entry)
+          log.debug(entry)
           return {
             label: group.label,
             disabled: entry.disabled,

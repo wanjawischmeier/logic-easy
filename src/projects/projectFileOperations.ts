@@ -1,5 +1,6 @@
 import { ProjectStorage } from '@/projects/projectStorage'
 import type { StoredProject } from './Project'
+import { log } from '@/utility/log'
 
 /**
  * File import/export operations for projects
@@ -19,7 +20,7 @@ export class ProjectFileOperations {
     }
 
     if (!project) {
-      console.warn(`Failed to save: Project with id ${projectOrId} not found`)
+      log.warn(`Failed to save: Project with id ${projectOrId} not found`)
       return false
     }
 

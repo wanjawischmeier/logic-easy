@@ -10,6 +10,7 @@ import { getDockviewApi } from '@/utility/dockview/integration'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { projectTypes, type ProjectType } from './projectRegistry'
 import { Toast } from '@/utility/toastService'
+import { log } from '@/utility/log'
 
 /**
  * Orchestrates all project-related operations
@@ -66,7 +67,7 @@ export class ProjectManager {
             onFailed?.()
           }
         } catch (error) {
-          console.error('Failed to open project:', error)
+          log.error('Failed to open project:', error)
           Toast.error('Failed to open project')
           loadingService.hide()
           onFailed?.()
@@ -109,7 +110,7 @@ export class ProjectManager {
         Toast.warning('Opening of LogicCircuits projects not supported yet')
       }
     } catch (error) {
-      console.error(`Failed to load project from file: ${error}`)
+      log.error(`Failed to load project from file: ${error}`)
       Toast.error('Failed to load project')
     }
   }
@@ -126,7 +127,7 @@ export class ProjectManager {
       // Don't hide loading screen here - let the layout restoration handle it
       return project
     } catch (error) {
-      console.error('Failed to load project from file:', error)
+      log.error('Failed to load project from file:', error)
       loadingService.hide()
       throw error
     }
@@ -140,7 +141,7 @@ export class ProjectManager {
     setTimeout(() => {
       const api = getDockviewApi()
       if (!api) {
-        console.warn('Dockview API not available, closing project directly')
+        log.warn('Dockview API not available, closing project directly')
         this.lifecycle.close()
         return
       }
@@ -164,7 +165,7 @@ export class ProjectManager {
   saveCurrentProject(): void {
     const currentInfo = this.currentProjectInfo
     if (!currentInfo) {
-      console.warn('No current project to save')
+      log.warn('No current project to save')
       return
     }
 
@@ -217,7 +218,7 @@ export class ProjectManager {
         await this.operations.create(name, projectType, props, onCreated)
         // Don't hide loading screen here - let the layout restoration handle it
       } catch (error) {
-        console.error('Failed to create project:', error)
+        log.error('Failed to create project:', error)
         Toast.error('Failed to create project')
         loadingService.hide()
       }
@@ -242,7 +243,7 @@ export class ProjectManager {
     if (!projectId) {
       const currentId = this.lifecycle.currentId
       if (!currentId) {
-        console.warn(`Failed to save: No project open`)
+        log.warn(`Failed to save: No project open`)
         return
       }
       projectId = currentId

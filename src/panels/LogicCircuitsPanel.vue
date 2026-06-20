@@ -16,6 +16,7 @@ import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
 import { Formula as FormulaDefaults, type Formula, type Term } from '@/utility/types'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import { log } from '@/utility/log'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -385,7 +386,7 @@ let layoutDisposable: any = null
 
 // adjust the view in future lc imports/exports to match the current view.
 async function updateLCHeader() {
-  console.log('LogicCircuits view updated via zoom or drag')
+  log.debug('LogicCircuits view updated via zoom or drag')
   const newLC = await logicCircuits.exportCurrentLC()
 
   if (!newLC) return
@@ -526,7 +527,7 @@ async function updateFormulas() {
   })
 
   if (!success) {
-    console.error('Failed to load file')
+    log.error('Failed to load file')
     return
   }
 

@@ -10,6 +10,7 @@ import { importEditorPayload } from './fsmEditorImportHelpers'
 import type { FsmState } from './FsmTypes'
 import { createPanel } from '@/utility/dockview/integration'
 import { defaultFunctionType } from '@/utility/types'
+import { log } from '@/utility/log.ts'
 
 export class FsmProject extends Project {
   static override get defaultProps(): FsmProps {
@@ -65,7 +66,7 @@ export class FsmProject extends Project {
 
   // initialize default fsm state
   static override createState(props: FsmProps) {
-    console.log('[FSMProject.createState] Initializing project state')
+    log.debug('[FSMProject.createState] Initializing project state')
 
     // initialize empty fsm state
     stateManager.state.fsm = {
@@ -78,7 +79,7 @@ export class FsmProject extends Project {
       outputBitCount: props.initialOutputBits,
     }
 
-    console.log('[FSMProject.createState] State initialized')
+    log.debug('[FSMProject.createState] State initialized')
   }
 
   static importEditorExport(incomingFsm: unknown): void {

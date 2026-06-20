@@ -5,6 +5,7 @@ import { loadingService } from './loadingService'
 import { projectManager } from '@/projects/projectManager'
 import { Toast } from './toastService'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import { log } from './log'
 
 type LatexContentResolver = () => string | undefined | Promise<string | undefined>
 
@@ -142,16 +143,16 @@ class DownloadRegistry {
     const registrations = Array.from(this.registrations.values())
     const screenshotRegistrations = registrations.filter((reg) => reg.screenshot.enabled)
     if (screenshotRegistrations.length === 0) {
-      console.warn('No screenshots registered')
+      log.warn('No screenshots registered')
       return
     }
 
     loadingService.show('Exporting project as screenshots...')
-    console.log(`Exporting ${screenshotRegistrations.length} screenshots...`)
+    log.info(`Exporting ${screenshotRegistrations.length} screenshots...`)
 
     const api = getDockviewApi()
     if (!api) {
-      console.error('Dockview API not available')
+      log.error('Dockview API not available')
       Toast.error('Failed to capture screenshots')
       return
     }
@@ -168,7 +169,7 @@ class DownloadRegistry {
         // Focus the panel first
         const panel = api.getPanel(panelId)
         if (panel) {
-          console.log(`Focusing panel: ${panelId}`)
+          log.debug(`Focusing panel: ${panelId}`)
           panel.focus()
           // Wait for layout to settle
           await new Promise((resolve) => setTimeout(resolve, 200))
@@ -177,7 +178,7 @@ class DownloadRegistry {
         }
 
         if (!targetRef.value) {
-          console.warn(`Skipping ${screenshot.filename}: element ref is null`)
+          log.warn(`Skipping ${screenshot.filename}: element ref is null`)
           Toast.warning(`Failed to capture ${screenshot.filename}`)
           continue
         }
@@ -190,13 +191,13 @@ class DownloadRegistry {
         // Small delay between screenshots to avoid overwhelming the browser
         await new Promise((resolve) => setTimeout(resolve, 100))
       } catch (error) {
-        console.warn(`Error in capture ${screenshot.filename}:`, error)
+        log.warn(`Error in capture ${screenshot.filename}:`, error)
       }
     }
 
     // Restore the previously active panel
     if (activePanel) {
-      console.log(`Restoring active panel: ${activePanel.id}`)
+      log.debug(`Restoring active panel: ${activePanel.id}`)
       activePanel.focus()
     }
 
@@ -206,7 +207,7 @@ class DownloadRegistry {
     const link = document.createElement('a')
     const projectName = projectManager.currentProjectInfo?.name
     if (!projectName) {
-      console.log('Failed to get project name')
+      log.error('Failed to get project name')
       Toast.error('Failed to export screenshots')
       loadingService.hide()
       return
@@ -219,7 +220,7 @@ class DownloadRegistry {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
 
-    console.log('All screenshots exported to zip')
+    log.info('All screenshots exported to zip')
     loadingService.hide()
   }
 
@@ -237,7 +238,7 @@ class DownloadRegistry {
     }
 
     loadingService.show('Exporting LaTeX document...')
-    console.log(`Exporting ${latexEntries.length} LaTeX sections...`)
+    log.info(`Exporting ${latexEntries.length} LaTeX sections...`)
 
     await new Promise((resolve) => setTimeout(resolve, 500))
     const projectName = projectManager.currentProjectInfo?.name || 'project'
@@ -282,7 +283,7 @@ ${resolved}
 `
         hasContent = true
       } catch (error) {
-        console.error('Failed to resolve LaTeX content:', error)
+        log.error('Failed to resolve LaTeX content:', error)
         Toast.warning(`Failed to export ${file.filename} LaTeX section`)
       }
     }
@@ -307,9 +308,9 @@ ${resolved}
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      console.log('LaTeX document exported')
+      log.info('LaTeX document exported')
     } catch (error) {
-      console.error('LaTeX export failed:', error)
+      log.error('LaTeX export failed:', error)
       Toast.error('Failed to export LaTeX document')
     } finally {
       loadingService.hide()

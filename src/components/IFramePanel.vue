@@ -10,6 +10,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import { dropdownService } from '@/utility/dropdownService'
+import { log } from '@/utility/log'
 
 const props = defineProps<{
   iframeKey: string
@@ -87,7 +88,7 @@ function createIframe() {
   const w = window as unknown as Window & { [key: string]: HTMLIFrameElement | undefined }
 
   if (w[props.iframeKey]) {
-    console.log(`Iframe ${props.iframeKey} already exists`)
+    log.debug(`Iframe ${props.iframeKey} already exists`)
     return
   }
 
@@ -100,25 +101,25 @@ function createIframe() {
   w[props.iframeKey] = iframe
 
   iframe.addEventListener('load', () => {
-    console.log(`Iframe ${props.iframeKey} loaded`)
+    log.debug(`Iframe ${props.iframeKey} loaded`)
     const evt = new CustomEvent(`${props.iframeKey}-ready`, { detail: { iframe } })
     window.dispatchEvent(evt)
   })
 }
 
 onMounted(() => {
-  console.log(`IframePanel mounted for ${props.iframeKey}`)
+  log.debug(`IframePanel mounted for ${props.iframeKey}`)
 
   preloadedIframe = getGlobalIframe()
 
   if (!preloadedIframe) {
-    console.log(`Creating iframe for ${props.iframeKey}`)
+    log.debug(`Creating iframe for ${props.iframeKey}`)
     createIframe()
 
     pollInterval = window.setInterval(() => {
       preloadedIframe = getGlobalIframe()
       if (preloadedIframe) {
-        console.log(`Iframe ${props.iframeKey} now available`)
+        log.debug(`Iframe ${props.iframeKey} now available`)
         if (pollInterval !== null) {
           clearInterval(pollInterval)
           pollInterval = null
@@ -133,7 +134,7 @@ onMounted(() => {
   const onIframeReady = (ev: Event) => {
     const ce = ev as CustomEvent<{ iframe?: HTMLIFrameElement }>
     preloadedIframe = ce?.detail?.iframe ?? getGlobalIframe()
-    console.log(`IframePanel: detected iframe swap for ${props.iframeKey}`)
+    log.debug(`IframePanel: detected iframe swap for ${props.iframeKey}`)
 
     resizeObserver?.disconnect()
     if (layoutDisposable) {
@@ -151,7 +152,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  console.log(`IframePanel unmounted for ${props.iframeKey}`)
+  log.debug(`IframePanel unmounted for ${props.iframeKey}`)
 
   if (pollInterval !== null) {
     clearInterval(pollInterval)

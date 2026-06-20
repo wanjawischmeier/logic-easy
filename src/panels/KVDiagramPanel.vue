@@ -125,6 +125,7 @@ import {
 import { getDockviewApi } from '@/utility/dockview/integration'
 import type { FormulaVariation } from '@/utility/types'
 import VariationViewer from '@/components/parts/VariationViewer.vue'
+import { log } from '@/utility/log'
 
 interface KVPanelState {
   showFormula: boolean
@@ -152,7 +153,7 @@ onMounted(() => {
   const visibilityDisposable = api.onDidActivePanelChange(() => {
     if (props.params.api.isActive) {
       // Panel became active/visible - refresh latex rendering
-      console.log('Refresh kv diagram')
+      log.debug('Refresh kv diagram')
       kvDiagramRef.value?.refresh()
     }
   })
@@ -258,16 +259,16 @@ const immutableCellMask = computed(() =>
 watch(
   tableValues,
   (newVal) => {
-    console.log('[KVDiagramPanel] Local tableValues changed:', newVal)
+    log.debug('[KVDiagramPanel] Local tableValues changed:', newVal)
     if (!stateManager.state.truthTable) return
 
     if (isUpdatingFromState) {
       isUpdatingFromState = false
-      console.log('[KVDiagramPanel] Skipping update (isUpdatingFromState)')
+      log.debug('[KVDiagramPanel] Skipping update (isUpdatingFromState)')
       return
     }
 
-    console.log('[KVDiagramPanel] Calling truthTableWorkerManager.update()')
+    log.debug('[KVDiagramPanel] Calling truthTableWorkerManager.update()')
     Object.assign(stateManager.state.truthTable.values, newVal)
     truthTableWorkerManager.update()
 
@@ -285,7 +286,7 @@ watch(
 watch(
   () => values.value,
   (newVal) => {
-    console.log('[KVPanel] state.value.values changed:', newVal)
+    log.debug('[KVPanel] state.value.values changed:', newVal)
     if (!newVal) return
     isUpdatingFromState = true
     tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])

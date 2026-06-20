@@ -2,6 +2,7 @@ import { ProjectStorage } from '@/projects/projectStorage'
 import { ProjectFileOperations } from '@/projects/projectFileOperations'
 import { ProjectMetadataManager } from '@/projects/projectMetadata'
 import type { StoredProject } from './Project'
+import { log } from '@/utility/log'
 
 /**
  * Handles import/export operations for projects
@@ -20,9 +21,7 @@ export class ProjectImportExport {
 
     if (existingProject) {
       // Update existing project
-      console.log(
-        `Updating existing project: ${this.metadataManager.projectString(importedProject)}`,
-      )
+      log.info(`Updating existing project: ${this.metadataManager.projectString(importedProject)}`)
       existingProject.state = importedProject.state
       existingProject.name = importedProject.name
       existingProject.lastModified = Date.now()
@@ -42,7 +41,7 @@ export class ProjectImportExport {
     this.metadataManager.enforceLimit()
 
     // Save the imported project as new
-    console.log(`Importing new project: ${this.metadataManager.projectString(importedProject)}`)
+    log.info(`Importing new project: ${this.metadataManager.projectString(importedProject)}`)
     ProjectStorage.saveProject(importedProject)
     this.metadataManager.update({
       id: importedProject.id,

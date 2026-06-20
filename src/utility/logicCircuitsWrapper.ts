@@ -1,4 +1,5 @@
 import { iframeManager } from '@/utility/iframeManager'
+import { log } from './log'
 
 type LoadOptions = {
   url?: string
@@ -40,7 +41,7 @@ class LogicCircuitsWrapper {
 
     // Must have either url or content
     if (!url && !content) {
-      console.warn('LogicCircuitsLoader: No url or content provided')
+      log.warn('LogicCircuitsLoader: No url or content provided')
       return false
     }
 
@@ -55,7 +56,7 @@ class LogicCircuitsWrapper {
         if (!resp.ok) throw new Error('Fetch failed: ' + resp.status)
         fileContent = await resp.text()
       } catch (err) {
-        console.error('LogicCircuitsLoader: Failed to fetch from url', err)
+        log.error('LogicCircuitsLoader: Failed to fetch from url', err)
         return false
       }
     } else {
@@ -65,12 +66,12 @@ class LogicCircuitsWrapper {
     // Store in window for debugging
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(window as any).lcText = fileContent
-    console.log('LogicCircuitsLoader: Loaded file (length:', fileContent.length, ')')
+    log.debug('LogicCircuitsLoader: Loaded file (length:', fileContent.length, ')')
 
     // Fast path: replace contents in the currently running iframe first.
     const existingIframe = iframeManager.getIframe('__lc_preloaded_iframe')
     if (existingIframe && this.replacePayloadInIframe(existingIframe, fileContent)) {
-      console.log('LogicCircuitsLoader: Replaced file without iframe reset')
+      log.debug('LogicCircuitsLoader: Replaced file without iframe reset')
       return true
     }
 
@@ -79,13 +80,13 @@ class LogicCircuitsWrapper {
     try {
       const newIframe = await this.resetIFrame(undefined, fileContent)
       if (!newIframe) {
-        console.warn('LogicCircuitsLoader: Failed to reset iframe before delivering file')
+        log.warn('LogicCircuitsLoader: Failed to reset iframe before delivering file')
         return false
       }
-      console.log('LogicCircuitsLoader: resetIFrame completed and should have delivered payload')
+      log.debug('LogicCircuitsLoader: resetIFrame completed and should have delivered payload')
       return true
     } catch (err) {
-      console.error('LogicCircuitsLoader: Error during resetIFrame delivery', err)
+      log.error('LogicCircuitsLoader: Error during resetIFrame delivery', err)
       return false
     }
   }
@@ -107,7 +108,7 @@ class LogicCircuitsWrapper {
     if (payload) {
       const delivered = this.deliverPayloadToIframe(newIframe, payload, 'new iframe')
       if (!delivered) {
-        console.error('LogicCircuitsLoader: Failed to deliver payload to new iframe')
+        log.error('LogicCircuitsLoader: Failed to deliver payload to new iframe')
       }
     }
 
@@ -128,10 +129,10 @@ class LogicCircuitsWrapper {
       if ((win as LogicCircuitsWindow)?.LogicCircuits?.loadFile) {
         try {
           ;(win as LogicCircuitsWindow).LogicCircuits!.loadFile!(payload)
-          console.log(`LogicCircuitsLoader: Delivered file to ${targetLabel} via API call`)
+          log.debug(`LogicCircuitsLoader: Delivered file to ${targetLabel} via API call`)
           return true
         } catch (err) {
-          console.error(
+          log.error(
             `LogicCircuitsLoader: API delivery failed on ${targetLabel}, falling back to postMessage`,
             err,
           )
@@ -141,10 +142,10 @@ class LogicCircuitsWrapper {
       }
 
       win.postMessage({ type: 'logic-load', text: payload }, '*')
-      console.log(`LogicCircuitsLoader: Posted file to ${targetLabel} via postMessage`)
+      log.debug(`LogicCircuitsLoader: Posted file to ${targetLabel} via postMessage`)
       return true
     } catch (error) {
-      console.error(`LogicCircuitsLoader: Payload delivery failed on ${targetLabel}`, error)
+      log.error(`LogicCircuitsLoader: Payload delivery failed on ${targetLabel}`, error)
       return false
     }
   }
@@ -160,7 +161,7 @@ class LogicCircuitsWrapper {
     try {
       simulator.deleteAll()
     } catch (error) {
-      console.error('LogicCircuitsLoader: Failed to clear existing circuit before load', error)
+      log.error('LogicCircuitsLoader: Failed to clear existing circuit before load', error)
       return false
     }
 
@@ -190,7 +191,7 @@ class LogicCircuitsWrapper {
         simulator.camera,
       )
     } catch (error) {
-      console.error('LogicCircuitsLoader: Failed to export current LC content', error)
+      log.error('LogicCircuitsLoader: Failed to export current LC content', error)
       return null
     }
   }

@@ -2,6 +2,7 @@ import type { Operation } from 'logi.js'
 import type { Formula, FunctionType, Literal, Term } from '../types'
 import type { TruthTableData } from '@/projects/truth-table/TruthTableProject'
 import { formatLatexIdentifier } from './latexGenerator'
+import { log } from '../log'
 
 function getOperationRecord(operation: Operation): Record<string, unknown> {
   return operation as unknown as Record<string, unknown>
@@ -185,7 +186,7 @@ export function flattenCouplingTermsToFormula(
     }
   }
 
-  console.log('[qmcExpressionToFormula] Input:', expression, 'Output terms:', terms)
+  log.debug('[qmcExpressionToFormula] Input:', expression, 'Output terms:', terms)
   return {
     type: functionType,
     terms: terms,

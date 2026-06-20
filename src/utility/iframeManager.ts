@@ -1,3 +1,4 @@
+import { log } from './log'
 import { Toast } from './toastService'
 
 type IframeConfig = {
@@ -28,7 +29,7 @@ class IframeManager {
     // Remove any stale iframe for this key before creating a new one
     const existing = w[key]
     if (existing) {
-      console.log(`Iframe ${key} already exists`)
+      log.debug(`Iframe ${key} already exists`)
       return
     }
 
@@ -45,7 +46,7 @@ class IframeManager {
     w[key] = iframe
 
     iframe.addEventListener('load', () => {
-      console.log(`Iframe ${key} preloaded and ready`)
+      log.debug(`Iframe ${key} preloaded and ready`)
       const evt = new CustomEvent(`${key}-ready`, { detail: { iframe } })
       window.dispatchEvent(evt)
     })
@@ -61,7 +62,7 @@ class IframeManager {
     const iframeSrc = src || config?.src
 
     if (!iframeSrc) {
-      console.error(`No src found for iframe ${key}`)
+      log.error(`No src found for iframe ${key}`)
       Toast.error('Failed to reset iframe')
       return null
     }
@@ -118,11 +119,11 @@ class IframeManager {
       const evt = new CustomEvent(`${key}-ready`, { detail: { iframe: newIframe } })
       window.dispatchEvent(evt)
 
-      console.log(`Iframe ${key} reset complete`)
+      log.debug(`Iframe ${key} reset complete`)
       return newIframe
     } catch (err) {
       if (!cancelled) {
-        console.error(`resetIframe error for ${key}`, err)
+        log.error(`resetIframe error for ${key}`, err)
         Toast.error('Failed to reset iframe')
         window.dispatchEvent(new CustomEvent(`${key}-ready`))
       }

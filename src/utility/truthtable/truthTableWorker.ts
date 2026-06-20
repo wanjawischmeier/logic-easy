@@ -15,6 +15,7 @@ import {
 import { detectTautologyOrContradiction, flattenCouplingTermsToFormula } from './expressionParser'
 import { getFunctionSignature, getCouplingTermLatex } from './latexGenerator'
 import type { Operation } from 'logi.js'
+import { log } from '../log'
 
 // Message types for worker communication
 export interface WorkerRequest {
@@ -212,7 +213,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       )
     : undefined
 
-  console.log('[TruthTableWorker] Processing request:', id)
+  log.debug('[TruthTableWorker] Processing request:', id)
 
   try {
     // Early detection of tautology/contradiction for current output variable
@@ -222,7 +223,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     )
 
     if (edgeCase !== null) {
-      console.log('[TruthTableWorker] Detected edge case:', edgeCase)
+      log.debug('[TruthTableWorker] Detected edge case:', edgeCase)
 
       // Create edge case results for all output variables
       const qmcResults: Record<string, QMCResult | undefined> = {}
@@ -401,7 +402,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
     self.postMessage(response)
   } catch (error) {
-    console.error('[TruthTableWorker] Error processing request:', error)
+    log.error('[TruthTableWorker] Error processing request:', error)
     // Send back empty response on error
     const response: WorkerResponse = {
       id,

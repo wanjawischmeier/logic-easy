@@ -2,6 +2,7 @@ import type { AddPanelPositionOptions, DockviewApi, IDockviewPanel } from 'dockv
 import { checkDockEntryRequirements, findDockEntry } from '@/router/dockRegistry'
 import { dockviewService } from '@/utility/dockview/service'
 import { Toast } from '../toastService'
+import { log } from '../log'
 
 /**
  * Retrieves the Dockview API instance from the dockview service.
@@ -38,21 +39,21 @@ export function createPanel(
 ): boolean {
   const api = getDockviewApi()
   if (!api) {
-    console.warn('Dockview API not ready yet')
+    log.warn('Dockview API not ready yet')
     return false
   }
 
   const registryEntry = findDockEntry(panelId)
   if (!registryEntry || !checkDockEntryRequirements(registryEntry, 'VIEW')) {
     // TODO: not sure 'VIEW' is correct here?
-    console.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`)
+    log.warn(`Panel with id '${registryEntry?.id}' doesnt pass the requirements`)
     return false
   }
 
   // Check if panel with this component already exists
   const existingPanel = getPanelByID(panelId)
   if (existingPanel) {
-    console.log(`Panel with id '${panelId}' already exists, focusing on it`)
+    log.debug(`Panel with id '${panelId}' already exists, focusing on it`)
     existingPanel.api.setActive()
     return true
   }
@@ -67,7 +68,7 @@ export function createPanel(
     })
     return true
   } catch (err) {
-    console.error('Failed to create panel', err)
+    log.error('Failed to create panel', err)
     Toast.error('Failed to create panel')
     return false
   }

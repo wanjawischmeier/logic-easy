@@ -5,6 +5,7 @@ import type { BaseProjectProps, StoredProject } from '@/projects/Project'
 import { projectTypes } from '@/projects/projectRegistry'
 import { StateManager, stateManager, type AppState } from '@/projects/stateManager'
 import { Toast } from '@/utility/toastService'
+import { log } from '@/utility/log'
 
 /**
  * Handles CRUD operations on projects
@@ -77,12 +78,12 @@ export class ProjectOperations {
   rename(projectId: number, newName: string): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
-      console.error(`Project not found with id: ${projectId}`)
+      log.error(`Project not found with id: ${projectId}`)
       Toast.error('Failed to rename project')
       return false
     }
 
-    console.log(`Renaming project: ${project.name} => ${newName} (${project.id})`)
+    log.info(`Renaming project: ${project.name} => ${newName} (${project.id})`)
     project.name = newName
     project.lastModified = Date.now()
 
@@ -109,7 +110,7 @@ export class ProjectOperations {
   updateState(projectId: number, state: AppState): boolean {
     const project = ProjectStorage.loadProject(projectId)
     if (!project) {
-      console.error(`Project not found with id: ${projectId}`)
+      log.error(`Project not found with id: ${projectId}`)
       Toast.error('Failed to update project')
       return false
     }
@@ -125,7 +126,7 @@ export class ProjectOperations {
       projectType: project.projectType,
     })
 
-    console.log('Saved project')
+    log.info('Saved project')
     return true
   }
 }

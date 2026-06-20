@@ -1,4 +1,5 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { log } from './log'
 
 export interface ScreenSizeConfig {
   minWidth: number
@@ -38,7 +39,7 @@ export function useScreenSize(config: ScreenSizeConfig = DEFAULT_SCREEN_CONFIG) 
           forceShowApp.value = true
         }
       } catch (e) {
-        console.error('Failed to parse stored screen check bypass:', e)
+        log.error('Failed to parse stored screen check bypass:', e)
       }
     }
   }
@@ -55,7 +56,7 @@ export function useScreenSize(config: ScreenSizeConfig = DEFAULT_SCREEN_CONFIG) 
           forceShowApp.value = false
         }
       } catch (e) {
-        console.error('Failed to parse stored screen check bypass:', e)
+        log.error('Failed to parse stored screen check bypass:', e)
       }
     }
   })

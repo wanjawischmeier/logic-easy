@@ -53,6 +53,7 @@ import { downloadRegistry } from '@/utility/downloadRegistry'
 import { loadingService } from '@/utility/loadingService'
 import { dropdownService } from '@/utility/dropdownService'
 import { Toast } from '@/utility/toastService'
+import { log } from '@/utility/log'
 
 const SCREENSHOT_COLOR_BG = 'transparent'
 const SCEENSHOT_PADDING = '1rem'
@@ -225,7 +226,7 @@ const handleClick = async () => {
 }
 
 const closeDropdown = () => {
-  console.log('closing download')
+  log.debug('closing download')
   showDropdown.value = false
 }
 
@@ -288,7 +289,7 @@ const handleFileDownload = async (file: DownloadFileDescriptor) => {
     )
     triggerBrowserDownload(blob, filename)
   } catch (error) {
-    console.error('Download failed:', error)
+    log.error('Download failed:', error)
     Toast.error(`Failed to download ${file.label}`)
   }
 }
@@ -298,7 +299,7 @@ const captureScreenshot = async () => {
   await new Promise((resolve) => setTimeout(resolve, 100)) // Wait 100ms to prevent flicker
 
   if (!targetElement.value || isCapturing.value) {
-    console.error('Screenshot element not found')
+    log.error('Screenshot element not found')
     Toast.error('Failed to take screenshot')
     loadingService.hide()
     return
@@ -321,11 +322,11 @@ const captureScreenshot = async () => {
       )
       triggerBrowserDownload(blob, filename)
     } else {
-      console.log('Failed to capture screenshot: empty blob')
+      log.debug('Failed to capture screenshot: empty blob')
       Toast.error('Failed to take screenshot')
     }
   } catch (error) {
-    console.error('Screenshot failed:', error)
+    log.error('Screenshot failed:', error)
     Toast.error('Failed to take screenshot')
   } finally {
     isCapturing.value = false
@@ -371,7 +372,7 @@ const resolveLatexContent = async (file: DownloadFileDescriptor): Promise<string
     }
     return await ensureTextContent(content)
   } catch (error) {
-    console.error('Failed to resolve LaTeX content:', error)
+    log.error('Failed to resolve LaTeX content:', error)
   }
   return undefined
 }
