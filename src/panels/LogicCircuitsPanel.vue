@@ -10,15 +10,27 @@ import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import MultiSelectSwitch from '@/components/parts/MultiSelectSwitch.vue'
+import VariationSelector from '@/components/parts/VariationSelector.vue'
 import LogicCircuitsWarningPopup from '@/components/popups/LogicCircuitsWarningPopup.vue'
 import { popupService } from '@/utility/popupService'
 import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
-import type { Formula, Term } from '@/utility/types'
+import { Formula as FormulaDefaults, type Formula, type Term } from '@/utility/types'
+import { getDockviewApi } from '@/utility/dockview/integration'
 
-defineProps<Partial<IDockviewPanelProps>>()
+const props = defineProps<Partial<IDockviewPanelProps>>()
 
-const { inputVars, outputVars, formulas, values, functionType, functionRepresentation } =
-  TruthTableProject.useState()
+const {
+  inputVars,
+  outputVars,
+  displayInputVars,
+  displayOutputVars,
+  formulas,
+  values,
+  functionType,
+  functionRepresentation,
+  variations,
+  variationIndex,
+} = TruthTableProject.useState()
 
 const panelRef = ref<HTMLElement | null>(null)
 const iframeContainer = ref<HTMLElement | null>(null)
@@ -34,6 +46,7 @@ const editWarningMessage =
 const editWarningInlineText = 'Manual edits are not synced to LogicEasy!'
 let detachIframeGuards: (() => void) | null = null
 let iframeReadyRebindHandler: EventListener | null = null
+let visibilityDisposable: { dispose?: () => void } | null = null
 const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
 
 type LogicCircuitsPanelState = {
@@ -141,6 +154,55 @@ function generateCanonicalFormulas(): Record<string, Formula> {
   })
 
   return canonicalFormulas
+}
+
+const variationRows = computed(() =>
+  outputVars.value
+    .map((outputVar, idx) => ({
+      outputVar,
+      displayLabel: displayOutputVars.value[idx] ?? outputVar,
+      formulas: variations.value?.[outputVar]?.map((variation) => variation.latex) ?? [],
+    }))
+    .filter((row) => row.formulas.length > 0),
+)
+
+const settingsSlotLabels = computed<Record<string, string>>(() => {
+  const labels: Record<string, string> = { method: 'Gate Type' }
+  if (functionRepresentation.value === 'Minimal' && variationRows.value.length > 0) {
+    labels.variations = 'Variations'
+  }
+  return labels
+})
+
+function getSelectedFormulaIndex(outputVar: string): number {
+  const indexMap = variationIndex.value as Record<string, number> | number
+  if (typeof indexMap === 'number') return indexMap
+  return indexMap[outputVar] ?? 0
+}
+
+function setSelectedFormulaIndex(outputVar: string, value: number) {
+  if (!stateManager.state.truthTable) return
+
+  const current = stateManager.state.truthTable.variationIndex
+  stateManager.state.truthTable.variationIndex = {
+    ...(typeof current === 'number' ? {} : current),
+    [outputVar]: value,
+  }
+
+  void updateFormulas()
+}
+
+function generateSelectedVariationFormulas(): Record<string, Formula> {
+  const selectedFormulas: Record<string, Formula> = {}
+
+  outputVars.value.forEach((outputVar) => {
+    const outputVariations = variations.value?.[outputVar]
+    const selectedVariation = outputVariations?.[getSelectedFormulaIndex(outputVar)]
+    selectedFormulas[outputVar] =
+      selectedVariation?.formula ?? formulas.value[outputVar] ?? FormulaDefaults.empty
+  })
+
+  return selectedFormulas
 }
 
 async function foundSignificantChanges(): Promise<boolean> {
@@ -311,7 +373,7 @@ function installIframeInteractionGuards() {
 function updateMethodPickerPosition() {
   if (!panelRef.value) return
   const rect = panelRef.value.getBoundingClientRect()
-  const offset = 12
+  const offset = 8
   downloadButtonStyle.value = {
     right: `${window.innerWidth - rect.right + offset}px`,
     top: `${rect.top + offset}px`,
@@ -319,6 +381,7 @@ function updateMethodPickerPosition() {
 }
 
 let currentLCHeader: string | undefined = undefined
+let layoutDisposable: any = null
 
 // adjust the view in future lc imports/exports to match the current view.
 async function updateLCHeader() {
@@ -338,22 +401,35 @@ onMounted(() => {
   }
   window.addEventListener('scroll', updateMethodPickerPosition, true)
   window.addEventListener('resize', updateMethodPickerPosition)
+  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateMethodPickerPosition())
 
   installIframeInteractionGuards()
   iframeReadyRebindHandler = () => installIframeInteractionGuards()
   window.addEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
+
+  visibilityDisposable =
+    props.params?.api?.onDidVisibilityChange(() => {
+      if (props.params?.api?.isVisible && pendingUpdate) {
+        pendingUpdate = false
+        void updateFormulas()
+      }
+    }) ?? null
 })
 
 onBeforeUnmount(() => {
   positionObserver?.disconnect()
   window.removeEventListener('scroll', updateMethodPickerPosition, true)
   window.removeEventListener('resize', updateMethodPickerPosition)
+  layoutDisposable?.dispose?.()
+  layoutDisposable = null
   detachIframeGuards?.()
   detachIframeGuards = null
   if (iframeReadyRebindHandler) {
     window.removeEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
     iframeReadyRebindHandler = null
   }
+  visibilityDisposable?.dispose?.()
+  visibilityDisposable = null
 })
 
 type LCMethodType = 'AND/OR' | 'NAND' | 'NOR'
@@ -378,7 +454,9 @@ let currentLCContent: LCFile | null = null
 
 const createLcContent = (method: LCMethodType) => {
   const targetFormulas =
-    functionRepresentation.value === 'Normal' ? generateCanonicalFormulas() : formulas.value
+    functionRepresentation.value === 'Normal'
+      ? generateCanonicalFormulas()
+      : generateSelectedVariationFormulas()
 
   currentLCContent = formulaToLC(
     targetFormulas,
@@ -386,6 +464,8 @@ const createLcContent = (method: LCMethodType) => {
     outputVars.value,
     outTypeMap[method],
     currentLCHeader,
+    displayInputVars.value,
+    displayOutputVars.value,
   )
   return currentLCContent.toString()
 }
@@ -421,8 +501,14 @@ function handleMethodSelect(value: unknown, idx: number) {
 }
 
 let lastFileContent = ''
+let pendingUpdate = false
 
 async function updateFormulas() {
+  if (props.params?.api && !props.params.api.isVisible) {
+    pendingUpdate = true
+    return
+  }
+
   if (editWarning.value && !hideManualEditWarning.value) {
     openEditWarningPopup()
     return
@@ -451,7 +537,7 @@ async function updateFormulas() {
 
 // Keep the plain object in sync with state and selection
 watch(
-  [() => formulas.value],
+  [() => formulas.value, () => variations.value, () => variationIndex.value],
   () => {
     void updateFormulas()
   },
@@ -462,7 +548,7 @@ const methodOptions = lcMethodTypes
 </script>
 
 <template>
-  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2 p-2">
+  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2">
     <div ref="iframeContainer" class="relative flex-1">
       <IframePanel
         ref="iframePanelRef"
@@ -492,13 +578,23 @@ const methodOptions = lcMethodTypes
           </span>
           <span class="whitespace-nowrap">{{ editWarningInlineText }}</span>
         </div>
+        <div v-for="row in variationRows" :key="row.outputVar" class="shrink-0">
+          <VariationSelector
+            v-if="row.formulas.length > 1"
+            placement="bottom"
+            :formulas="row.formulas"
+            :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
+            :variableName="row.displayLabel"
+            @update:selected-index="(value) => setSelectedFormulaIndex(row.outputVar, value)"
+          />
+        </div>
         <SettingsButton
           :selected-function-type="functionType"
           :input-vars="inputVars"
-          :output-vars="outputVars"
+          :output-vars="displayOutputVars"
           :show-output-selection="false"
           :show-function-type-selection="true"
-          :custom-setting-slot-labels="{ method: 'Gate Type' }"
+          :custom-setting-slot-labels="settingsSlotLabels"
           :selected-function-representation="functionRepresentation"
         >
           <template #method>

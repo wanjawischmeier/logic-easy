@@ -127,6 +127,8 @@ export function formulaToLC(
   outputVars: string[],
   outType: 'and-or' | 'nand' | 'nor' = 'and-or',
   firstLine: string | undefined = undefined,
+  displayInputLabels?: string[],
+  displayOutputLabels?: string[],
 ): LCFile {
   //create new lc File instance
   const lcFile = new LCFile(firstLine)
@@ -143,12 +145,12 @@ export function formulaToLC(
     const button = lcFile.createButton(xOffset + i * (termSpacing + LCFile.BUTTON_SIZE), 30, 1) // create button, rotated by 90°
     buttonsByVar.set(v, button) //add button to map by input variable name
     buttonsByVar.set(v.toLowerCase(), button)
-    button.addText(v, 0) //add text label above button
+    button.addText(displayInputLabels?.[i] ?? v, 0) //add text label above button
   })
 
   //build logic for each output variable
   const lampsByOutput = new Map<string, Element>() //lamp map output variablename -> lamp element
-  outputVars.forEach((outputVar) => {
+  outputVars.forEach((outputVar, outIdx) => {
     console.log('Processing output variable:', formulas[outputVar])
     const formulaType = (
       formulas[outputVar]?.type === 'Disjunctive' ? 'Disjunctive' : 'Conjunctive'
@@ -174,7 +176,7 @@ export function formulaToLC(
 
     // create lamp for this output, aligned with OR gate
     const lamp = lcFile.createLamp(xOffset + 650, orY + LCFile.LAMP_SIZE / 2, 0)
-    lamp.addText(outputVar, 1) //add text label right to the lamp
+    lamp.addText(displayOutputLabels?.[outIdx] ?? outputVar, 1) //add text label right to the lamp
     lampsByOutput.set(outputVar, lamp) //set lamp to map by output variable name
 
     //special case: constant output for this formula

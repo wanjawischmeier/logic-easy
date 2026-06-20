@@ -7,6 +7,7 @@ import {
   type Formula,
   type FunctionRepresentation,
   type FunctionType,
+  type FormulaVariation,
 } from '@/utility/types'
 import { computed } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
@@ -22,11 +23,15 @@ export type TruthTableData = TruthTableCell[][]
 export interface TruthTableProps extends BaseProjectProps {
   inputVariableCount: number
   outputVariableCount: number
+  inputVarLabels?: string[]
+  outputVarLabels?: string[]
 }
 
 export interface TruthTableState {
   inputVars: string[]
   outputVars: string[]
+  inputVarLabels?: string[]
+  outputVarLabels?: string[]
   values: TruthTableData
   formulas: Record<string, Formula>
   outputVariableIndex: number
@@ -36,15 +41,18 @@ export interface TruthTableState {
   couplingTermLatex?: string
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
+  variations?: Record<string, FormulaVariation[]>
+  variationIndex: Record<string, number>
   fsmMode?: boolean
 }
 
 export class TruthTableProject extends Project {
   static override get defaultProps(): TruthTableProps {
     return {
-      name: '',
+      name: 'Combinatorial Circuit ',
       inputVariableCount: 4,
       outputVariableCount: 2,
+      defaultLayout: 'TruthTable',
     }
   }
 
@@ -53,6 +61,18 @@ export class TruthTableProject extends Project {
 
     const inputVars = computed(() => state.value?.inputVars ?? [])
     const outputVars = computed(() => state.value?.outputVars ?? [])
+    const inputVarLabels = computed(() => state.value?.inputVarLabels)
+    const outputVarLabels = computed(() => state.value?.outputVarLabels)
+    const displayInputVars = computed(() =>
+      inputVarLabels.value
+        ? inputVars.value.map((v, i) => inputVarLabels.value![i] ?? v)
+        : inputVars.value,
+    )
+    const displayOutputVars = computed(() =>
+      outputVarLabels.value
+        ? outputVars.value.map((v, i) => outputVarLabels.value![i] ?? v)
+        : outputVars.value,
+    )
     const values = computed(() => stateManager.state.truthTable?.values ?? [])
     const formulas = computed(() => state.value?.formulas ?? {})
     const outputVariableIndex = computed(() => state.value?.outputVariableIndex ?? 0)
@@ -64,6 +84,8 @@ export class TruthTableProject extends Project {
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex)
     const selectedFormula = computed(() => state.value?.selectedFormula)
     const formulaTermColors = computed(() => state.value?.formulaTermColors)
+    const variations = computed(() => state.value?.variations)
+    const variationIndex = computed(() => state.value?.variationIndex ?? {})
 
     const outputVar = computed(() => state.value?.outputVars[state.value.outputVariableIndex])
 
@@ -71,6 +93,10 @@ export class TruthTableProject extends Project {
       state,
       inputVars,
       outputVars,
+      inputVarLabels,
+      outputVarLabels,
+      displayInputVars,
+      displayOutputVars,
       outputVar,
       values,
       formulas,
@@ -81,18 +107,36 @@ export class TruthTableProject extends Project {
       couplingTermLatex,
       selectedFormula,
       formulaTermColors,
+      variations,
+      variationIndex,
     }
   }
 
   static override restoreDefaultPanelLayout(props: TruthTableProps) {
     createPanel('truth-table', 'Truth Table')
 
-    // Add KV diagram if input count is between 2 and 4
-    if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
-      createPanel('kv-diagram', 'KV Diagram', {
-        referencePanel: 'truth-table',
-        direction: 'right',
-      })
+    switch (props.defaultLayout) {
+      case 'SplitKV':
+        if (props.inputVariableCount >= 2) {
+          createPanel('kv-diagram', 'Karnaugh-Veitch', {
+            referencePanel: 'truth-table',
+            direction: 'right',
+          })
+        }
+        break
+
+      case 'SplitQMC':
+        // Add KV diagram if input count is between 2 and 4
+        if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
+          createPanel('qmc-visualization', 'Quine-McCluskey', {
+            referencePanel: 'truth-table',
+            direction: 'right',
+          })
+        }
+        break
+
+      default:
+        break
     }
   }
 
@@ -105,7 +149,7 @@ export class TruthTableProject extends Project {
 
     // Generate variable names
     const inputVars = this.generateVariableNames(props.inputVariableCount, 97)
-    const outputVars = this.generateVariableNames(props.outputVariableCount, 112)
+    const outputVars = this.generateVariableNames(props.outputVariableCount, 107)
 
     // create formulas
     const formulas: Record<string, Formula> = {}
@@ -125,15 +169,19 @@ export class TruthTableProject extends Project {
       functionType,
       functionRepresentation,
       inputVars,
+      props.outputVarLabels?.[0] ?? outputVars[0]!,
     )
 
     // Initialize state
     stateManager.state.truthTable = {
       inputVars: inputVars,
       outputVars: outputVars,
+      inputVarLabels: props.inputVarLabels,
+      outputVarLabels: props.outputVarLabels,
       values: values,
       formulas: formulas,
       outputVariableIndex: 0,
+      variationIndex: Object.fromEntries(outputVars.map((outputVar) => [outputVar, 0])),
       functionType: functionType,
       functionRepresentation: functionRepresentation,
       couplingTermLatex: couplingTermLatex,
@@ -152,8 +200,8 @@ export class TruthTableProject extends Project {
   }
 }
 
-registerProjectType('truth-table', {
-  name: 'Truth Table',
+registerProjectType('combinatorial-circuit', {
+  name: 'Combinatorial Circuit',
   propsComponent: TruthTablePropsComponent,
   projectClass: TruthTableProject,
 })

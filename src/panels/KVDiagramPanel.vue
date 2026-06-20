@@ -2,8 +2,8 @@
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
     <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType"
         :selected-function-representation="functionRepresentation"
@@ -28,35 +28,40 @@
       />
     </div>
 
-    <div class="h-full" ref="screenshotRef">
+    <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
-      <div
-        data-screenshot-ignore
-        class="h-full pb-[15%] flex flex-col justify-center items-center overflow-auto"
-      >
-        <div class="flex-1">
+      <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
+        <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
           <KVDiagram
             :key="`${functionType}-${outputVariableIndex}`"
             :values="tableValues"
             :input-vars="inputVars"
             :output-vars="outputVars"
+            :input-var-labels="inputVarLabels"
+            :output-var-labels="outputVarLabels"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
-            :selected-formula="displaySelectedFormula"
+            :selected-formula="selectedVariationFormula"
             :functionType="functionType"
             :function-representation="functionRepresentation"
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
+            :variation-index="currentVariationIndex"
             @values-changed="tableValues = $event"
           />
-        </div>
 
-        <FormulaRenderer
-          v-if="displayCouplingTermLatex && showFormula"
-          class="pt-8 flex-1"
-          :latex-expression="displayCouplingTermLatex"
-        />
+          <div
+            v-if="displayFormulaVariations.length > 0 && showFormula"
+            class="pt-8 w-full flex justify-center overflow-visible"
+          >
+            <VariationViewer
+              v-model:current-variation-index="currentVariationIndex"
+              :variations="displayFormulaVariations"
+              :function-representation="functionRepresentation"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- Screenshot-only view -->
@@ -70,14 +75,17 @@
             :values="tableValues"
             :input-vars="inputVars"
             :output-vars="outputVars"
+            :input-var-labels="inputVarLabels"
+            :output-var-labels="outputVarLabels"
             :outputVariableIndex="index"
             :formulas="{}"
-            :selected-formula="displaySelectedFormula"
+            :selected-formula="selectedVariationFormula"
             :functionType="functionType"
             :function-representation="functionRepresentation"
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
+            :variation-index="currentVariationIndex"
             @values-changed="tableValues = $event"
           />
 
@@ -95,7 +103,7 @@
 <style scoped></style>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed, type ComputedRef } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
@@ -115,6 +123,8 @@ import {
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import type { FormulaVariation } from '@/utility/types'
+import VariationViewer from '@/components/parts/VariationViewer.vue'
 
 interface KVPanelState {
   showFormula: boolean
@@ -163,6 +173,10 @@ onBeforeUnmount(() => {
 const {
   inputVars,
   outputVars,
+  inputVarLabels,
+  outputVarLabels,
+  displayInputVars,
+  displayOutputVars,
   values,
   selectedFormula,
   outputVariableIndex,
@@ -171,6 +185,8 @@ const {
   couplingTermLatex,
   qmcResult,
   formulaTermColors,
+  variations,
+  variationIndex,
 } = TruthTableProject.useState()
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
@@ -200,6 +216,39 @@ const displayFormulaTermColors = computed(
 const displayCouplingTermLatex = computed(
   () => fsmPresentation.value.couplingTermLatex ?? couplingTermLatex.value,
 )
+
+const displayFormulaVariations = computed(() => {
+  const variationsSource = fsmPresentation.value.variations ?? variations.value
+  const outputVar = outputVars.value[outputVariableIndex.value]
+  if (!outputVar || !variationsSource) return []
+  return variationsSource[outputVar] ?? []
+})
+
+const currentVariationIndex = computed({
+  get() {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar) return 0
+
+    const indexMap = variationIndex.value as Record<string, number> | number
+    if (typeof indexMap === 'number') return indexMap
+    return indexMap[outputVar] ?? 0
+  },
+  set(value: number) {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar || !stateManager.state.truthTable) return
+
+    const current = stateManager.state.truthTable.variationIndex
+    stateManager.state.truthTable.variationIndex = {
+      ...(typeof current === 'number' ? {} : current),
+      [outputVar]: value,
+    }
+  },
+})
+
+const selectedVariationFormula = computed(() => {
+  const variation = displayFormulaVariations.value[currentVariationIndex.value]
+  return variation?.formula
+})
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),

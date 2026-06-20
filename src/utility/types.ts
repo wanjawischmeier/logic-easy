@@ -38,11 +38,17 @@ export const Formula = {
   },
 }
 
+export interface FormulaVariation {
+  formula: Formula
+  latex: string
+}
+
 export interface ListEntry {
   label: string
   action: () => void
   disabled?: boolean
   subtitle?: string
+  children?: ListEntry[]
 }
 
 export type ListEntries = ListEntry[]

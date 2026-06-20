@@ -19,14 +19,16 @@ export function getFunctionSignature(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  outputVariableName: string,
   options?: { lowercaseInputVars?: boolean },
 ): string {
   const formType = functionType === 'Disjunctive' ? 'D' : 'C'
   const formRepresentation = functionRepresentation === 'Normal' ? 'N' : 'M'
+  const functionName = formatLatexIdentifier(outputVariableName)
   const formattedInputVars = inputVars.map((inputVar) =>
     formatLatexIdentifier(inputVar, { lowercase: options?.lowercaseInputVars ?? false }),
   )
-  return `f_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
+  return `${functionName}_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
 }
 
 /**
@@ -42,11 +44,11 @@ function getBinaryMinterm(rowIdx: number, inputVars: string[]): string {
     if (bit === '1') {
       literals.push(variable)
     } else {
-      literals.push(`\\bar{${variable}}`)
+      literals.push(`\\overline{${variable}}`)
     }
   }
 
-  return literals.join('')
+  return literals.join('\\,')
 }
 
 /**
@@ -63,7 +65,7 @@ function getBinaryMaxterm(rowIdx: number, inputVars: string[]): string {
     if (bit === '0') {
       literals.push(variable)
     } else {
-      literals.push(`\\bar{${variable}}`)
+      literals.push(`\\overline{${variable}}`)
     }
   }
 
@@ -74,7 +76,7 @@ function getBinaryMaxterm(rowIdx: number, inputVars: string[]): string {
  * Extract variable letters from a LaTeX term for sorting (remove \bar{} notation)
  */
 function getTermSortKey(term: string): string {
-  return term.replace(/\\bar\{([a-z])\}/g, '$1')
+  return term.replace(/\\overline\{([^}]+)\}/g, '$1')
 }
 
 /**
@@ -136,11 +138,21 @@ export function getCouplingTermLatex(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  outputVariableName: string,
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
-  options?: { lowercaseInputVars?: boolean },
+  options?: {
+    lowercaseInputVars?: boolean
+    labelMap?: Record<string, string>
+  },
 ): string {
-  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, options)
+  const signature = getFunctionSignature(
+    functionType,
+    functionRepresentation,
+    inputVars,
+    outputVariableName,
+    options,
+  )
 
   // If normal form requested and values provided, return canonical form
   if (
@@ -170,7 +182,11 @@ export function getCouplingTermLatex(
   }
 
   const isCNF = functionType === 'Conjunctive'
-  const { constantTerms, variablePositions } = analyzeExpressions(qmcResult.expressions, isCNF)
+  const { constantTerms, variablePositions } = analyzeExpressions(
+    qmcResult.expressions,
+    isCNF,
+    options?.labelMap,
+  )
 
   if (variablePositions.length === 0) {
     const termJoiner = isCNF ? '' : ' + '

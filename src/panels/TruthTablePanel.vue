@@ -15,8 +15,8 @@
       <LegendButton :legend="legend" />
 
       <SettingsButton
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType"
         :selected-function-representation="functionRepresentation"
@@ -46,8 +46,8 @@
     <div ref="screenshotRef" class="flex-1 overflow-auto">
       <TruthTable
         v-model="tableValues"
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :highlighted-row="highlightedRow"
         :blink-green-row="blinkGreenRow"
         :show-all-output-vars="showAllOutputVars"
@@ -94,7 +94,7 @@ const legend: LegendItem[] = [
   {
     label: 'Search',
     description:
-      "Allows you to quickly search and/or edit the values for a specific row by entering that row's input variable values in binary representation.",
+      "Allows you to quickly search and/or edit the values for a specific row by entering that row's input variable values in binary representation. Hit ENTER to apply and TAB to apply and move to next row.",
     component: SearchIcon,
   },
 ]
@@ -104,8 +104,16 @@ interface TruthTablePanelState {
 }
 
 // Access state from params
-const { inputVars, outputVars, values, outputVariableIndex, functionType, functionRepresentation } =
-  TruthTableProject.useState()
+const {
+  inputVars,
+  outputVars,
+  displayInputVars,
+  displayOutputVars,
+  values,
+  outputVariableIndex,
+  functionType,
+  functionRepresentation,
+} = TruthTableProject.useState()
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<TruthTablePanelState>(props.params.api.id)
@@ -115,7 +123,7 @@ const tableValues = ref<TruthTableData>(
 )
 const highlightedRow = ref<number | null>(null)
 const blinkGreenRow = ref<number | null>(null)
-const showAllOutputVars = ref(panelState?.showAllOutputVars ?? true)
+const showAllOutputVars = ref(panelState?.showAllOutputVars ?? outputVars.value.length <= 4)
 let isUpdatingFromState = false
 
 // Auto-save panel state when values change
@@ -182,7 +190,7 @@ function getTruthTableLatex(): string {
   let latex = `\\begin{tabular}{${colSpec}}\n`
 
   // Add header row
-  const headers = [...inputVars.value, ...outputVars.value]
+  const headers = [...displayInputVars.value, ...displayOutputVars.value]
   latex += headers.join(' & ') + ' \\\\\n\\hline\n'
 
   // Add data rows

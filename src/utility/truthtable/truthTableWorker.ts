@@ -1,6 +1,11 @@
 import { Minimizer, type QMCResult } from './minimizer'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import type { FunctionType, Formula, FunctionRepresentation } from '@/utility/types'
+import type {
+  FunctionType,
+  Formula,
+  FunctionRepresentation,
+  FormulaVariation,
+} from '@/utility/types'
 import {
   defaultColor,
   generateTermColor,
@@ -24,6 +29,59 @@ export interface WorkerResponse {
   couplingTermLatex: string | undefined
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
+  variations?: Record<string, FormulaVariation[]>
+}
+
+export interface EdgeCaseResult {
+  qmcResult: QMCResult
+  formula: Formula
+  couplingTermLatex: string
+}
+
+/**
+ * Compute formula variations from QMC result expressions
+ */
+function computeVariations(
+  qmcResult: QMCResult,
+  functionType: FunctionType,
+  functionRepresentation: FunctionRepresentation,
+  inputVars: string[],
+  outputVariableName: string,
+  truthTableValues?: TruthTableState['values'],
+  outputVariableIndex?: number,
+  labelMap?: Record<string, string>,
+): FormulaVariation[] {
+  if (!qmcResult.expressions || qmcResult.expressions.length === 0) {
+    return []
+  }
+
+  return qmcResult.expressions.map((expr) => {
+    // Convert expression to formula
+    const formula = flattenCouplingTermsToFormula(expr as Operation, functionType)
+
+    // Create a single-expression QMCResult for latex generation
+    const singleExprResult: QMCResult = {
+      ...qmcResult,
+      expressions: [expr],
+    }
+
+    // Generate latex using the signature + expression latex
+    const latex = getCouplingTermLatex(
+      singleExprResult,
+      functionType,
+      functionRepresentation,
+      inputVars,
+      outputVariableName,
+      truthTableValues,
+      outputVariableIndex,
+      { labelMap },
+    )
+
+    return {
+      formula,
+      latex,
+    }
+  })
 }
 
 /**
@@ -34,8 +92,14 @@ function createEdgeCaseResult(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
-): { qmcResult: QMCResult; formula: Formula; couplingTermLatex: string } {
-  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars)
+  outputVariableName: string,
+): EdgeCaseResult {
+  const signature = getFunctionSignature(
+    functionType,
+    functionRepresentation,
+    inputVars,
+    outputVariableName,
+  )
 
   let constant: '0' | '1'
 
@@ -81,6 +145,12 @@ async function runMinimization(
   }
 
   return await Minimizer.runQMC(modifiedTruthTable)
+}
+
+function getVariationIndex(truthTable: TruthTableState, outputVar: string): number {
+  const variationIndex = truthTable.variationIndex as Record<string, number> | number
+  if (typeof variationIndex === 'number') return variationIndex
+  return variationIndex[outputVar] ?? 0
 }
 
 function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermColor[] {
@@ -132,6 +202,16 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex]
   if (!currentOutputVar) return
 
+  // Display-only substitution: use labels where provided, internal names for computation
+  const displayInputVars = truthTable.inputVarLabels ?? truthTable.inputVars
+  const displayOutputVars = truthTable.outputVarLabels ?? truthTable.outputVars
+  const currentOutputName = displayOutputVars[truthTable.outputVariableIndex] ?? currentOutputVar
+  const labelMap: Record<string, string> | undefined = truthTable.inputVarLabels
+    ? Object.fromEntries(
+        truthTable.inputVars.map((v, i) => [v, truthTable.inputVarLabels![i] ?? v]),
+      )
+    : undefined
+
   console.log('[TruthTableWorker] Processing request:', id)
 
   try {
@@ -147,20 +227,29 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       // Create edge case results for all output variables
       const qmcResults: Record<string, QMCResult | undefined> = {}
       const formulas: Record<string, Formula | undefined> = {}
+      const variationsRecord: Record<string, FormulaVariation[]> = {}
 
       for (const outputVar of truthTable.outputVars) {
         const outputIndex = truthTable.outputVars.indexOf(outputVar)
         const outputEdgeCase = detectTautologyOrContradiction(truthTable.values, outputIndex)
 
         if (outputEdgeCase !== null) {
+          const outputVariableName = displayOutputVars[outputIndex] ?? outputVar
           const edgeResult = createEdgeCaseResult(
             outputEdgeCase,
             truthTable.functionType,
             truthTable.functionRepresentation,
-            truthTable.inputVars,
+            displayInputVars,
+            outputVariableName,
           )
           qmcResults[outputVar] = edgeResult.qmcResult
           formulas[outputVar] = edgeResult.formula
+          variationsRecord[outputVar] = [
+            {
+              formula: edgeResult.formula,
+              latex: edgeResult.couplingTermLatex,
+            },
+          ]
         } else {
           // This output variable is not an edge case, run QMC normally
           const result = await runMinimization(truthTable, outputIndex)
@@ -171,11 +260,22 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
               result.expressions[0]!,
               truthTable.functionType,
             )
+            variationsRecord[outputVar] = computeVariations(
+              result,
+              truthTable.functionType,
+              truthTable.functionRepresentation,
+              displayInputVars,
+              displayOutputVars[outputIndex] ?? outputVar,
+              undefined,
+              undefined,
+              labelMap,
+            )
           } else {
             formulas[outputVar] = {
               type: truthTable.functionType,
               terms: [{ literals: [{ variable: '0', negated: false }] }],
             }
+            variationsRecord[outputVar] = []
           }
         }
       }
@@ -185,7 +285,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         edgeCase,
         truthTable.functionType,
         truthTable.functionRepresentation,
-        truthTable.inputVars,
+        displayInputVars,
+        currentOutputName,
       )
 
       const response: WorkerResponse = {
@@ -197,6 +298,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         formulaTermColors: shouldUseGenericFormulaColors(truthTable)
           ? currentEdgeResult.qmcResult.termColors
           : undefined,
+        variations: variationsRecord,
       }
 
       self.postMessage(response)
@@ -207,11 +309,11 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
       const result = await runMinimization(truthTable, index)
       if (!result || !result.pis) {
-        return { outputVar, result }
+        return { outputVar, index, result }
       }
 
       result.termColors = mapResultColors(truthTable, result)
-      return { outputVar, result }
+      return { outputVar, index, result }
     })
 
     const qmcResultsArray = await Promise.all(qmcPromises)
@@ -219,8 +321,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // Build records from results
     const qmcResults: Record<string, QMCResult | undefined> = {}
     const formulas: Record<string, Formula | undefined> = {}
+    const variationsRecord: Record<string, FormulaVariation[]> = {}
 
-    for (const { outputVar, result } of qmcResultsArray) {
+    for (const { outputVar, index, result } of qmcResultsArray) {
       qmcResults[outputVar] = result
 
       if (result && result.expressions && result.expressions.length > 0) {
@@ -228,11 +331,23 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           result.expressions[0]!,
           truthTable.functionType,
         )
+        // Compute variations for this output variable
+        variationsRecord[outputVar] = computeVariations(
+          result,
+          truthTable.functionType,
+          truthTable.functionRepresentation,
+          displayInputVars,
+          displayOutputVars[index] ?? outputVar,
+          truthTable.values,
+          index,
+          labelMap,
+        )
       } else {
         formulas[outputVar] = {
           type: truthTable.functionType,
           terms: [{ literals: [{ variable: '0', negated: false }] }],
         }
+        variationsRecord[outputVar] = []
       }
     }
 
@@ -247,11 +362,16 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         currentQmcResult,
         truthTable.functionType,
         truthTable.functionRepresentation,
-        truthTable.inputVars,
+        displayInputVars,
+        currentOutputName,
         truthTable.values,
         truthTable.outputVariableIndex,
+        { labelMap },
       )
-      selectedFormula = formulas[currentOutputVar]
+      const variations = variationsRecord[currentOutputVar]
+      if (variations) {
+        selectedFormula = variations[getVariationIndex(truthTable, currentOutputVar)]?.formula
+      }
 
       // Map formula terms to prime implicant colors
       if (
@@ -276,6 +396,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       couplingTermLatex,
       selectedFormula,
       formulaTermColors: shouldUseGenericFormulaColors(truthTable) ? formulaTermColors : undefined,
+      variations: variationsRecord,
     }
 
     self.postMessage(response)

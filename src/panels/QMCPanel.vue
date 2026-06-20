@@ -12,8 +12,8 @@
       <LegendButton :legend="currentLegend" />
 
       <SettingsButton
-        :input-vars="inputVars"
-        :output-vars="outputVars"
+        :input-vars="displayInputVars"
+        :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
         :selected-function-type="functionType"
         :show-function-representation-selection="false"
@@ -32,69 +32,78 @@
         </template>
       </SettingsButton>
 
-      <DownloadButton
-        :target-ref="screenshotRef"
-        :panel-id="props.params.api.id"
-        filename="qmc"
-        :files="downloadFiles"
-      />
+      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="qmc" />
     </div>
 
-    <div class="h-full" ref="screenshotRef">
+    <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
-      <div data-screenshot-ignore class="h-full flex flex-col items-center">
+      <div data-screenshot-ignore class="flex-1 min-h-0 flex flex-col items-center">
         <div
           v-if="(qmcResult?.iterations.length ?? 0) !== 0"
-          class="flex-1 flex items-center justify-center overflow-auto w-full"
+          class="flex-1 min-h-0 overflow-auto w-full"
         >
-          <QMCGroupingTable
-            v-if="selectedTabIndex === 0"
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :outputVariableIndex="outputVariableIndex"
-            :formulas="{}"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
-          />
+          <div class="min-h-full w-max min-w-full flex items-center justify-center">
+            <QMCGroupingTable
+              v-if="selectedTabIndex === 0"
+              :values="tableValues"
+              :input-vars="displayInputVars"
+              :output-vars="displayOutputVars"
+              :outputVariableIndex="outputVariableIndex"
+              :formulas="{}"
+              :functionType="functionType"
+              :function-representation="functionRepresentation"
+              :qmc-result="qmcResult"
+            />
 
-          <QMCPrimeImplicantChart
-            v-else-if="selectedTabIndex === 1"
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :outputVariableIndex="outputVariableIndex"
-            :formulas="{}"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
-            :coupling-term-latex="couplingTermLatex"
-            :show-highlights="showHighlights"
-          />
+            <QMCPrimeImplicantChart
+              v-else-if="selectedTabIndex === 1"
+              :values="tableValues"
+              :input-vars="displayInputVars"
+              :output-vars="displayOutputVars"
+              :outputVariableIndex="outputVariableIndex"
+              :formulas="{}"
+              :functionType="functionType"
+              :function-representation="functionRepresentation"
+              :qmc-result="qmcResult"
+              :coupling-term-latex="couplingTermLatex"
+              :show-highlights="showHighlights"
+              :display-formula-variations="displayFormulaVariations"
+              v-model:current-variation-index="currentVariationIndex"
+            />
+          </div>
         </div>
-        <div v-else class="flex flex-1 justify-center items-center overflow-auto w-full">
-          <FormulaRenderer :latex-expression="couplingTermLatex" v-if="couplingTermLatex">
-          </FormulaRenderer>
+        <div v-else class="flex-1 overflow-auto w-full">
+          <div class="min-h-full min-w-full flex justify-center items-center">
+            <div
+              v-if="displayFormulaVariations.length > 0"
+              class="pt-8 w-full flex justify-center overflow-visible"
+            >
+              <VariationViewer
+                v-model:current-variation-index="currentVariationIndex"
+                :variations="displayFormulaVariations"
+                :function-representation="functionRepresentation"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Screenshot-only view -->
       <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
         <div
-          v-for="outputVar in outputVars"
+          v-for="(outputVar, outIdx) in outputVars"
           :key="`screenshot-${outputVar}-${functionType}`"
           class="flex flex-col items-center gap-4"
         >
           <vue-latex
             :fontsize="14"
-            :expression="`\\text{Output Variable:}${formatLatexIdentifier(outputVar)}`"
+            :expression="`\\text{Output Variable:}${formatLatexIdentifier(displayOutputVars[outIdx] ?? outputVar)}`"
           />
 
           <QMCGroupingTable
             :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
+            :input-vars="displayInputVars"
+            :output-vars="displayOutputVars"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
             :functionType="functionType"
@@ -104,8 +113,8 @@
 
           <QMCPrimeImplicantChart
             :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
+            :input-vars="displayInputVars"
+            :output-vars="displayOutputVars"
             :outputVariableIndex="outputVariableIndex"
             :formulas="{}"
             :functionType="functionType"
@@ -113,6 +122,8 @@
             :qmc-result="qmcResult"
             :coupling-term-latex="couplingTermLatex"
             :show-highlights="showHighlights"
+            :display-formula-variations="displayFormulaVariations"
+            v-model:current-variation-index="currentVariationIndex"
           />
         </div>
       </div>
@@ -124,7 +135,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import FormulaRenderer from '@/components/FormulaRenderer.vue'
+import VariationViewer from '@/components/parts/VariationViewer.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
@@ -142,6 +153,7 @@ import {
 } from '@/projects/truth-table/TruthTableProject'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { buildFsmKVDiagramPresentation } from '@/utility/fsm/kvSync'
 
 interface QMCPanelState {
   selectedTabIndex: number
@@ -250,13 +262,54 @@ stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
 const {
   inputVars,
   outputVars,
+  displayInputVars,
+  displayOutputVars,
   values,
   outputVariableIndex,
   functionType,
   functionRepresentation,
   qmcResult,
   couplingTermLatex,
+  variations,
+  variationIndex,
 } = TruthTableProject.useState()
+
+const fsmPresentation = computed(() => {
+  if (!stateManager.state.fsm) return {}
+  if (!stateManager.state.truthTable) return {}
+  // Explicitly access qmcResult to ensure dependency is tracked
+  const qmc = stateManager.state.truthTable.qmcResult
+  if (!qmc) return {}
+  return buildFsmKVDiagramPresentation(stateManager.state.truthTable)
+})
+
+const displayFormulaVariations = computed(() => {
+  const variationsSource = fsmPresentation.value.variations ?? variations.value
+  const outputVar = outputVars.value[outputVariableIndex.value]
+  if (!outputVar || !variationsSource) return []
+  return variationsSource[outputVar] ?? []
+})
+
+const currentVariationIndex = computed({
+  get() {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar) return 0
+
+    const indexMap = variationIndex.value as Record<string, number> | number
+    if (typeof indexMap === 'number') return indexMap
+    return indexMap[outputVar] ?? 0
+  },
+  set(value: number) {
+    const outputVar = outputVars.value[outputVariableIndex.value]
+    if (!outputVar || !stateManager.state.truthTable) return
+
+    const current = stateManager.state.truthTable.variationIndex
+    stateManager.state.truthTable.variationIndex = {
+      ...(typeof current === 'number' ? {} : current),
+      [outputVar]: value,
+    }
+  },
+})
 
 const tableValues = ref<TruthTableData>(values.value.map((row: TruthTableCell[]) => [...row]))
 let isUpdatingFromState = false
@@ -292,15 +345,4 @@ watch(
   },
   { deep: true },
 )
-
-const downloadFiles = computed(() => [
-  {
-    label: 'LaTeX',
-    filename: 'kv',
-    extension: 'tex',
-    content: () => couplingTermLatex.value,
-    mimeType: 'text/plain',
-    registerWith: 'latex' as const,
-  },
-])
 </script>

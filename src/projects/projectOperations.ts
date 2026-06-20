@@ -39,6 +39,7 @@ export class ProjectOperations {
     // Initialize project state using the static createState method BEFORE saving
     const projectTypeInfo = projectTypes[projectType]
     if (projectTypeInfo?.projectClass) {
+      stateManager.resetState()
       projectTypeInfo.projectClass.createState(project.props)
       project.state = {
         ...project.state,

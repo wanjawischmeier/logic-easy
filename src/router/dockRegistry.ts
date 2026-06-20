@@ -4,17 +4,13 @@ import LogicCircuitsPanel from '@/panels/LogicCircuitsPanel.vue'
 import FsmEnginePanel from '@/panels/FsmEnginePanel.vue'
 import StateTablePanel from '@/panels/StateTablePanel.vue'
 import { computed } from 'vue'
+import { projectTypes } from '@/projects/projectRegistry'
 import type { ProjectType } from '@/projects/projectRegistry'
 import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import QMCPanel from '@/panels/QMCPanel.vue'
 
-export type PanelRequirement =
-  | 'TruthTable'
-  | 'Fsm'
-  | 'Min2InputVars'
-  | 'Max4InputVars'
-  | 'NotSupported'
+export type PanelRequirement = 'TruthTable' | 'Fsm' | 'Min2InputVars' | 'NotSupported'
 export type RequirementType = 'CREATE' | 'VIEW'
 
 /**
@@ -25,6 +21,11 @@ type Requirements = {
   view?: PanelRequirement[]
 }
 
+type ProjectCreationInfo = {
+  projectType?: ProjectType
+  defaultLayout?: DefaultLayoutType
+}
+
 /**
  * Dock panel entry
  */
@@ -32,7 +33,7 @@ type DockEntry = {
   id: string
   label: string
   component: unknown
-  projectType?: ProjectType
+  projectCreationInfo?: ProjectCreationInfo
   requires?: Requirements
   minimumWidth?: number
 }
@@ -65,6 +66,8 @@ function isDockMenuNode(entry: DockRegistryEntry): entry is DockMenuNode {
   return 'children' in entry && !('id' in entry)
 }
 
+export type DefaultLayoutType = 'TruthTable' | 'SplitKV' | 'SplitQMC'
+
 export type MenuEntry = {
   label: string
   action?: () => void
@@ -73,6 +76,7 @@ export type MenuEntry = {
   children?: MenuEntry[]
   createProject?: boolean
   disabled?: boolean
+  defaultLayout?: DefaultLayoutType
 }
 
 export const dockRegistry: DockRegistryEntry[] = [
@@ -80,8 +84,11 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'truth-table',
     label: 'Truth Table',
     component: TruthTablePanel,
-    projectType: 'truth-table',
-    minimumWidth: 500,
+    projectCreationInfo: {
+      projectType: 'combinatorial-circuit',
+      defaultLayout: 'SplitKV',
+    },
+    minimumWidth: 400,
     requires: {
       view: ['TruthTable'],
     },
@@ -93,18 +100,24 @@ export const dockRegistry: DockRegistryEntry[] = [
         id: 'kv-diagram',
         label: 'Karnaugh-Veitch',
         component: KVDiagramPanel,
-        projectType: 'truth-table',
-        minimumWidth: 400,
+        projectCreationInfo: {
+          projectType: 'combinatorial-circuit',
+          defaultLayout: 'SplitKV',
+        },
+        minimumWidth: 300,
         requires: {
-          view: ['Min2InputVars', 'Max4InputVars'],
+          view: ['Min2InputVars'],
         },
       },
       {
         id: 'qmc-visualization',
-        label: 'Quine McCluskey',
+        label: 'Quine-McCluskey',
         component: QMCPanel,
-        projectType: 'truth-table',
-        minimumWidth: 400,
+        projectCreationInfo: {
+          projectType: 'combinatorial-circuit',
+          defaultLayout: 'SplitQMC',
+        },
+        minimumWidth: 300,
         requires: {
           view: ['TruthTable'],
         },
@@ -115,7 +128,7 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'state-table',
     label: 'State Table',
     component: StateTablePanel,
-    projectType: 'fsm',
+    minimumWidth: 400,
     requires: {
       view: ['Fsm'],
     },
@@ -124,15 +137,19 @@ export const dockRegistry: DockRegistryEntry[] = [
     id: 'lc-iframe',
     label: 'Logic Circuits',
     component: LogicCircuitsPanel,
+    minimumWidth: 400,
     requires: {
       view: ['TruthTable'],
     },
   },
   {
     id: 'fsm-editor',
-    label: 'FSM Editor',
+    label: 'State Machine Editor',
     component: FsmEnginePanel,
-    projectType: 'fsm',
+    minimumWidth: 400,
+    projectCreationInfo: {
+      projectType: 'state-machine',
+    },
     requires: {
       view: ['Fsm'],
     },
@@ -172,6 +189,7 @@ const convertRegistryEntryToMenuEntry = (
     label: entry.label,
     panelId: entry.id,
     disabled: !checkDockEntryRequirements(entry, requirementType),
+    defaultLayout: entry.projectCreationInfo?.defaultLayout,
   }
 
   if (createProject) {
@@ -182,12 +200,19 @@ const convertRegistryEntryToMenuEntry = (
 }
 
 export const newMenu = computed<MenuEntry[]>(() => {
-  // Flatten the registry to get only DockEntries with projectType
-  const flatEntries = flattenDockEntries()
-  return flatEntries
-    .filter((entry) => entry.projectType !== undefined)
-    .map((entry) => convertRegistryEntryToMenuEntry(entry, 'CREATE', true))
-    .sort((a, b) => Number(a.disabled ?? false) - Number(b.disabled ?? false))
+  const groups = new Map<string, DockEntry[]>()
+
+  for (const entry of flattenDockEntries()) {
+    const projectType = entry.projectCreationInfo?.projectType
+    if (!projectType) continue
+    if (!groups.has(projectType)) groups.set(projectType, [])
+    groups.get(projectType)!.push(entry)
+  }
+
+  return [...groups.entries()].map(([type, entries]) => ({
+    label: projectTypes[type]?.name ?? type,
+    children: entries.map((entry) => convertRegistryEntryToMenuEntry(entry, 'CREATE', true)),
+  }))
 })
 
 export const viewMenu = computed<MenuEntry[]>(() => {
@@ -265,14 +290,14 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
   requirements.forEach((requirement) => {
     switch (requirement) {
       case 'TruthTable':
-        // Only allow for truth-table projects, even if FSM sync created a truth table state
-        if (!stateManager.state.truthTable || currentProjectType !== 'truth-table') {
+        // Only allow for combinatorial-circuit projects, even if FSM sync created a truth table state
+        if (!stateManager.state.truthTable || currentProjectType !== 'combinatorial-circuit') {
           checkPassed = false
         }
         break
 
       case 'Fsm':
-        if (!stateManager.state.fsm || currentProjectType !== 'fsm') {
+        if (!stateManager.state.fsm || currentProjectType !== 'state-machine') {
           checkPassed = false
         }
         break
@@ -280,13 +305,6 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
       case 'Min2InputVars':
         // Require at least 2 minimizer input variables
         if (getAvailableInputVarCount() < 2) {
-          checkPassed = false
-        }
-        break
-
-      case 'Max4InputVars':
-        // Require less than 5 minimizer input variables
-        if (getAvailableInputVarCount() > 4) {
           checkPassed = false
         }
         break

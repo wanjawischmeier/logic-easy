@@ -117,6 +117,7 @@ const showDropdown = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
 const targetElement = toRef(props, 'targetRef')
 const isCapturing = ref(false)
+let blurCheckTimeout: number | null = null
 
 const normalizedFiles = computed(() => props.files ?? [])
 const screenshotConfig = computed(() => ({
@@ -247,12 +248,25 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
+// Blur listener to close on click over iframe
+const handleWindowBlur = () => {
+  if (!showDropdown.value) return
+  if (blurCheckTimeout !== null) window.clearTimeout(blurCheckTimeout)
+  blurCheckTimeout = window.setTimeout(() => {
+    blurCheckTimeout = null
+    if (document.activeElement instanceof HTMLIFrameElement) dropdownService.close()
+  }, 0)
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('blur', handleWindowBlur)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('blur', handleWindowBlur)
+  if (blurCheckTimeout !== null) window.clearTimeout(blurCheckTimeout)
   downloadRegistry.unregister(registrationId)
 })
 
