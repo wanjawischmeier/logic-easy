@@ -20,7 +20,8 @@
     "fsm:build": "cd public/fsm-engine && npm ci && npm run build",
     "fsm:dev": "cd public/fsm-engine && npm run dev",
     "docs:build": "cd public/docs && npm ci && npm run build",
-    "docs:dev": "cd public/docs && npm run dev"
+    "docs:dev": "cd public/docs && npm run dev",
+    "serve": "node server.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
@@ -29,6 +30,7 @@
     "buffer": "^6.0.3",
     "dagre": "^0.8.5",
     "dockview-vue": "^4.11.0",
+    "express": "^5.2.1",
     "html2canvas-pro": "^1.6.4",
     "jotai": "^2.16.0",
     "jszip": "^3.10.1",
@@ -36,6 +38,7 @@
     "konva": "^10.0.12",
     "logi.js": "github:wanjawischmeier/logi.js#9537185a6138ed14d4d488a6976dd58bb3d3696d",
     "lucide-react": "^0.556.0",
+    "path": "^0.12.7",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-konva": "^19.2.1",
