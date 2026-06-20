@@ -34,10 +34,7 @@ export interface WorkerResponse {
 }
 
 export interface WorkerCacheSnapshot {
-  truthTable: Pick<
-    TruthTableState,
-    'inputVars' | 'outputVars' | 'values' | 'functionType'
-  >
+  truthTable: Pick<TruthTableState, 'inputVars' | 'outputVars' | 'values' | 'functionType'>
   qmcResults: Record<string, QMCResult | undefined>
 }
 
@@ -234,7 +231,9 @@ function outputColumnChanged(
 ): boolean {
   if (values.length !== previousValues.length) return true
 
-  return values.some((row, rowIndex) => row[outputIndex] !== previousValues[rowIndex]?.[outputIndex])
+  return values.some(
+    (row, rowIndex) => row[outputIndex] !== previousValues[rowIndex]?.[outputIndex],
+  )
 }
 
 function fallbackFormula(functionType: FunctionType): Formula {
