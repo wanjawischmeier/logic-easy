@@ -8,6 +8,19 @@ let isInitialized = false
 let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
 let suppressIncomingEditorExport = false
+let suppressIncomingEditorExportTimeout: ReturnType<typeof setTimeout> | null = null
+
+function markSuppressIncomingEditorExport(): void {
+  suppressIncomingEditorExport = true
+  // Safety: if the editor never sends a response (e.g. still loading,
+  // crashed, or the postMessage was lost), reset the flag after 3s so
+  // future user-initiated exports aren't permanently blocked.
+  if (suppressIncomingEditorExportTimeout) clearTimeout(suppressIncomingEditorExportTimeout)
+  suppressIncomingEditorExportTimeout = setTimeout(() => {
+    suppressIncomingEditorExport = false
+    suppressIncomingEditorExportTimeout = null
+  }, 3000)
+}
 
 function syncTableToEditor() {
   const newFsm = stateManager.state.fsm
@@ -60,7 +73,7 @@ function syncTableToEditor() {
   // Table-driven syncs should not be treated as editor-originated changes.
   // Otherwise the editor can export a derived payload back and trigger a false
   // roundtrip overwrite while we only intended to mirror table edits.
-  suppressIncomingEditorExport = true
+  markSuppressIncomingEditorExport()
 
   fsmIframe.contentWindow.postMessage(
     {
@@ -80,7 +93,7 @@ export function forceSyncTableToEditor(): void {
   if (!fsmIframe?.contentWindow) return
 
   // mark that the next incoming editor export (in response) should be ignored
-  suppressIncomingEditorExport = true
+  markSuppressIncomingEditorExport()
 
   const editorPayload = {
     states: newFsm.nodes.map((n) => ({
@@ -92,22 +105,33 @@ export function forceSyncTableToEditor(): void {
       y: n.editorCoordY,
       moore_output: n.mooreOutput || '',
     })),
-    transitions: newFsm.transitions.map((t) => ({
-      toBinaryId: normalizeBits(
-        t.toBinaryId ??
-          (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, newFsm.nodeIdBitCount || 1) : ''),
-        newFsm.nodeIdBitCount || 1,
-        'x',
-        'left',
-      ),
-      id: t.transitionId,
-      groupId: (t as any).groupId ?? t.transitionId,
-      from: t.fromNodeId,
-      to: t.toNodeId,
-      input: t.input,
-      output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
-      mealy_output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
-    })),
+    transitions: newFsm.transitions.map((t) => {
+      const nodeBits = newFsm.nodeIdBitCount || 1
+      const inBits = newFsm.inputBitCount || 1
+      const outBits = newFsm.outputBitCount || 1
+      return {
+        toBinaryId: normalizeBits(
+          t.toBinaryId ??
+            (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, nodeBits) : ''),
+          nodeBits,
+          'x',
+          'left',
+        ),
+        id: t.transitionId,
+        groupId: (t as any).groupId ?? t.transitionId,
+        from: t.fromNodeId,
+        to: t.toNodeId,
+        input: normalizeBits(t.input, inBits, 'x', 'right'),
+        output:
+          newFsm.fsmModel === 'moore'
+            ? ''
+            : normalizeBits(t.mealyOutput ?? '', outBits, 'x', 'right'),
+        mealy_output:
+          newFsm.fsmModel === 'moore'
+            ? ''
+            : normalizeBits(t.mealyOutput ?? '', outBits, 'x', 'right'),
+      }
+    }),
     fsmType: newFsm.fsmModel,
   }
 
@@ -124,6 +148,10 @@ export function forceSyncTableToEditor(): void {
 export function consumeSuppressIncomingEditorExport(): boolean {
   const v = suppressIncomingEditorExport
   suppressIncomingEditorExport = false
+  if (suppressIncomingEditorExportTimeout) {
+    clearTimeout(suppressIncomingEditorExportTimeout)
+    suppressIncomingEditorExportTimeout = null
+  }
   return v
 }
 

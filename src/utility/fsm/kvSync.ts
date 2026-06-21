@@ -181,7 +181,6 @@ export function buildFsmKVDiagramPresentation(
       couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: truthTable.selectedFormula,
       formulaTermColors: truthTable.formulaTermColors ?? remappedTermColors,
-      variations: truthTable.variations,
     }
   }
 
@@ -215,12 +214,11 @@ export function buildFsmKVDiagramPresentation(
       truthTable.functionType,
       truthTable.functionRepresentation,
       truthTable.inputVars,
-      truthTable.outputVars[truthTable.outputVariableIndex]!,
+      truthTable.outputVars[truthTable.outputVariableIndex] ?? truthTable.outputVars[0] ?? '',
       truthTable.values,
       truthTable.outputVariableIndex,
       { lowercaseInputVars: true },
     ),
-    variations: truthTable.variations,
   }
 }
 
@@ -283,17 +281,13 @@ export function exportFsmToTruthTable(
     values,
     formulas: {},
     outputVariableIndex: selectedOutputIndex,
+    variationIndex: previousState?.variationIndex ?? Object.fromEntries(outputVars.map((v) => [v, 0])),
     functionType: fsm.functionType ?? previousState?.functionType ?? defaultFunctionType,
     functionRepresentation: previousState?.functionRepresentation ?? defaultFunctionRepresentation,
     qmcResult: previousState?.qmcResult,
     couplingTermLatex: previousState?.couplingTermLatex,
     selectedFormula: previousState?.selectedFormula,
     formulaTermColors: previousState?.formulaTermColors,
-    variations: previousState?.variations,
-    variationIndex:
-      typeof previousState?.variationIndex === 'number'
-        ? {}
-        : (previousState?.variationIndex ?? {}),
     fsmMode: true,
   }
 }

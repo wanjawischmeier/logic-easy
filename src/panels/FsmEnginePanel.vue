@@ -283,23 +283,19 @@ onMounted(() => {
         return
       }
 
-      const prevNodes = stateManager.state.fsm?.nodes?.length ?? 0
-      let shouldForce = false
-
       try {
         setIsSyncing(true)
         FsmProject.importEditorExport(data.fsm)
-
-        const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
-        // Moore currently syncs reliably through the normal table->editor watch.
-        // The extra force-sync is only kept for Mealy to avoid re-entrant loops.
-        shouldForce = nextNodes > prevNodes && stateManager.state.fsm?.fsmModel !== 'moore'
       } finally {
+        // Always force-sync after an editor import. The importEditorExport
+        // call renumbers node IDs sequentially, but the editor still holds
+        // the original IDs. Without a sync-back the editor and app diverge,
+        // causing broken transitions and stale states on every add/remove.
+        // suppressIncomingEditorExport inside forceSyncTableToEditor prevents
+        // the echo from re-entering this handler.
         setTimeout(() => {
           setIsSyncing(false)
-          if (shouldForce) {
-            forceSyncTableToEditor()
-          }
+          forceSyncTableToEditor()
         }, 50)
       }
     }
