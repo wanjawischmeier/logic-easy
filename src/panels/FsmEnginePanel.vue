@@ -9,7 +9,6 @@ import {
   forceSyncTableToEditor,
   consumeSuppressIncomingEditorExport,
 } from '@/utility/fsm/EditorSync/fsmListener'
-import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { getDockviewApi } from '@/utility/dockview/integration'
 
@@ -220,7 +219,7 @@ const legend: LegendItem[] = [
 ]
 
 let messageHandler: ((event: MessageEvent) => void) | null = null
-let layoutDisposable: any = null
+let layoutDisposable: unknown = null
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
