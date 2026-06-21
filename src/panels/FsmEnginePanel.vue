@@ -9,6 +9,7 @@ import {
   forceSyncTableToEditor,
   consumeSuppressIncomingEditorExport,
 } from '@/utility/fsm/EditorSync/fsmListener'
+import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { getDockviewApi } from '@/utility/dockview/integration'
 
@@ -282,19 +283,21 @@ onMounted(() => {
         return
       }
 
+      const prevNodes = stateManager.state.fsm?.nodes?.length ?? 0
+
       try {
         setIsSyncing(true)
         FsmProject.importEditorExport(data.fsm)
       } finally {
-        // Always force-sync after an editor import. The importEditorExport
-        // call renumbers node IDs sequentially, but the editor still holds
-        // the original IDs. Without a sync-back the editor and app diverge,
-        // causing broken transitions and stale states on every add/remove.
-        // suppressIncomingEditorExport inside forceSyncTableToEditor prevents
-        // the echo from re-entering this handler.
+        const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
+        const shouldForce = nextNodes !== prevNodes
+        // Only force-sync when the node count changed — that's when the app
+        // renumbered IDs and the editor needs the updated IDs. For transition
+        // edits the editor preserves its own state (draft protection in
+        // fsmimport), so no force-sync needed.
         setTimeout(() => {
           setIsSyncing(false)
-          forceSyncTableToEditor()
+          if (shouldForce) forceSyncTableToEditor()
         }, 50)
       }
     }
