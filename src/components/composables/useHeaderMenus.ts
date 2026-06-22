@@ -102,31 +102,30 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
     ],
     View: filteredViewMenu.value,
     Export: [
-      {
-        label: 'LogicCircuits',
-        tooltip: '.lc',
-        disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-        children: isFsm.value
-          ? [
-              {
-                label: 'State machine',
-                action: () => {
-                  const name = projectManager.getCurrentProject()?.name ?? 'no name'
-                  const fsm = stateManager.state.fsm
-                  if (!fsm) return
-                  downloadFile(
-                    stateMachineToLC(fsm, {
-                      encoding: fsm.stateEncoding ?? defaultStateEncoding,
-                      flipFlopType: fsm.flipFlopType ?? defaultFlipFlopType,
-                    }).toString(),
-                    name.replace(/\s+/g, '_') + '.lc',
-                    'text/lc',
-                  )
-                },
-                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-              },
-            ]
-          : [
+      isFsm.value
+        ? {
+            label: 'LogicCircuits',
+            tooltip: '.lc',
+            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+            action: () => {
+              const name = projectManager.getCurrentProject()?.name ?? 'no name'
+              const fsm = stateManager.state.fsm
+              if (!fsm) return
+              downloadFile(
+                stateMachineToLC(fsm, {
+                  encoding: fsm.stateEncoding ?? defaultStateEncoding,
+                  flipFlopType: fsm.flipFlopType ?? defaultFlipFlopType,
+                }).toString(),
+                name.replace(/\s+/g, '_') + '.lc',
+                'text/lc',
+              )
+            },
+          }
+        : {
+            label: 'LogicCircuits',
+            tooltip: '.lc',
+            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+            children: [
               {
                 label: 'AND/OR',
                 action: () => {
@@ -169,25 +168,24 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
                 disabled: !hasCurrentProject.value || stateManager.isSaving.value,
               },
             ],
-      },
-      {
-        label: 'VHDL',
-        tooltip: '.vhdl',
-        disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-        children: isFsm.value
-          ? [
-              {
-                label: 'State machine',
-                action: () => {
-                  exportFsmToVHDLmealy(
-                    fsmState.value,
-                    projectManager.getCurrentProject()?.name ?? 'no name',
-                  )
-                },
-                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-              },
-            ]
-          : [
+          },
+      isFsm.value
+        ? {
+            label: 'VHDL',
+            tooltip: '.vhdl',
+            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+            action: () => {
+              exportFsmToVHDLmealy(
+                fsmState.value,
+                projectManager.getCurrentProject()?.name ?? 'no name',
+              )
+            },
+          }
+        : {
+            label: 'VHDL',
+            tooltip: '.vhdl',
+            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+            children: [
               {
                 label: 'Case-When',
                 action: () => {
@@ -226,7 +224,7 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
                 ],
               },
             ],
-      },
+          },
       {
         label: 'Screenshots',
         tooltip: '.zip',
