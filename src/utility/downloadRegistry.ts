@@ -5,6 +5,7 @@ import { loadingService } from './loadingService'
 import { projectManager } from '@/projects/projectManager'
 import { Toast } from './toastService'
 import { getDockviewApi } from '@/utility/dockview/integration'
+import { downloadFile } from '@/utility/downloadFile'
 
 type LatexContentResolver = () => string | undefined | Promise<string | undefined>
 
@@ -201,9 +202,6 @@ class DownloadRegistry {
     }
 
     // Generate and download the zip file
-    const zipBlob = await zip.generateAsync({ type: 'blob' })
-    const url = URL.createObjectURL(zipBlob)
-    const link = document.createElement('a')
     const projectName = projectManager.currentProjectInfo?.name
     if (!projectName) {
       console.log('Failed to get project name')
@@ -212,12 +210,8 @@ class DownloadRegistry {
       return
     }
 
-    link.href = url
-    link.download = `${projectName}-screenshots-${timestamp}.zip`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    downloadFile(zipBlob, `${projectName}-screenshots-${timestamp}.zip`)
 
     console.log('All screenshots exported to zip')
     loadingService.hide()
@@ -297,15 +291,7 @@ ${resolved}
 `
 
     try {
-      const blob = new Blob([latexDocument], { type: 'text/plain' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${projectName}-${timestamp}.tex`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      downloadFile(latexDocument, `${projectName}-${timestamp}.tex`)
 
       console.log('LaTeX document exported')
     } catch (error) {

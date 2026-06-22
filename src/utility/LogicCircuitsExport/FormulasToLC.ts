@@ -1,6 +1,13 @@
 import { LCFile } from './LCFile'
 import type { Element } from './Elements'
-import type { Formula, FunctionType, Literal, Term } from '@/utility/types.ts'
+import {
+  Formula as FormulaDefaults,
+  type Formula,
+  type FormulaVariation,
+  type FunctionType,
+  type Literal,
+  type Term,
+} from '@/utility/types.ts'
 
 interface NormalizedFormula {
   terms: Term[]
@@ -348,4 +355,66 @@ export function formulaToLcFile(
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+}
+
+/**
+ * Builds canonical DNF/CNF formulas directly from a truth table's output columns.
+ */
+export function generateCanonicalFormulas(
+  inputVars: string[],
+  outputVars: string[],
+  values: (number | string)[][],
+  functionType: FunctionType,
+): Record<string, Formula> {
+  const canonicalFormulas: Record<string, Formula> = {}
+
+  outputVars.forEach((outVar, outIdx) => {
+    const terms: Term[] = []
+    const isDNF = functionType === 'Disjunctive'
+    const targetValue = isDNF ? 1 : 0
+
+    values.forEach((row, rowIdx) => {
+      if (row[outIdx] === targetValue) {
+        const literals = inputVars.map((inVar, inIdx) => {
+          // Find input bits using binary representation of row index
+          const bitValue = (rowIdx >> (inputVars.length - 1 - inIdx)) & 1
+          const negated = isDNF ? bitValue === 0 : bitValue === 1
+
+          return { variable: inVar, negated }
+        })
+        terms.push({ literals })
+      }
+    })
+
+    canonicalFormulas[outVar] = {
+      type: functionType,
+      terms,
+    }
+  })
+
+  return canonicalFormulas
+}
+
+/**
+ * Picks the user-selected minimization variation per output, falling back to the
+ * default formula when none is selected.
+ */
+export function generateSelectedVariationFormulas(
+  outputVars: string[],
+  variations: Record<string, FormulaVariation[]> | undefined,
+  variationIndex: Record<string, number> | number,
+  formulas: Record<string, Formula>,
+): Record<string, Formula> {
+  const selectedIndexFor = (outputVar: string) =>
+    typeof variationIndex === 'number' ? variationIndex : (variationIndex[outputVar] ?? 0)
+
+  const selectedFormulas: Record<string, Formula> = {}
+
+  outputVars.forEach((outputVar) => {
+    const selectedVariation = variations?.[outputVar]?.[selectedIndexFor(outputVar)]
+    selectedFormulas[outputVar] =
+      selectedVariation?.formula ?? formulas[outputVar] ?? FormulaDefaults.empty
+  })
+
+  return selectedFormulas
 }

@@ -22,6 +22,9 @@ Elements in the .lc file have the following format:
 14 => MUX,
 15 => DEMUX LOW,
 16 => DEMUX HIGH,
+17 => RS Flip-Flop,
+18 => JK Flip-Flop,
+19 => D Flip-Flop
 
 - xPOS and yPOS are coordinates on the logic circuit canvas, 0,0 is top left
 
@@ -44,6 +47,9 @@ export class Element {
   outPorts: string
   inNodes: Node[] //connectors for input
   outNodes: Node[] //connectors for output
+
+  // some elements (FFs) have some more data encoded.
+  serializedSuffix: string = ''
 
   //lists with all elements, nodes, connections and texts in the .lc file where this element should belong to
   fileElements: Element[]
@@ -148,6 +154,7 @@ export class Element {
       this.inPorts.replace("'", '') +
       ',' +
       this.outPorts.replace("'", '') +
+      this.serializedSuffix +
       '}'
     )
   }

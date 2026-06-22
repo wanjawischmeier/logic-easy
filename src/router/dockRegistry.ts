@@ -10,7 +10,13 @@ import { stateManager } from '@/projects/stateManager'
 import { projectManager } from '@/projects/projectManager'
 import QMCPanel from '@/panels/QMCPanel.vue'
 
-export type PanelRequirement = 'TruthTable' | 'Fsm' | 'Min2InputVars' | 'NotSupported'
+export type PanelRequirement =
+  | 'TruthTable'
+  | 'Fsm'
+  | 'LogicCircuits'
+  | 'Min2InputVars'
+  | 'Max4InputVars'
+  | 'NotSupported'
 export type RequirementType = 'CREATE' | 'VIEW'
 
 /**
@@ -139,7 +145,7 @@ export const dockRegistry: DockRegistryEntry[] = [
     component: LogicCircuitsPanel,
     minimumWidth: 400,
     requires: {
-      view: ['TruthTable'],
+      view: ['LogicCircuits'],
     },
   },
   {
@@ -298,6 +304,16 @@ const checkPanelRequirements = (requirements?: PanelRequirement[]): boolean => {
 
       case 'Fsm':
         if (!stateManager.state.fsm || currentProjectType !== 'state-machine') {
+          checkPassed = false
+        }
+        break
+
+      case 'LogicCircuits':
+        // Available for both combinatorial-circuit and state-machine projects
+        if (
+          !(stateManager.state.truthTable && currentProjectType === 'combinatorial-circuit') &&
+          !(stateManager.state.fsm && currentProjectType === 'state-machine')
+        ) {
           checkPassed = false
         }
         break
