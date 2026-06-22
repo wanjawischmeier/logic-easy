@@ -3,7 +3,10 @@ import { newMenu, viewMenu, type MenuEntry } from '@/router/dockRegistry'
 import { projectManager } from '@/projects/projectManager'
 import { stateManager } from '@/projects/stateManager'
 import { downloadRegistry } from '@/utility/downloadRegistry'
-import { formulaToLcFile } from '@/utility/LogicCircuitsExport/FormulasToLC'
+import {
+  formulaToLcFile,
+  generateCanonicalFormulas,
+} from '@/utility/LogicCircuitsExport/FormulasToLC'
 import {
   exportTruthTableTOVHDLboolExpr,
   exportTruthTableTOVHDLcaseWhen,
@@ -27,6 +30,7 @@ const {
   inputVars,
   outputVars,
   functionType,
+  values,
 } = TruthTableProject.useState()
 
 const { state: fsmState } = FsmProject.useState()
@@ -121,54 +125,31 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
               )
             },
           }
-        : {
-            label: 'LogicCircuits',
-            tooltip: '.lc',
-            disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-            children: [
-              {
-                label: 'AND/OR',
-                action: () => {
-                  formulaToLcFile(
-                    projectManager.getCurrentProject()?.name ?? 'no name provided',
-                    formulas.value,
-                    inputVars.value,
-                    outputVars.value,
-                    functionType.value,
-                  )
-                },
-                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-              },
-              {
-                label: 'NAND',
-                action: () => {
-                  formulaToLcFile(
-                    projectManager.getCurrentProject()?.name ?? 'no name provided',
-                    formulas.value,
-                    inputVars.value,
-                    outputVars.value,
-                    functionType.value,
-                    'nand',
-                  )
-                },
-                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-              },
-              {
-                label: 'NOR',
-                action: () => {
-                  formulaToLcFile(
-                    projectManager.getCurrentProject()?.name ?? 'no name provided',
-                    formulas.value,
-                    inputVars.value,
-                    outputVars.value,
-                    functionType.value,
-                    'nor',
-                  )
-                },
-                disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-              },
-            ],
-          },
+        : (() => {
+            const name = projectManager.getCurrentProject()?.name ?? 'no name provided'
+            const dis = !hasCurrentProject.value || stateManager.isSaving.value
+            const gateChildren = (
+              getFormulas: () => typeof formulas.value,
+              ft: typeof functionType.value,
+            ): MenuEntry[] => [
+              { label: 'AND/OR', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'and-or') },
+              { label: 'NAND', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'nand') },
+              { label: 'NOR', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'nor') },
+            ]
+            const ftChildren = (getFormulas: (ft: typeof functionType.value) => typeof formulas.value): MenuEntry[] => [
+              { label: 'Disjunctive', disabled: dis, children: gateChildren(() => getFormulas('Disjunctive'), 'Disjunctive') },
+              { label: 'Conjunctive', disabled: dis, children: gateChildren(() => getFormulas('Conjunctive'), 'Conjunctive') },
+            ]
+            return {
+              label: 'LogicCircuits',
+              tooltip: '.lc',
+              disabled: dis,
+              children: [
+                { label: 'Normal', disabled: dis, children: ftChildren((ft) => generateCanonicalFormulas(inputVars.value, outputVars.value, values.value, ft)) },
+                { label: 'Minimal', disabled: dis, children: ftChildren(() => formulas.value) },
+              ],
+            }
+          })(),
       isFsm.value
         ? {
             label: 'VHDL',
