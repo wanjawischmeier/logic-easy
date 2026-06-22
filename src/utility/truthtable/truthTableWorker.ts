@@ -20,6 +20,7 @@ import type { Operation } from 'logi.js'
 export interface WorkerRequest {
   id: number
   truthTable: TruthTableState
+  previous?: WorkerCacheSnapshot
 }
 
 export interface WorkerResponse {
@@ -30,6 +31,11 @@ export interface WorkerResponse {
   selectedFormula: Formula | undefined
   formulaTermColors: TermColor[] | undefined
   variations?: Record<string, FormulaVariation[]>
+}
+
+export interface WorkerCacheSnapshot {
+  truthTable: Pick<TruthTableState, 'inputVars' | 'outputVars' | 'values' | 'functionType'>
+  qmcResults: Record<string, QMCResult | undefined>
 }
 
 export interface EdgeCaseResult {
@@ -153,13 +159,17 @@ function getVariationIndex(truthTable: TruthTableState, outputVar: string): numb
   return variationIndex[outputVar] ?? 0
 }
 
-function mapResultColors(truthTable: TruthTableState, result: QMCResult): TermColor[] {
+function mapResultColors(
+  truthTable: TruthTableState,
+  result: QMCResult,
+  previousResult?: QMCResult,
+): TermColor[] {
   // Generate colors for each prime implicant based on their term string
   // This ensures consistent coloring between QMC chart and KV diagram
   // Preserve existing colors by matching PI term strings for temporal consistency
 
   // Get existing QMC result for this output variable to preserve colors
-  const existingQmcResult = truthTable.qmcResult
+  const existingQmcResult = previousResult ?? truthTable.qmcResult
   const existingPIs = existingQmcResult?.pis || []
   const existingColors = existingQmcResult?.termColors || []
 
@@ -194,9 +204,48 @@ function shouldUseGenericFormulaColors(truthTable: TruthTableState): boolean {
   return truthTable.fsmMode !== true
 }
 
+function arraysEqual<T>(left: T[] | undefined, right: T[] | undefined): boolean {
+  if (left === right) return true
+  if (!left || !right || left.length !== right.length) return false
+  return left.every((item, index) => item === right[index])
+}
+
+function minimizationContextMatches(
+  truthTable: TruthTableState,
+  previous?: WorkerCacheSnapshot,
+): previous is WorkerCacheSnapshot {
+  if (!previous) return false
+
+  return (
+    previous.truthTable.functionType === truthTable.functionType &&
+    arraysEqual(previous.truthTable.inputVars, truthTable.inputVars) &&
+    arraysEqual(previous.truthTable.outputVars, truthTable.outputVars) &&
+    previous.truthTable.values.length === truthTable.values.length
+  )
+}
+
+function outputColumnChanged(
+  values: TruthTableState['values'],
+  previousValues: TruthTableState['values'],
+  outputIndex: number,
+): boolean {
+  if (values.length !== previousValues.length) return true
+
+  return values.some(
+    (row, rowIndex) => row[outputIndex] !== previousValues[rowIndex]?.[outputIndex],
+  )
+}
+
+function fallbackFormula(functionType: FunctionType): Formula {
+  return {
+    type: functionType,
+    terms: [{ literals: [{ variable: '0', negated: false }] }],
+  }
+}
+
 // Web Worker message handler
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
-  const { id, truthTable } = e.data
+  const { id, truthTable, previous } = e.data
   if (!truthTable) return
 
   const currentOutputVar = truthTable.outputVars[truthTable.outputVariableIndex]
@@ -215,107 +264,44 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   console.log('[TruthTableWorker] Processing request:', id)
 
   try {
-    // Early detection of tautology/contradiction for current output variable
-    const edgeCase = detectTautologyOrContradiction(
-      truthTable.values,
-      truthTable.outputVariableIndex,
-    )
+    const canReusePrevious = minimizationContextMatches(truthTable, previous)
+    const outputsToMinimize: string[] = []
 
-    if (edgeCase !== null) {
-      console.log('[TruthTableWorker] Detected edge case:', edgeCase)
-
-      // Create edge case results for all output variables
-      const qmcResults: Record<string, QMCResult | undefined> = {}
-      const formulas: Record<string, Formula | undefined> = {}
-      const variationsRecord: Record<string, FormulaVariation[]> = {}
-
-      for (const outputVar of truthTable.outputVars) {
-        const outputIndex = truthTable.outputVars.indexOf(outputVar)
-        const outputEdgeCase = detectTautologyOrContradiction(truthTable.values, outputIndex)
-
-        if (outputEdgeCase !== null) {
-          const outputVariableName = displayOutputVars[outputIndex] ?? outputVar
-          const edgeResult = createEdgeCaseResult(
-            outputEdgeCase,
-            truthTable.functionType,
-            truthTable.functionRepresentation,
-            displayInputVars,
-            outputVariableName,
-          )
-          qmcResults[outputVar] = edgeResult.qmcResult
-          formulas[outputVar] = edgeResult.formula
-          variationsRecord[outputVar] = [
-            {
-              formula: edgeResult.formula,
-              latex: edgeResult.couplingTermLatex,
-            },
-          ]
-        } else {
-          // This output variable is not an edge case, run QMC normally
-          const result = await runMinimization(truthTable, outputIndex)
-          qmcResults[outputVar] = result
-
-          if (result && result.expressions && result.expressions.length > 0) {
-            formulas[outputVar] = flattenCouplingTermsToFormula(
-              result.expressions[0]!,
-              truthTable.functionType,
-            )
-            variationsRecord[outputVar] = computeVariations(
-              result,
-              truthTable.functionType,
-              truthTable.functionRepresentation,
-              displayInputVars,
-              displayOutputVars[outputIndex] ?? outputVar,
-              undefined,
-              undefined,
-              labelMap,
-            )
-          } else {
-            formulas[outputVar] = {
-              type: truthTable.functionType,
-              terms: [{ literals: [{ variable: '0', negated: false }] }],
-            }
-            variationsRecord[outputVar] = []
-          }
-        }
-      }
-
-      // Get the selected output variable's data
-      const currentEdgeResult = createEdgeCaseResult(
-        edgeCase,
-        truthTable.functionType,
-        truthTable.functionRepresentation,
-        displayInputVars,
-        currentOutputName,
-      )
-
-      const response: WorkerResponse = {
-        id,
-        qmcResults,
-        formulas,
-        couplingTermLatex: currentEdgeResult.couplingTermLatex,
-        selectedFormula: currentEdgeResult.formula,
-        formulaTermColors: shouldUseGenericFormulaColors(truthTable)
-          ? currentEdgeResult.qmcResult.termColors
-          : undefined,
-        variations: variationsRecord,
-      }
-
-      self.postMessage(response)
-      return
-    }
-
-    // Process all output variables in parallel
     const qmcPromises = truthTable.outputVars.map(async (outputVar, index) => {
+      const previousResult = previous?.qmcResults[outputVar]
+      const canReuseOutput =
+        canReusePrevious &&
+        previousResult !== undefined &&
+        !outputColumnChanged(truthTable.values, previous.truthTable.values, index)
+
+      if (canReuseOutput) {
+        return { outputVar, index, result: previousResult }
+      }
+
+      const edgeCase = detectTautologyOrContradiction(truthTable.values, index)
+      if (edgeCase !== null) {
+        const outputVariableName = displayOutputVars[index] ?? outputVar
+        const edgeResult = createEdgeCaseResult(
+          edgeCase,
+          truthTable.functionType,
+          truthTable.functionRepresentation,
+          displayInputVars,
+          outputVariableName,
+        )
+        return { outputVar, index, result: edgeResult.qmcResult }
+      }
+
+      outputsToMinimize.push(outputVar)
       const result = await runMinimization(truthTable, index)
       if (!result || !result.pis) {
         return { outputVar, index, result }
       }
 
-      result.termColors = mapResultColors(truthTable, result)
+      result.termColors = mapResultColors(truthTable, result, previousResult)
       return { outputVar, index, result }
     })
 
+    console.log('[TruthTableWorker] Running minimization for output vars:', outputsToMinimize)
     const qmcResultsArray = await Promise.all(qmcPromises)
 
     // Build records from results
@@ -343,10 +329,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           labelMap,
         )
       } else {
-        formulas[outputVar] = {
-          type: truthTable.functionType,
-          terms: [{ literals: [{ variable: '0', negated: false }] }],
-        }
+        formulas[outputVar] = fallbackFormula(truthTable.functionType)
         variationsRecord[outputVar] = []
       }
     }

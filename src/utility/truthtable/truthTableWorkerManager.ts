@@ -1,5 +1,5 @@
 import { stateManager } from '@/projects/stateManager'
-import type { WorkerRequest, WorkerResponse } from './truthTableWorker'
+import type { WorkerCacheSnapshot, WorkerRequest, WorkerResponse } from './truthTableWorker'
 import { toRaw } from 'vue'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 
@@ -45,7 +45,46 @@ class TruthTableWorkerManager {
   private isRunning = false
   private hasQueuedUpdate = false
   private lastUpdateCompletedTime = 0
-  private readonly DEBOUNCE_MS = 100
+  private lastCompletedCache: WorkerCacheSnapshot | null = null
+  private activeRequestTruthTable: WorkerCacheSnapshot['truthTable'] | null = null
+  private activeRequestStartTime: number | null = null
+
+  // Rolling average response-time tracking
+  private responseTimes: number[] = []
+  private readonly MAX_SAMPLES = 10
+  private readonly DEBOUNCE_FACTOR = 1.5
+  private readonly DEFAULT_DEBOUNCE_MS = 100
+  private readonly MIN_DEBOUNCE_MS = 20
+  private readonly MAX_DEBOUNCE_MS = 1000
+
+  /**
+   * Records a response time sample and updates the rolling average window.
+   */
+  private recordResponseTime(durationMs: number) {
+    this.responseTimes.push(durationMs)
+    if (this.responseTimes.length > this.MAX_SAMPLES) {
+      this.responseTimes.shift()
+    }
+    console.log(
+      `[TruthTableWorkerManager] Recorded response time: ${durationMs}ms (avg debounce now ${this.getDebounceMs()}ms)`,
+    )
+  }
+
+  /**
+   * Computes the current debounce duration as a multiple of the rolling
+   * average response time, clamped to sane bounds. Falls back to the
+   * default when no samples have been collected yet.
+   */
+  private getDebounceMs(): number {
+    if (this.responseTimes.length === 0) {
+      return this.DEFAULT_DEBOUNCE_MS
+    }
+
+    const average = this.responseTimes.reduce((sum, t) => sum + t, 0) / this.responseTimes.length
+
+    const scaled = average * this.DEBOUNCE_FACTOR
+    return Math.min(this.MAX_DEBOUNCE_MS, Math.max(this.MIN_DEBOUNCE_MS, Math.round(scaled)))
+  }
 
   constructor() {
     this.initWorker()
@@ -65,6 +104,8 @@ class TruthTableWorkerManager {
       this.worker.onerror = (error) => {
         console.error('[TruthTableWorkerManager] Worker error:', error)
         this.isRunning = false
+        this.activeRequestTruthTable = null
+        this.activeRequestStartTime = null
         this.lastUpdateCompletedTime = Date.now()
 
         // If there's a queued update, try again
@@ -80,6 +121,10 @@ class TruthTableWorkerManager {
 
   private handleWorkerResponse(response: WorkerResponse) {
     console.log('[TruthTableWorkerManager] Received response:', response.id)
+
+    if (this.activeRequestStartTime !== null) {
+      this.recordResponseTime(Date.now() - this.activeRequestStartTime)
+    }
 
     // Update the state with the results
     if (stateManager.state.truthTable) {
@@ -118,10 +163,24 @@ class TruthTableWorkerManager {
           }),
         )
       }
+
+      this.lastCompletedCache = {
+        truthTable: this.activeRequestTruthTable
+          ? toRawDeep(this.activeRequestTruthTable)
+          : {
+              inputVars: toRawDeep(stateManager.state.truthTable.inputVars),
+              outputVars: toRawDeep(stateManager.state.truthTable.outputVars),
+              values: toRawDeep(stateManager.state.truthTable.values),
+              functionType: stateManager.state.truthTable.functionType,
+            },
+        qmcResults: toRawDeep(response.qmcResults),
+      }
     }
 
     // Mark as no longer running and record completion time
     this.isRunning = false
+    this.activeRequestTruthTable = null
+    this.activeRequestStartTime = null
     this.lastUpdateCompletedTime = Date.now()
 
     // If there's a queued update, schedule it with cooldown
@@ -139,8 +198,9 @@ class TruthTableWorkerManager {
     }
 
     // Calculate time since last update completed
+    const debounceMs = this.getDebounceMs()
     const timeSinceLastUpdate = Date.now() - this.lastUpdateCompletedTime
-    const cooldownRemaining = Math.max(0, this.DEBOUNCE_MS - timeSinceLastUpdate)
+    const cooldownRemaining = Math.max(0, debounceMs - timeSinceLastUpdate)
 
     if (cooldownRemaining > 0) {
       // Still in cooldown period, schedule for later
@@ -176,6 +236,7 @@ class TruthTableWorkerManager {
 
     // Mark as running and send to worker
     this.isRunning = true
+    this.activeRequestStartTime = Date.now()
     const id = ++this.requestId
 
     console.log('[TruthTableWorkerManager] Sending request:', id)
@@ -203,6 +264,13 @@ class TruthTableWorkerManager {
     const request: WorkerRequest = {
       id,
       truthTable: serializedTruthTable,
+      previous: this.lastCompletedCache ?? undefined,
+    }
+    this.activeRequestTruthTable = {
+      inputVars: serializedTruthTable.inputVars,
+      outputVars: serializedTruthTable.outputVars,
+      values: serializedTruthTable.values,
+      functionType: serializedTruthTable.functionType,
     }
 
     try {
@@ -210,6 +278,8 @@ class TruthTableWorkerManager {
     } catch (error) {
       console.error('[TruthTableWorkerManager] Failed to post worker request:', error)
       this.isRunning = false
+      this.activeRequestTruthTable = null
+      this.activeRequestStartTime = null
       this.lastUpdateCompletedTime = Date.now()
 
       if (this.hasQueuedUpdate) {
@@ -250,6 +320,9 @@ class TruthTableWorkerManager {
       this.worker.terminate()
       this.worker = null
     }
+
+    this.lastCompletedCache = null
+    this.activeRequestTruthTable = null
   }
 }
 
