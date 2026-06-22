@@ -28,6 +28,7 @@ import type { LCFile } from '@/utility/LogicCircuitsExport/LCFile'
 import { hasSignificantChanges } from '@/utility/LogicCircuitsExport/lcChangeDetection'
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import { downloadFile } from '@/utility/downloadFile'
+import LegendButton from '@/components/parts/buttons/LegendButton.vue'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -575,6 +576,15 @@ onBeforeUnmount(() => {
             </template>
           </SettingsButton>
         </template>
+        <LegendButton
+          :legend="[
+            {
+              label: 'Caution!',
+              description:
+                'The Logic Circuit view is intended solely to allow changes to be directly displayed as a circuit. There is no reverse process - in other words, changes to the circuit do not result in changes to the rest of the project. Changes made in this panel are therefore not saved!\nIf you wish to modify this circuit manually, you must export it using the download button and then import it into Logic Circuits. ',
+            },
+          ]"
+        />
         <DownloadButton
           :panel-id="params.api.id"
           :target-ref="iframeContainer"
