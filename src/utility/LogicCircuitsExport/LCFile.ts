@@ -181,6 +181,42 @@ export class LCFile {
     )
   }
 
+  /**
+   * Creates an edge-triggered, clocked flip-flop
+   * @param elementType 17 = RS, 18 = JK, 19 = D
+   * @param dataInputCount number of data inputs (D => 1, JK/RS => 2)
+   * @param initialQ initial stored value: false => Q=0 (1n0n), true => Q=1 (0n1n)
+   *
+   * Input connector order: data inputs [0..dataInputCount-1], then Clock at
+   * index dataInputCount. Output connectors: Q (0), notQ (1).
+   * Serialized as {type,x,y,rot,inPorts,<Qstatus>,<clk><MS><edge><set><reset>,<intern>}
+   * with flags 10100 (clocked + edge-triggered) and intern 10. The initial Q is
+   * carried only by the output-status segment (1n0n / 0n1n), not the intern.
+   */
+  createFlipFlop(
+    elementType: number,
+    xPOS: number,
+    yPOS: number,
+    dataInputCount: number,
+    rotation: number = 0,
+    initialQ: boolean = false,
+  ): Element {
+    const ff = new Element(
+      elementType,
+      xPOS,
+      yPOS,
+      rotation,
+      'n'.repeat(dataInputCount + 1), // data inputs + clock
+      initialQ ? '0n1n' : '1n0n', // Q, notQ (output status: high=0, low=1)
+      this.elements,
+      this.nodes,
+      this.connections,
+      this.texts,
+    )
+    ff.serializedSuffix = ',10100,10'
+    return ff
+  }
+
   createLow(xPOS: number, yPOS: number): Element {
     return new Element(
       22,
