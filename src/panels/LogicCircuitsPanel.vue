@@ -9,6 +9,12 @@ import {
   generateSelectedVariationFormulas,
 } from '@/utility/LogicCircuitsExport/FormulasToLC'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
+import {
+  StateEncoding,
+  FlipFlopType,
+  defaultStateEncoding,
+  defaultFlipFlopType,
+} from '@/projects/state-machine/FsmTypes'
 import IframePanel from '@/components/IFramePanel.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import { stateManager } from '@/projects/stateManager'
@@ -67,6 +73,35 @@ const outTypeMap: Record<LCMethodType, 'and-or' | 'nand' | 'nor'> = {
 function handleMethodSelect(value: unknown, idx: number) {
   if (idx == null || idx < 0 || idx >= lcMethodTypes.length) return
   selectedMethod.value = (value as LCMethodType) ?? lcMethodTypes[idx]
+  void updateFormulas()
+}
+
+/*
+
+FSM-specific settings: state encoding + flip-flop type (persisted in fsm state)
+
+*/
+const encodingTypes = Object.values(StateEncoding)
+const flipFlopTypes = Object.values(FlipFlopType)
+
+const selectedEncoding = computed(
+  () => stateManager.state.fsm?.stateEncoding ?? defaultStateEncoding,
+)
+const selectedFlipFlop = computed(() => stateManager.state.fsm?.flipFlopType ?? defaultFlipFlopType)
+const selectedEncodingIndex = computed(() => encodingTypes.indexOf(selectedEncoding.value))
+const selectedFlipFlopIndex = computed(() => flipFlopTypes.indexOf(selectedFlipFlop.value))
+
+const fsmSettingsSlotLabels = { encoding: 'State Encoding', flipFlop: 'Flip-Flop' }
+
+function handleEncodingSelect(value: unknown, idx: number) {
+  if (!stateManager.state.fsm || idx == null || idx < 0 || idx >= encodingTypes.length) return
+  stateManager.state.fsm.stateEncoding = (value as StateEncoding) ?? encodingTypes[idx]
+  void updateFormulas()
+}
+
+function handleFlipFlopSelect(value: unknown, idx: number) {
+  if (!stateManager.state.fsm || idx == null || idx < 0 || idx >= flipFlopTypes.length) return
+  stateManager.state.fsm.flipFlopType = (value as FlipFlopType) ?? flipFlopTypes[idx]
   void updateFormulas()
 }
 
@@ -140,7 +175,13 @@ const isFsmProject = computed(
 
 const createLcContent = (method: LCMethodType) => {
   if (isFsmProject.value) {
-    currentLCContent = stateMachineToLC(currentLCHeader)
+    const fsm = stateManager.state.fsm
+    if (!fsm) return ''
+    currentLCContent = stateMachineToLC(
+      fsm,
+      { encoding: selectedEncoding.value, flipFlopType: selectedFlipFlop.value },
+      currentLCHeader,
+    )
     return currentLCContent.toString()
   }
 
@@ -204,10 +245,12 @@ const logicCircuitDownloadFiles = computed(() => {
 
   //fsm file download
   if (isFsmProject.value) {
+    const enc = selectedEncoding.value.toLowerCase()
+    const ff = selectedFlipFlop.value.toLowerCase()
     return [
       {
         label: projectName,
-        filename: baseName,
+        filename: `${enc}-${ff}-${baseName}`,
         extension: 'lc',
         content: () => createLcContent(selectedMethod.value),
         mimeType: 'text/lc',
@@ -466,7 +509,6 @@ onBeforeUnmount(() => {
           </span>
           <span class="whitespace-nowrap">{{ editWarningInlineText }}</span>
         </div>
-        <!-- ponytail: combinatorial-circuit settings only; FSM has none yet -->
         <template v-if="!isFsmProject">
           <div v-for="row in variationRows" :key="row.outputVar" class="shrink-0">
             <VariationSelector
@@ -492,6 +534,32 @@ onBeforeUnmount(() => {
                 :values="lcMethodTypes"
                 :initial-selected="selectedMethodIndex"
                 :onSelect="handleMethodSelect"
+              />
+            </template>
+          </SettingsButton>
+        </template>
+        <!-- FSM settings: state encoding + flip-flop type -->
+        <template v-if="isFsmProject">
+          <SettingsButton
+            :input-vars="[]"
+            :output-vars="[]"
+            :show-output-selection="false"
+            :show-function-type-selection="false"
+            :show-function-representation-selection="false"
+            :custom-setting-slot-labels="fsmSettingsSlotLabels"
+          >
+            <template #encoding>
+              <MultiSelectSwitch
+                :values="encodingTypes"
+                :initial-selected="selectedEncodingIndex"
+                :onSelect="handleEncodingSelect"
+              />
+            </template>
+            <template #flipFlop>
+              <MultiSelectSwitch
+                :values="flipFlopTypes"
+                :initial-selected="selectedFlipFlopIndex"
+                :onSelect="handleFlipFlopSelect"
               />
             </template>
           </SettingsButton>
