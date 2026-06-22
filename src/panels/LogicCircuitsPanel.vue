@@ -120,13 +120,7 @@ const variationRows = computed(() =>
     .filter((row) => row.formulas.length > 0),
 )
 
-const settingsSlotLabels = computed<Record<string, string>>(() => {
-  const labels: Record<string, string> = { method: 'Gate Type' }
-  if (functionRepresentation.value === 'Minimal' && variationRows.value.length > 0) {
-    labels.variations = 'Variations'
-  }
-  return labels
-})
+const settingsSlotLabels = computed<Record<string, string>>(() => ({ method: 'Gate Type' }))
 
 function getSelectedFormulaIndex(outputVar: string): number {
   const indexMap = variationIndex.value as Record<string, number> | number
@@ -529,7 +523,7 @@ onBeforeUnmount(() => {
         <template v-if="!isFsmProject">
           <div v-for="row in variationRows" :key="row.outputVar" class="shrink-0">
             <VariationSelector
-              v-if="row.formulas.length > 1"
+              v-if="row.formulas.length > 1 && functionRepresentation === 'Minimal'"
               placement="bottom"
               :formulas="row.formulas"
               :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
