@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { stateManager, type AppState } from '@/projects/stateManager'
 import { registerProjectType } from '../projectRegistry'
 import FsmPropsComponent from './FsmPropsComponent.vue'
-import type { FsmProps } from './FsmTypes'
+import { defaultStateEncoding, defaultFlipFlopType, type FsmProps } from './FsmTypes'
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
 import { normalizeFsmState } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { importEditorPayload } from './fsmEditorImportHelpers'
@@ -76,6 +76,8 @@ export class FsmProject extends Project {
       nodeIdBitCount: 0,
       inputBitCount: props.initialInputBits,
       outputBitCount: props.initialOutputBits,
+      stateEncoding: defaultStateEncoding,
+      flipFlopType: defaultFlipFlopType,
     }
 
     console.log('[FSMProject.createState] State initialized')
