@@ -74,6 +74,7 @@ class DownloadRegistry {
     const originalHeight = computedStyle.height
     const originalWidth = computedStyle.width
     const originalPadding = computedStyle.padding
+    const originalFlex = computedStyle.flex
 
     // Find and hide elements marked to be ignored in screenshots
     const ignoredElements = element.querySelectorAll('[data-screenshot-ignore]')
@@ -98,6 +99,7 @@ class DownloadRegistry {
     try {
       // Temporarily modify styles to fit content
       element.style.overflow = 'visible'
+      element.style.flex = 'none'
       element.style.height = 'auto'
       element.style.width = 'fit-content'
       element.style.position = 'relative'
@@ -132,6 +134,7 @@ class DownloadRegistry {
 
       // Always restore styles
       element.style.overflow = originalOverflow
+      element.style.flex = originalFlex
       element.style.height = originalHeight
       element.style.width = originalWidth
       element.style.padding = originalPadding
