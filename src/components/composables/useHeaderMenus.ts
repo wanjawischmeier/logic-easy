@@ -8,7 +8,7 @@ import {
   exportTruthTableTOVHDLboolExpr,
   exportTruthTableTOVHDLcaseWhen,
 } from '@/utility/VHDL/export'
-import { exportFsmToVHDLmealy } from '@/utility/VHDL/fsmExport'
+import { exportFsmToVHDL } from '@/utility/VHDL/fsmExport'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
 import { defaultStateEncoding, defaultFlipFlopType } from '@/projects/state-machine/FsmTypes'
 import { downloadFile } from '@/utility/downloadFile'
@@ -175,7 +175,7 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
             tooltip: '.vhdl',
             disabled: !hasCurrentProject.value || stateManager.isSaving.value,
             action: () => {
-              exportFsmToVHDLmealy(
+              exportFsmToVHDL(
                 fsmState.value,
                 projectManager.getCurrentProject()?.name ?? 'no name',
               )
