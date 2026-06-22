@@ -19,14 +19,16 @@ export function getFunctionSignature(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  outputVariableName: string,
   options?: { lowercaseInputVars?: boolean },
 ): string {
   const formType = functionType === 'Disjunctive' ? 'D' : 'C'
   const formRepresentation = functionRepresentation === 'Normal' ? 'N' : 'M'
+  const functionName = formatLatexIdentifier(outputVariableName)
   const formattedInputVars = inputVars.map((inputVar) =>
     formatLatexIdentifier(inputVar, { lowercase: options?.lowercaseInputVars ?? false }),
   )
-  return `f_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
+  return `${functionName}_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
 }
 
 /**
@@ -136,11 +138,21 @@ export function getCouplingTermLatex(
   functionType: FunctionType,
   functionRepresentation: FunctionRepresentation,
   inputVars: string[],
+  outputVariableName: string,
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
-  options?: { lowercaseInputVars?: boolean; labelMap?: Record<string, string> },
+  options?: {
+    lowercaseInputVars?: boolean
+    labelMap?: Record<string, string>
+  },
 ): string {
-  const signature = getFunctionSignature(functionType, functionRepresentation, inputVars, options)
+  const signature = getFunctionSignature(
+    functionType,
+    functionRepresentation,
+    inputVars,
+    outputVariableName,
+    options,
+  )
 
   // If normal form requested and values provided, return canonical form
   if (

@@ -14,7 +14,7 @@ import { defaultFunctionType } from '@/utility/types'
 export class FsmProject extends Project {
   static override get defaultProps(): FsmProps {
     return {
-      name: 'FSM',
+      name: 'State Machine ',
       initialFsmType: 'mealy',
       initialInputBits: 1,
       initialOutputBits: 1,
@@ -32,8 +32,14 @@ export class FsmProject extends Project {
     const inputBitCount = computed(() => state.value?.inputBitCount ?? 1)
     const outputBitCount = computed(() => state.value?.outputBitCount ?? 1)
 
-    // compute new binary node IDs on every change in 'nodes', normalized on max bit string length
-    const nodeIdBitCount = computed(() => calcBitNumber(rawNodes.value.length))
+    // compute new binary node IDs on every change in 'nodes', normalized on max nodeId
+    const nodeIdBitCount = computed(() => {
+      const maxNodeId = rawNodes.value.reduce(
+        (max, node) => Math.max(max, Number(node?.nodeId ?? -1)),
+        0,
+      )
+      return calcBitNumber(maxNodeId + 1)
+    })
 
     const nodes = computed(() => {
       const idBits = nodeIdBitCount.value

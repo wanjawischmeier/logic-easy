@@ -123,7 +123,7 @@ const tableValues = ref<TruthTableData>(
 )
 const highlightedRow = ref<number | null>(null)
 const blinkGreenRow = ref<number | null>(null)
-const showAllOutputVars = ref(panelState?.showAllOutputVars ?? true)
+const showAllOutputVars = ref(panelState?.showAllOutputVars ?? outputVars.value.length <= 4)
 let isUpdatingFromState = false
 
 // Auto-save panel state when values change

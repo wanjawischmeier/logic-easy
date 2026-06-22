@@ -1,7 +1,7 @@
 <template>
   <div class="mt-8 font-mono" :key="renderKey">
-    <div v-if="variables.length < 2 || variables.length > 4">
-      Only 2, 3, or 4 variables are supported for KV-Diagrams.
+    <div v-if="variables.length < 2 || variables.length > 6">
+      Only 2 to 6 variables are supported for KV-Diagrams.
     </div>
     <div
       v-else
@@ -13,7 +13,10 @@
         <div class="w-14 shrink-0"></div>
         <!-- Centered label over data columns -->
         <div class="flex-1 flex justify-center items-end text-secondary-variant">
-          <vue-latex :expression="topVariables.map(v => formatLatexIdentifier(v)).join('\\,')" display-mode />
+          <vue-latex
+            :expression="topVariables.map((v) => formatLatexIdentifier(v)).join('\\,')"
+            display-mode
+          />
         </div>
       </div>
 
@@ -23,7 +26,10 @@
         <div class="h-14 shrink-0"></div>
         <!-- Centered label next to data rows -->
         <div class="flex-1 flex items-center justify-end pr-2 text-secondary-variant">
-          <vue-latex :expression="leftVariables.map(v => formatLatexIdentifier(v)).join('\\,')" display-mode />
+          <vue-latex
+            :expression="leftVariables.map((v) => formatLatexIdentifier(v)).join('\\,')"
+            display-mode
+          />
         </div>
       </div>
 
@@ -33,7 +39,13 @@
           <tr>
             <th class="border-none bg-transparent w-10 h-10 text-secondary-variant text-sm">
               <vue-latex
-                :expression="formatLatexIdentifier((outputVarLabels?.[outputVariableIndex ?? 0] ?? outputVars[outputVariableIndex ?? 0]) || 'f')"
+                :expression="
+                  formatLatexIdentifier(
+                    (outputVarLabels?.[outputVariableIndex ?? 0] ??
+                      outputVars[outputVariableIndex ?? 0]) ||
+                      'f',
+                  )
+                "
                 display-mode
               />
             </th>
@@ -75,7 +87,7 @@
               </div>
               <!-- Content -->
               <div class="relative z-10 flex items-center justify-center h-full">
-                <vue-latex :expression="getValue(rowCode, colCode).toString()" display-mode />
+                <span class="kv-cell-value">{{ getValue(rowCode, colCode) }}</span>
               </div>
             </td>
           </tr>
@@ -100,7 +112,7 @@ import {
   getColCodes,
   getBinaryString,
 } from '@/utility/truthtable/kvDiagramLayout'
-import { calculateHighlights } from '@/utility/truthtable/kvDiagramHighlights'
+import { calculateHighlightGrid } from '@/utility/truthtable/kvDiagramHighlights'
 import { formatLatexIdentifier } from '@/utility/truthtable/latexGenerator'
 import type { TruthTableData, TruthTableCell } from '@/projects/truth-table/TruthTableProject'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
@@ -185,24 +197,22 @@ const isCellImmutable = (rowCode: string, colCode: string): boolean => {
   return isCellImmutableByIndex(rowIndex, outputIdx)
 }
 
-const getHighlights = (rIdx: number, cIdx: number) => {
-  if (!props.selectedFormula) return []
+// Compute the whole highlight grid once per render instead of per cell.
+const highlightGrid = computed(() => {
+  if (props.functionRepresentation !== 'Minimal' || !props.selectedFormula) return []
+  if (!props.outputVars[props.outputVariableIndex]) return []
 
-  const functionType = props.functionType || defaultFunctionType
-  const outputVar = props.outputVars[props.outputVariableIndex]
-  if (!outputVar) return []
-
-  return calculateHighlights(
-    rIdx,
-    cIdx,
+  return calculateHighlightGrid(
     rowCodes.value,
     colCodes.value,
     props.selectedFormula.terms,
-    functionType,
+    props.functionType || defaultFunctionType,
     props.inputVars,
     props.formulaTermColors || [],
   )
-}
+})
+
+const getHighlights = (rIdx: number, cIdx: number) => highlightGrid.value[rIdx]?.[cIdx] ?? []
 
 const renderKey = ref(0)
 
@@ -213,3 +223,10 @@ const refresh = async () => {
 
 defineExpose({ refresh })
 </script>
+
+<style scoped>
+.kv-cell-value {
+  font-family: KaTeX_Main, serif;
+  font-size: 1rem;
+}
+</style>

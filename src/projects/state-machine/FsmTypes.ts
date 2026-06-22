@@ -35,6 +35,7 @@ export interface FsmNode {
 // type definition for transitions (all attributes)
 export interface FsmTransition {
   transitionId: number
+  groupId?: number
   fromNodeId: number
   toNodeId: number
   toBinaryId?: string

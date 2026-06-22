@@ -37,7 +37,12 @@ function syncTableToEditor() {
         'left',
       )
       const inputNorm = normalizeBits(t.input, inBits, 'x', 'right')
-      const outputNorm = normalizeBits(t.mealyOutput, outBits, 'x', 'right')
+      const outputNorm = normalizeBits(
+        newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
+        outBits,
+        'x',
+        'right',
+      )
       return {
         toBinaryId: toBinary,
         id: t.transitionId,
@@ -45,12 +50,17 @@ function syncTableToEditor() {
         from: t.fromNodeId,
         to: t.toNodeId,
         input: inputNorm,
-        output: outputNorm,
-        mealy_output: outputNorm,
+        output: newFsm.fsmModel === 'moore' ? '' : outputNorm,
+        mealy_output: newFsm.fsmModel === 'moore' ? '' : outputNorm,
       }
     }),
     fsmType: newFsm.fsmModel,
   }
+
+  // Table-driven syncs should not be treated as editor-originated changes.
+  // Otherwise the editor can export a derived payload back and trigger a false
+  // roundtrip overwrite while we only intended to mirror table edits.
+  suppressIncomingEditorExport = true
 
   fsmIframe.contentWindow.postMessage(
     {
@@ -91,11 +101,12 @@ export function forceSyncTableToEditor(): void {
         'left',
       ),
       id: t.transitionId,
+      groupId: (t as any).groupId ?? t.transitionId,
       from: t.fromNodeId,
       to: t.toNodeId,
       input: t.input,
-      output: t.mealyOutput || '',
-      mealy_output: t.mealyOutput || '',
+      output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
+      mealy_output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
     })),
     fsmType: newFsm.fsmModel,
   }

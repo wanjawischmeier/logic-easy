@@ -49,7 +49,7 @@ export interface TruthTableState {
 export class TruthTableProject extends Project {
   static override get defaultProps(): TruthTableProps {
     return {
-      name: '',
+      name: 'Combinatorial Circuit ',
       inputVariableCount: 4,
       outputVariableCount: 2,
       defaultLayout: 'TruthTable',
@@ -117,8 +117,7 @@ export class TruthTableProject extends Project {
 
     switch (props.defaultLayout) {
       case 'SplitKV':
-        // Add KV diagram if input count is between 2 and 4
-        if (props.inputVariableCount >= 2 && props.inputVariableCount <= 4) {
+        if (props.inputVariableCount >= 2) {
           createPanel('kv-diagram', 'Karnaugh-Veitch', {
             referencePanel: 'truth-table',
             direction: 'right',
@@ -150,7 +149,7 @@ export class TruthTableProject extends Project {
 
     // Generate variable names
     const inputVars = this.generateVariableNames(props.inputVariableCount, 97)
-    const outputVars = this.generateVariableNames(props.outputVariableCount, 112)
+    const outputVars = this.generateVariableNames(props.outputVariableCount, 107)
 
     // create formulas
     const formulas: Record<string, Formula> = {}
@@ -170,6 +169,7 @@ export class TruthTableProject extends Project {
       functionType,
       functionRepresentation,
       inputVars,
+      props.outputVarLabels?.[0] ?? outputVars[0]!,
     )
 
     // Initialize state

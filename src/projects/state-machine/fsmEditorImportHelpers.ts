@@ -22,6 +22,7 @@ interface EditorExportTransition {
   input?: string
   output?: string
   mealy_output?: string
+  groupId?: number
 }
 
 interface EditorExportPayload {
@@ -32,6 +33,7 @@ interface EditorExportPayload {
 const sanitizeEditorBits = (value: unknown, fallbackLength: number): string => {
   const normalized = String(value ?? '')
     .replace(/-/g, 'x')
+    .replace(/[^01x]/g, '')
     .trim()
   return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized
 }
@@ -74,9 +76,13 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const inputBits = state.inputBitCount ?? 1
   const outputBits = state.outputBitCount ?? 1
   const isMoore = state.fsmModel === 'moore'
-  const targetBits = calcBitNumber((raw?.states as any)?.length || 0)
+  const incomingStates = ((raw?.states as any) || []) as EditorExportState[]
+  const maxIncomingStateId = incomingStates.reduce((max, entry) => {
+    return Number.isFinite(entry?.id) ? Math.max(max, Number(entry.id)) : max
+  }, -1)
+  const targetBits = calcBitNumber(maxIncomingStateId + 1)
 
-  const { nodes, idMap } = remapEditorNodes((raw?.states as any) || [], state)
+  const { nodes, idMap } = remapEditorNodes(incomingStates, state)
   const nodeBitCount = calcBitNumber(nodes.length)
 
   const rawExpanded: FsmTransition[] = []
@@ -107,6 +113,11 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
     expandInputs(pattern).forEach((concreteInput) => {
       rawExpanded.push({
         transitionId: 0,
+        groupId: Number.isFinite(incomingTransition.groupId)
+          ? Number(incomingTransition.groupId)
+          : Number.isFinite(incomingTransition.id)
+            ? Number(incomingTransition.id)
+            : undefined,
         fromNodeId: remappedFrom,
         toNodeId: concreteToNodeId,
         toBinaryId: concreteToNodeId >= 0 ? undefined : normalizedtoBinaryId,
@@ -116,7 +127,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
     })
   })
 
-  const transitions = fillMissingTransitions(nodes, rawExpanded, inputBits, outputBits)
+  const transitions = fillMissingTransitions(nodes, rawExpanded, inputBits, outputBits, isMoore)
   return { nodes, transitions }
 }
 

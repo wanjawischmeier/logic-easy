@@ -29,7 +29,7 @@ import { hasSignificantChanges } from '@/utility/LogicCircuitsExport/lcChangeDet
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import { downloadFile } from '@/utility/downloadFile'
 
-defineProps<Partial<IDockviewPanelProps>>()
+const props = defineProps<Partial<IDockviewPanelProps>>()
 
 const {
   inputVars,
@@ -466,6 +466,14 @@ onMounted(() => {
     void updateFormulas(true)
   }
   window.addEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
+
+  visibilityDisposable =
+    props.params?.api?.onDidVisibilityChange(() => {
+      if (props.params?.api?.isVisible && pendingUpdate) {
+        pendingUpdate = false
+        void updateFormulas()
+      }
+    }) ?? null
 })
 
 onBeforeUnmount(() => {
@@ -475,6 +483,8 @@ onBeforeUnmount(() => {
     window.removeEventListener('__lc_preloaded_iframe-ready', iframeReadyRebindHandler)
     iframeReadyRebindHandler = null
   }
+  visibilityDisposable?.dispose?.()
+  visibilityDisposable = null
 })
 </script>
 
