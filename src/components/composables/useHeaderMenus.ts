@@ -91,12 +91,12 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
       {
         label: 'Save',
         tooltip: 'Ctrl+S',
-        action: projectManager.downloadProject,
+        action: () => projectManager.downloadProject(),
         disabled: !hasCurrentProject.value,
       },
       {
         label: 'Close',
-        action: projectManager.closeCurrentProject,
+        action: () => projectManager.closeCurrentProject(),
         disabled: !hasCurrentProject.value || stateManager.isSaving.value,
       },
     ],
