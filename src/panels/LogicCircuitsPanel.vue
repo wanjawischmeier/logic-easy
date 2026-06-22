@@ -213,6 +213,11 @@ const createLcContent = (method: LCMethodType) => {
 }
 
 async function updateFormulas(force = false) {
+  if (props.params?.api && !props.params.api.isVisible) {
+    pendingUpdate = true
+    return
+  }
+
   if (editWarning.value && !hideManualEditWarning.value) {
     openEditWarningPopup()
     return
@@ -368,6 +373,8 @@ Iframe related stuff
 */
 let detachIframeGuards: (() => void) | null = null
 let iframeReadyRebindHandler: EventListener | null = null
+let visibilityDisposable: { dispose?: () => void } | null = null
+let pendingUpdate = false
 let changeDetectionInFlight = false
 
 async function refreshSignificantChangeWarning() {
