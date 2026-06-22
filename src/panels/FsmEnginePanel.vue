@@ -220,7 +220,7 @@ const legend: LegendItem[] = [
 ]
 
 let messageHandler: ((event: MessageEvent) => void) | null = null
-let layoutDisposable: any = null
+let layoutDisposable: unknown = null
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
@@ -279,19 +279,22 @@ onMounted(() => {
     const data = event.data || {}
     if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
       // if we suppressed the next editor export (because we forced a sync), consume suppression and ignore
-      if (consumeSuppressIncomingEditorExport()) return
+      if (consumeSuppressIncomingEditorExport()) {
+        return
+      }
 
       const prevNodes = stateManager.state.fsm?.nodes?.length ?? 0
-      let shouldForce = false
 
       try {
         setIsSyncing(true)
         FsmProject.importEditorExport(data.fsm)
-
-        const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
-        // mark whether we should force a single back-sync (do it after resetting isSyncing)
-        shouldForce = nextNodes > prevNodes
       } finally {
+        const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
+        const shouldForce = nextNodes !== prevNodes
+        // Only force-sync when the node count changed — that's when the app
+        // renumbered IDs and the editor needs the updated IDs. For transition
+        // edits the editor preserves its own state (draft protection in
+        // fsmimport), so no force-sync needed.
         setTimeout(() => {
           setIsSyncing(false)
           if (shouldForce) forceSyncTableToEditor()

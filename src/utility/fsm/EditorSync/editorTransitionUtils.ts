@@ -35,7 +35,7 @@ export function expandInputs(inputWithDC: string): string[] {
 /**
  * Ensures existence of one transition per {nodes} x {inputs} combination.
  * Undefined transitions are saved with don't cares as output and next state only.
-
+ *
  * @param nodes
  * @param existing
  * @param inputBitCount
@@ -47,10 +47,15 @@ export function fillMissingTransitions(
   existing: FsmTransition[],
   inputBitCount: number,
   outputBitCount: number,
+  isMoore = false,
 ): FsmTransition[] {
   const allPossibleInputs = expandInputs('x'.repeat(inputBitCount))
   const finalTransitions: FsmTransition[] = []
-  const nodeBitCount = calcBitNumber(nodes.length)
+  // Compute bit count based on highest node id (maxId + 1) to handle sparse
+  // or non-contiguous nodeId assignments consistently across main/editor.
+  const maxNodeId = nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+  const totalStates = Math.max(1, maxNodeId + 1)
+  const nodeBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
 
   const resolveConcreteTarget = (pattern: string): number => {
     if (!/^[01]+$/.test(pattern)) return -1
@@ -70,12 +75,14 @@ export function fillMissingTransitions(
           'x',
           'left',
         )
-
         const concreteTarget = resolveConcreteTarget(normalizedPattern)
         finalTransitions.push({
           ...found,
           toNodeId: concreteTarget,
           toBinaryId: concreteTarget >= 0 ? undefined : normalizedPattern,
+          ...(isMoore
+            ? { mealyOutput: undefined }
+            : { mealyOutput: found.mealyOutput ?? 'x'.repeat(outputBitCount) }),
         })
       } else {
         const defaultPattern = 'x'.repeat(nodeBitCount)
@@ -85,7 +92,7 @@ export function fillMissingTransitions(
           toNodeId: -1,
           toBinaryId: defaultPattern,
           input: input,
-          mealyOutput: 'x'.repeat(outputBitCount),
+          ...(isMoore ? {} : { mealyOutput: 'x'.repeat(outputBitCount) }),
         })
       }
     })
@@ -96,7 +103,17 @@ export function fillMissingTransitions(
     return a.input.localeCompare(b.input)
   })
 
-  return finalTransitions.map((t, index) => ({
+  // Deduplicate transitions by (fromNodeId, input) keeping first occurrence.
+  const seen = new Set()
+  const unique: FsmTransition[] = []
+  for (const t of finalTransitions) {
+    const key = `${t.fromNodeId}:${t.input}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(t)
+  }
+
+  return unique.map((t, index) => ({
     ...t,
     transitionId: index + 1,
   }))

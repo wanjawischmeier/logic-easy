@@ -29,10 +29,62 @@ function getToBinary(tr: FsmTransition) {
   return node?.binaryNodeId ?? 'x'.repeat(nodeIdBitCount.value)
 }
 
+function getTargetNode(tr: FsmTransition) {
+  if (tr.toNodeId >= 0) {
+    return nodes.value.find((state) => state.nodeId === tr.toNodeId)
+  }
+
+  if (!tr.toBinaryId) return undefined
+
+  const normalized = normalizeBits(tr.toBinaryId, nodeIdBitCount.value, 'x', 'left')
+  if (!/^[01]+$/.test(normalized)) return undefined
+
+  return nodes.value.find(
+    (state) =>
+      state.binaryNodeId === normalized ||
+      state.nodeId.toString(2).padStart(nodeIdBitCount.value, '0') === normalized,
+  )
+}
+
+function getTargetNodes(tr: FsmTransition) {
+  if (tr.toNodeId >= 0) {
+    const node = nodes.value.find((state) => state.nodeId === tr.toNodeId)
+    return node ? [node] : []
+  }
+
+  if (!tr.toBinaryId) return []
+
+  const normalized = normalizeBits(tr.toBinaryId, nodeIdBitCount.value, 'x', 'left')
+  return nodes.value.filter((state) => {
+    const bits = (
+      state.binaryNodeId ?? state.nodeId.toString(2).padStart(nodeIdBitCount.value, '0')
+    )
+      .slice(-nodeIdBitCount.value)
+      .padStart(nodeIdBitCount.value, '0')
+    for (let index = 0; index < nodeIdBitCount.value; index += 1) {
+      const patternBit = normalized.charAt(index)
+      if (patternBit !== 'x' && patternBit !== bits.charAt(index)) return false
+    }
+    return true
+  })
+}
+
 function getOutputValue(tr: FsmTransition, model: FsmModel): string {
   if (model === 'moore') {
-    const node = nodes.value.find((state) => state.nodeId === tr.fromNodeId)
-    return node?.mooreOutput ?? ''
+    const targetNodes = getTargetNodes(tr)
+    if (!targetNodes.length) {
+      const node = getTargetNode(tr)
+      return node?.mooreOutput ?? ''
+    }
+
+    const bits = outputBitCount.value
+    const normalizedOutputs = targetNodes.map((node) =>
+      normalizeBits(node.mooreOutput, bits, 'x', 'right'),
+    )
+    return Array.from({ length: bits }, (_, bitIndex) => {
+      const bit = normalizedOutputs[0]?.charAt(bitIndex) || 'x'
+      return normalizedOutputs.every((out) => out.charAt(bitIndex) === bit) ? bit : 'x'
+    }).join('')
   }
 
   return tr.mealyOutput ?? ''

@@ -5,7 +5,8 @@ import { calcBinaryID, calcBitNumber, normalizeBits, toggleBitInString } from '.
 const MAX_FSM_BITS = 10
 
 function syncNodeBitCount(state: FsmState): void {
-  state.nodeIdBitCount = calcBitNumber(state.nodes.length)
+  const maxNodeId = state.nodes.reduce((max, node) => Math.max(max, Number(node?.nodeId ?? -1)), 0)
+  state.nodeIdBitCount = calcBitNumber(maxNodeId + 1)
 }
 
 function ensureInitialState(nodes: FsmNode[]): FsmNode[] {
@@ -28,6 +29,46 @@ function ensureFinalState(nodes: FsmNode[]): FsmNode[] {
   }))
 }
 
+function resolveTransitionTargetNode(state: FsmState, transition: FsmState['transitions'][number]) {
+  if (transition.toNodeId >= 0) {
+    return state.nodes.find((node) => node.nodeId === transition.toNodeId)
+  }
+
+  if (!transition.toBinaryId) return undefined
+  // compute node bit count from highest node id to handle sparse ids
+  const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+  const totalStates = Math.max(1, maxNodeId + 1)
+  const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
+  const normalizedTarget = normalizeBits(transition.toBinaryId, nodeIdBitCount, 'x', 'left')
+  if (!/^[01]+$/.test(normalizedTarget)) return undefined
+
+  return state.nodes.find((node) => calcBinaryID(node.nodeId, nodeIdBitCount) === normalizedTarget)
+}
+
+function resolveTransitionTargetNodes(
+  state: FsmState,
+  transition: FsmState['transitions'][number],
+): FsmNode[] {
+  if (transition.toNodeId >= 0) {
+    const node = state.nodes.find((candidate) => candidate.nodeId === transition.toNodeId)
+    return node ? [node] : []
+  }
+
+  const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+  const totalStates = Math.max(1, maxNodeId + 1)
+  const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
+  const normalizedPattern = normalizeBits(transition.toBinaryId ?? '', nodeIdBitCount, 'x', 'left')
+
+  return state.nodes.filter((node) => {
+    const nodeBits = calcBinaryID(node.nodeId, nodeIdBitCount)
+    for (let index = 0; index < nodeIdBitCount; index += 1) {
+      const patternBit = normalizedPattern.charAt(index)
+      if (patternBit !== 'x' && patternBit !== nodeBits.charAt(index)) return false
+    }
+    return true
+  })
+}
+
 export function normalizeFsmState(state: FsmState): void {
   state.nodes = ensureFinalState(ensureInitialState(state.nodes))
   ensureTransitionMatrix(state)
@@ -40,8 +81,39 @@ export function ensureTransitionMatrix(state: FsmState): void {
     state.transitions,
     state.inputBitCount ?? 1,
     state.outputBitCount ?? 1,
+    state.fsmModel === 'moore',
   )
-  state.transitions = normalizedTransitions
+  // Deduplicate by (fromNodeId, input). When duplicates exist prefer more
+  // specific transitions (those with explicit groupId or concrete target)
+  // so that edits coming from the editor/table are preserved instead of
+  // being shadowed by generic don't-care placeholders.
+  const byKey: Record<string, (typeof normalizedTransitions)[number]> = {}
+  const pickBetter = (
+    a: (typeof normalizedTransitions)[number] | undefined,
+    b: (typeof normalizedTransitions)[number] | undefined,
+  ): (typeof normalizedTransitions)[number] | undefined => {
+    if (!a) return b
+    if (!b) return a
+    const score = (t: (typeof normalizedTransitions)[number]) => {
+      let s = 0
+      if (t.groupId != null) s += 4
+      if (t.toNodeId >= 0) s += 3
+      if (t.toBinaryId && !/^x+$/.test(String(t.toBinaryId))) s += 2
+      if (t.mealyOutput && String(t.mealyOutput).replace(/x/g, '').length > 0) s += 1
+      return s
+    }
+    return score(b) > score(a) ? b : a
+  }
+
+  for (const tr of normalizedTransitions) {
+    const key = `${tr.fromNodeId}:${tr.input}`
+    byKey[key] = pickBetter(byKey[key], tr) as (typeof normalizedTransitions)[number]
+  }
+
+  const unique = Object.values(byKey) as typeof normalizedTransitions
+
+  // Reassign transitionIds sequentially
+  state.transitions = unique.map((t, idx) => ({ ...t, transitionId: idx + 1 }))
 }
 
 export function addStateRow(state: FsmState, model: FsmModel): void {
@@ -71,6 +143,37 @@ export function removeStateRow(state: FsmState, stateId: number): void {
       ...transition,
       toNodeId: transition.toNodeId === stateId ? -1 : transition.toNodeId,
     }))
+
+  // After removing a state, re-resolve all transition targets against the new
+  // node set. Any target that no longer maps to an existing node collapses to 0
+  // instead of staying as an impossible 1/x pattern.
+  const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+  const totalStates = Math.max(1, maxNodeId + 1)
+  const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
+  const fallbackZeroTarget = '0'.repeat(nodeIdBitCount)
+
+  state.transitions = state.transitions.map((transition) => {
+    if (transition.toNodeId >= 0) return transition
+
+    const normalizedTarget = normalizeBits(transition.toBinaryId ?? '', nodeIdBitCount, 'x', 'left')
+    const targetNode = state.nodes.find(
+      (node) => calcBinaryID(node.nodeId, nodeIdBitCount) === normalizedTarget,
+    )
+
+    if (targetNode) {
+      return {
+        ...transition,
+        toNodeId: targetNode.nodeId,
+        toBinaryId: undefined,
+      }
+    }
+
+    return {
+      ...transition,
+      toNodeId: 0,
+      toBinaryId: fallbackZeroTarget,
+    }
+  })
 
   state.nodes = ensureFinalState(ensureInitialState(state.nodes))
   syncNodeBitCount(state)
@@ -113,10 +216,17 @@ export function setInputBitCount(state: FsmState, nextInputBits: number): void {
 }
 
 export function setOutputBitCount(state: FsmState, nextOutputBits: number, model: FsmModel): void {
-  state.transitions = state.transitions.map((transition) => ({
-    ...transition,
-    mealyOutput: normalizeBits(transition.mealyOutput, nextOutputBits, 'x', 'right'),
-  }))
+  state.transitions = state.transitions.map((transition) =>
+    model === 'moore'
+      ? {
+          ...transition,
+          mealyOutput: undefined,
+        }
+      : {
+          ...transition,
+          mealyOutput: normalizeBits(transition.mealyOutput, nextOutputBits, 'x', 'right'),
+        },
+  )
 
   state.nodes = state.nodes.map((node) => ({
     ...node,
@@ -135,8 +245,10 @@ export function toggleTransitionTargetBit(
 ): void {
   const transition = state.transitions[transitionIndex]
   if (!transition) return
-
-  const nodeIdBitCount = calcBitNumber(state.nodes.length)
+  // compute node bit count from highest node id to match editor/import logic
+  const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+  const totalStates = Math.max(1, maxNodeId + 1)
+  const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
   syncNodeBitCount(state)
   const currentNode = state.nodes.find((node) => node.nodeId === transition.toNodeId)
   const currentBits = normalizeBits(
@@ -146,7 +258,33 @@ export function toggleTransitionTargetBit(
     'left',
   )
   const chars = currentBits.split('')
-  chars[bitIndex] = chars[bitIndex] === 'x' ? '0' : chars[bitIndex] === '0' ? '1' : 'x'
+
+  const matchesExistingNode = (pattern: string): boolean => {
+    const normalizedPattern = normalizeBits(pattern, nodeIdBitCount, 'x', 'left')
+    return state.nodes.some((node) => {
+      const nodeBits = calcBinaryID(node.nodeId, nodeIdBitCount)
+      for (let index = 0; index < nodeIdBitCount; index += 1) {
+        const patternBit = normalizedPattern.charAt(index)
+        const nodeBit = nodeBits.charAt(index)
+        if (patternBit !== 'x' && patternBit !== nodeBit) {
+          return false
+        }
+      }
+      return true
+    })
+  }
+
+  const oneCandidate = [...chars]
+  oneCandidate[bitIndex] = '1'
+  const allowOne = matchesExistingNode(oneCandidate.join(''))
+
+  // If this bit cannot be 1 for any existing target node, pin it to 0.
+  // This prevents invalid table toggles and keeps forbidden bits stable.
+  if (!allowOne) {
+    chars[bitIndex] = '0'
+  } else {
+    chars[bitIndex] = chars[bitIndex] === 'x' ? '0' : chars[bitIndex] === '0' ? '1' : 'x'
+  }
   const finalBits = chars.join('')
 
   if (finalBits.includes('x')) {
@@ -185,10 +323,32 @@ export function toggleMooreOutputBit(
   const transition = state.transitions[transitionIndex]
   if (!transition) return
 
-  const node = state.nodes.find((stateNode) => stateNode.nodeId === transition.fromNodeId)
-  if (!node) return
+  const outputBits = state.outputBitCount ?? 1
+  const targetNodes = resolveTransitionTargetNodes(state, transition)
+  if (!targetNodes.length) {
+    const fallbackNode = resolveTransitionTargetNode(state, transition) ?? state.nodes[0]
+    if (!fallbackNode) return
+    fallbackNode.mooreOutput = toggleBitInString(
+      fallbackNode.mooreOutput ?? '',
+      bitIndex,
+      outputBits,
+    )
+    return
+  }
 
-  node.mooreOutput = toggleBitInString(node.mooreOutput ?? '', bitIndex, state.outputBitCount ?? 1)
+  const normalizedOutputs = targetNodes.map((node) =>
+    normalizeBits(node.mooreOutput, outputBits, 'x', 'right'),
+  )
+  const currentBit = normalizedOutputs[0]?.charAt(bitIndex) || 'x'
+  const isUniform = normalizedOutputs.every((bits) => bits.charAt(bitIndex) === currentBit)
+  const effectiveCurrent = isUniform ? currentBit : 'x'
+  const nextBit = effectiveCurrent === '0' ? '1' : effectiveCurrent === '1' ? 'x' : '0'
+
+  targetNodes.forEach((node) => {
+    const bits = normalizeBits(node.mooreOutput, outputBits, 'x', 'right').split('')
+    bits[bitIndex] = nextBit
+    node.mooreOutput = bits.join('')
+  })
 }
 
 export function getStateCountLimit(): number {
