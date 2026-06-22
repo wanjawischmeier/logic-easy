@@ -10,6 +10,7 @@ import {
 } from '@/utility/VHDL/export'
 import { exportFsmToVHDLmealy } from '@/utility/VHDL/fsmExport'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
+import { defaultStateEncoding, defaultFlipFlopType } from '@/projects/state-machine/FsmTypes'
 import { downloadFile } from '@/utility/downloadFile'
 import { popupService } from '@/utility/popupService'
 import { formatDate } from '@/utility/dateFormatter'
@@ -111,8 +112,13 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
                 label: 'State machine',
                 action: () => {
                   const name = projectManager.getCurrentProject()?.name ?? 'no name'
+                  const fsm = stateManager.state.fsm
+                  if (!fsm) return
                   downloadFile(
-                    stateMachineToLC().toString(),
+                    stateMachineToLC(fsm, {
+                      encoding: fsm.stateEncoding ?? defaultStateEncoding,
+                      flipFlopType: fsm.flipFlopType ?? defaultFlipFlopType,
+                    }).toString(),
                     name.replace(/\s+/g, '_') + '.lc',
                     'text/lc',
                   )
