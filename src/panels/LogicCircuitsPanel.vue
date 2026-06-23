@@ -29,8 +29,16 @@ import { hasSignificantChanges } from '@/utility/LogicCircuitsExport/lcChangeDet
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import { downloadFile } from '@/utility/downloadFile'
 import LegendButton from '@/components/parts/buttons/LegendButton.vue'
+import Checkbox from '@/components/parts/Checkbox.vue'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
+
+// "Build all output variables" toggle
+const panelState = stateManager.getPanelState<{ buildAllOutputVars: boolean }>(props.params.api.id)
+const buildAllOutputVars = ref(panelState?.buildAllOutputVars ?? true)
+stateManager.watchPanelState(props.params.api.id, () => ({
+  buildAllOutputVars: buildAllOutputVars.value,
+}))
 
 const {
   inputVars,
@@ -43,6 +51,7 @@ const {
   functionRepresentation,
   variations,
   variationIndex,
+  outputVariableIndex,
 } = TruthTableProject.useState()
 
 const panelRef = ref<HTMLElement | null>(null)
@@ -180,16 +189,24 @@ const createLcContent = (method: LCMethodType) => {
     return currentLCContent.toString()
   }
 
+  // build all output vars if toggle on, otherwise just selected
+  const buildOutputVars = buildAllOutputVars.value
+    ? outputVars.value
+    : outputVars.value.filter((_, i) => i === outputVariableIndex.value)
+  const buildDisplayOutputVars = buildAllOutputVars.value
+    ? displayOutputVars.value
+    : displayOutputVars.value.filter((_, i) => i === outputVariableIndex.value)
+
   const targetFormulas =
     functionRepresentation.value === 'Normal'
       ? generateCanonicalFormulas(
           inputVars.value,
-          outputVars.value,
+          buildOutputVars,
           values.value,
           functionType.value,
         )
       : generateSelectedVariationFormulas(
-          outputVars.value,
+          buildOutputVars,
           variations.value,
           variationIndex.value,
           formulas.value,
@@ -198,11 +215,11 @@ const createLcContent = (method: LCMethodType) => {
   currentLCContent = formulaToLC(
     targetFormulas,
     inputVars.value,
-    outputVars.value,
+    buildOutputVars,
     outTypeMap[method],
     currentLCHeader,
     displayInputVars.value,
-    displayOutputVars.value,
+    buildDisplayOutputVars,
   )
   return currentLCContent.toString()
 }
@@ -281,7 +298,13 @@ const logicCircuitDownloadFiles = computed(() => {
 
 // Keep the iframe in sync with state and selection.
 watch(
-  [() => formulas.value, () => variations.value, () => variationIndex.value],
+  [
+    () => formulas.value,
+    () => variations.value,
+    () => variationIndex.value,
+    () => buildAllOutputVars.value,
+    () => outputVariableIndex.value,
+  ],
   () => {
     void updateFormulas()
   },
@@ -524,7 +547,13 @@ onBeforeUnmount(() => {
         <template v-if="!isFsmProject">
           <div v-for="row in variationRows" :key="row.outputVar" class="shrink-0">
             <VariationSelector
-              v-if="row.formulas.length > 1 && functionRepresentation === 'Minimal'"
+              v-if="
+                row.formulas.length > 1 &&
+                functionRepresentation === 'Minimal' &&
+                ((row.outputVar === displayOutputVars[outputVariableIndex] &&
+                  !buildAllOutputVars) ||
+                  buildAllOutputVars)
+              "
               placement="bottom"
               :formulas="row.formulas"
               :selectedIndex="getSelectedFormulaIndex(row.outputVar)"
@@ -536,11 +565,24 @@ onBeforeUnmount(() => {
             :selected-function-type="functionType"
             :input-vars="inputVars"
             :output-vars="displayOutputVars"
-            :show-output-selection="false"
+            :selected-output-index="outputVariableIndex"
+            :show-output-selection="!buildAllOutputVars"
             :show-function-type-selection="true"
-            :custom-setting-slot-labels="settingsSlotLabels"
+            :custom-setting-slot-labels="{
+              'build-all-output-vars': 'Build all output variables',
+              ...settingsSlotLabels,
+            }"
             :selected-function-representation="functionRepresentation"
           >
+            <template #build-all-output-vars>
+              <div class="flex gap-2 items-center" @click.stop>
+                <Checkbox v-model="buildAllOutputVars" />
+                <div class="text-xs text-white min-w-25">
+                  <span v-if="buildAllOutputVars">Building all output variables</span>
+                  <span v-else>Building currently selected</span>
+                </div>
+              </div>
+            </template>
             <template #method>
               <MultiSelectSwitch
                 :values="lcMethodTypes"
