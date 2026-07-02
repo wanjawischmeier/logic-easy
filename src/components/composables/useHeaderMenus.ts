@@ -132,20 +132,72 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
               getFormulas: () => typeof formulas.value,
               ft: typeof functionType.value,
             ): MenuEntry[] => [
-              { label: 'AND/OR', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'and-or') },
-              { label: 'NAND', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'nand') },
-              { label: 'NOR', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'nor') },
+              {
+                label: 'AND/OR',
+                disabled: dis,
+                action: () =>
+                  formulaToLcFile(
+                    name,
+                    getFormulas(),
+                    inputVars.value,
+                    outputVars.value,
+                    ft,
+                    'and-or',
+                  ),
+              },
+              {
+                label: 'NAND',
+                disabled: dis,
+                action: () =>
+                  formulaToLcFile(
+                    name,
+                    getFormulas(),
+                    inputVars.value,
+                    outputVars.value,
+                    ft,
+                    'nand',
+                  ),
+              },
+              {
+                label: 'NOR',
+                disabled: dis,
+                action: () =>
+                  formulaToLcFile(
+                    name,
+                    getFormulas(),
+                    inputVars.value,
+                    outputVars.value,
+                    ft,
+                    'nor',
+                  ),
+              },
             ]
-            const ftChildren = (getFormulas: (ft: typeof functionType.value) => typeof formulas.value): MenuEntry[] => [
-              { label: 'Disjunctive', disabled: dis, children: gateChildren(() => getFormulas('Disjunctive'), 'Disjunctive') },
-              { label: 'Conjunctive', disabled: dis, children: gateChildren(() => getFormulas('Conjunctive'), 'Conjunctive') },
+            const ftChildren = (
+              getFormulas: (ft: typeof functionType.value) => typeof formulas.value,
+            ): MenuEntry[] => [
+              {
+                label: 'Disjunctive',
+                disabled: dis,
+                children: gateChildren(() => getFormulas('Disjunctive'), 'Disjunctive'),
+              },
+              {
+                label: 'Conjunctive',
+                disabled: dis,
+                children: gateChildren(() => getFormulas('Conjunctive'), 'Conjunctive'),
+              },
             ]
             return {
               label: 'LogicCircuits',
               tooltip: '.lc',
               disabled: dis,
               children: [
-                { label: 'Normal', disabled: dis, children: ftChildren((ft) => generateCanonicalFormulas(inputVars.value, outputVars.value, values.value, ft)) },
+                {
+                  label: 'Normal',
+                  disabled: dis,
+                  children: ftChildren((ft) =>
+                    generateCanonicalFormulas(inputVars.value, outputVars.value, values.value, ft),
+                  ),
+                },
                 { label: 'Minimal', disabled: dis, children: ftChildren(() => formulas.value) },
               ],
             }
@@ -156,10 +208,7 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
             tooltip: '.vhdl',
             disabled: !hasCurrentProject.value || stateManager.isSaving.value,
             action: () => {
-              exportFsmToVHDL(
-                fsmState.value,
-                projectManager.getCurrentProject()?.name ?? 'no name',
-              )
+              exportFsmToVHDL(fsmState.value, projectManager.getCurrentProject()?.name ?? 'no name')
             },
           }
         : {

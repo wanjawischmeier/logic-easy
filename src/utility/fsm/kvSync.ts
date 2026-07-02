@@ -281,7 +281,8 @@ export function exportFsmToTruthTable(
     values,
     formulas: {},
     outputVariableIndex: selectedOutputIndex,
-    variationIndex: previousState?.variationIndex ?? Object.fromEntries(outputVars.map((v) => [v, 0])),
+    variationIndex:
+      previousState?.variationIndex ?? Object.fromEntries(outputVars.map((v) => [v, 0])),
     functionType: fsm.functionType ?? previousState?.functionType ?? defaultFunctionType,
     functionRepresentation: previousState?.functionRepresentation ?? defaultFunctionRepresentation,
     qmcResult: previousState?.qmcResult,

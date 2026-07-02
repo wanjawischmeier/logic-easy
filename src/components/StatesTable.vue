@@ -168,7 +168,7 @@ function decreaseOutputBits() {
           <td
             class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           >
-            {{ state.binaryNodeId ?? 'x'.repeat(nodeIdBitCount) }}
+            {{ state.binaryNodeId ?? '-'.repeat(nodeIdBitCount) }}
           </td>
         </tr>
       </tbody>

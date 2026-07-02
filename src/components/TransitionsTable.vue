@@ -10,6 +10,18 @@ import {
   toggleTransitionTargetBit,
 } from '@/projects/state-machine/FsmProject'
 
+function displayBitAt(
+  source: string | undefined,
+  index: number,
+  length?: number | undefined,
+  padChar = 'x',
+  fallback = 'x',
+) {
+  let s = String(source ?? '')
+  if (typeof length === 'number') s = s.padStart(length, padChar)
+  const ch = s.charAt(Number(index)) || fallback
+  return ch === 'x' ? '-' : ch
+}
 const { nodes, transitions, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } =
   FsmProject.useState()
 
@@ -242,7 +254,9 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === nodeIdBitCount - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ getBinaryById(transitionView.fromNodeId).charAt(Number(i)) || '0' }}
+            {{
+              displayBitAt(getBinaryById(transitionView.fromNodeId), Number(i), undefined, 'x', '0')
+            }}
           </td>
 
           <td
@@ -251,7 +265,12 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
             :class="i === inputBitCount - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            {{ normalizeBits(transitionView.input, inputBitCount, 'x', 'right').charAt(Number(i)) }}
+            {{
+              displayBitAt(
+                normalizeBits(transitionView.input, inputBitCount, 'x', 'right'),
+                Number(i),
+              )
+            }}
           </td>
 
           <td
@@ -264,7 +283,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             @click="toggleToBit(idx, i)"
             @keydown="handleEditableCellKeydown($event, idx, Number(i))"
           >
-            {{ getToBinary(transitionView).padStart(nodeIdBitCount, 'x').charAt(Number(i)) || 'x' }}
+            {{ displayBitAt(getToBinary(transitionView), Number(i), nodeIdBitCount) }}
           </td>
 
           <td
@@ -280,12 +299,15 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             @keydown="handleEditableCellKeydown($event, idx, nodeIdBitCount + Number(i))"
           >
             {{
-              normalizeBits(
-                getOutputValue(transitionView, fsmModel),
-                outputBitCount,
-                'x',
-                'right',
-              ).charAt(Number(i))
+              displayBitAt(
+                normalizeBits(
+                  getOutputValue(transitionView, fsmModel),
+                  outputBitCount,
+                  'x',
+                  'right',
+                ),
+                Number(i),
+              )
             }}
           </td>
         </tr>
