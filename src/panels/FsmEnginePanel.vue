@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, defineComponent, h, type Component } f
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
+import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import {
   setIsSyncing,
   useFsmListener,
@@ -12,7 +13,6 @@ import {
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
-import { getDockviewApi } from '@/utility/dockview/integration'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
@@ -26,7 +26,7 @@ type IframePanelExpose = {
 
 const iframeRef = ref<IframePanelExpose | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
-const legendButtonStyle = ref<{ right?: string; top?: string }>({})
+const { style: legendButtonStyle } = useFloatingToolbarPosition(panelRef)
 
 const StateIcon = defineComponent({
   template: `
@@ -223,50 +223,12 @@ const legend: LegendItem[] = [
 ]
 
 let messageHandler: ((event: MessageEvent) => void) | null = null
-let layoutDisposable: { dispose?: () => void } | null = null
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
     title.value = props.params.api.title ?? ''
   })
   title.value = props.params.api.title ?? ''
-
-  // Position the teleported legend button so it aligns with the panel
-  const updateLegendPosition = () => {
-    if (!panelRef.value) return
-    const rect = panelRef.value.getBoundingClientRect()
-    // read panel padding so the teleport aligns with the internal header layout
-    const style = window.getComputedStyle(panelRef.value)
-    const paddingTop = parseFloat(style.paddingTop || '0') || 0
-    const paddingRight = parseFloat(style.paddingRight || '0') || 0
-
-    // Align teleported header exactly with the panel content area
-    const top = rect.top + paddingTop
-    const right = window.innerWidth - rect.right + paddingRight
-
-    legendButtonStyle.value = {
-      right: `${right}px`,
-      top: `${top}px`,
-    }
-  }
-
-  const ro = new ResizeObserver(updateLegendPosition)
-  if (panelRef.value) ro.observe(panelRef.value)
-  window.addEventListener('scroll', updateLegendPosition, true)
-  window.addEventListener('resize', updateLegendPosition)
-  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateLegendPosition()) ?? null
-
-  // initial position
-  updateLegendPosition()
-
-  // store cleanup on beforeUnmount
-  disposable = {
-    dispose: () => {
-      ro.disconnect()
-      window.removeEventListener('scroll', updateLegendPosition, true)
-      window.removeEventListener('resize', updateLegendPosition)
-    },
-  }
 })
 
 onMounted(() => {
@@ -329,7 +291,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   disposable?.dispose?.()
-  layoutDisposable?.dispose?.()
   visibilityDisposable?.dispose?.()
   visibilityDisposable = null
 
@@ -343,25 +304,20 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="h-full text-white flex flex-col p-2 bg-surface">
-    <div ref="panelRef" class="flex justify-end items-center h-10 mb-2 gap-2">
-      <!-- Legend button is teleported to body so it renders above the iframe like LogicCircuitsPanel -->
-      <teleport to="body">
-        <div class="fixed z-50 flex justify-end items-center h-10 gap-2" :style="legendButtonStyle">
-          <div class="flex items-center h-10 gap-2">
-            <LegendButton :legend="legend" />
-          </div>
-        </div>
-      </teleport>
-    </div>
-
+  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col bg-surface">
     <IframePanel
       ref="iframeRef"
       iframe-key="__fsm_preloaded_iframe"
       src="/logic-easy/fsm-engine/dist/index.html"
       :visible="params.api.isVisible"
-      class="flex-1 border-none"
+      class="flex-1"
     />
+
+    <teleport to="body">
+      <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">
+        <LegendButton :legend="legend" />
+      </div>
+    </teleport>
   </div>
 </template>
 
