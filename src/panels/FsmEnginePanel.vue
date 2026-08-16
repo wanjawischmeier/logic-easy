@@ -6,6 +6,7 @@ import LegendButton, { type LegendItem } from '@/components/parts/buttons/Legend
 import {
   setIsSyncing,
   useFsmListener,
+  disposeFsmSyncService,
   forceSyncTableToEditor,
   consumeSuppressIncomingEditorExport,
 } from '@/utility/fsm/EditorSync/fsmListener'
@@ -17,6 +18,8 @@ const props = defineProps<{ params: IDockviewPanelProps }>()
 
 const title = ref('')
 let disposable: { dispose?: () => void } | null = null
+let visibilityDisposable: { dispose?: () => void } | null = null
+let isFsmSyncActive = false
 type IframePanelExpose = {
   getIframe: () => HTMLIFrameElement | undefined
 }
@@ -267,11 +270,29 @@ onMounted(() => {
 })
 
 onMounted(() => {
-  // Initialize FSM outbound sync when the FSM panel mounts.
-  useFsmListener()
+  const syncWithPanelVisibility = () => {
+    if (props.params.api.isVisible) {
+      if (!isFsmSyncActive) {
+        useFsmListener()
+        isFsmSyncActive = true
+      }
+      forceSyncTableToEditor()
+    } else if (isFsmSyncActive) {
+      disposeFsmSyncService()
+      isFsmSyncActive = false
+    }
+  }
+
+  syncWithPanelVisibility()
+
+  visibilityDisposable = props.params.api.onDidVisibilityChange(() => {
+    syncWithPanelVisibility()
+  })
 
   // handle editor -> app exports: delegate concrete state handling to FsmProject
   messageHandler = (event: MessageEvent) => {
+    if (!props.params.api.isVisible) return
+
     const fsmIframe = getFsmIframe()
     if (!fsmIframe) return
     if (event.origin !== window.location.origin || event.source !== fsmIframe.contentWindow) return
@@ -308,6 +329,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   disposable?.dispose?.()
+  visibilityDisposable?.dispose?.()
+  visibilityDisposable = null
+
+  if (isFsmSyncActive) {
+    disposeFsmSyncService()
+    isFsmSyncActive = false
+  }
+
   if (messageHandler) window.removeEventListener('message', messageHandler)
 })
 </script>
