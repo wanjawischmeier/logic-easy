@@ -28,7 +28,10 @@ export function getFunctionSignature(
   const formattedInputVars = inputVars.map((inputVar) =>
     formatLatexIdentifier(inputVar, { lowercase: options?.lowercaseInputVars ?? false }),
   )
-  return `${functionName}_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
+  // Group (only) function names that already carry a sub script
+  const needsGrouping = /[_^]/.test(functionName)
+  const groupedName = needsGrouping ? `{${functionName}}` : functionName
+  return `${groupedName}_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
 }
 
 /**
