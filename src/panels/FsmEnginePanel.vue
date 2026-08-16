@@ -223,7 +223,7 @@ const legend: LegendItem[] = [
 ]
 
 let messageHandler: ((event: MessageEvent) => void) | null = null
-let layoutDisposable: unknown = null
+let layoutDisposable: { dispose?: () => void } | null = null
 
 onMounted(() => {
   disposable = props.params.api.onDidTitleChange(() => {
@@ -254,7 +254,7 @@ onMounted(() => {
   if (panelRef.value) ro.observe(panelRef.value)
   window.addEventListener('scroll', updateLegendPosition, true)
   window.addEventListener('resize', updateLegendPosition)
-  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateLegendPosition())
+  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateLegendPosition()) ?? null
 
   // initial position
   updateLegendPosition()
@@ -329,6 +329,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   disposable?.dispose?.()
+  layoutDisposable?.dispose?.()
   visibilityDisposable?.dispose?.()
   visibilityDisposable = null
 
