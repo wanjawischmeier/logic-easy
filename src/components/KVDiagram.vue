@@ -70,7 +70,8 @@
             <td
               v-for="(colCode, cIdx) in colCodes"
               :key="colCode"
-              class="relative border border-primary bg-surface-1 text-center hover:bg-surface-3 transition-colors duration-100 cursor-pointer select-none w-14 h-14"
+              class="relative border border-primary bg-surface-1 text-center transition-colors duration-100 select-none w-14 h-14"
+              :class="readonly ? 'cursor-default' : 'cursor-pointer hover:bg-surface-3'"
               @click="toggleCell(rowCode, colCode)"
             >
               <!-- Highlights -->
@@ -133,6 +134,7 @@ type KVDiagramProps = {
   formulaTermColors?: TermColor[]
   variationIndex?: number
   immutableCellMask?: boolean[][]
+  readonly?: boolean
 }
 
 const props = defineProps<KVDiagramProps>()
@@ -162,7 +164,7 @@ const getValue = (rowCode: string, colCode: string) => {
 }
 
 const toggleCell = (rowCode: string, colCode: string) => {
-  if (!props.values) return
+  if (props.readonly || !props.values) return
 
   const binaryString = getBinaryString(rowCode, colCode)
   const rowIndex = parseInt(binaryString, 2)
