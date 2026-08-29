@@ -5,6 +5,7 @@ import { stateManager } from '@/projects/stateManager'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
+  getFsmIoBitLimit,
   removeStateRow as removeFsmStateRow,
   renameState as renameFsmState,
   setInitialState as setFsmInitialState,
@@ -13,6 +14,9 @@ import {
 } from '@/projects/state-machine/FsmProject'
 
 const { nodes, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } = FsmProject.useState()
+
+const stateLimit = computed(() => getStateCountLimit()) // 12
+const ioBitLimit = computed(() => getFsmIoBitLimit()) // 5
 
 const editingNames = reactive<Record<number, string | undefined>>({})
 
@@ -25,6 +29,7 @@ function getFsm() {
 function addStateRow() {
   const current = getFsm()
   if (!current) return
+  if (nodes.value.length >= stateLimit.value) return
 
   addFsmStateRow(current, fsmModel.value)
 }
@@ -90,7 +95,7 @@ function updateInputBitWidth(nextInputBits: number) {
 }
 
 function increaseInputBits() {
-  if (inputBitCount.value >= getStateCountLimit()) return
+  if (inputBitCount.value >= ioBitLimit.value) return
   updateInputBitWidth(inputBitCount.value + 1)
 }
 
@@ -107,7 +112,7 @@ function updateOutputBitWidth(nextOutputBits: number) {
 }
 
 function increaseOutputBits() {
-  if (outputBitCount.value >= getStateCountLimit()) return
+  if (outputBitCount.value >= ioBitLimit.value) return
   updateOutputBitWidth(outputBitCount.value + 1)
 }
 
@@ -192,7 +197,8 @@ function decreaseOutputBits() {
             nodes.length
           }}</span>
           <button
-            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
+            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors disabled:opacity-30"
+            :disabled="nodes.length >= stateLimit"
             title="Add state"
             @click="addStateRow"
           >
@@ -219,7 +225,7 @@ function decreaseOutputBits() {
           }}</span>
           <button
             class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
-            :disabled="inputBitCount >= 10"
+            :disabled="inputBitCount >= ioBitLimit"
             title="Add input bit"
             @click="increaseInputBits"
           >
@@ -246,7 +252,7 @@ function decreaseOutputBits() {
           }}</span>
           <button
             class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
-            :disabled="outputBitCount >= 10"
+            :disabled="outputBitCount >= ioBitLimit"
             title="Add output bit"
             @click="increaseOutputBits"
           >

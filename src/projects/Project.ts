@@ -55,6 +55,10 @@ export abstract class Project {
   static validateState(state: AppState): boolean {
     throw new Error('validateState must be implemented by subclass')
   }
+
+  static normalizeState(state: AppState): void {
+    // subclasses can override to normalize/clamp state after loading (e.g. enforce FSM size limits)
+  }
 }
 
 /**
@@ -64,8 +68,9 @@ export interface ProjectClass {
   readonly defaultProps: BaseProjectProps
   restoreDefaultPanelLayout(props: BaseProjectProps): void
   createState(props: BaseProjectProps): void
-  useState(): any
+  useState(): unknown
   validateState(state: AppState): boolean
+  normalizeState(state: AppState): void
 }
 
 /**

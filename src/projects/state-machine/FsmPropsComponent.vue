@@ -17,12 +17,12 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Input Bits (1-5)</label>
+          <label class="text-sm">Input Bits (1-{{ maxIoBits }})</label>
           <input
             type="number"
             v-model.number="localInputBits"
             min="1"
-            max="5"
+            :max="maxIoBits"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />
@@ -32,12 +32,12 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Output Bits (1-5)</label>
+          <label class="text-sm">Output Bits (1-{{ maxIoBits }})</label>
           <input
             type="number"
             v-model.number="localOutputBits"
             min="1"
-            max="5"
+            :max="maxIoBits"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />
@@ -55,7 +55,10 @@
 <script setup lang="ts">
 import type { ValidationFunction } from '@/projects/projectRegistry'
 import { ref, computed, onMounted, watch } from 'vue'
+import { MAX_FSM_IO_BITS } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import type { FsmProps } from './FsmTypes'
+
+const maxIoBits = MAX_FSM_IO_BITS
 
 const props = defineProps<{
   modelValue: FsmProps
@@ -74,13 +77,13 @@ const localOutputBits = ref(props.modelValue.initialOutputBits ?? 1)
 // props input validation
 const inputBitsError = computed(() => {
   if (localInputBits.value < 1) return 'Must be at least 1'
-  if (localInputBits.value > 5) return 'Max 5 bits allowed'
+  if (localInputBits.value > maxIoBits) return `Max ${maxIoBits} bits allowed`
   return undefined
 })
 
 const outputBitsError = computed(() => {
   if (localOutputBits.value < 1) return 'Must be at least 1'
-  if (localOutputBits.value > 5) return 'Max 5 bits allowed'
+  if (localOutputBits.value > maxIoBits) return `Max ${maxIoBits} bits allowed`
   return undefined
 })
 

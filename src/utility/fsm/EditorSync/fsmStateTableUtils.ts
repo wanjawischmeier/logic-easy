@@ -2,7 +2,10 @@ import type { FsmModel, FsmNode, FsmState } from '@/projects/state-machine/FsmTy
 import { fillMissingTransitions } from './editorTransitionUtils'
 import { calcBinaryID, calcBitNumber, normalizeBits, toggleBitInString } from '../bitOperations'
 
-const MAX_FSM_BITS = 10
+// Maximum number of states allowed in an FSM
+export const MAX_FSM_STATES = 12
+// Maximum number of input/output bits allowed in the table
+export const MAX_FSM_IO_BITS = 5
 
 function syncNodeBitCount(state: FsmState): void {
   const maxNodeId = state.nodes.reduce((max, node) => Math.max(max, Number(node?.nodeId ?? -1)), 0)
@@ -117,6 +120,9 @@ export function ensureTransitionMatrix(state: FsmState): void {
 }
 
 export function addStateRow(state: FsmState, model: FsmModel): void {
+  // Do not allow more states than the configured maximum.
+  if (state.nodes.length >= MAX_FSM_STATES) return
+
   const usedIds = new Set(state.nodes.map((n) => n.nodeId))
   let nextId = 0
   while (usedIds.has(nextId)) nextId += 1
@@ -207,15 +213,17 @@ export function renameState(
 }
 
 export function setInputBitCount(state: FsmState, nextInputBits: number): void {
+  const clamped = Math.max(1, Math.min(MAX_FSM_IO_BITS, nextInputBits))
   state.transitions = state.transitions.map((transition) => ({
     ...transition,
-    input: normalizeBits(transition.input, nextInputBits, '0', 'left'),
+    input: normalizeBits(transition.input, clamped, '0', 'left'),
   }))
-  state.inputBitCount = nextInputBits
+  state.inputBitCount = clamped
   ensureTransitionMatrix(state)
 }
 
 export function setOutputBitCount(state: FsmState, nextOutputBits: number, model: FsmModel): void {
+  const clamped = Math.max(1, Math.min(MAX_FSM_IO_BITS, nextOutputBits))
   state.transitions = state.transitions.map((transition) =>
     model === 'moore'
       ? {
@@ -224,18 +232,16 @@ export function setOutputBitCount(state: FsmState, nextOutputBits: number, model
         }
       : {
           ...transition,
-          mealyOutput: normalizeBits(transition.mealyOutput, nextOutputBits, 'x', 'right'),
+          mealyOutput: normalizeBits(transition.mealyOutput, clamped, 'x', 'right'),
         },
   )
 
   state.nodes = state.nodes.map((node) => ({
     ...node,
     mooreOutput:
-      model === 'moore'
-        ? normalizeBits(node.mooreOutput, nextOutputBits, 'x', 'right')
-        : node.mooreOutput,
+      model === 'moore' ? normalizeBits(node.mooreOutput, clamped, 'x', 'right') : node.mooreOutput,
   }))
-  state.outputBitCount = nextOutputBits
+  state.outputBitCount = clamped
 }
 
 export function toggleTransitionTargetBit(
@@ -352,5 +358,9 @@ export function toggleMooreOutputBit(
 }
 
 export function getStateCountLimit(): number {
-  return MAX_FSM_BITS
+  return MAX_FSM_STATES
+}
+
+export function getFsmIoBitLimit(): number {
+  return MAX_FSM_IO_BITS
 }

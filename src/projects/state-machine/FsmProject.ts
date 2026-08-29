@@ -5,7 +5,12 @@ import { registerProjectType } from '../projectRegistry'
 import FsmPropsComponent from './FsmPropsComponent.vue'
 import { defaultStateEncoding, defaultFlipFlopType, type FsmProps } from './FsmTypes'
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
-import { normalizeFsmState } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
+import {
+  MAX_FSM_IO_BITS,
+  normalizeFsmState,
+  setInputBitCount,
+  setOutputBitCount,
+} from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { importEditorPayload } from './fsmEditorImportHelpers'
 import type { FsmState } from './FsmTypes'
 import { createPanel } from '@/utility/dockview/integration'
@@ -123,6 +128,21 @@ export class FsmProject extends Project {
   static override validateState(state: AppState): boolean {
     return state.fsm != undefined
   }
+
+  static override normalizeState(state: AppState): void {
+    const fsm = state.fsm as FsmState | undefined
+    if (!fsm) return
+
+    // Clamp imported input/output bit counts to the allowed maximum
+    const inputBits = Math.max(1, Math.min(MAX_FSM_IO_BITS, fsm.inputBitCount ?? 1))
+    const outputBits = Math.max(1, Math.min(MAX_FSM_IO_BITS, fsm.outputBitCount ?? 1))
+    if ((fsm.inputBitCount ?? 1) !== inputBits) {
+      setInputBitCount(fsm, inputBits)
+    }
+    if ((fsm.outputBitCount ?? 1) !== outputBits) {
+      setOutputBitCount(fsm, outputBits, fsm.fsmModel)
+    }
+  }
 }
 
 export { importEditorPayload } from './fsmEditorImportHelpers'
@@ -130,6 +150,7 @@ export { importEditorPayload } from './fsmEditorImportHelpers'
 export {
   addStateRow,
   getStateCountLimit,
+  getFsmIoBitLimit,
   removeStateRow,
   renameState,
   setInitialState,

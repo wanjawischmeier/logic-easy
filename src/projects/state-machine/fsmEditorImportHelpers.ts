@@ -35,7 +35,8 @@ const sanitizeEditorBits = (value: unknown, fallbackLength: number): string => {
     .replace(/-/g, 'x')
     .replace(/[^01x]/g, '')
     .trim()
-  return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized
+  // Clamp to the allowed bit width (just to be sure) and fallback to a string of 'x' if the result is empty
+  return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized.slice(0, fallbackLength)
 }
 
 function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
