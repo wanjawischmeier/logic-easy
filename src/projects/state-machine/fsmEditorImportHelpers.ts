@@ -78,7 +78,9 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const inputBits = state.inputBitCount ?? 1
   const outputBits = state.outputBitCount ?? 1
   const isMoore = state.fsmModel === 'moore'
-  const incomingStates = raw?.states ?? []
+  // states/transitions must be arrays, otherwise reduce/forEach below would throw a TypeError
+  const incomingStates = Array.isArray(raw?.states) ? raw.states : []
+  const incomingTransitions = Array.isArray(raw?.transitions) ? raw.transitions : []
   const maxIncomingStateId = incomingStates.reduce((max, entry) => {
     return Number.isFinite(entry?.id) ? Math.max(max, Number(entry.id)) : max
   }, -1)
@@ -88,14 +90,18 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const nodeBitCount = calcBitNumber(nodes.length)
 
   const rawExpanded: FsmTransition[] = []
-  ;(raw?.transitions ?? []).forEach((incomingTransition) => {
+  incomingTransitions.forEach((incomingTransition) => {
+    if (!incomingTransition || typeof incomingTransition !== 'object') return
     const remappedFrom = idMap.get(Number(incomingTransition.from))
     if (remappedFrom === undefined) return
 
     const pattern = sanitizeEditorBits(incomingTransition.input, inputBits).padStart(inputBits, 'x')
-    const outputBitsString = sanitizeEditorBits(
-      incomingTransition.mealy_output || incomingTransition.output,
+    // normalize the output bits to the expected width, replacing any '-' with 'x' and clamping to the allowed bit width
+    const outputBitsString = normalizeBits(
+      sanitizeEditorBits(incomingTransition.mealy_output || incomingTransition.output, outputBits),
       outputBits,
+      'x',
+      'right',
     )
     const remappedTo = idMap.get(Number(incomingTransition.to))
     const concreteBits =

@@ -7,7 +7,9 @@ import { defaultStateEncoding, defaultFlipFlopType, type FsmProps } from './FsmT
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
 import {
   MAX_FSM_IO_BITS,
+  MAX_FSM_STATES,
   normalizeFsmState,
+  removeStateRow,
   setInputBitCount,
   setOutputBitCount,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
@@ -141,6 +143,19 @@ export class FsmProject extends Project {
     }
     if ((fsm.outputBitCount ?? 1) !== outputBits) {
       setOutputBitCount(fsm, outputBits, fsm.fsmModel)
+    }
+
+    // Enforce the maximum number of states on restored/imported data 
+    if (Array.isArray(fsm.nodes) && fsm.nodes.length > MAX_FSM_STATES) {
+      while (fsm.nodes.length > MAX_FSM_STATES) {
+        // Only consider numeric node ids
+        const highestId = fsm.nodes.reduce((max, node) => {
+          const id = Number(node?.nodeId)
+          return Number.isFinite(id) ? Math.max(max, id) : max
+        }, -1)
+        if (highestId < 0) break
+        removeStateRow(fsm, highestId)
+      }
     }
   }
 }
