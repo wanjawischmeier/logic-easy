@@ -16,6 +16,7 @@ interface EditorExportState {
 }
 
 interface EditorExportTransition {
+  id?: number
   from?: number
   to?: number
   toBinaryId?: string
@@ -35,7 +36,8 @@ const sanitizeEditorBits = (value: unknown, fallbackLength: number): string => {
     .replace(/-/g, 'x')
     .replace(/[^01x]/g, '')
     .trim()
-  return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized
+  // Clamp to the allowed bit width (just to be sure) and fallback to a string of 'x' if the result is empty
+  return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized.slice(0, fallbackLength)
 }
 
 function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
@@ -76,7 +78,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const inputBits = state.inputBitCount ?? 1
   const outputBits = state.outputBitCount ?? 1
   const isMoore = state.fsmModel === 'moore'
-  const incomingStates = ((raw?.states as any) || []) as EditorExportState[]
+  const incomingStates = (Array.isArray(raw?.states) ? raw.states : []) as EditorExportState[]
   const maxIncomingStateId = incomingStates.reduce((max, entry) => {
     return Number.isFinite(entry?.id) ? Math.max(max, Number(entry.id)) : max
   }, -1)
@@ -86,7 +88,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const nodeBitCount = calcBitNumber(nodes.length)
 
   const rawExpanded: FsmTransition[] = []
-  ;((raw?.transitions as any) || []).forEach((incomingTransition: any) => {
+  ;(raw?.transitions ?? []).forEach((incomingTransition) => {
     const remappedFrom = idMap.get(Number(incomingTransition.from))
     if (remappedFrom === undefined) return
 

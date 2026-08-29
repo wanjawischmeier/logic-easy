@@ -130,6 +130,9 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     // Copy over shared state properties
     Object.assign(stateManager.state, project.state)
 
+    // Allow the project type to normalize/clamp the restored state
+    projectTypeInfo.projectClass?.normalizeState?.(stateManager.state)
+
     console.log('[ProjectLifecycle.open] After assigning to stateManager:', {
       stateManagerState: stateManager.state,
     })

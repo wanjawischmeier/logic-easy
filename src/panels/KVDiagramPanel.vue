@@ -47,6 +47,7 @@
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
+            :readonly="isFsmProject"
             :variation-index="currentVariationIndex"
             @values-changed="tableValues = $event"
           />
@@ -85,6 +86,7 @@
             :qmc-result="displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
+            :readonly="isFsmProject"
             :variation-index="currentVariationIndex"
             @values-changed="tableValues = $event"
           />
@@ -249,6 +251,8 @@ const selectedVariationFormula = computed(() => {
   const variation = displayFormulaVariations.value[currentVariationIndex.value]
   return variation?.formula
 })
+
+const isFsmProject = computed(() => !!stateManager.state.fsm)
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),

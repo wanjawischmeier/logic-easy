@@ -27,6 +27,7 @@ type IframePanelExpose = {
 const iframeRef = ref<IframePanelExpose | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 const { style: legendButtonStyle } = useFloatingToolbarPosition(panelRef)
+const showHiddenInfo = ref(false)
 
 const StateIcon = defineComponent({
   template: `
@@ -238,12 +239,12 @@ onMounted(() => {
         useFsmListener()
         isFsmSyncActive = true
       }
-      } else if (isFsmSyncActive) {
-        // Clear any pending suppression so it doesn't carry over across visibility toggles
-        consumeSuppressIncomingEditorExport()
-        disposeFsmSyncService()
-        isFsmSyncActive = false
-      }
+    } else if (isFsmSyncActive) {
+      // Clear any pending suppression so it doesn't carry over across visibility toggles
+      consumeSuppressIncomingEditorExport()
+      disposeFsmSyncService()
+      isFsmSyncActive = false
+    }
   }
 
   syncWithPanelVisibility()
@@ -253,16 +254,26 @@ onMounted(() => {
   })
 
   // handle editor -> app exports: delegate concrete state handling to FsmProject
-messageHandler = (event: MessageEvent) => {
-  if (!props.params.api.isVisible) {
-    consumeSuppressIncomingEditorExport()
-    return
-  }
+  messageHandler = (event: MessageEvent) => {
+    if (!props.params.api.isVisible) {
+      consumeSuppressIncomingEditorExport()
+      return
+    }
     const fsmIframe = getFsmIframe()
     if (!fsmIframe) return
     if (event.origin !== window.location.origin || event.source !== fsmIframe.contentWindow) return
 
     const data = event.data || {}
+    // Editor toggled the read-only "show hidden edges" view
+    if (data.action === 'show-hidden-changed') {
+      showHiddenInfo.value = data.show === true
+      return
+    }
+    // Editor asks for the current table state (when "show hidden transitions" is enabled)
+    if (data.action === 'fsmimport-request') {
+      forceSyncTableToEditor()
+      return
+    }
     if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
       // if we suppressed the next editor export (because we forced a sync), consume suppression and ignore
       if (consumeSuppressIncomingEditorExport()) {
@@ -318,6 +329,19 @@ onBeforeUnmount(() => {
 
     <teleport to="body">
       <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">
+        <div
+          v-if="showHiddenInfo"
+          class="h-7 shrink-0 rounded-full border border-red-500 text-red-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+          title="The editor is read-only while hidden edges are shown"
+        >
+          <span
+            class="h-5 w-5 rounded-full border-2 border-red-500 flex items-center justify-center font-black text-sm leading-none"
+            aria-hidden="true"
+          >
+            !
+          </span>
+          <span class="whitespace-nowrap">Read-only — hidden edges shown</span>
+        </div>
         <LegendButton :legend="legend" />
       </div>
     </teleport>
