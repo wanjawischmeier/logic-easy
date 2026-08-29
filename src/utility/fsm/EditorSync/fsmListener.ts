@@ -9,14 +9,8 @@ let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
 let suppressIncomingEditorExport = false
 
-function syncTableToEditor() {
-  const newFsm = stateManager.state.fsm
-  if (isSyncing || !newFsm) return
-
-  const fsmIframe = (window as any).__fsm_preloaded_iframe
-  if (!fsmIframe?.contentWindow) return
-
-  const editorPayload = {
+function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm>) {
+  return {
     states: newFsm.nodes.map((n) => ({
       id: n.nodeId,
       name: n.name,
@@ -58,6 +52,14 @@ function syncTableToEditor() {
     inputBitCount: newFsm.inputBitCount || 1,
     outputBitCount: newFsm.outputBitCount || 1,
   }
+}
+
+function syncTableToEditor() {
+  const newFsm = stateManager.state.fsm
+  if (isSyncing || !newFsm) return
+
+  const fsmIframe = (window as any).__fsm_preloaded_iframe
+  if (!fsmIframe?.contentWindow) return
 
   // Table-driven syncs should not be treated as editor-originated changes.
   // Otherwise the editor can export a derived payload back and trigger a false
@@ -67,7 +69,7 @@ function syncTableToEditor() {
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',
-      fsm: editorPayload,
+      fsm: buildFsmImportPayload(newFsm),
     },
     window.location.origin,
   )
@@ -84,41 +86,10 @@ export function forceSyncTableToEditor(): void {
   // mark that the next incoming editor export (in response) should be ignored
   suppressIncomingEditorExport = true
 
-  const editorPayload = {
-    states: newFsm.nodes.map((n) => ({
-      id: n.nodeId,
-      name: n.name,
-      initial: n.isInitial,
-      final: n.isFinal,
-      x: n.editorCoordX,
-      y: n.editorCoordY,
-      moore_output: n.mooreOutput || '',
-    })),
-    transitions: newFsm.transitions.map((t) => ({
-      toBinaryId: normalizeBits(
-        t.toBinaryId ??
-          (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, newFsm.nodeIdBitCount || 1) : ''),
-        newFsm.nodeIdBitCount || 1,
-        'x',
-        'left',
-      ),
-      id: t.transitionId,
-      groupId: (t as any).groupId ?? t.transitionId,
-      from: t.fromNodeId,
-      to: t.toNodeId,
-      input: t.input,
-      output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
-      mealy_output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
-    })),
-    fsmType: newFsm.fsmModel,
-    inputBitCount: newFsm.inputBitCount || 1,
-    outputBitCount: newFsm.outputBitCount || 1,
-  }
-
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',
-      fsm: editorPayload,
+      fsm: buildFsmImportPayload(newFsm),
     },
     window.location.origin,
   )
