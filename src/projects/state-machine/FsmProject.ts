@@ -9,7 +9,6 @@ import {
   MAX_FSM_IO_BITS,
   MAX_FSM_STATES,
   normalizeFsmState,
-  removeStateRow,
   setInputBitCount,
   setOutputBitCount,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
@@ -145,17 +144,29 @@ export class FsmProject extends Project {
       setOutputBitCount(fsm, outputBits, fsm.fsmModel)
     }
 
-    // Enforce the maximum number of states on restored/imported data 
+    // Enforce the maximum number of states on restored/imported data (keep lowest ids, then normalize once)
     if (Array.isArray(fsm.nodes) && fsm.nodes.length > MAX_FSM_STATES) {
-      while (fsm.nodes.length > MAX_FSM_STATES) {
-        // Only consider numeric node ids
-        const highestId = fsm.nodes.reduce((max, node) => {
-          const id = Number(node?.nodeId)
-          return Number.isFinite(id) ? Math.max(max, id) : max
-        }, -1)
-        if (highestId < 0) break
-        removeStateRow(fsm, highestId)
+      // Non-finite node ids sort last so corrupt entries are trimmed first
+      const sorted = [...fsm.nodes].sort((a, b) => {
+        const idA = Number(a?.nodeId)
+        const idB = Number(b?.nodeId)
+        return (
+          (Number.isFinite(idA) ? idA : Number.MAX_SAFE_INTEGER) -
+          (Number.isFinite(idB) ? idB : Number.MAX_SAFE_INTEGER)
+        )
+      })
+      const removedIds = new Set(sorted.slice(MAX_FSM_STATES).map((node) => Number(node.nodeId)))
+      fsm.nodes = sorted.slice(0, MAX_FSM_STATES)
+      if (Array.isArray(fsm.transitions)) {
+        fsm.transitions = fsm.transitions
+          .filter((transition) => !removedIds.has(Number(transition.fromNodeId)))
+          .map((transition) =>
+            removedIds.has(Number(transition.toNodeId))
+              ? { ...transition, toNodeId: -1 }
+              : transition,
+          )
       }
+      normalizeFsmState(fsm)
     }
   }
 }

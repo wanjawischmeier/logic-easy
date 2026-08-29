@@ -42,7 +42,8 @@ const sanitizeEditorBits = (value: unknown, fallbackLength: number): string => {
 
 function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
   const isMoore = s.fsmModel === 'moore'
-  const outputBits = s.outputBitCount ?? 1
+  // Clamp to at least 1 bit so sanitizeEditorBits never pads to zero width
+  const outputBits = Math.max(1, s.outputBitCount ?? 1)
   const sorted = [...incomingStates]
     .filter((st) => Number.isFinite(st?.id))
     .sort((a, b) => Number(a.id) - Number(b.id))
@@ -75,8 +76,9 @@ function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
 }
 
 export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
-  const inputBits = state.inputBitCount ?? 1
-  const outputBits = state.outputBitCount ?? 1
+  // Clamp to at least 1 bit: a 0 bit count would leave an empty transition matrix
+  const inputBits = Math.max(1, state.inputBitCount ?? 1)
+  const outputBits = Math.max(1, state.outputBitCount ?? 1)
   const isMoore = state.fsmModel === 'moore'
   // states/transitions must be arrays, otherwise reduce/forEach below would throw a TypeError
   const incomingStates = Array.isArray(raw?.states) ? raw.states : []
