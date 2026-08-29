@@ -2,7 +2,6 @@
 import { computed, reactive } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
-import { forceSyncTableToEditor } from '@/utility/fsm/EditorSync/fsmListener'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
@@ -29,7 +28,6 @@ function addStateRow() {
   if (nodes.value.length >= stateLimit.value) return
 
   addFsmStateRow(current, fsmModel.value)
-  forceSyncTableToEditor()
 }
 
 // Only the highest state can be removed so ids/names stay contiguous
@@ -42,7 +40,6 @@ function decreaseStateCount() {
   removeFsmStateRow(current, highestStateId)
 
   delete editingNames[highestStateId]
-  forceSyncTableToEditor()
 }
 
 function startEditingName(stateId: number, currentName: string) {
