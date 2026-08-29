@@ -46,8 +46,7 @@
       </div>
 
       <p class="mt-4 text-xs text-on-surface-disabled text-center">
-        The selected bit numbers determine the amount of input / output bits. The bit count is fixed
-        and cannot be changed after creation.
+        Please select the amount of input and output bits. The bit count cannot be changed after creation.
       </p>
     </div>
   </div>
@@ -77,14 +76,14 @@ const localOutputBits = ref(props.modelValue.initialOutputBits ?? 1)
 
 // props input validation
 const inputBitsError = computed(() => {
-  if (localInputBits.value < 1) return 'Must be at least 1'
-  if (localInputBits.value > maxIoBits) return `Max ${maxIoBits} bits allowed`
+  if (localInputBits.value < 1) return 'Please enter at least 1 input bit.'
+  if (localInputBits.value > maxIoBits) return `Please enter at most ${maxIoBits} input bits.`
   return undefined
 })
 
 const outputBitsError = computed(() => {
-  if (localOutputBits.value < 1) return 'Must be at least 1'
-  if (localOutputBits.value > maxIoBits) return `Max ${maxIoBits} bits allowed`
+  if (localOutputBits.value < 1) return 'Please enter at least 1 output bit.'
+  if (localOutputBits.value > maxIoBits) return `Please enter at most ${maxIoBits} output bits.`
   return undefined
 })
 
