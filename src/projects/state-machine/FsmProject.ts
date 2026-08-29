@@ -150,7 +150,6 @@ export { importEditorPayload } from './fsmEditorImportHelpers'
 export {
   addStateRow,
   getStateCountLimit,
-  getFsmIoBitLimit,
   removeStateRow,
   renameState,
   setInitialState,

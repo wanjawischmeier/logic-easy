@@ -55,6 +55,8 @@ function syncTableToEditor() {
       }
     }),
     fsmType: newFsm.fsmModel,
+    inputBitCount: newFsm.inputBitCount || 1,
+    outputBitCount: newFsm.outputBitCount || 1,
   }
 
   // Table-driven syncs should not be treated as editor-originated changes.
@@ -109,6 +111,8 @@ export function forceSyncTableToEditor(): void {
       mealy_output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
     })),
     fsmType: newFsm.fsmModel,
+    inputBitCount: newFsm.inputBitCount || 1,
+    outputBitCount: newFsm.outputBitCount || 1,
   }
 
   fsmIframe.contentWindow.postMessage(

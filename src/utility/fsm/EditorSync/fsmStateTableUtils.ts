@@ -360,7 +360,3 @@ export function toggleMooreOutputBit(
 export function getStateCountLimit(): number {
   return MAX_FSM_STATES
 }
-
-export function getFsmIoBitLimit(): number {
-  return MAX_FSM_IO_BITS
-}

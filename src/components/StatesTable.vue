@@ -5,18 +5,16 @@ import { stateManager } from '@/projects/stateManager'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
-  getFsmIoBitLimit,
   removeStateRow as removeFsmStateRow,
   renameState as renameFsmState,
   setInitialState as setFsmInitialState,
-  setInputBitCount as setFsmInputBitCount,
-  setOutputBitCount as setFsmOutputBitCount,
 } from '@/projects/state-machine/FsmProject'
 
 const { nodes, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } = FsmProject.useState()
 
+// The number of input/output bits is fixed once at project creation (init menu)
+// or on whole-data import; it can no longer be changed in the panel.
 const stateLimit = computed(() => getStateCountLimit()) // 12
-const ioBitLimit = computed(() => getFsmIoBitLimit()) // 5
 
 const editingNames = reactive<Record<number, string | undefined>>({})
 
@@ -85,40 +83,6 @@ function commitStateName(stateId: number) {
   if (resolvedName === state.name) return
 
   renameFsmState(current, stateId, resolvedName)
-}
-
-function updateInputBitWidth(nextInputBits: number) {
-  const current = getFsm()
-  if (!current) return
-
-  setFsmInputBitCount(current, nextInputBits)
-}
-
-function increaseInputBits() {
-  if (inputBitCount.value >= ioBitLimit.value) return
-  updateInputBitWidth(inputBitCount.value + 1)
-}
-
-function decreaseInputBits() {
-  if (inputBitCount.value <= 1) return
-  updateInputBitWidth(inputBitCount.value - 1)
-}
-
-function updateOutputBitWidth(nextOutputBits: number) {
-  const current = getFsm()
-  if (!current) return
-
-  setFsmOutputBitCount(current, nextOutputBits, fsmModel.value)
-}
-
-function increaseOutputBits() {
-  if (outputBitCount.value >= ioBitLimit.value) return
-  updateOutputBitWidth(outputBitCount.value + 1)
-}
-
-function decreaseOutputBits() {
-  if (outputBitCount.value <= 1) return
-  updateOutputBitWidth(outputBitCount.value - 1)
 }
 </script>
 
@@ -209,56 +173,16 @@ function decreaseOutputBits() {
 
       <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
         <span class="text-gray-500 font-mono text-[11px] leading-none">input bits</span>
-        <div
-          class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
-        >
-          <button
-            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors disabled:opacity-30"
-            :disabled="inputBitCount <= 1"
-            title="Remove input bit"
-            @click="decreaseInputBits"
-          >
-            −
-          </button>
-          <span class="px-2 py-1 font-mono text-white tabular-nums min-w-6 text-center">{{
-            inputBitCount
-          }}</span>
-          <button
-            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
-            :disabled="inputBitCount >= ioBitLimit"
-            title="Add input bit"
-            @click="increaseInputBits"
-          >
-            +
-          </button>
-        </div>
+        <span class="px-2 py-1 font-mono text-white tabular-nums min-w-6 text-center">{{
+          inputBitCount
+        }}</span>
       </div>
 
       <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">
         <span class="text-gray-500 font-mono text-[11px] leading-none">output bits</span>
-        <div
-          class="inline-flex items-center rounded bg-surface-2 border border-surface-3 hover:border-primary transition-colors p-0.5 gap-0.5"
-        >
-          <button
-            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors disabled:opacity-30"
-            :disabled="outputBitCount <= 1"
-            title="Remove output bit"
-            @click="decreaseOutputBits"
-          >
-            −
-          </button>
-          <span class="px-2 py-1 font-mono text-white tabular-nums min-w-6 text-center">{{
-            outputBitCount
-          }}</span>
-          <button
-            class="px-2.5 py-1 rounded-xs font-mono text-white hover:bg-surface-3 transition-colors"
-            :disabled="outputBitCount >= ioBitLimit"
-            title="Add output bit"
-            @click="increaseOutputBits"
-          >
-            +
-          </button>
-        </div>
+        <span class="px-2 py-1 font-mono text-white tabular-nums min-w-6 text-center">{{
+          outputBitCount
+        }}</span>
       </div>
 
       <div class="flex flex-col items-center gap-0.5 text-on-surface-variant text-xs select-none">

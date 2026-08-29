@@ -16,6 +16,7 @@ interface EditorExportState {
 }
 
 interface EditorExportTransition {
+  id?: number
   from?: number
   to?: number
   toBinaryId?: string
@@ -77,7 +78,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const inputBits = state.inputBitCount ?? 1
   const outputBits = state.outputBitCount ?? 1
   const isMoore = state.fsmModel === 'moore'
-  const incomingStates = ((raw?.states as any) || []) as EditorExportState[]
+  const incomingStates = raw?.states ?? []
   const maxIncomingStateId = incomingStates.reduce((max, entry) => {
     return Number.isFinite(entry?.id) ? Math.max(max, Number(entry.id)) : max
   }, -1)
@@ -87,7 +88,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const nodeBitCount = calcBitNumber(nodes.length)
 
   const rawExpanded: FsmTransition[] = []
-  ;((raw?.transitions as any) || []).forEach((incomingTransition: any) => {
+  ;(raw?.transitions ?? []).forEach((incomingTransition) => {
     const remappedFrom = idMap.get(Number(incomingTransition.from))
     if (remappedFrom === undefined) return
 

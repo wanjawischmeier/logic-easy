@@ -27,7 +27,7 @@ export abstract class Project {
    * Restore the default panel layout for this project type
    * @param props The project props
    */
-  static restoreDefaultPanelLayout(props: BaseProjectProps): void {
+  static restoreDefaultPanelLayout(_props: BaseProjectProps): void {
     throw new Error('restoreDefaultPanelLayout must be implemented by subclass')
   }
 
@@ -36,7 +36,7 @@ export abstract class Project {
    * @param state The AppState object to initialize
    * @param props The project props
    */
-  static createState(props: BaseProjectProps): void {
+  static createState(_props: BaseProjectProps): void {
     throw new Error('createState must be implemented by subclass')
   }
 
@@ -52,11 +52,11 @@ export abstract class Project {
    * @param state The AppState that is to be validated
    * @returns True if the AppState is valid for this project class
    */
-  static validateState(state: AppState): boolean {
+  static validateState(_state: AppState): boolean {
     throw new Error('validateState must be implemented by subclass')
   }
 
-  static normalizeState(state: AppState): void {
+  static normalizeState(_state: AppState): void {
     // subclasses can override to normalize/clamp state after loading (e.g. enforce FSM size limits)
   }
 }
