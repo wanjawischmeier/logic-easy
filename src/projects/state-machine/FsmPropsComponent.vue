@@ -46,8 +46,8 @@
       </div>
 
       <p class="mt-4 text-xs text-on-surface-disabled text-center">
-        The selected bit numbers determine the amount of input / output bits.
-        The bit count is fixed and cannot be changed after creation.
+        The selected bit numbers determine the amount of input / output bits. The bit count is fixed
+        and cannot be changed after creation.
       </p>
     </div>
   </div>
