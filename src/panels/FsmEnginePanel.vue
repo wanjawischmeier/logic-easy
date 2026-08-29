@@ -290,9 +290,11 @@ onMounted(() => {
   })
 
   // handle editor -> app exports: delegate concrete state handling to FsmProject
-  messageHandler = (event: MessageEvent) => {
-    if (!props.params.api.isVisible) return
-
+messageHandler = (event: MessageEvent) => {
+  if (!props.params.api.isVisible) {
+    consumeSuppressIncomingEditorExport()
+    return
+  }
     const fsmIframe = getFsmIframe()
     if (!fsmIframe) return
     if (event.origin !== window.location.origin || event.source !== fsmIframe.contentWindow) return
