@@ -7,6 +7,7 @@ import { defaultStateEncoding, defaultFlipFlopType, type FsmProps } from './FsmT
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
 import {
   MAX_FSM_IO_BITS,
+  MAX_FSM_STATES,
   normalizeFsmState,
   setInputBitCount,
   setOutputBitCount,
@@ -141,6 +142,31 @@ export class FsmProject extends Project {
     }
     if ((fsm.outputBitCount ?? 1) !== outputBits) {
       setOutputBitCount(fsm, outputBits, fsm.fsmModel)
+    }
+
+    // Enforce the maximum number of states on restored/imported data (keep lowest ids, then normalize once)
+    if (Array.isArray(fsm.nodes) && fsm.nodes.length > MAX_FSM_STATES) {
+      // Non-finite node ids sort last so corrupt entries are trimmed first
+      const sorted = [...fsm.nodes].sort((a, b) => {
+        const idA = Number(a?.nodeId)
+        const idB = Number(b?.nodeId)
+        return (
+          (Number.isFinite(idA) ? idA : Number.MAX_SAFE_INTEGER) -
+          (Number.isFinite(idB) ? idB : Number.MAX_SAFE_INTEGER)
+        )
+      })
+      const removedIds = new Set(sorted.slice(MAX_FSM_STATES).map((node) => Number(node.nodeId)))
+      fsm.nodes = sorted.slice(0, MAX_FSM_STATES)
+      if (Array.isArray(fsm.transitions)) {
+        fsm.transitions = fsm.transitions
+          .filter((transition) => !removedIds.has(Number(transition.fromNodeId)))
+          .map((transition) =>
+            removedIds.has(Number(transition.toNodeId))
+              ? { ...transition, toNodeId: -1 }
+              : transition,
+          )
+      }
+      normalizeFsmState(fsm)
     }
   }
 }
