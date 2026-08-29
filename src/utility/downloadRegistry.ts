@@ -245,6 +245,7 @@ class DownloadRegistry {
 \\usepackage{amsmath}
 \\usepackage{amssymb}
 \\usepackage{geometry}
+\\usepackage{xcolor}
 \\geometry{margin=1in}
 
 \\title{${projectName.replace(/_/g, '\\_')}}

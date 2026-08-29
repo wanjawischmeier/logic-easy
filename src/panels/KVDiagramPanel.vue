@@ -245,10 +245,13 @@ const currentVariationIndex = computed({
   },
 })
 
-const selectedVariationFormula = computed(() => {
-  const variation = displayFormulaVariations.value[currentVariationIndex.value]
-  return variation?.formula
-})
+const selectedVariation = computed(
+  () => displayFormulaVariations.value[currentVariationIndex.value],
+)
+
+const selectedVariationFormula = computed(() => selectedVariation.value?.formula)
+
+const selectedVariationLatex = computed(() => selectedVariation.value?.coloredLatex)
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),
@@ -298,7 +301,7 @@ const downloadFiles = computed(() => [
     label: 'LaTeX',
     filename: 'kv-diagram',
     extension: 'tex',
-    content: () => couplingTermLatex.value,
+    content: () => selectedVariationLatex.value ?? couplingTermLatex.value,
     mimeType: 'text/plain',
     registerWith: 'latex' as const,
   },
