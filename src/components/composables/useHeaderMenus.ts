@@ -20,6 +20,8 @@ import { formatDate } from '@/utility/dateFormatter'
 import AboutPopup from '../popups/AboutPopup.vue'
 import { TruthTableProject } from '@/projects/truth-table/TruthTableProject'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
+import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { FunctionRepresentation, FunctionType } from '@/utility/types'
 
 const hasCurrentProject = computed(() => projectManager.currentProjectInfo !== null)
 const isFsm = computed(() => projectManager.currentProjectInfo?.projectType === 'state-machine')
@@ -34,6 +36,37 @@ const {
 } = TruthTableProject.useState()
 
 const { state: fsmState } = FsmProject.useState()
+
+// Export Latex for truthtable + kv + formulas, based on selected function type and representation
+async function exportLatex(type: FunctionType, representation: FunctionRepresentation) {
+  const truthTableState = stateManager.state.truthTable
+  if (!truthTableState) {
+    await downloadRegistry.exportAllLatex()
+    return
+  }
+
+  const previous = {
+    functionType: truthTableState.functionType,
+    functionRepresentation: truthTableState.functionRepresentation,
+  }
+
+  // minimize when panels do not already show requested form
+  const needsRerun =
+    previous.functionType !== type || previous.functionRepresentation !== representation
+  if (needsRerun) {
+    truthTableState.functionType = type
+    truthTableState.functionRepresentation = representation
+    truthTableWorkerManager.update()
+    await truthTableWorkerManager.whenIdle()
+  }
+
+  await downloadRegistry.exportAllLatex()
+
+  if (needsRerun) {
+    Object.assign(truthTableState, previous)
+    truthTableWorkerManager.update()
+  }
+}
 
 export function useHeaderMenus(openFileAction: () => Promise<void>) {
   const recentProjectEntries = computed<MenuEntry[]>(() => {
@@ -132,20 +165,72 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
               getFormulas: () => typeof formulas.value,
               ft: typeof functionType.value,
             ): MenuEntry[] => [
-              { label: 'AND/OR', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'and-or') },
-              { label: 'NAND', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'nand') },
-              { label: 'NOR', disabled: dis, action: () => formulaToLcFile(name, getFormulas(), inputVars.value, outputVars.value, ft, 'nor') },
+              {
+                label: 'AND/OR',
+                disabled: dis,
+                action: () =>
+                  formulaToLcFile(
+                    name,
+                    getFormulas(),
+                    inputVars.value,
+                    outputVars.value,
+                    ft,
+                    'and-or',
+                  ),
+              },
+              {
+                label: 'NAND',
+                disabled: dis,
+                action: () =>
+                  formulaToLcFile(
+                    name,
+                    getFormulas(),
+                    inputVars.value,
+                    outputVars.value,
+                    ft,
+                    'nand',
+                  ),
+              },
+              {
+                label: 'NOR',
+                disabled: dis,
+                action: () =>
+                  formulaToLcFile(
+                    name,
+                    getFormulas(),
+                    inputVars.value,
+                    outputVars.value,
+                    ft,
+                    'nor',
+                  ),
+              },
             ]
-            const ftChildren = (getFormulas: (ft: typeof functionType.value) => typeof formulas.value): MenuEntry[] => [
-              { label: 'Disjunctive', disabled: dis, children: gateChildren(() => getFormulas('Disjunctive'), 'Disjunctive') },
-              { label: 'Conjunctive', disabled: dis, children: gateChildren(() => getFormulas('Conjunctive'), 'Conjunctive') },
+            const ftChildren = (
+              getFormulas: (ft: typeof functionType.value) => typeof formulas.value,
+            ): MenuEntry[] => [
+              {
+                label: 'Disjunctive',
+                disabled: dis,
+                children: gateChildren(() => getFormulas('Disjunctive'), 'Disjunctive'),
+              },
+              {
+                label: 'Conjunctive',
+                disabled: dis,
+                children: gateChildren(() => getFormulas('Conjunctive'), 'Conjunctive'),
+              },
             ]
             return {
               label: 'LogicCircuits',
               tooltip: '.lc',
               disabled: dis,
               children: [
-                { label: 'Normal', disabled: dis, children: ftChildren((ft) => generateCanonicalFormulas(inputVars.value, outputVars.value, values.value, ft)) },
+                {
+                  label: 'Normal',
+                  disabled: dis,
+                  children: ftChildren((ft) =>
+                    generateCanonicalFormulas(inputVars.value, outputVars.value, values.value, ft),
+                  ),
+                },
                 { label: 'Minimal', disabled: dis, children: ftChildren(() => formulas.value) },
               ],
             }
@@ -156,10 +241,7 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
             tooltip: '.vhdl',
             disabled: !hasCurrentProject.value || stateManager.isSaving.value,
             action: () => {
-              exportFsmToVHDL(
-                fsmState.value,
-                projectManager.getCurrentProject()?.name ?? 'no name',
-              )
+              exportFsmToVHDL(fsmState.value, projectManager.getCurrentProject()?.name ?? 'no name')
             },
           }
         : {
@@ -215,8 +297,17 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
       {
         label: 'LaTeX',
         tooltip: '.tex',
-        action: () => downloadRegistry.exportAllLatex(),
-        disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+        children: [FunctionType.DNF, FunctionType.CNF].map((type) => ({
+          label: type,
+          children: [FunctionRepresentation.minimal, FunctionRepresentation.normal].map(
+            (representation) => ({
+              label: `${representation} form`,
+              tooltip: '.tex',
+              action: () => exportLatex(type, representation),
+              disabled: !hasCurrentProject.value || stateManager.isSaving.value,
+            }),
+          ),
+        })),
       },
     ],
     Help: [

@@ -103,7 +103,7 @@
 <style scoped></style>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed, type ComputedRef } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
@@ -117,13 +117,15 @@ import {
   type TruthTableData,
 } from '@/projects/truth-table/TruthTableProject'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { getKVDiagramDocument, getKVDiagramLatex } from '@/utility/truthtable/kvDiagramLatex'
 import {
   buildFsmImmutableCellMask,
   buildFsmKVDiagramPresentation,
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
 import { getDockviewApi } from '@/utility/dockview/integration'
-import type { FormulaVariation } from '@/utility/types'
+import type { Formula, FormulaVariation } from '@/utility/types'
+import { mapFormulaTermsToPIColors } from '@/utility/truthtable/colorGenerator'
 import VariationViewer from '@/components/parts/VariationViewer.vue'
 
 interface KVPanelState {
@@ -178,7 +180,6 @@ const {
   displayInputVars,
   displayOutputVars,
   values,
-  selectedFormula,
   outputVariableIndex,
   functionType,
   functionRepresentation,
@@ -203,10 +204,6 @@ const fsmPresentation = computed(() => {
 })
 
 // Use remapped display values when FSM is active, otherwise use direct state
-const displaySelectedFormula = computed(
-  () => fsmPresentation.value.selectedFormula ?? selectedFormula.value,
-)
-
 const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcResult.value)
 
 const displayFormulaTermColors = computed(
@@ -293,12 +290,54 @@ watch(
   { deep: true },
 )
 
+// lists formula variations by output Var
+const getFormulaOptions = (outputVar: string): FormulaVariation[] => {
+  const source = fsmPresentation.value.variations ?? variations.value
+  const options = source?.[outputVar] ?? []
+  return functionRepresentation.value === 'Minimal' ? options : options.slice(0, 1)
+}
+
+// resolves group colors used in the displayed kv diagram
+const getTermColors = (outputVar: string, formula: Formula) => {
+  const qmcResult = truthTableWorkerManager.qmcResults[outputVar]
+  if (!qmcResult?.pis || !qmcResult.termColors) return displayFormulaTermColors.value
+
+  try {
+    return mapFormulaTermsToPIColors(formula, qmcResult.pis, qmcResult.termColors, inputVars.value)
+  } catch {
+    return displayFormulaTermColors.value
+  }
+}
+
+// renders formula for each output variable + kv diagram
+const getPanelLatex = () =>
+  outputVars.value
+    .flatMap((outputVar, index) =>
+      getFormulaOptions(outputVar).map(({ latex, formula }) =>
+        [
+          `\\noindent$${latex}$\\par`,
+          getKVDiagramLatex({
+            inputVars: inputVars.value,
+            inputVarLabels: inputVarLabels.value,
+            values: tableValues.value,
+            outputVariableIndex: index,
+            functionType: functionType.value,
+            functionRepresentation: functionRepresentation.value,
+            selectedFormula: formula,
+            formulaTermColors: getTermColors(outputVar, formula),
+          }),
+        ].join('\n'),
+      ),
+    )
+    .join('\n\\par\\bigskip\n\n\n')
+
 const downloadFiles = computed(() => [
   {
     label: 'LaTeX',
     filename: 'kv-diagram',
     extension: 'tex',
-    content: () => couplingTermLatex.value,
+    content: () => getKVDiagramDocument(getPanelLatex()),
+    latexContent: () => getPanelLatex(),
     mimeType: 'text/plain',
     registerWith: 'latex' as const,
   },
