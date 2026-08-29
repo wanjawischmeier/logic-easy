@@ -17,7 +17,9 @@
     </template>
 
     <template #content>
-      <div class="flex flex-col gap-4 px-2 py-4 min-w-80">
+      <div
+        class="legend-scroll flex flex-col gap-4 px-2 py-4 min-w-80 max-h-[70vh] overflow-y-auto"
+      >
         <div
           v-for="item in legend"
           :key="item.label + (item.symbol ?? '')"
@@ -73,4 +75,19 @@ interface Props {
 defineProps<Props>()
 </script>
 
-<style scoped></style>
+<style scoped>
+.legend-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-3) transparent;
+}
+.legend-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.legend-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.legend-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-surface-3);
+  border-radius: 9999px;
+}
+</style>
