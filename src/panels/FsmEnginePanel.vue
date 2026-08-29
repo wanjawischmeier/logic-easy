@@ -238,11 +238,12 @@ onMounted(() => {
         useFsmListener()
         isFsmSyncActive = true
       }
-      forceSyncTableToEditor()
-    } else if (isFsmSyncActive) {
-      disposeFsmSyncService()
-      isFsmSyncActive = false
-    }
+      } else if (isFsmSyncActive) {
+        // Clear any pending suppression so it doesn't carry over across visibility toggles
+        consumeSuppressIncomingEditorExport()
+        disposeFsmSyncService()
+        isFsmSyncActive = false
+      }
   }
 
   syncWithPanelVisibility()
