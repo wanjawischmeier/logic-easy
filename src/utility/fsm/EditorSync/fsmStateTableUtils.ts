@@ -2,8 +2,8 @@ import type { FsmModel, FsmNode, FsmState } from '@/projects/state-machine/FsmTy
 import { fillMissingTransitions } from './editorTransitionUtils'
 import { calcBinaryID, calcBitNumber, normalizeBits, toggleBitInString } from '../bitOperations'
 
-// Maximum number of states allowed in an FSM
-export const MAX_FSM_STATES = 12
+// Maximum number of states allowed in an FSM (4 bits -> 2^4 = 16)
+export const MAX_FSM_STATES = 16
 // Maximum number of input/output bits allowed in the table
 export const MAX_FSM_IO_BITS = 5
 
@@ -165,7 +165,6 @@ export function removeStateRow(state: FsmState, stateId: number): void {
     const targetNode = state.nodes.find(
       (node) => calcBinaryID(node.nodeId, nodeIdBitCount) === normalizedTarget,
     )
-
     if (targetNode) {
       return {
         ...transition,

@@ -2,7 +2,7 @@
 import { computed, reactive } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
-import TrashIcon from '@/components/icons/TrashIcon.vue'
+import { forceSyncTableToEditor } from '@/utility/fsm/EditorSync/fsmListener'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
@@ -13,7 +13,7 @@ import {
 const { nodes, nodeIdBitCount, fsmModel } = FsmProject.useState()
 
 // The number of input/output bits is fixed once at project creation or on data import
-const stateLimit = computed(() => getStateCountLimit()) // 12
+const stateLimit = computed(() => getStateCountLimit()) // 16
 
 const editingNames = reactive<Record<number, string | undefined>>({})
 
@@ -29,15 +29,20 @@ function addStateRow() {
   if (nodes.value.length >= stateLimit.value) return
 
   addFsmStateRow(current, fsmModel.value)
+  forceSyncTableToEditor()
 }
 
-function removeStateRow(stateId: number) {
+// Only the highest state can be removed so ids/names stay contiguous
+function decreaseStateCount() {
   const current = getFsm()
   if (!current) return
+  if (nodes.value.length === 0) return
 
-  removeFsmStateRow(current, stateId)
+  const highestStateId = Math.max(...nodes.value.map((state) => state.nodeId))
+  removeFsmStateRow(current, highestStateId)
 
-  delete editingNames[stateId]
+  delete editingNames[highestStateId]
+  forceSyncTableToEditor()
 }
 
 function startEditingName(stateId: number, currentName: string) {
@@ -76,37 +81,35 @@ function commitStateName(stateId: number) {
   <div class="w-full flex flex-col gap-2 items-center p-2">
     <h1 class="text-xl text-center font-mono">States</h1>
 
-    <table class="flex-auto bg-gray-800 table-auto select-none mb-0">
+    <table class="flex-auto bg-gray-800 border border-primary table-auto select-none mb-0">
       <thead>
         <tr>
           <th
-            class="px-3 text-gray-400 border-l border-t border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
           >
-            name of state
+            name
           </th>
           <th
-            class="px-3 text-gray-400 border-t border-r border-b-4 border-primary bg-gray-800 w-auto font-mono"
+            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
           >
             binary index
           </th>
-          <th class="bg-gray-800 px-1" />
         </tr>
       </thead>
 
       <tbody>
         <tr v-if="nodes.length === 0">
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-l border-b border-primary border-r-4 px-2 py-0"
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           />
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-r border-b border-primary px-2 py-0"
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           />
-          <td class="bg-gray-800 px-2 py-0" />
         </tr>
 
         <tr v-else v-for="state in nodes" :key="state.nodeId">
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-l border-b border-primary border-r-4 px-2 py-0"
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           >
             <input
               :value="
@@ -124,30 +127,31 @@ function commitStateName(stateId: number) {
             />
           </td>
           <td
-            class="text-lg font-mono text-center bg-gray-800 border-r border-b border-primary px-2 py-0"
+            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
           >
             {{ state.binaryNodeId ?? '-'.repeat(nodeIdBitCount) }}
-          </td>
-          <td class="text-center bg-gray-800 px-2 py-0">
-            <button
-              class="p-1.5 rounded text-gray-400 hover:text-red-400 hover:bg-red-500/20 transition-colors"
-              title="Remove state"
-              @click="removeStateRow(state.nodeId)"
-            >
-              <TrashIcon />
-            </button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <button
-      class="flex items-center justify-center w-9 h-9 rounded-lg bg-surface-2 border border-surface-3 hover:border-primary hover:bg-surface-3 text-white text-2xl leading-none transition-colors disabled:opacity-30"
-      :disabled="nodes.length >= stateLimit"
-      title="Add state"
-      @click="addStateRow"
-    >
-      +
-    </button>
+    <div class="flex gap-2">
+      <button
+        class="flex items-center justify-center w-9 h-9 rounded bg-surface-2 border border-surface-3 text-white text-2xl leading-none transition-colors hover:bg-primary hover:border-primary disabled:opacity-30"
+        :disabled="nodes.length === 0"
+        title="Remove state"
+        @click="decreaseStateCount"
+      >
+        −
+      </button>
+      <button
+        class="flex items-center justify-center w-9 h-9 rounded bg-surface-2 border border-surface-3 text-white text-2xl leading-none transition-colors hover:bg-primary hover:border-primary disabled:opacity-30"
+        :disabled="nodes.length >= stateLimit"
+        title="Add state"
+        @click="addStateRow"
+      >
+        +
+      </button>
+    </div>
   </div>
 </template>

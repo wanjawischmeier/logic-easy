@@ -17,7 +17,7 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Input Bits (1-{{ maxIoBits }})</label>
+          <label class="text-sm">Number of Input Bits</label>
           <input
             type="number"
             v-model.number="localInputBits"
@@ -32,7 +32,7 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Output Bits (1-{{ maxIoBits }})</label>
+          <label class="text-sm">Number of Output Bits</label>
           <input
             type="number"
             v-model.number="localOutputBits"
@@ -46,7 +46,7 @@
       </div>
 
       <p class="mt-4 text-xs text-on-surface-disabled text-center">
-        Please select the amount of input and output bits. The bit count cannot be changed after creation.
+        The number of input and output bits cannot be changed after creation.
       </p>
     </div>
   </div>
