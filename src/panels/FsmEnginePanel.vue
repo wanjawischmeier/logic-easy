@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, defineComponent, h, type Component } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  defineComponent,
+  h,
+  type Component,
+} from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
@@ -13,10 +22,31 @@ import {
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
+import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
 const title = ref('')
+// Single validation result used for the lock overlay and the legend visibility
+const fsmValidity = computed<FsmValidity>(() => {
+  const fsm = stateManager.state.fsm
+  return fsm ? validateFsm(fsm) : { valid: true }
+})
+const isFsmValid = computed(() => fsmValidity.value.valid)
+const validReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
+// Warning for when transitions are not drawn because their next state is all-don't-care
+const hiddenEdgeCount = computed(() => {
+  const fsm = stateManager.state.fsm
+  if (!fsm) return 0
+  const maxNodeId = (fsm.nodes ?? []).reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+  const nodeBits = calcBitNumber(Math.max(1, maxNodeId + 1))
+  return (fsm.transitions ?? []).filter((transition) => {
+    if (transition.toNodeId >= 0) return false
+    const pattern = normalizeBits(transition.toBinaryId ?? '', nodeBits, 'x', 'left')
+    return /^x+$/.test(pattern)
+  }).length
+})
 let disposable: { dispose?: () => void } | null = null
 let visibilityDisposable: { dispose?: () => void } | null = null
 let isFsmSyncActive = false
@@ -44,6 +74,17 @@ const TransitionIcon = defineComponent({
       <svg width="40" height="14" viewBox="0 0 40 14" aria-hidden="true">
         <line x1="4" y1="7" x2="32" y2="7" stroke="#ffffffdd" stroke-width="2" />
         <polygon points="32,3 38,7 32,11" fill="#ffffffdd" />
+      </svg>
+    </div>
+  `,
+})
+
+const HiddenTransitionIcon = defineComponent({
+  template: `
+    <div class="w-10 h-6 flex items-center justify-center">
+      <svg width="40" height="14" viewBox="0 0 40 14" aria-hidden="true">
+        <line x1="4" y1="7" x2="32" y2="7" stroke="#ffffff66" stroke-width="2" stroke-dasharray="3 3" />
+        <polygon points="32,3 38,7 32,11" fill="#ffffff66" />
       </svg>
     </div>
   `,
@@ -171,6 +212,20 @@ const getFsmIframe = () => {
   return iframeRef.value?.getIframe?.() ?? windowWithIframe.__fsm_preloaded_iframe
 }
 
+// Block the editor iframe while the automaton is invalid (the overlay covers it visually)
+watch(
+  isFsmValid,
+  (valid) => {
+    const fsmIframe = getFsmIframe()
+    if (!fsmIframe) return
+    fsmIframe.style.pointerEvents = valid ? 'auto' : 'none'
+    if (!valid && document.activeElement === fsmIframe) {
+      ;(document.activeElement as HTMLElement).blur()
+    }
+  },
+  { immediate: true },
+)
+
 const legend: LegendItem[] = [
   {
     component: StateIcon,
@@ -183,6 +238,12 @@ const legend: LegendItem[] = [
     label: 'Transition',
     description:
       'Directed arrows connect states. The transition labels represent the input / output bits or, in Moore mode, only the output bits',
+  },
+  {
+    component: HiddenTransitionIcon,
+    label: 'Hidden transition',
+    description:
+      'Transitions whose next state and output are all don\u2019t-cares are hidden in the editor. A warning badge appears in the panel while any exist.',
   },
   {
     component: MoveIcon,
@@ -319,9 +380,52 @@ onBeforeUnmount(() => {
       class="flex-1"
     />
 
+    <!-- cover the editor while the automaton is invalid -->
+    <div
+      v-if="!isFsmValid"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center bg-surface"
+    >
+      <span
+        class="flex items-center justify-center w-16 h-16 rounded-2xl border border-surface-3 bg-surface-2 text-white"
+      >
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </span>
+      <h2 class="text-2xl font-medium text-white">Automaton Invalid</h2>
+      <p class="text-sm text-white/80 leading-relaxed max-w-md">
+        {{ validReason || 'The current automaton cannot be rendered.' }}
+      </p>
+      <p class="text-xs text-white/50">Fix the issues in the state table to unlock the editor.</p>
+    </div>
+
     <teleport to="body">
       <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">
-        <LegendButton :legend="legend" />
+        <div
+          v-if="hiddenEdgeCount > 0 && isFsmValid"
+          class="h-7 shrink-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+          title="Transitions with all don't-care bits (next state and output) are hidden in the editor"
+        >
+          <span
+            class="h-5 w-5 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
+            aria-hidden="true"
+          >
+            !
+          </span>
+          <span class="whitespace-nowrap">Hidden don't-care transitions</span>
+        </div>
+        <LegendButton v-if="isFsmValid" :legend="legend" />
       </div>
     </teleport>
   </div>

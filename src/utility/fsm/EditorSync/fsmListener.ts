@@ -9,6 +9,16 @@ let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
 let suppressIncomingEditorExport = false
 let suppressTimeout: ReturnType<typeof setTimeout> | null = null
+let syncTimer: ReturnType<typeof setTimeout> | null = null
+
+// Debounce table-driven syncs so fast toggling coalesces into one editor update
+function scheduleTableSync() {
+  if (syncTimer) clearTimeout(syncTimer)
+  syncTimer = setTimeout(() => {
+    syncTimer = null
+    syncTableToEditor()
+  }, 120)
+}
 
 function setSuppressIncomingEditorExport() {
   suppressIncomingEditorExport = true
@@ -133,7 +143,8 @@ export function initFsmSyncService() {
       () => stateManager.state.fsm,
       () => {
         // updates are handled centralized in project
-        syncTableToEditor()
+        if (isSyncing) return
+        scheduleTableSync()
       },
       { deep: true },
     )
@@ -146,6 +157,10 @@ export function disposeFsmSyncService() {
   if (suppressTimeout) {
     clearTimeout(suppressTimeout)
     suppressTimeout = null
+  }
+  if (syncTimer) {
+    clearTimeout(syncTimer)
+    syncTimer = null
   }
   if (iframeReadyHandler) {
     window.removeEventListener('__fsm_preloaded_iframe-ready', iframeReadyHandler as EventListener)

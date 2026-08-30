@@ -68,6 +68,18 @@ export function fillMissingTransitions(
       const found = existing.find((t) => t.fromNodeId === node.nodeId && t.input === input)
 
       if (found) {
+        // Keep transitions whose target state was removed so the editor locks
+        if (found.removedTarget) {
+          finalTransitions.push({
+            ...found,
+            toNodeId: -1,
+            ...(isMoore
+              ? { mealyOutput: undefined }
+              : { mealyOutput: found.mealyOutput ?? 'x'.repeat(outputBitCount) }),
+          })
+          return
+        }
+
         const normalizedPattern = normalizeBits(
           found.toBinaryId ??
             (found.toNodeId >= 0 ? calcBinaryID(found.toNodeId, nodeBitCount) : ''),
