@@ -13,7 +13,7 @@ let suppressTimeout: ReturnType<typeof setTimeout> | null = null
 function setSuppressIncomingEditorExport() {
   suppressIncomingEditorExport = true
   if (suppressTimeout) clearTimeout(suppressTimeout)
-  // Auto-clear if the editor's echo is delayed/missed .
+  // Auto-clear if the editor's echo is delayed/missed.
   suppressTimeout = setTimeout(() => {
     suppressIncomingEditorExport = false
     suppressTimeout = null
