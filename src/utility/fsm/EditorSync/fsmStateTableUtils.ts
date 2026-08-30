@@ -150,33 +150,29 @@ export function removeStateRow(state: FsmState, stateId: number): void {
       toNodeId: transition.toNodeId === stateId ? -1 : transition.toNodeId,
     }))
 
-  // After removing a state, re-resolve all transition targets against the new
-  // node set. Any target that no longer maps to an existing node collapses to 0
-  // instead of staying as an impossible 1/x pattern.
+  // Re-resolve unresolved targets by keeping patterns that still match a node, resetting
+  // patterns that only matched removed states to all-don't-care
   const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
   const totalStates = Math.max(1, maxNodeId + 1)
   const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
-  const fallbackZeroTarget = '0'.repeat(nodeIdBitCount)
 
   state.transitions = state.transitions.map((transition) => {
     if (transition.toNodeId >= 0) return transition
 
     const normalizedTarget = normalizeBits(transition.toBinaryId ?? '', nodeIdBitCount, 'x', 'left')
-    const targetNode = state.nodes.find(
-      (node) => calcBinaryID(node.nodeId, nodeIdBitCount) === normalizedTarget,
-    )
-    if (targetNode) {
-      return {
-        ...transition,
-        toNodeId: targetNode.nodeId,
-        toBinaryId: undefined,
+    const stillMatches = state.nodes.some((node) => {
+      const nodeBits = calcBinaryID(node.nodeId, nodeIdBitCount)
+      for (let index = 0; index < nodeIdBitCount; index += 1) {
+        const patternBit = normalizedTarget.charAt(index)
+        if (patternBit !== 'x' && patternBit !== nodeBits.charAt(index)) return false
       }
-    }
+      return true
+    })
 
     return {
       ...transition,
-      toNodeId: 0,
-      toBinaryId: fallbackZeroTarget,
+      toNodeId: -1,
+      toBinaryId: stillMatches ? normalizedTarget : 'x'.repeat(nodeIdBitCount),
     }
   })
 

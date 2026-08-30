@@ -8,6 +8,17 @@ let isInitialized = false
 let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
 let suppressIncomingEditorExport = false
+let suppressTimeout: ReturnType<typeof setTimeout> | null = null
+
+function setSuppressIncomingEditorExport() {
+  suppressIncomingEditorExport = true
+  if (suppressTimeout) clearTimeout(suppressTimeout)
+  // Auto-clear if the editor's echo is delayed/missed.
+  suppressTimeout = setTimeout(() => {
+    suppressIncomingEditorExport = false
+    suppressTimeout = null
+  }, 1200)
+}
 
 function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm>) {
   return {
@@ -64,7 +75,7 @@ function syncTableToEditor() {
   // Table-driven syncs should not be treated as editor-originated changes.
   // Otherwise the editor can export a derived payload back and trigger a false
   // roundtrip overwrite while we only intended to mirror table edits.
-  suppressIncomingEditorExport = true
+  setSuppressIncomingEditorExport()
 
   fsmIframe.contentWindow.postMessage(
     {
@@ -84,7 +95,7 @@ export function forceSyncTableToEditor(): void {
   if (!fsmIframe?.contentWindow) return
 
   // mark that the next incoming editor export (in response) should be ignored
-  suppressIncomingEditorExport = true
+  setSuppressIncomingEditorExport()
 
   fsmIframe.contentWindow.postMessage(
     {
@@ -99,6 +110,10 @@ export function forceSyncTableToEditor(): void {
 export function consumeSuppressIncomingEditorExport(): boolean {
   const v = suppressIncomingEditorExport
   suppressIncomingEditorExport = false
+  if (suppressTimeout) {
+    clearTimeout(suppressTimeout)
+    suppressTimeout = null
+  }
   return v
 }
 
@@ -128,6 +143,10 @@ export function initFsmSyncService() {
 }
 
 export function disposeFsmSyncService() {
+  if (suppressTimeout) {
+    clearTimeout(suppressTimeout)
+    suppressTimeout = null
+  }
   if (iframeReadyHandler) {
     window.removeEventListener('__fsm_preloaded_iframe-ready', iframeReadyHandler as EventListener)
     iframeReadyHandler = null

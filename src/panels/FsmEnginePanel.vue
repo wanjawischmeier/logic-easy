@@ -27,7 +27,6 @@ type IframePanelExpose = {
 const iframeRef = ref<IframePanelExpose | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 const { style: legendButtonStyle } = useFloatingToolbarPosition(panelRef)
-const showHiddenInfo = ref(false)
 
 const StateIcon = defineComponent({
   template: `
@@ -264,34 +263,27 @@ onMounted(() => {
     if (event.origin !== window.location.origin || event.source !== fsmIframe.contentWindow) return
 
     const data = event.data || {}
-    // Editor toggled the read-only "show hidden edges" view
-    if (data.action === 'show-hidden-changed') {
-      showHiddenInfo.value = data.show === true
-      return
-    }
-    // Editor asks for the current table state (when "show hidden transitions" is enabled)
-    if (data.action === 'fsmimport-request') {
-      forceSyncTableToEditor()
-      return
-    }
     if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
       // if we suppressed the next editor export (because we forced a sync), consume suppression and ignore
       if (consumeSuppressIncomingEditorExport()) {
         return
       }
 
-      const prevNodes = stateManager.state.fsm?.nodes?.length ?? 0
+      const nodeIdsKey = () =>
+        (stateManager.state.fsm?.nodes ?? [])
+          .map((n) => Number(n?.nodeId))
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b)
+          .join(',')
+      const prevNodeIds = nodeIdsKey()
 
       try {
         setIsSyncing(true)
         FsmProject.importEditorExport(data.fsm)
       } finally {
-        const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
-        const shouldForce = nextNodes !== prevNodes
-        // Only force-sync when the node count changed — that's when the app
-        // renumbered IDs and the editor needs the updated IDs. For transition
-        // edits the editor preserves its own state (draft protection in
-        // fsmimport), so no force-sync needed.
+        // Force-sync whenever the node IDs changed
+        const nextNodeIds = nodeIdsKey()
+        const shouldForce = nextNodeIds !== prevNodeIds
         setTimeout(() => {
           setIsSyncing(false)
           if (shouldForce) forceSyncTableToEditor()
@@ -329,19 +321,6 @@ onBeforeUnmount(() => {
 
     <teleport to="body">
       <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">
-        <div
-          v-if="showHiddenInfo"
-          class="h-7 shrink-0 rounded-full border border-red-500 text-red-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          title="The editor is read-only while hidden edges are shown"
-        >
-          <span
-            class="h-5 w-5 rounded-full border-2 border-red-500 flex items-center justify-center font-black text-sm leading-none"
-            aria-hidden="true"
-          >
-            !
-          </span>
-          <span class="whitespace-nowrap">Read-only — hidden edges shown</span>
-        </div>
         <LegendButton :legend="legend" />
       </div>
     </teleport>
