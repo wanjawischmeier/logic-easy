@@ -97,7 +97,12 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
     const remappedFrom = idMap.get(Number(incomingTransition.from))
     if (remappedFrom === undefined) return
 
-    const pattern = sanitizeEditorBits(incomingTransition.input, inputBits).padStart(inputBits, 'x')
+    const pattern = normalizeBits(
+      sanitizeEditorBits(incomingTransition.input, inputBits),
+      inputBits,
+      'x',
+      'right',
+    )
     // normalize the output bits to the expected width, replacing any '-' with 'x' and clamping to the allowed bit width
     const outputBitsString = normalizeBits(
       sanitizeEditorBits(incomingTransition.mealy_output || incomingTransition.output, outputBits),
@@ -108,17 +113,40 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
     const remappedTo = idMap.get(Number(incomingTransition.to))
     const concreteBits =
       remappedTo !== undefined ? calcBinaryID(remappedTo, nodeBitCount) : 'x'.repeat(nodeBitCount)
-    const rawtoBinaryId = sanitizeEditorBits(incomingTransition.toBinaryId, targetBits)
-    const normalizedtoBinaryId = normalizeBits(
-      incomingTransition.toBinaryId ? rawtoBinaryId : concreteBits,
-      nodeBitCount,
-      'x',
-      'left',
-    )
-    const concreteToNodeId = /^[01]+$/.test(normalizedtoBinaryId)
-      ? (nodes.find((node) => calcBinaryID(node.nodeId, nodeBitCount) === normalizedtoBinaryId)
-          ?.nodeId ?? -1)
-      : -1
+
+    let normalizedtoBinaryId: string
+    let concreteToNodeId = -1
+    if (incomingTransition.toBinaryId) {
+      const rawPattern = sanitizeEditorBits(incomingTransition.toBinaryId, targetBits)
+      const normalizedPattern = normalizeBits(rawPattern, targetBits, 'x', 'left')
+      const remappedPatterns: string[] = []
+      expandInputs(normalizedPattern).forEach((concreteOriginal) => {
+        const originalState = incomingStates.find(
+          (s) =>
+            Number.isFinite(s?.id) && calcBinaryID(Number(s.id), targetBits) === concreteOriginal,
+        )
+        if (!originalState) return
+        const remappedNode = idMap.get(Number(originalState.id))
+        if (remappedNode === undefined) return
+        remappedPatterns.push(calcBinaryID(remappedNode, nodeBitCount))
+      })
+
+      normalizedtoBinaryId =
+        remappedPatterns.length === 0
+          ? 'x'.repeat(nodeBitCount)
+          : Array.from({ length: nodeBitCount }, (_, index) => {
+              const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
+              return bits.size === 1 ? [...bits][0] : 'x'
+            }).join('')
+    } else {
+      normalizedtoBinaryId = concreteBits
+    }
+
+    if (/^[01]+$/.test(normalizedtoBinaryId)) {
+      concreteToNodeId =
+        nodes.find((node) => calcBinaryID(node.nodeId, nodeBitCount) === normalizedtoBinaryId)
+          ?.nodeId ?? -1
+    }
 
     expandInputs(pattern).forEach((concreteInput) => {
       rawExpanded.push({
