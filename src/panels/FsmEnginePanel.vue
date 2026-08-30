@@ -269,18 +269,21 @@ onMounted(() => {
         return
       }
 
-      const prevNodes = stateManager.state.fsm?.nodes?.length ?? 0
+      const nodeIdsKey = () =>
+        (stateManager.state.fsm?.nodes ?? [])
+          .map((n) => Number(n?.nodeId))
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b)
+          .join(',')
+      const prevNodeIds = nodeIdsKey()
 
       try {
         setIsSyncing(true)
         FsmProject.importEditorExport(data.fsm)
       } finally {
-        const nextNodes = stateManager.state.fsm?.nodes?.length ?? 0
-        const shouldForce = nextNodes !== prevNodes
-        // Only force-sync when the node count changed — that's when the app
-        // renumbered IDs and the editor needs the updated IDs. For transition
-        // edits the editor preserves its own state (draft protection in
-        // fsmimport), so no force-sync needed.
+        // Force-sync whenever the node IDs changed
+        const nextNodeIds = nodeIdsKey()
+        const shouldForce = nextNodeIds !== prevNodeIds
         setTimeout(() => {
           setIsSyncing(false)
           if (shouldForce) forceSyncTableToEditor()
