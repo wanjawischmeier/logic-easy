@@ -51,7 +51,7 @@ const TransitionIcon = defineComponent({
 
 const MoveIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3v18M3 12h18" />
         <path d="m12 3 3 3M12 3 9 6M12 21l3-3M12 21l-3-3M3 12l3 3M3 12l3-3M21 12l-3 3M21 12l-3-3" />
@@ -62,7 +62,7 @@ const MoveIcon = defineComponent({
 
 const ConnectIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M17 19a1 1 0 0 1-1-1v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1z" />
         <path d="M17 21v-2" />
@@ -78,7 +78,7 @@ const ConnectIcon = defineComponent({
 
 const AddIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9" fill="#ffffff10" />
         <path d="M12 7v10M7 12h10" />
@@ -89,7 +89,7 @@ const AddIcon = defineComponent({
 
 const RemoveIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9" fill="#ffffff10" />
         <path d="M7 12h10" />
@@ -100,7 +100,7 @@ const RemoveIcon = defineComponent({
 
 const SparklesIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" fill="#ffffff10" />
         <path d="M19 13l.9 2.1L22 16l-2.1.9L19 19l-.9-2.1L16 16l2.1-.9L19 13z" />
@@ -111,7 +111,7 @@ const SparklesIcon = defineComponent({
 
 const UndoIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 10H4V5" />
         <path d="M4 10c2-3 5-4 8-4 4 0 7 3 7 7s-3 7-7 7H9" />
@@ -122,7 +122,7 @@ const UndoIcon = defineComponent({
 
 const RedoIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M15 10h5V5" />
         <path d="M20 10c-2-3-5-4-8-4-4 0-7 3-7 7s3 7 7 7h4" />
@@ -135,7 +135,7 @@ function makeKeycap(text: string) {
   return defineComponent({
     name: `Keycap${text.replace(/[^a-zA-Z0-9]+/g, '')}`,
     template: `
-      <div class="min-w-14 h-6 px-2 inline-flex items-center justify-center rounded-md border border-surface-3 bg-surface-2 text-white text-[10px] font-mono leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_2px_rgba(0,0,0,0.45)]">
+      <div class="min-w-14 h-6 px-2 inline-flex items-center justify-center rounded-md border border-surface-3 bg-surface-2 text-on-surface text-[10px] font-mono leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_2px_rgba(0,0,0,0.45)]">
         ${text}
       </div>
     `,
@@ -310,7 +310,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col bg-surface">
+  <div ref="panelRef" class="relative flex-1 h-full text-on-surface flex flex-col bg-surface">
     <IframePanel
       ref="iframeRef"
       iframe-key="__fsm_preloaded_iframe"

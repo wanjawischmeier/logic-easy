@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
 @import '../../node_modules/dockview-vue/dist/styles/dockview.css';
 @import '../style/base.css';
 @import '../style/components.css';

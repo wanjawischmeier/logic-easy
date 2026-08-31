@@ -33,7 +33,7 @@
 
           <button
             type="button"
-            class="px-3.5 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-500 text-white transition-colors"
+            class="px-3.5 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-500 text-on-surface transition-colors"
             @click="handleSync"
           >
             {{ props.syncLabel }}
