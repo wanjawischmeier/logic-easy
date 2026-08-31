@@ -40,10 +40,10 @@ const StateIcon = defineComponent({
 
 const TransitionIcon = defineComponent({
   template: `
-    <div class="w-10 h-6 flex items-center justify-center">
+    <div class="w-10 h-6 flex items-center justify-center text-on-surface">
       <svg width="40" height="14" viewBox="0 0 40 14" aria-hidden="true">
-        <line x1="4" y1="7" x2="32" y2="7" stroke="#ffffffdd" stroke-width="2" />
-        <polygon points="32,3 38,7 32,11" fill="#ffffffdd" />
+        <line x1="4" y1="7" x2="32" y2="7" stroke="currentColor" stroke-width="2" />
+        <polygon points="32,3 38,7 32,11" fill="currentColor" />
       </svg>
     </div>
   `,
