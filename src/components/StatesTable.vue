@@ -78,17 +78,13 @@ function commitStateName(stateId: number) {
   <div class="w-full flex flex-col gap-2 items-center p-2">
     <h1 class="text-xl text-center font-mono">States</h1>
 
-    <table class="flex-auto bg-gray-800 border border-primary table-auto select-none mb-0">
+    <table class="flex-auto bg-surface-1 border border-primary table-auto select-none mb-0">
       <thead>
         <tr>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
-          >
+          <th class="px-3 text-gray-400 border-b-4 border-primary w-auto font-mono border-r-4">
             name
           </th>
-          <th
-            class="px-3 text-gray-400 border-b-4 border-primary bg-gray-800 w-auto font-mono border-r-4"
-          >
+          <th class="px-3 text-gray-400 border-b-4 border-primary w-auto font-mono">
             binary index
           </th>
         </tr>
@@ -96,24 +92,18 @@ function commitStateName(stateId: number) {
 
       <tbody>
         <tr v-if="nodes.length === 0">
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
-          />
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
-          />
+          <td class="text-lg font-mono text-center border-b border-primary border-r-4 px-2 py-0" />
+          <td class="text-lg font-mono text-center border-b border-primary border-r-4 px-2 py-0" />
         </tr>
 
         <tr v-else v-for="state in nodes" :key="state.nodeId">
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
-          >
+          <td class="text-lg font-mono text-center border-b border-primary border-r-4 px-2 py-0">
             <input
               :value="
                 editingNames[state.nodeId] !== undefined ? editingNames[state.nodeId] : state.name
               "
               maxlength="12"
-              class="w-full bg-transparent text-center outline-none hover:bg-gray-700 focus:bg-gray-700 transition-colors duration-100"
+              class="w-full bg-transparent text-center outline-none hover:bg-surface-2 focus:bg-surface-2 transition-colors duration-100"
               @focus="startEditingName(state.nodeId, state.name)"
               @input="bufferStateName(state.nodeId, ($event.target as HTMLInputElement).value)"
               @blur="commitStateName(state.nodeId)"
@@ -123,9 +113,7 @@ function commitStateName(stateId: number) {
               "
             />
           </td>
-          <td
-            class="text-lg font-mono text-center bg-gray-800 border-b border-primary border-r-4 px-2 py-0"
-          >
+          <td class="text-lg font-mono text-center bg-surface-1 border-b border-primary px-2 py-0">
             {{ state.binaryNodeId ?? '-'.repeat(nodeIdBitCount) }}
           </td>
         </tr>
@@ -134,7 +122,7 @@ function commitStateName(stateId: number) {
 
     <div class="flex gap-2">
       <button
-        class="flex items-center justify-center w-9 h-9 rounded bg-surface-2 border border-surface-3 text-white text-2xl leading-none transition-colors hover:bg-primary hover:border-primary disabled:opacity-30"
+        class="flex items-center justify-center w-9 h-9 rounded bg-surface-2 border border-surface-3 text-on-surface text-2xl leading-none transition-colors hover:bg-primary hover:border-primary disabled:opacity-30"
         :disabled="nodes.length === 0"
         title="Remove state"
         @click="decreaseStateCount"
@@ -142,7 +130,7 @@ function commitStateName(stateId: number) {
         −
       </button>
       <button
-        class="flex items-center justify-center w-9 h-9 rounded bg-surface-2 border border-surface-3 text-white text-2xl leading-none transition-colors hover:bg-primary hover:border-primary disabled:opacity-30"
+        class="flex items-center justify-center w-9 h-9 rounded bg-surface-2 border border-surface-3 text-on-surface text-2xl leading-none transition-colors hover:bg-primary hover:border-primary disabled:opacity-30"
         :disabled="nodes.length >= stateLimit"
         title="Add state"
         @click="addStateRow"

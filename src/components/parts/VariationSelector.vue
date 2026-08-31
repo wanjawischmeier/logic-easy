@@ -15,7 +15,7 @@
         :disabled="!hasMultipleFormulas"
         :aria-expanded="showDropdown"
         :aria-label="label"
-        class="px-2 py-1.5 rounded-xs text-white group-hover:bg-primary transition-colors items-center gap-2 flex disabled:cursor-default disabled:opacity-70 disabled:group-hover:bg-transparent"
+        class="px-2 py-1.5 rounded-xs text-on-surface group-hover:bg-primary transition-colors items-center gap-2 flex disabled:cursor-default disabled:opacity-70 disabled:group-hover:bg-transparent"
       >
         <span class="min-w-4 text-center">{{ selectedIndex + 1 }}</span>
         <svg

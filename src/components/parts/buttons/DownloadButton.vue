@@ -6,7 +6,7 @@
       <button
         @click.stop="handleClick"
         :disabled="isCapturing || !hasDownloadOptions"
-        class="px-3 py-2 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
+        class="px-3 py-2 rounded-xs text-on-surface group-hover:bg-primary transition-colors text-sm items-center gap-2"
         :class="showDropdown ? 'bg-primary' : ''"
         title="Download"
       >

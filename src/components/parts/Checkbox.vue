@@ -10,7 +10,7 @@
           class="w-8 h-8 p-2 rounded-xs transition-colors duration-100 flex items-center justify-center"
           :class="
             isChecked
-              ? 'bg-primary border-primary text-white'
+              ? 'bg-primary border-primary text-on-surface'
               : 'bg-surface-2 text-on-surface-variant hover:bg-surface-3  text-on-surface-disabled'
           "
           @click.stop="handleClick"

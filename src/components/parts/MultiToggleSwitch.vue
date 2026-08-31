@@ -11,7 +11,7 @@
         class="px-3 py-1.5 rounded-xs transition-colors duration-100"
         :class="
           isSelected[idx]
-            ? 'bg-primary border-primary text-white'
+            ? 'bg-primary border-primary text-on-surface'
             : 'bg-surface-2 text-on-surface-variant hover:bg-surface-3'
         "
       >
