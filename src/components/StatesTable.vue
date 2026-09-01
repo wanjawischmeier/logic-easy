@@ -81,10 +81,14 @@ function commitStateName(stateId: number) {
     <table class="flex-auto bg-surface-1 border border-primary table-auto select-none mb-0">
       <thead>
         <tr>
-          <th class="px-3 text-gray-400 border-b-4 border-primary w-auto font-mono border-r-4">
+          <th
+            class="px-3 text-on-surface-disabled border-b-4 border-primary bg-surface-1 w-auto font-mono border-r-4"
+          >
             name
           </th>
-          <th class="px-3 text-gray-400 border-b-4 border-primary w-auto font-mono">
+          <th
+            class="px-3 text-on-surface-disabled border-b-4 border-primary bg-surface-1 w-auto font-mono border-r-4"
+          >
             binary index
           </th>
         </tr>
