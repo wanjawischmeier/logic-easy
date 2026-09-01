@@ -65,7 +65,7 @@
     <div class="shrink-0 flex justify-center px-6 py-8 border-t border-surface-2">
       <button
         @click="continueAnyway"
-        class="px-3 py-1.5 text-sm rounded bg-elevated text-on-surface-disabled hover:bg-surface-2 transition-colors border-2 border-transparent hover:text-white hover:border-surface-3"
+        class="px-3 py-1.5 text-sm rounded bg-elevated text-on-surface-disabled hover:bg-surface-2 transition-colors border-2 border-transparent hover:text-on-surface hover:border-surface-3"
         title="Not recommended - the UI will likely be unusable"
       >
         Continue Anyway

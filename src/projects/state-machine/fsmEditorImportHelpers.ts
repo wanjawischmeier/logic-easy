@@ -16,6 +16,7 @@ interface EditorExportState {
 }
 
 interface EditorExportTransition {
+  id?: number
   from?: number
   to?: number
   toBinaryId?: string
@@ -35,12 +36,14 @@ const sanitizeEditorBits = (value: unknown, fallbackLength: number): string => {
     .replace(/-/g, 'x')
     .replace(/[^01x]/g, '')
     .trim()
-  return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized
+  // Clamp to the allowed bit width (just to be sure) and fallback to a string of 'x' if the result is empty
+  return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized.slice(0, fallbackLength)
 }
 
 function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
   const isMoore = s.fsmModel === 'moore'
-  const outputBits = s.outputBitCount ?? 1
+  // Clamp to at least 1 bit so sanitizeEditorBits never pads to zero width
+  const outputBits = Math.max(1, s.outputBitCount ?? 1)
   const sorted = [...incomingStates]
     .filter((st) => Number.isFinite(st?.id))
     .sort((a, b) => Number(a.id) - Number(b.id))
@@ -73,10 +76,13 @@ function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
 }
 
 export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
-  const inputBits = state.inputBitCount ?? 1
-  const outputBits = state.outputBitCount ?? 1
+  // Clamp to at least 1 bit: a 0 bit count would leave an empty transition matrix
+  const inputBits = Math.max(1, state.inputBitCount ?? 1)
+  const outputBits = Math.max(1, state.outputBitCount ?? 1)
   const isMoore = state.fsmModel === 'moore'
-  const incomingStates = ((raw?.states as any) || []) as EditorExportState[]
+  // states/transitions must be arrays, otherwise reduce/forEach below would throw a TypeError
+  const incomingStates = Array.isArray(raw?.states) ? raw.states : []
+  const incomingTransitions = Array.isArray(raw?.transitions) ? raw.transitions : []
   const maxIncomingStateId = incomingStates.reduce((max, entry) => {
     return Number.isFinite(entry?.id) ? Math.max(max, Number(entry.id)) : max
   }, -1)
@@ -86,29 +92,61 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   const nodeBitCount = calcBitNumber(nodes.length)
 
   const rawExpanded: FsmTransition[] = []
-  ;((raw?.transitions as any) || []).forEach((incomingTransition: any) => {
+  incomingTransitions.forEach((incomingTransition) => {
+    if (!incomingTransition || typeof incomingTransition !== 'object') return
     const remappedFrom = idMap.get(Number(incomingTransition.from))
     if (remappedFrom === undefined) return
 
-    const pattern = sanitizeEditorBits(incomingTransition.input, inputBits).padStart(inputBits, 'x')
-    const outputBitsString = sanitizeEditorBits(
-      incomingTransition.mealy_output || incomingTransition.output,
+    const pattern = normalizeBits(
+      sanitizeEditorBits(incomingTransition.input, inputBits),
+      inputBits,
+      'x',
+      'right',
+    )
+    // normalize the output bits to the expected width, replacing any '-' with 'x' and clamping to the allowed bit width
+    const outputBitsString = normalizeBits(
+      sanitizeEditorBits(incomingTransition.mealy_output || incomingTransition.output, outputBits),
       outputBits,
+      'x',
+      'right',
     )
     const remappedTo = idMap.get(Number(incomingTransition.to))
     const concreteBits =
       remappedTo !== undefined ? calcBinaryID(remappedTo, nodeBitCount) : 'x'.repeat(nodeBitCount)
-    const rawtoBinaryId = sanitizeEditorBits(incomingTransition.toBinaryId, targetBits)
-    const normalizedtoBinaryId = normalizeBits(
-      incomingTransition.toBinaryId ? rawtoBinaryId : concreteBits,
-      nodeBitCount,
-      'x',
-      'left',
-    )
-    const concreteToNodeId = /^[01]+$/.test(normalizedtoBinaryId)
-      ? (nodes.find((node) => calcBinaryID(node.nodeId, nodeBitCount) === normalizedtoBinaryId)
-          ?.nodeId ?? -1)
-      : -1
+
+    let normalizedtoBinaryId: string
+    let concreteToNodeId = -1
+    if (incomingTransition.toBinaryId) {
+      const rawPattern = sanitizeEditorBits(incomingTransition.toBinaryId, targetBits)
+      const normalizedPattern = normalizeBits(rawPattern, targetBits, 'x', 'left')
+      const remappedPatterns: string[] = []
+      expandInputs(normalizedPattern).forEach((concreteOriginal) => {
+        const originalState = incomingStates.find(
+          (s) =>
+            Number.isFinite(s?.id) && calcBinaryID(Number(s.id), targetBits) === concreteOriginal,
+        )
+        if (!originalState) return
+        const remappedNode = idMap.get(Number(originalState.id))
+        if (remappedNode === undefined) return
+        remappedPatterns.push(calcBinaryID(remappedNode, nodeBitCount))
+      })
+
+      normalizedtoBinaryId =
+        remappedPatterns.length === 0
+          ? 'x'.repeat(nodeBitCount)
+          : Array.from({ length: nodeBitCount }, (_, index) => {
+              const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
+              return bits.size === 1 ? [...bits][0] : 'x'
+            }).join('')
+    } else {
+      normalizedtoBinaryId = concreteBits
+    }
+
+    if (/^[01]+$/.test(normalizedtoBinaryId)) {
+      concreteToNodeId =
+        nodes.find((node) => calcBinaryID(node.nodeId, nodeBitCount) === normalizedtoBinaryId)
+          ?.nodeId ?? -1
+    }
 
     expandInputs(pattern).forEach((concreteInput) => {
       rawExpanded.push({

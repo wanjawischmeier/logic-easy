@@ -72,7 +72,7 @@ function isCovered(
  * @param inputVars Ordered list of input variable names.
  * @returns 3D array of coverage
  */
-function calculateAllCoverage(
+export function calculateAllCoverage(
   terms: Term[],
   rows: string[],
   cols: string[],

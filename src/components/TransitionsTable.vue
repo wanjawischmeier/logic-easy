@@ -178,30 +178,30 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
 
     <table
       v-if="transitions.length"
-      class="mb-0 flex-auto bg-gray-800 border border-primary table-fixed w-auto select-none"
+      class="mb-0 flex-auto bg-surface-1 border border-primary table-fixed w-auto select-none"
     >
       <thead>
         <tr>
           <th
-            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            class="px-2 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono border-r-4"
             :colspan="nodeIdBitCount"
           >
             first state
           </th>
           <th
-            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            class="px-2 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono border-r-4"
             :colspan="inputBitCount"
           >
             input
           </th>
           <th
-            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            class="px-2 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono border-r-4"
             :colspan="nodeIdBitCount"
           >
             next state
           </th>
           <th
-            class="px-2 text-gray-400 border-b-4 border-primary bg-gray-800 font-mono border-r-4"
+            class="px-2 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono"
             :colspan="outputBitCount"
           >
             output
@@ -211,7 +211,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
           <th
             v-for="i in nodeIdBitCount"
             :key="'z-from-' + i"
-            class="px-0 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
+            class="px-0 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
             :class="i === nodeIdBitCount ? 'border-r-4' : 'border-r border-gray-600'"
           >
             <vue-latex :expression="`Z_{${nodeIdBitCount - i}}^n`" />
@@ -220,7 +220,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
           <th
             v-for="i in inputBitCount"
             :key="'x-' + i"
-            class="px-1 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
+            class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
             :class="i === inputBitCount ? 'border-r-4' : 'border-r border-gray-600'"
           >
             <vue-latex :expression="`X_{${inputBitCount - i}}^n`" />
@@ -229,7 +229,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
           <th
             v-for="i in nodeIdBitCount"
             :key="'z-to-' + i"
-            class="px-1 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
+            class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
             :class="i === nodeIdBitCount ? 'border-r-4' : 'border-r border-gray-600'"
           >
             <vue-latex :expression="`Z_{${nodeIdBitCount - i}}^{(n+1)}`" />
@@ -238,8 +238,8 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
           <th
             v-for="i in outputBitCount"
             :key="'y-' + i"
-            class="px-1 py-0.5 text-gray-400 border-b-4 border-primary bg-gray-800"
-            :class="i === outputBitCount ? 'border-r-4' : 'border-r border-gray-600'"
+            class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
+            :class="i === outputBitCount ? '' : 'border-r border-gray-600'"
           >
             <vue-latex :expression="`Y_{${outputBitCount - i}}^n`" />
           </th>
@@ -251,7 +251,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
           <td
             v-for="(_, i) in nodeIdBitCount"
             :key="transitionView.transitionId + '-from-' + i"
-            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+            class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0"
             :class="i === nodeIdBitCount - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
             {{
@@ -262,7 +262,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
           <td
             v-for="(_, i) in inputBitCount"
             :key="transitionView.transitionId + '-in-' + i"
-            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0"
+            class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0"
             :class="i === inputBitCount - 1 ? 'border-r-4' : 'border-r border-gray-600'"
           >
             {{
@@ -277,7 +277,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             v-for="(_, i) in nodeIdBitCount"
             :key="transitionView.transitionId + '-to-' + i"
             :ref="(el) => setEditableCellRef(el as HTMLElement | null, idx, Number(i))"
-            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 focus:bg-gray-700 focus:outline-none transition-colors duration-100"
+            class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0 select-none hover:bg-surface-2 focus:bg-surface-2 focus:outline-none transition-colors duration-100"
             :class="i === nodeIdBitCount - 1 ? 'border-r-4' : 'border-r border-gray-600'"
             tabindex="0"
             @click="toggleToBit(idx, i)"
@@ -292,8 +292,8 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             :ref="
               (el) => setEditableCellRef(el as HTMLElement | null, idx, nodeIdBitCount + Number(i))
             "
-            class="font-mono text-center bg-gray-800 border-b border-primary px-1 py-0 select-none hover:bg-gray-700 focus:bg-gray-700 focus:outline-none transition-colors duration-100"
-            :class="i === outputBitCount - 1 ? 'border-r-4' : 'border-r border-gray-600'"
+            class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0 select-none hover:bg-surface-2 focus:bg-surface-2 focus:outline-none transition-colors duration-100"
+            :class="i === outputBitCount - 1 ? '' : 'border-r border-gray-600'"
             tabindex="0"
             @click="toggleOutputBit(idx, i)"
             @keydown="handleEditableCellKeydown($event, idx, nodeIdBitCount + Number(i))"
@@ -314,7 +314,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
       </tbody>
     </table>
 
-    <div v-else class="text-sm font-mono text-gray-400 text-center">
+    <div v-else class="text-sm font-mono text-on-surface-disabled text-center">
       Please add states to reveal the transition table.
     </div>
   </div>

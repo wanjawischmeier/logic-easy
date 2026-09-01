@@ -2,6 +2,7 @@ import { stateManager } from '@/projects/stateManager'
 import type { WorkerCacheSnapshot, WorkerRequest, WorkerResponse } from './truthTableWorker'
 import { toRaw } from 'vue'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
+import type { QMCResult } from './minimizer'
 
 function toRawDeep<T>(value: T, seen = new WeakMap<object, unknown>()): T {
   if (value === null || typeof value !== 'object') {
@@ -46,6 +47,7 @@ class TruthTableWorkerManager {
   private hasQueuedUpdate = false
   private lastUpdateCompletedTime = 0
   private lastCompletedCache: WorkerCacheSnapshot | null = null
+  private idleWaiters: Array<() => void> = []
   private activeRequestTruthTable: WorkerCacheSnapshot['truthTable'] | null = null
   private activeRequestStartTime: number | null = null
 
@@ -135,6 +137,8 @@ class TruthTableWorkerManager {
         }
       }
 
+      stateManager.state.truthTable.qmcResults = response.qmcResults
+
       // Update qmcResult for the currently selected output variable
       const currentOutputVar =
         stateManager.state.truthTable.outputVars[stateManager.state.truthTable.outputVariableIndex]
@@ -154,7 +158,7 @@ class TruthTableWorkerManager {
       }
       if (response.variations !== undefined) {
         stateManager.state.truthTable.variations = response.variations
-        var variationIndex = stateManager.state.truthTable.variationIndex
+        const variationIndex = stateManager.state.truthTable.variationIndex
         stateManager.state.truthTable.variationIndex = Object.fromEntries(
           Object.entries(response.variations).map(([outputVar, variations]) => {
             const current = variationIndex[outputVar] ?? 0
@@ -188,6 +192,10 @@ class TruthTableWorkerManager {
       console.log('[TruthTableWorkerManager] Processing queued update after cooldown')
       this.hasQueuedUpdate = false
       this.scheduleUpdate()
+    }
+
+    if (!this.isRunning && this.cooldownTimer === null) {
+      this.settleIdle()
     }
   }
 
@@ -254,6 +262,7 @@ class TruthTableWorkerManager {
       functionType: truthTable.functionType,
       functionRepresentation: truthTable.functionRepresentation,
       qmcResult: toRawDeep(truthTable.qmcResult),
+      qmcResults: toRawDeep(truthTable.qmcResults),
       couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: toRawDeep(truthTable.selectedFormula),
       variations: toRawDeep(truthTable.variations),
@@ -287,6 +296,33 @@ class TruthTableWorkerManager {
         this.scheduleUpdate()
       }
     }
+  }
+
+  /**
+   * Resolve once no minimization is running or pending, so callers can read
+   * results for settings they just changed.
+   */
+  public whenIdle(timeoutMs = 5000): Promise<void> {
+    if (!this.isRunning && !this.hasQueuedUpdate && this.cooldownTimer === null) {
+      return Promise.resolve()
+    }
+
+    return new Promise((resolve) => {
+      const timer = window.setTimeout(() => this.settleIdle(), timeoutMs)
+      this.idleWaiters.push(() => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+  }
+
+  private settleIdle() {
+    this.idleWaiters.splice(0).forEach((resolve) => resolve())
+  }
+
+  // returns minimization results of last completed run
+  public get qmcResults(): Record<string, QMCResult | undefined> {
+    return this.lastCompletedCache?.qmcResults ?? {}
   }
 
   /**

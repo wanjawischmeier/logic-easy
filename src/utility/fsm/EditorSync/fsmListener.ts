@@ -8,15 +8,20 @@ let isInitialized = false
 let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
 let suppressIncomingEditorExport = false
+let suppressTimeout: ReturnType<typeof setTimeout> | null = null
 
-function syncTableToEditor() {
-  const newFsm = stateManager.state.fsm
-  if (isSyncing || !newFsm) return
+function setSuppressIncomingEditorExport() {
+  suppressIncomingEditorExport = true
+  if (suppressTimeout) clearTimeout(suppressTimeout)
+  // Auto-clear if the editor's echo is delayed/missed.
+  suppressTimeout = setTimeout(() => {
+    suppressIncomingEditorExport = false
+    suppressTimeout = null
+  }, 1200)
+}
 
-  const fsmIframe = (window as any).__fsm_preloaded_iframe
-  if (!fsmIframe?.contentWindow) return
-
-  const editorPayload = {
+function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm>) {
+  return {
     states: newFsm.nodes.map((n) => ({
       id: n.nodeId,
       name: n.name,
@@ -55,17 +60,27 @@ function syncTableToEditor() {
       }
     }),
     fsmType: newFsm.fsmModel,
+    inputBitCount: newFsm.inputBitCount || 1,
+    outputBitCount: newFsm.outputBitCount || 1,
   }
+}
+
+function syncTableToEditor() {
+  const newFsm = stateManager.state.fsm
+  if (isSyncing || !newFsm) return
+
+  const fsmIframe = (window as any).__fsm_preloaded_iframe
+  if (!fsmIframe?.contentWindow) return
 
   // Table-driven syncs should not be treated as editor-originated changes.
   // Otherwise the editor can export a derived payload back and trigger a false
   // roundtrip overwrite while we only intended to mirror table edits.
-  suppressIncomingEditorExport = true
+  setSuppressIncomingEditorExport()
 
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',
-      fsm: editorPayload,
+      fsm: buildFsmImportPayload(newFsm),
     },
     window.location.origin,
   )
@@ -80,41 +95,12 @@ export function forceSyncTableToEditor(): void {
   if (!fsmIframe?.contentWindow) return
 
   // mark that the next incoming editor export (in response) should be ignored
-  suppressIncomingEditorExport = true
-
-  const editorPayload = {
-    states: newFsm.nodes.map((n) => ({
-      id: n.nodeId,
-      name: n.name,
-      initial: n.isInitial,
-      final: n.isFinal,
-      x: n.editorCoordX,
-      y: n.editorCoordY,
-      moore_output: n.mooreOutput || '',
-    })),
-    transitions: newFsm.transitions.map((t) => ({
-      toBinaryId: normalizeBits(
-        t.toBinaryId ??
-          (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, newFsm.nodeIdBitCount || 1) : ''),
-        newFsm.nodeIdBitCount || 1,
-        'x',
-        'left',
-      ),
-      id: t.transitionId,
-      groupId: (t as any).groupId ?? t.transitionId,
-      from: t.fromNodeId,
-      to: t.toNodeId,
-      input: t.input,
-      output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
-      mealy_output: newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),
-    })),
-    fsmType: newFsm.fsmModel,
-  }
+  setSuppressIncomingEditorExport()
 
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',
-      fsm: editorPayload,
+      fsm: buildFsmImportPayload(newFsm),
     },
     window.location.origin,
   )
@@ -124,6 +110,10 @@ export function forceSyncTableToEditor(): void {
 export function consumeSuppressIncomingEditorExport(): boolean {
   const v = suppressIncomingEditorExport
   suppressIncomingEditorExport = false
+  if (suppressTimeout) {
+    clearTimeout(suppressTimeout)
+    suppressTimeout = null
+  }
   return v
 }
 
@@ -153,6 +143,10 @@ export function initFsmSyncService() {
 }
 
 export function disposeFsmSyncService() {
+  if (suppressTimeout) {
+    clearTimeout(suppressTimeout)
+    suppressTimeout = null
+  }
   if (iframeReadyHandler) {
     window.removeEventListener('__fsm_preloaded_iframe-ready', iframeReadyHandler as EventListener)
     iframeReadyHandler = null

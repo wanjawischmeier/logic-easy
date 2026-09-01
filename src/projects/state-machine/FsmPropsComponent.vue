@@ -17,12 +17,12 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Input Bits (1-5)</label>
+          <label class="text-sm">Number of Input Bits</label>
           <input
             type="number"
             v-model.number="localInputBits"
             min="1"
-            max="5"
+            :max="maxIoBits"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />
@@ -32,12 +32,12 @@
 
       <div class="flex flex-col">
         <div class="flex items-center justify-between">
-          <label class="text-sm">Output Bits (1-5)</label>
+          <label class="text-sm">Number of Output Bits</label>
           <input
             type="number"
             v-model.number="localOutputBits"
             min="1"
-            max="5"
+            :max="maxIoBits"
             class="w-20 p-2 rounded border bg-surface"
             @keypress="onlyNumbers"
           />
@@ -46,7 +46,7 @@
       </div>
 
       <p class="mt-4 text-xs text-on-surface-disabled text-center">
-        The selected bit numbers determine the amount of input / output bits.
+        The number of input and output bits cannot be changed after creation.
       </p>
     </div>
   </div>
@@ -55,7 +55,10 @@
 <script setup lang="ts">
 import type { ValidationFunction } from '@/projects/projectRegistry'
 import { ref, computed, onMounted, watch } from 'vue'
+import { MAX_FSM_IO_BITS } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import type { FsmProps } from './FsmTypes'
+
+const maxIoBits = MAX_FSM_IO_BITS
 
 const props = defineProps<{
   modelValue: FsmProps
@@ -73,14 +76,14 @@ const localOutputBits = ref(props.modelValue.initialOutputBits ?? 1)
 
 // props input validation
 const inputBitsError = computed(() => {
-  if (localInputBits.value < 1) return 'Must be at least 1'
-  if (localInputBits.value > 5) return 'Max 5 bits allowed'
+  if (localInputBits.value < 1) return 'Please enter at least 1 input bit.'
+  if (localInputBits.value > maxIoBits) return `Please enter at most ${maxIoBits} input bits.`
   return undefined
 })
 
 const outputBitsError = computed(() => {
-  if (localOutputBits.value < 1) return 'Must be at least 1'
-  if (localOutputBits.value > 5) return 'Max 5 bits allowed'
+  if (localOutputBits.value < 1) return 'Please enter at least 1 output bit.'
+  if (localOutputBits.value > maxIoBits) return `Please enter at most ${maxIoBits} output bits.`
   return undefined
 })
 

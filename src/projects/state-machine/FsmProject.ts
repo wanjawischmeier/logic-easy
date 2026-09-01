@@ -5,7 +5,13 @@ import { registerProjectType } from '../projectRegistry'
 import FsmPropsComponent from './FsmPropsComponent.vue'
 import { defaultStateEncoding, defaultFlipFlopType, type FsmProps } from './FsmTypes'
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
-import { normalizeFsmState } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
+import {
+  MAX_FSM_IO_BITS,
+  MAX_FSM_STATES,
+  normalizeFsmState,
+  setInputBitCount,
+  setOutputBitCount,
+} from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { importEditorPayload } from './fsmEditorImportHelpers'
 import type { FsmState } from './FsmTypes'
 import { createPanel } from '@/utility/dockview/integration'
@@ -122,6 +128,46 @@ export class FsmProject extends Project {
 
   static override validateState(state: AppState): boolean {
     return state.fsm != undefined
+  }
+
+  static override normalizeState(state: AppState): void {
+    const fsm = state.fsm as FsmState | undefined
+    if (!fsm) return
+
+    // Clamp imported input/output bit counts to the allowed maximum
+    const inputBits = Math.max(1, Math.min(MAX_FSM_IO_BITS, fsm.inputBitCount ?? 1))
+    const outputBits = Math.max(1, Math.min(MAX_FSM_IO_BITS, fsm.outputBitCount ?? 1))
+    if ((fsm.inputBitCount ?? 1) !== inputBits) {
+      setInputBitCount(fsm, inputBits)
+    }
+    if ((fsm.outputBitCount ?? 1) !== outputBits) {
+      setOutputBitCount(fsm, outputBits, fsm.fsmModel)
+    }
+
+    // Enforce the maximum number of states on restored/imported data (keep lowest ids, then normalize once)
+    if (Array.isArray(fsm.nodes) && fsm.nodes.length > MAX_FSM_STATES) {
+      // Non-finite node ids sort last so corrupt entries are trimmed first
+      const sorted = [...fsm.nodes].sort((a, b) => {
+        const idA = Number(a?.nodeId)
+        const idB = Number(b?.nodeId)
+        return (
+          (Number.isFinite(idA) ? idA : Number.MAX_SAFE_INTEGER) -
+          (Number.isFinite(idB) ? idB : Number.MAX_SAFE_INTEGER)
+        )
+      })
+      const removedIds = new Set(sorted.slice(MAX_FSM_STATES).map((node) => Number(node.nodeId)))
+      fsm.nodes = sorted.slice(0, MAX_FSM_STATES)
+      if (Array.isArray(fsm.transitions)) {
+        fsm.transitions = fsm.transitions
+          .filter((transition) => !removedIds.has(Number(transition.fromNodeId)))
+          .map((transition) =>
+            removedIds.has(Number(transition.toNodeId))
+              ? { ...transition, toNodeId: -1 }
+              : transition,
+          )
+      }
+      normalizeFsmState(fsm)
+    }
   }
 }
 
