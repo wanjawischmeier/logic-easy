@@ -245,6 +245,7 @@ class DownloadRegistry {
 \\usepackage{amsmath}
 \\usepackage{amssymb}
 \\usepackage{geometry}
+\\usepackage{xcolor}
 \\usepackage{tikz}
 \\usetikzlibrary{matrix}
 \\geometry{margin=1in}

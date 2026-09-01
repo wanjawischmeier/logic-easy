@@ -127,3 +127,22 @@ export function mapFormulaTermsToPIColors(
     throw new Error(`No matching PI color found for formula term ${termIdx}`)
   })
 }
+
+// convert HSLA color to hex
+export function termColorHex(color: TermColor): string {
+  const hue = parseFloat(color.border.match(/hsla?\((\d+\.?\d*),/)?.[1] ?? '0')
+  const lightness = 0.5
+  const amplitude = (SATURATION / 100) * Math.min(lightness, 1 - lightness)
+
+  // hsl to rgb, sampling the same wave at 0/8/4 twelfths for red/green/blue
+  const channel = (offset: number) => {
+    const k = (offset + hue / 30) % 12
+    const value = lightness - amplitude * Math.max(-1, Math.min(k - 3, 9 - k, 1))
+    return Math.round(value * 255)
+      .toString(16)
+      .toUpperCase()
+      .padStart(2, '0')
+  }
+
+  return `#${channel(0)}${channel(8)}${channel(4)}`
+}

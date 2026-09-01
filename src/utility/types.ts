@@ -41,6 +41,7 @@ export const Formula = {
 export interface FormulaVariation {
   formula: Formula
   latex: string
+  coloredLatex?: string
 }
 
 export interface ListEntry {

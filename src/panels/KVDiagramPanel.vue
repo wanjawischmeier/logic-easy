@@ -120,6 +120,7 @@ import {
 } from '@/projects/truth-table/TruthTableProject'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
 import { getKVDiagramDocument, getKVDiagramLatex } from '@/utility/truthtable/kvDiagramLatex'
+import { formatLatexColors } from '@/utility/truthtable/latexGenerator'
 import {
   buildFsmImmutableCellMask,
   buildFsmKVDiagramPresentation,
@@ -344,9 +345,9 @@ const getTermColors = (outputVar: string, formula: Formula) => {
 const getPanelLatex = () =>
   outputVars.value
     .flatMap((outputVar, index) =>
-      getFormulaOptions(outputVar).map(({ latex, formula }) =>
+      getFormulaOptions(outputVar).map(({ latex, coloredLatex, formula }) =>
         [
-          `\\noindent$${latex}$\\par`,
+          `\\noindent$${formatLatexColors(coloredLatex ?? latex)}$\\par`,
           getKVDiagramLatex({
             inputVars: inputVars.value,
             inputVarLabels: inputVarLabels.value,
