@@ -31,10 +31,14 @@ export function getFunctionSignature(
   const formType = functionType === 'Disjunctive' ? 'D' : 'C'
   const formRepresentation = functionRepresentation === 'Normal' ? 'N' : 'M'
   const functionName = formatLatexIdentifier(outputVariableName)
+  const formLabel = `${formType}${formRepresentation}F`
+  const labeledName = /_\{[^}]*\}/.test(functionName)
+    ? functionName.replace(/_\{([^}]*)\}/, `_{$1,${formLabel}}`)
+    : `${functionName}_{${formLabel}}`
   const formattedInputVars = inputVars.map((inputVar) =>
     formatLatexIdentifier(inputVar, { lowercase: options?.lowercaseInputVars ?? false }),
   )
-  return `${functionName}_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
+  return `${labeledName}(${formattedInputVars.join(', ')}) = `
 }
 
 /**
