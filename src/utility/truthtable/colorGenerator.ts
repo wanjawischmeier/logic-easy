@@ -140,6 +140,7 @@ export function termColorHex(color: TermColor): string {
     const value = lightness - amplitude * Math.max(-1, Math.min(k - 3, 9 - k, 1))
     return Math.round(value * 255)
       .toString(16)
+      .toUpperCase()
       .padStart(2, '0')
   }
 

@@ -4,6 +4,11 @@ import { analyzeExpressions } from './expressionParser'
 import type { QMCResult } from './minimizer'
 import { termColorHex, type TermColor } from './colorGenerator'
 
+// rewrites KaTeX css colors to xcolor expected colors
+export function formatLatexColors(latex: string): string {
+  return latex.replace(/\\textcolor\{#/g, '\\textcolor[HTML]{')
+}
+
 export function formatLatexIdentifier(
   identifier: string,
   options?: { lowercase?: boolean },

@@ -13,6 +13,7 @@ import {
 
 // packages needed by kv
 export const KV_TIKZ_PREAMBLE = String.raw`\usepackage{amsmath}
+\usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{matrix}
 `
