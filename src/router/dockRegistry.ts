@@ -50,6 +50,7 @@ type DockEntry = {
  */
 type DockMenuNode = {
   label: string
+  headerLabel?: string
   children: DockRegistryEntry[]
   requires?: Requirements
 }
