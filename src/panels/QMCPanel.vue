@@ -104,26 +104,26 @@
             :values="tableValues"
             :input-vars="displayInputVars"
             :output-vars="displayOutputVars"
-            :outputVariableIndex="outputVariableIndex"
+            :outputVariableIndex="outIdx"
             :formulas="{}"
             :functionType="functionType"
             :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
+            :qmc-result="qmcResults?.[outputVar] ?? qmcResult"
           />
 
           <QMCPrimeImplicantChart
             :values="tableValues"
             :input-vars="displayInputVars"
             :output-vars="displayOutputVars"
-            :outputVariableIndex="outputVariableIndex"
+            :outputVariableIndex="outIdx"
             :formulas="{}"
             :functionType="functionType"
             :function-representation="functionRepresentation"
-            :qmc-result="qmcResult"
+            :qmc-result="qmcResults?.[outputVar] ?? qmcResult"
             :coupling-term-latex="couplingTermLatex"
             :show-highlights="showHighlights"
-            :display-formula-variations="displayFormulaVariations"
-            v-model:current-variation-index="currentVariationIndex"
+            :display-formula-variations="getDisplayFormulaVariations(outputVar)"
+            :current-variation-index="(variationIndex as Record<string, number>)?.[outputVar] ?? 0"
           />
         </div>
       </div>
@@ -269,6 +269,7 @@ const {
   functionType,
   functionRepresentation,
   qmcResult,
+  qmcResults,
   couplingTermLatex,
   variations,
   variationIndex,
@@ -283,12 +284,14 @@ const fsmPresentation = computed(() => {
   return buildFsmKVDiagramPresentation(stateManager.state.truthTable)
 })
 
-const displayFormulaVariations = computed(() => {
+const getDisplayFormulaVariations = (outputVarName?: string) => {
   const variationsSource = fsmPresentation.value.variations ?? variations.value
-  const outputVar = outputVars.value[outputVariableIndex.value]
+  const outputVar = outputVarName ?? outputVars.value[outputVariableIndex.value]
   if (!outputVar || !variationsSource) return []
   return variationsSource[outputVar] ?? []
-})
+}
+
+const displayFormulaVariations = computed(() => getDisplayFormulaVariations())
 
 const currentVariationIndex = computed({
   get() {

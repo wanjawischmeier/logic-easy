@@ -38,6 +38,7 @@ export interface TruthTableState {
   functionType: FunctionType
   functionRepresentation: FunctionRepresentation
   qmcResult?: QMCResult
+  qmcResults?: Record<string, QMCResult | undefined>
   couplingTermLatex?: string
   selectedFormula?: Formula
   formulaTermColors?: TermColor[]
@@ -81,6 +82,7 @@ export class TruthTableProject extends Project {
       () => state.value?.functionRepresentation ?? defaultFunctionRepresentation,
     )
     const qmcResult = computed(() => state.value?.qmcResult)
+    const qmcResults = computed(() => state.value?.qmcResults ?? {})
     const couplingTermLatex = computed(() => state.value?.couplingTermLatex)
     const selectedFormula = computed(() => state.value?.selectedFormula)
     const formulaTermColors = computed(() => state.value?.formulaTermColors)
@@ -104,6 +106,7 @@ export class TruthTableProject extends Project {
       functionType,
       functionRepresentation,
       qmcResult,
+      qmcResults,
       couplingTermLatex,
       selectedFormula,
       formulaTermColors,
@@ -181,6 +184,8 @@ export class TruthTableProject extends Project {
       values: values,
       formulas: formulas,
       outputVariableIndex: 0,
+      qmcResult: undefined,
+      qmcResults: {},
       variationIndex: Object.fromEntries(outputVars.map((outputVar) => [outputVar, 0])),
       functionType: functionType,
       functionRepresentation: functionRepresentation,

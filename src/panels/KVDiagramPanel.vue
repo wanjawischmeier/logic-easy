@@ -80,20 +80,20 @@
             :output-var-labels="outputVarLabels"
             :outputVariableIndex="index"
             :formulas="{}"
-            :selected-formula="selectedVariationFormula"
+            :selected-formula="getSelectedVariationFormula(outputVar)"
             :functionType="functionType"
             :function-representation="functionRepresentation"
-            :qmc-result="displayQmcResult"
+            :qmc-result="qmcResults?.[outputVar] ?? displayQmcResult"
             :formula-term-colors="displayFormulaTermColors"
             :immutable-cell-mask="immutableCellMask"
             :readonly="isFsmProject"
-            :variation-index="currentVariationIndex"
+            :variation-index="(variationIndex as Record<string, number>)?.[outputVar] ?? 0"
             @values-changed="tableValues = $event"
           />
 
           <FormulaRenderer
-            :latex-expression="displayCouplingTermLatex"
-            v-if="displayCouplingTermLatex"
+            :latex-expression="getCurrentCouplingLatexForOutput(outputVar) ?? ''"
+            v-if="getCurrentCouplingLatexForOutput(outputVar)"
           >
           </FormulaRenderer>
         </div>
@@ -186,6 +186,7 @@ const {
   functionRepresentation,
   couplingTermLatex,
   qmcResult,
+  qmcResults,
   formulaTermColors,
   variations,
   variationIndex,
@@ -215,16 +216,37 @@ const displayFormulaTermColors = computed(
   () => fsmPresentation.value.formulaTermColors ?? formulaTermColors.value,
 )
 
+const getCurrentCouplingLatexForOutput = (outputVarName?: string) => {
+  const outputVar = outputVarName ?? outputVars.value[outputVariableIndex.value]
+  if (!outputVar) return displayCouplingTermLatex.value
+
+  const result = qmcResults.value?.[outputVar]
+  if (!result) return displayCouplingTermLatex.value
+
+  const outputName = outputVarLabels.value?.[outputVars.value.indexOf(outputVar)] ?? outputVar
+  return result.expressions && result.expressions.length > 0
+    ? result.expressions
+        .map((expr) => {
+          const formula = expr as any
+          return formula?.latex ?? ''
+        })
+        .filter(Boolean)
+        .join(' + ')
+    : displayCouplingTermLatex.value
+}
+
 const displayCouplingTermLatex = computed(
   () => fsmPresentation.value.couplingTermLatex ?? couplingTermLatex.value,
 )
 
-const displayFormulaVariations = computed(() => {
+const getDisplayFormulaVariations = (outputVarName?: string) => {
   const variationsSource = fsmPresentation.value.variations ?? variations.value
-  const outputVar = outputVars.value[outputVariableIndex.value]
+  const outputVar = outputVarName ?? outputVars.value[outputVariableIndex.value]
   if (!outputVar || !variationsSource) return []
   return variationsSource[outputVar] ?? []
-})
+}
+
+const displayFormulaVariations = computed(() => getDisplayFormulaVariations())
 
 const currentVariationIndex = computed({
   get() {
@@ -247,10 +269,15 @@ const currentVariationIndex = computed({
   },
 })
 
-const selectedVariationFormula = computed(() => {
-  const variation = displayFormulaVariations.value[currentVariationIndex.value]
+const getSelectedVariationFormula = (outputVarName?: string) => {
+  const outputVar = outputVarName ?? outputVars.value[outputVariableIndex.value]
+  const variationsSource = getDisplayFormulaVariations(outputVar)
+  const targetIndex = (variationIndex.value as Record<string, number>)?.[outputVar ?? ''] ?? 0
+  const variation = variationsSource[targetIndex]
   return variation?.formula
-})
+}
+
+const selectedVariationFormula = computed(() => getSelectedVariationFormula())
 
 const isFsmProject = computed(() => !!stateManager.state.fsm)
 

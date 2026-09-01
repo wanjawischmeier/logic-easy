@@ -135,6 +135,8 @@ class TruthTableWorkerManager {
         }
       }
 
+      stateManager.state.truthTable.qmcResults = response.qmcResults
+
       // Update qmcResult for the currently selected output variable
       const currentOutputVar =
         stateManager.state.truthTable.outputVars[stateManager.state.truthTable.outputVariableIndex]
@@ -254,6 +256,7 @@ class TruthTableWorkerManager {
       functionType: truthTable.functionType,
       functionRepresentation: truthTable.functionRepresentation,
       qmcResult: toRawDeep(truthTable.qmcResult),
+      qmcResults: toRawDeep(truthTable.qmcResults),
       couplingTermLatex: truthTable.couplingTermLatex,
       selectedFormula: toRawDeep(truthTable.selectedFormula),
       variations: toRawDeep(truthTable.variations),

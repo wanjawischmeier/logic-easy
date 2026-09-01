@@ -7,10 +7,9 @@
     aria-label="Toggle light and dark theme"
   >
     <span aria-hidden="true">
-        <LightModeIcon v-if="isDark" />
-        <DarkModeIcon v-else />
+      <LightModeIcon v-if="isDark" />
+      <DarkModeIcon v-else />
     </span>
-
   </button>
 </template>
 
