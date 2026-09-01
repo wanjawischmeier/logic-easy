@@ -92,7 +92,7 @@
           />
 
           <FormulaRenderer
-            :latex-expression="getCurrentCouplingLatexForOutput(outputVar)"
+            :latex-expression="getCurrentCouplingLatexForOutput(outputVar) ?? ''"
             v-if="getCurrentCouplingLatexForOutput(outputVar)"
           >
           </FormulaRenderer>
