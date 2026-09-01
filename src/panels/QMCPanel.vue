@@ -18,9 +18,21 @@
         :selected-function-type="functionType"
         :show-function-representation-selection="false"
         :customSettingSlotLabels="
-          selectedTabIndex === 1 ? { 'show-highlights': 'Show highlights' } : {}
+          selectedTabIndex === 1
+            ? { 'show-formula': 'Show formula', 'show-highlights': 'Show highlights' }
+            : {}
         "
       >
+        <template v-if="selectedTabIndex === 1" #show-formula>
+          <div class="flex gap-2 items-center" @click.stop>
+            <Checkbox v-model="showFormula" />
+            <div class="text-xs min-w-25">
+              <span v-if="showFormula">Showing respective formula</span>
+              <span v-else>Toggle to show formula</span>
+            </div>
+          </div>
+        </template>
+
         <template v-if="selectedTabIndex === 1" #show-highlights>
           <div class="flex gap-2 items-center" @click.stop>
             <Checkbox v-model="showHighlights" />
@@ -66,6 +78,7 @@
               :function-representation="functionRepresentation"
               :qmc-result="qmcResult"
               :coupling-term-latex="couplingTermLatex"
+              :show-formula="showFormula"
               :show-highlights="showHighlights"
               :display-formula-variations="displayFormulaVariations"
               v-model:current-variation-index="currentVariationIndex"
@@ -157,6 +170,7 @@ import { buildFsmKVDiagramPresentation } from '@/utility/fsm/kvSync'
 
 interface QMCPanelState {
   selectedTabIndex: number
+  showFormula: boolean
   showHighlights: boolean
 }
 
@@ -166,6 +180,7 @@ const props = defineProps<Partial<IDockviewPanelProps>>()
 const panelState = stateManager.getPanelState<QMCPanelState>(props.params.api.id)
 const viewTabs = ['Grouping Table', 'Prime Implicants']
 const selectedTabIndex = ref(panelState?.selectedTabIndex ?? 0)
+const showFormula = ref(panelState?.showFormula ?? true)
 const showHighlights = ref(panelState?.showHighlights ?? true)
 const screenshotRef = ref<HTMLElement | null>(null)
 
@@ -255,6 +270,7 @@ onBeforeUnmount(() => {
 // Auto-save panel state when values change
 stateManager.watchPanelState<QMCPanelState>(props.params.api.id, () => ({
   selectedTabIndex: selectedTabIndex.value,
+  showFormula: showFormula.value,
   showHighlights: showHighlights.value,
 }))
 
