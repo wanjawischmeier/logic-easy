@@ -154,6 +154,8 @@ export function initFsmSyncService() {
 }
 
 export function disposeFsmSyncService() {
+  // reset the suppress flag so that any incoming editor export is not ignored after disposal
+  suppressIncomingEditorExport = false
   if (suppressTimeout) {
     clearTimeout(suppressTimeout)
     suppressTimeout = null

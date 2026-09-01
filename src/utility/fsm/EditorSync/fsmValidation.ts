@@ -1,6 +1,6 @@
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import { resolveTransitionTargetNodes } from './fsmStateTableUtils'
-import { normalizeBits } from '../bitOperations'
+import { calcBitNumber, normalizeBits } from '../bitOperations'
 
 export type FsmValidity = { valid: true } | { valid: false; reason: string }
 
@@ -29,6 +29,18 @@ export function validateFsm(state: FsmState): FsmValidity {
 
     // Rule: in Moore mode transitions with the same target state must share one output
     if (state.fsmModel === 'moore') {
+      // An all-don't-care next state is a valid, unassigned (hidden) placeholder
+      if (transition.toNodeId < 0) {
+        const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+        const nodeIdBitCount = calcBitNumber(Math.max(1, maxNodeId + 1))
+        const targetPattern = normalizeBits(
+          transition.toBinaryId ?? '',
+          nodeIdBitCount,
+          'x',
+          'left',
+        )
+        if (/^x+$/.test(targetPattern)) continue
+      }
       const outputBits = state.outputBitCount ?? 1
       const outputs = targetNodes.map((node) =>
         normalizeBits(node.mooreOutput, outputBits, 'x', 'right'),

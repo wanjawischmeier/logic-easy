@@ -131,9 +131,12 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
         remappedPatterns.push(calcBinaryID(remappedNode, nodeBitCount))
       })
 
+      // A pattern matching no state locks the editor (only all-x stays unassigned)
       normalizedtoBinaryId =
         remappedPatterns.length === 0
-          ? 'x'.repeat(nodeBitCount)
+          ? /^x+$/.test(normalizedPattern)
+            ? 'x'.repeat(nodeBitCount)
+            : normalizeBits(normalizedPattern, nodeBitCount, 'x', 'left')
           : Array.from({ length: nodeBitCount }, (_, index) => {
               const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
               return bits.size === 1 ? [...bits][0] : 'x'
