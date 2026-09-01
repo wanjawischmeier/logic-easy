@@ -150,28 +150,6 @@ const SparklesIcon = defineComponent({
   `,
 })
 
-const UndoIcon = defineComponent({
-  template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 10H4V5" />
-        <path d="M4 10c2-3 5-4 8-4 4 0 7 3 7 7s-3 7-7 7H9" />
-      </svg>
-    </div>
-  `,
-})
-
-const RedoIcon = defineComponent({
-  template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 10h5V5" />
-        <path d="M20 10c-2-3-5-4-8-4-4 0-7 3-7 7s3 7 7 7h4" />
-      </svg>
-    </div>
-  `,
-})
-
 function makeKeycap(text: string) {
   return defineComponent({
     name: `Keycap${text.replace(/[^a-zA-Z0-9]+/g, '')}`,
@@ -197,15 +175,11 @@ function makeActionWithShortcut(iconComponent: Component, shortcutComponent: Com
 
 const AltSKeycap = makeKeycap('Alt+S')
 const AltRKeycap = makeKeycap('Alt+R')
-const AltZKeycap = makeKeycap('Alt+Z')
-const AltYKeycap = makeKeycap('Alt+Y')
 const AltAKeycap = makeKeycap('Alt+A')
 
 const AddAction = makeActionWithShortcut(AddIcon, AltSKeycap)
 const RemoveAction = makeActionWithShortcut(RemoveIcon, AltRKeycap)
 const AutoLayoutAction = makeActionWithShortcut(SparklesIcon, AltAKeycap)
-const UndoAction = makeActionWithShortcut(UndoIcon, AltZKeycap)
-const RedoAction = makeActionWithShortcut(RedoIcon, AltYKeycap)
 
 const getFsmIframe = () => {
   const windowWithIframe = window as Window & { __fsm_preloaded_iframe?: HTMLIFrameElement }
@@ -264,17 +238,6 @@ const legend: LegendItem[] = [
     component: RemoveAction,
     label: 'Remove',
     description: 'Delete the selected item using the Remove button or the Alt+R shortcut.',
-  },
-  {
-    component: UndoAction,
-    label: 'Undo',
-    description: 'Revert the most recent change using the Undo button or the Alt+Z shortcut.',
-  },
-  {
-    component: RedoAction,
-    label: 'Redo',
-    description:
-      'Restore the most recently undone change using the Redo button or the Alt+Y shortcut.',
   },
   {
     component: AutoLayoutAction,
