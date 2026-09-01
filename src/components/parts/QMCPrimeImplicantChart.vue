@@ -79,7 +79,7 @@
     </div>
 
     <div
-      v-if="displayFormulaVariations.length > 0"
+      v-if="props.showFormula !== false && displayFormulaVariations.length > 0"
       class="pt-8 flex-1 w-full flex justify-center overflow-visible"
     >
       <VariationViewer
@@ -107,11 +107,13 @@ const props = withDefaults(
     inputVars: string[]
     qmcResult?: QMCResult
     couplingTermLatex?: string
+    showFormula?: boolean
     showHighlights?: boolean
     displayFormulaVariations: FormulaVariation[]
     functionRepresentation: FunctionRepresentation
   }>(),
   {
+    showFormula: true,
     showHighlights: true,
   },
 )
