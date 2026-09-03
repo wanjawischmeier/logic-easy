@@ -218,6 +218,14 @@ const getCurrentCouplingLatexForOutput = (outputVarName?: string) => {
   const outputVar = outputVarName ?? outputVars.value[outputVariableIndex.value]
   if (!outputVar) return displayCouplingTermLatex.value
 
+  // FSM minimization uses placeholder symbols internally
+  // Its display variations are remapped to the state/input names
+  if (stateManager.state.fsm) {
+    const formulaVariations = getDisplayFormulaVariations(outputVar)
+    const selectedIndex = (variationIndex.value as Record<string, number>)?.[outputVar] ?? 0
+    return formulaVariations[selectedIndex]?.latex ?? formulaVariations[0]?.latex
+  }
+
   const result = qmcResults.value?.[outputVar]
   if (!result) return displayCouplingTermLatex.value
 

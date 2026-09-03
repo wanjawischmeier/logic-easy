@@ -2,7 +2,11 @@ import type { Operation } from 'logi.js'
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
-import { defaultFunctionRepresentation, defaultFunctionType } from '@/utility/types'
+import {
+  defaultFunctionRepresentation,
+  defaultFunctionType,
+  type FormulaVariation,
+} from '@/utility/types'
 import type { QMCResult } from '@/utility/truthtable/minimizer'
 import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
 import { getCouplingTermLatex } from '@/utility/truthtable/latexGenerator'
@@ -134,7 +138,60 @@ export interface FsmKVDiagramPresentation {
   selectedFormula?: TruthTableState['selectedFormula']
   formulaTermColors?: TermColor[]
   couplingTermLatex?: string
-  variations?: TruthTableState['variations']
+  variations?: Record<string, FormulaVariation[]>
+}
+
+function getSelectedVariationIndex(truthTable: TruthTableState, outputVar: string): number {
+  const variationIndex = truthTable.variationIndex
+  return typeof variationIndex === 'number' ? variationIndex : (variationIndex?.[outputVar] ?? 0)
+}
+
+function buildFsmFormulaVariations(
+  result: QMCResult,
+  truthTable: TruthTableState,
+  outputVar: string,
+): FormulaVariation[] {
+  const outputIndex = truthTable.outputVars.indexOf(outputVar)
+  const labelMap = Object.fromEntries(
+    truthTable.inputVars.map((inputVar) => [inputVar.toLowerCase(), inputVar]),
+  )
+
+  return result.expressions.map((expression) => {
+    const formula = flattenCouplingTermsToFormula(expression, truthTable.functionType, {
+      preserveVariableCase: true,
+    })
+    const singleExpressionResult = { ...result, expressions: [expression] }
+    let termColors: TermColor[] | undefined
+
+    try {
+      termColors = mapFormulaTermsToPIColors(
+        formula,
+        result.pis,
+        result.termColors ?? [],
+        truthTable.inputVars,
+      )
+    } catch {
+      termColors = undefined
+    }
+
+    const getLatex = (colors?: TermColor[]) =>
+      getCouplingTermLatex(
+        singleExpressionResult,
+        truthTable.functionType,
+        truthTable.functionRepresentation,
+        truthTable.inputVars,
+        outputVar,
+        truthTable.values,
+        outputIndex >= 0 ? outputIndex : truthTable.outputVariableIndex,
+        { labelMap, termColors: colors },
+      )
+
+    return {
+      formula,
+      latex: getLatex(),
+      coloredLatex: getLatex(termColors),
+    }
+  })
 }
 
 export function buildFsmImmutableCellMask(
@@ -186,11 +243,26 @@ export function buildFsmKVDiagramPresentation(
 
   remappedResult.termColors = remappedTermColors
 
-  const selectedFormula = flattenCouplingTermsToFormula(
-    remappedResult.expressions[0]!,
-    truthTable.functionType,
-    { preserveVariableCase: true },
-  )
+  const outputVar =
+    truthTable.outputVars[truthTable.outputVariableIndex] ?? truthTable.outputVars[0] ?? ''
+  const variations = buildFsmFormulaVariations(remappedResult, truthTable, outputVar)
+  const variationsByOutput: Record<string, FormulaVariation[]> = {}
+  for (const [name, result] of Object.entries(
+    truthTable.qmcResults ?? { [outputVar]: truthTable.qmcResult },
+  )) {
+    if (!result) continue
+
+    const remappedOutputResult =
+      name === outputVar ? remappedResult : remapQmcResultToInputVars(result, truthTable.inputVars)
+    variationsByOutput[name] = buildFsmFormulaVariations(remappedOutputResult, truthTable, name)
+  }
+  variationsByOutput[outputVar] = variations
+  const selectedFormula =
+    variations[getSelectedVariationIndex(truthTable, outputVar)]?.formula ?? variations[0]?.formula
+
+  if (!selectedFormula) {
+    return { qmcResult: remappedResult, variations: variationsByOutput }
+  }
 
   let formulaTermColors: TermColor[] | undefined
   try {
@@ -214,11 +286,16 @@ export function buildFsmKVDiagramPresentation(
       truthTable.functionType,
       truthTable.functionRepresentation,
       truthTable.inputVars,
-      truthTable.outputVars[truthTable.outputVariableIndex] ?? truthTable.outputVars[0] ?? '',
+      outputVar,
       truthTable.values,
       truthTable.outputVariableIndex,
-      { lowercaseInputVars: true },
+      {
+        labelMap: Object.fromEntries(
+          truthTable.inputVars.map((inputVar) => [inputVar.toLowerCase(), inputVar]),
+        ),
+      },
     ),
+    variations: variationsByOutput,
   }
 }
 
