@@ -87,7 +87,7 @@ function commitStateName(stateId: number) {
             name
           </th>
           <th
-            class="px-3 text-on-surface-disabled border-b-4 border-primary bg-surface-1 w-auto font-mono border-r-4"
+            class="px-3 text-on-surface-disabled border-b-4 border-primary bg-surface-1 w-auto font-mono"
           >
             binary index
           </th>
