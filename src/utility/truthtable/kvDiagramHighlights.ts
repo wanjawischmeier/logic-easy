@@ -36,7 +36,10 @@ function isCovered(
     }
     for (const literal of term.literals) {
       const varIndex = inputVars.indexOf(literal.variable)
-      if (varIndex === -1) continue
+      // A formula literal that cannot be matched to a KV axis is invalid for this map.
+      // Treat it as uncovered instead of silently dropping it, which would turn a term
+      // such as `b\\overline{c}` into a full-map highlight.
+      if (varIndex === -1) return false
 
       const bit = binaryString[varIndex]
       // literal A (negated=false) requires bit '1'
@@ -50,7 +53,9 @@ function isCovered(
     // Covers cells where at least one literal is true.
     for (const literal of term.literals) {
       const varIndex = inputVars.indexOf(literal.variable)
-      if (varIndex === -1) continue
+      // A missing axis must not make an invalid clause look false everywhere,
+      // which would render it as a full-map CNF highlight.
+      if (varIndex === -1) return true
 
       const bit = binaryString[varIndex]
       // Literal A (negated=false) is true when bit='1'
