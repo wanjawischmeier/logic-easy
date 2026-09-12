@@ -1,5 +1,10 @@
 <template>
-  <svg class="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg
+    class="w-4 h-4 text-on-surface shrink-0"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
     <path
       stroke-linecap="round"
       stroke-linejoin="round"

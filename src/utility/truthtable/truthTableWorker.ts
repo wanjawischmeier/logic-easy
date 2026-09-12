@@ -56,6 +56,7 @@ function computeVariations(
   truthTableValues?: TruthTableState['values'],
   outputVariableIndex?: number,
   labelMap?: Record<string, string>,
+  colorInputVars?: string[],
 ): FormulaVariation[] {
   if (!qmcResult.expressions || qmcResult.expressions.length === 0) {
     return []
@@ -72,22 +73,40 @@ function computeVariations(
     }
 
     // Generate latex using the signature + expression latex
-    const latex = getCouplingTermLatex(
-      singleExprResult,
-      functionType,
-      functionRepresentation,
-      inputVars,
-      outputVariableName,
-      truthTableValues,
-      outputVariableIndex,
-      { labelMap },
-    )
+    const buildLatex = (termColors?: TermColor[]) =>
+      getCouplingTermLatex(
+        singleExprResult,
+        functionType,
+        functionRepresentation,
+        inputVars,
+        outputVariableName,
+        truthTableValues,
+        outputVariableIndex,
+        { labelMap, termColors },
+      )
 
     return {
       formula,
-      latex,
+      latex: buildLatex(),
+      coloredLatex: buildLatex(getFormulaTermColors(formula, singleExprResult, colorInputVars)),
     }
   })
+}
+
+//match formula term to prime implicant color
+function getFormulaTermColors(
+  formula: Formula,
+  qmcResult: QMCResult,
+  colorInputVars?: string[],
+): TermColor[] | undefined {
+  if (!colorInputVars || !qmcResult.pis || !qmcResult.termColors) return undefined
+
+  try {
+    return mapFormulaTermsToPIColors(formula, qmcResult.pis, qmcResult.termColors, colorInputVars)
+  } catch (error) {
+    console.warn('[TruthTableWorker] Failed to color formula terms:', error)
+    return undefined
+  }
 }
 
 /**
@@ -327,6 +346,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           truthTable.values,
           index,
           labelMap,
+          truthTable.inputVars.map((inputVar) => inputVar.toLowerCase()),
         )
       } else {
         formulas[outputVar] = fallbackFormula(truthTable.functionType)

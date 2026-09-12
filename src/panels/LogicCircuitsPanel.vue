@@ -514,7 +514,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col gap-2">
+  <div ref="panelRef" class="relative flex-1 h-full text-on-surface flex flex-col gap-2">
     <div ref="iframeContainer" class="relative flex-1">
       <IframePanel
         ref="iframePanelRef"
@@ -577,7 +577,7 @@ onBeforeUnmount(() => {
             <template #build-all-output-vars>
               <div class="flex gap-2 items-center" @click.stop>
                 <Checkbox v-model="buildAllOutputVars" />
-                <div class="text-xs text-white min-w-25">
+                <div class="text-xs text-on-surface min-w-25">
                   <span v-if="buildAllOutputVars">Building all output variables</span>
                   <span v-else>Building currently selected</span>
                 </div>

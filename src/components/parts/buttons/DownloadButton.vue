@@ -6,7 +6,7 @@
       <button
         @click.stop="handleClick"
         :disabled="isCapturing || !hasDownloadOptions"
-        class="px-3 py-2 rounded-xs text-white group-hover:bg-primary transition-colors text-sm items-center gap-2"
+        class="px-3 py-2 rounded-xs text-on-surface group-hover:bg-primary transition-colors text-sm items-center gap-2"
         :class="showDropdown ? 'bg-primary' : ''"
         title="Download"
       >
@@ -68,6 +68,7 @@ interface DownloadFileDescriptor {
   filename: string
   extension: string
   content: DownloadSource
+  latexContent?: DownloadSource
   mimeType?: string
   appendDate?: boolean
   registerWith?: 'latex'
@@ -365,7 +366,7 @@ const ensureTextContent = async (value: DownloadPrimitive): Promise<string> => {
 
 const resolveLatexContent = async (file: DownloadFileDescriptor): Promise<string | undefined> => {
   try {
-    const content = await resolveDownloadSource(file.content)
+    const content = await resolveDownloadSource(file.latexContent ?? file.content)
     if (content === undefined) {
       return undefined
     }

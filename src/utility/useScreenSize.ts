@@ -10,6 +10,47 @@ export const DEFAULT_SCREEN_CONFIG: ScreenSizeConfig = {
   minHeight: 600,
 }
 
+const SCREEN_CHECK_BYPASS_KEY = 'screenCheckBypass'
+const SCREEN_CHECK_BYPASS_MS = 60 * 60 * 1000
+
+interface ScreenCheckBypass {
+  expiresAt: number
+  width: number
+  height: number
+}
+
+const parseBypass = (): ScreenCheckBypass | null => {
+  const stored = localStorage.getItem(SCREEN_CHECK_BYPASS_KEY)
+  if (!stored) return null
+
+  try {
+    const parsed = JSON.parse(stored) as Partial<ScreenCheckBypass>
+    if (typeof parsed.expiresAt !== 'number') return null
+
+    return {
+      expiresAt: parsed.expiresAt,
+      width: parsed.width ?? window.innerWidth,
+      height: parsed.height ?? window.innerHeight,
+    }
+  } catch (error) {
+    console.error('Failed to parse stored screen check bypass:', error)
+    localStorage.removeItem(SCREEN_CHECK_BYPASS_KEY)
+    return null
+  }
+}
+
+const isBypassActive = () => {
+  const storedBypass = parseBypass()
+  if (!storedBypass) return false
+
+  if (Date.now() > storedBypass.expiresAt) {
+    localStorage.removeItem(SCREEN_CHECK_BYPASS_KEY)
+    return false
+  }
+
+  return true
+}
+
 /**
  * Composable to track screen size and check if it meets minimum requirements
  */
@@ -27,42 +68,21 @@ export function useScreenSize(config: ScreenSizeConfig = DEFAULT_SCREEN_CONFIG) 
     return width.value < config.minWidth || height.value < config.minHeight
   })
 
-  // Check localStorage for stored bypass resolution on mount
   const checkStoredBypass = () => {
-    const storedBypass = localStorage.getItem('screenCheckBypass')
-    if (storedBypass) {
-      try {
-        const { width: storedWidth, height: storedHeight } = JSON.parse(storedBypass)
-        // If current resolution matches stored bypass, auto-continue
-        if (width.value === storedWidth && height.value === storedHeight) {
-          forceShowApp.value = true
-        }
-      } catch (e) {
-        console.error('Failed to parse stored screen check bypass:', e)
-      }
-    }
+    forceShowApp.value = isBypassActive()
   }
 
-  // Clear bypass cache if resolution changes
   watch([width, height], () => {
-    const storedBypass = localStorage.getItem('screenCheckBypass')
-    if (storedBypass) {
-      try {
-        const { width: storedWidth, height: storedHeight } = JSON.parse(storedBypass)
-        // If resolution has changed, clear the bypass
-        if (width.value !== storedWidth || height.value !== storedHeight) {
-          localStorage.removeItem('screenCheckBypass')
-          forceShowApp.value = false
-        }
-      } catch (e) {
-        console.error('Failed to parse stored screen check bypass:', e)
-      }
+    if (isBelowMinimum.value) {
+      checkStoredBypass()
+      return
     }
+
+    forceShowApp.value = false
   })
 
   onMounted(() => {
     window.addEventListener('resize', handleResize)
-    // Trigger initial check
     handleResize()
     checkStoredBypass()
   })
@@ -78,5 +98,6 @@ export function useScreenSize(config: ScreenSizeConfig = DEFAULT_SCREEN_CONFIG) 
     minHeight: config.minHeight,
     isBelowMinimum,
     forceShowApp,
+    bypassDurationMs: SCREEN_CHECK_BYPASS_MS,
   }
 }

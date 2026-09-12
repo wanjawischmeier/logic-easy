@@ -4,7 +4,7 @@
     <div class="relative flex items-center gap-2">
       <!-- latex renderer -->
       <div class="flex-1">
-        <vue-latex :expression="latexExpression" />
+        <vue-latex :expression="coloredExpression ?? latexExpression" />
       </div>
 
       <!-- TODO: Replace with proper button and checkmark -->
@@ -43,6 +43,7 @@ import { ref } from 'vue'
 
 const props = defineProps<{
   latexExpression: string
+  coloredExpression?: string
 }>()
 
 const copied = ref(false)

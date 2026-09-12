@@ -38,6 +38,7 @@ type ProjectCreationInfo = {
 type DockEntry = {
   id: string
   label: string
+  headerLabel?: string
   component: unknown
   projectCreationInfo?: ProjectCreationInfo
   requires?: Requirements
@@ -49,6 +50,7 @@ type DockEntry = {
  */
 type DockMenuNode = {
   label: string
+  headerLabel?: string
   children: DockRegistryEntry[]
   requires?: Requirements
 }
@@ -76,6 +78,7 @@ export type DefaultLayoutType = 'TruthTable' | 'SplitKV' | 'SplitQMC'
 
 export type MenuEntry = {
   label: string
+  headerLabel?: string
   action?: () => void
   tooltip?: string
   panelId?: string
@@ -131,13 +134,32 @@ export const dockRegistry: DockRegistryEntry[] = [
     ],
   },
   {
-    id: 'state-table',
-    label: 'State Table',
-    component: StateTablePanel,
-    minimumWidth: 400,
-    requires: {
-      view: ['Fsm'],
-    },
+    label: 'State Machine',
+    children: [
+      {
+        id: 'state-table',
+        label: 'State Machine Tables',
+        headerLabel: 'Tables',
+        component: StateTablePanel,
+        minimumWidth: 400,
+        requires: {
+          view: ['Fsm'],
+        },
+      },
+      {
+        id: 'fsm-editor',
+        label: 'State Machine Editor',
+        headerLabel: 'Editor',
+        component: FsmEnginePanel,
+        minimumWidth: 400,
+        projectCreationInfo: {
+          projectType: 'state-machine',
+        },
+        requires: {
+          view: ['Fsm'],
+        },
+      },
+    ],
   },
   {
     id: 'lc-iframe',
@@ -146,18 +168,6 @@ export const dockRegistry: DockRegistryEntry[] = [
     minimumWidth: 400,
     requires: {
       view: ['LogicCircuits'],
-    },
-  },
-  {
-    id: 'fsm-editor',
-    label: 'State Machine Editor',
-    component: FsmEnginePanel,
-    minimumWidth: 400,
-    projectCreationInfo: {
-      projectType: 'state-machine',
-    },
-    requires: {
-      view: ['Fsm'],
     },
   },
 ]
@@ -185,6 +195,7 @@ const convertRegistryEntryToMenuEntry = (
 
     return {
       label: entry.label,
+      headerLabel: entry.headerLabel,
       children: convertedChildren,
       disabled: !requirementsMet || allChildrenDisabled,
     }
@@ -193,6 +204,7 @@ const convertRegistryEntryToMenuEntry = (
   // Actual dock entry
   const menuEntry: MenuEntry = {
     label: entry.label,
+    headerLabel: entry.headerLabel,
     panelId: entry.id,
     disabled: !checkDockEntryRequirements(entry, requirementType),
     defaultLayout: entry.projectCreationInfo?.defaultLayout,

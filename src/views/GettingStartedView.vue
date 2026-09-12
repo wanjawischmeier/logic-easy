@@ -8,7 +8,7 @@
         target="_blank"
         rel="noopener noreferrer"
       >
-        <img src="/GithubLogo.png" alt="GitHub Logo" class="w-12 aspect-auto invert" />
+        <img src="/GithubLogo.png" alt="GitHub Logo" class="w-12 aspect-auto dark:invert" />
       </a>
       <a
         class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 w-12 aspect-square rounded-full shadow-2xl text-3xl font-semibold flex justify-center items-center"

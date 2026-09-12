@@ -1,5 +1,7 @@
 # LogicEasy
 
+Documentation is available at https://wanjawischmeier.github.io/logic-easy/docs/
+
 ## Serving
 
 ### Development

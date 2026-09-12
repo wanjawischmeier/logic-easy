@@ -2,6 +2,12 @@ import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
 import type { FunctionType, FunctionRepresentation } from '../types'
 import { analyzeExpressions } from './expressionParser'
 import type { QMCResult } from './minimizer'
+import { termColorHex, type TermColor } from './colorGenerator'
+
+// rewrites KaTeX css colors to xcolor expected colors
+export function formatLatexColors(latex: string): string {
+  return latex.replace(/\\textcolor\{#/g, '\\textcolor[HTML]{')
+}
 
 export function formatLatexIdentifier(
   identifier: string,
@@ -25,10 +31,14 @@ export function getFunctionSignature(
   const formType = functionType === 'Disjunctive' ? 'D' : 'C'
   const formRepresentation = functionRepresentation === 'Normal' ? 'N' : 'M'
   const functionName = formatLatexIdentifier(outputVariableName)
+  const formLabel = `${formType}${formRepresentation}F`
+  const labeledName = /_\{[^}]*\}/.test(functionName)
+    ? functionName.replace(/_\{([^}]*)\}/, `_{$1,${formLabel}}`)
+    : `${functionName}_{${formLabel}}`
   const formattedInputVars = inputVars.map((inputVar) =>
     formatLatexIdentifier(inputVar, { lowercase: options?.lowercaseInputVars ?? false }),
   )
-  return `${functionName}_{${formType}${formRepresentation}F}(${formattedInputVars.join(', ')}) = `
+  return `${labeledName}(${formattedInputVars.join(', ')}) = `
 }
 
 /**
@@ -144,6 +154,7 @@ export function getCouplingTermLatex(
   options?: {
     lowercaseInputVars?: boolean
     labelMap?: Record<string, string>
+    termColors?: TermColor[]
   },
 ): string {
   const signature = getFunctionSignature(
@@ -188,21 +199,16 @@ export function getCouplingTermLatex(
     options?.labelMap,
   )
 
-  if (variablePositions.length === 0) {
-    const termJoiner = isCNF ? '' : ' + '
-    return (
-      signature +
-      constantTerms
-        .sort((a, b) => getTermSortKey(a).localeCompare(getTermSortKey(b)))
-        .join(termJoiner)
-    )
+  const colorize = (term: string, index: number) => {
+    const color = variablePositions.length === 0 ? options?.termColors?.[index] : undefined
+    return color ? `\\textcolor{${termColorHex(color)}}{${term}}` : term
   }
 
   const partsWithKeys: Array<{ sortKey: string; latex: string }> = []
 
-  for (const term of constantTerms) {
-    partsWithKeys.push({ sortKey: getTermSortKey(term), latex: term })
-  }
+  constantTerms.forEach((term, index) => {
+    partsWithKeys.push({ sortKey: getTermSortKey(term), latex: colorize(term, index) })
+  })
 
   for (const variations of variablePositions) {
     const uniqueVars = Array.from(new Set(variations))

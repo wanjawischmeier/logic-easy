@@ -89,10 +89,10 @@ const StateIcon = defineComponent({
 
 const TransitionIcon = defineComponent({
   template: `
-    <div class="w-10 h-6 flex items-center justify-center">
+    <div class="w-10 h-6 flex items-center justify-center text-on-surface">
       <svg width="40" height="14" viewBox="0 0 40 14" aria-hidden="true">
-        <line x1="4" y1="7" x2="32" y2="7" stroke="#ffffffdd" stroke-width="2" />
-        <polygon points="32,3 38,7 32,11" fill="#ffffffdd" />
+        <line x1="4" y1="7" x2="32" y2="7" stroke="currentColor" stroke-width="2" />
+        <polygon points="32,3 38,7 32,11" fill="currentColor" />
       </svg>
     </div>
   `,
@@ -111,7 +111,7 @@ const HiddenTransitionIcon = defineComponent({
 
 const MoveIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3v18M3 12h18" />
         <path d="m12 3 3 3M12 3 9 6M12 21l3-3M12 21l-3-3M3 12l3 3M3 12l3-3M21 12l-3 3M21 12l-3-3" />
@@ -122,7 +122,7 @@ const MoveIcon = defineComponent({
 
 const ConnectIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M17 19a1 1 0 0 1-1-1v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1z" />
         <path d="M17 21v-2" />
@@ -138,7 +138,7 @@ const ConnectIcon = defineComponent({
 
 const AddIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9" fill="#ffffff10" />
         <path d="M12 7v10M7 12h10" />
@@ -149,7 +149,7 @@ const AddIcon = defineComponent({
 
 const RemoveIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9" fill="#ffffff10" />
         <path d="M7 12h10" />
@@ -160,7 +160,7 @@ const RemoveIcon = defineComponent({
 
 const SparklesIcon = defineComponent({
   template: `
-    <div class="w-6 h-6 flex items-center justify-center text-white">
+    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" fill="#ffffff10" />
         <path d="M19 13l.9 2.1L22 16l-2.1.9L19 19l-.9-2.1L16 16l2.1-.9L19 13z" />
@@ -173,7 +173,7 @@ function makeKeycap(text: string) {
   return defineComponent({
     name: `Keycap${text.replace(/[^a-zA-Z0-9]+/g, '')}`,
     template: `
-      <div class="min-w-14 h-6 px-2 inline-flex items-center justify-center rounded-md border border-surface-3 bg-surface-2 text-white text-[10px] font-mono leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_2px_rgba(0,0,0,0.45)]">
+      <div class="min-w-14 h-6 px-2 inline-flex items-center justify-center rounded-md border border-surface-3 bg-surface-2 text-on-surface text-[10px] font-mono leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_2px_rgba(0,0,0,0.45)]">
         ${text}
       </div>
     `,
@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="panelRef" class="relative w-full h-full min-h-0 text-white flex flex-col bg-surface">
+  <div ref="panelRef" class="relative w-full h-full min-h-0 text-on-surface flex flex-col bg-surface">
     <IframePanel
       v-if="isFsmValid"
       ref="iframeRef"
@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-6 text-center bg-surface"
     >
       <span
-        class="flex items-center justify-center w-16 h-16 rounded-2xl border border-surface-3 bg-surface-2 text-white"
+        class="flex items-center justify-center w-16 h-16 rounded-2xl border border-surface-3 bg-surface-2 text-on-surface"
       >
         <svg
           width="30"
@@ -368,11 +368,11 @@ onBeforeUnmount(() => {
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
       </span>
-      <h2 class="text-2xl font-medium text-white">Automaton Invalid</h2>
-      <p class="text-sm text-white/80 leading-relaxed max-w-md">
+      <h2 class="text-2xl font-medium text-on-surface">Automaton Invalid</h2>
+      <p class="text-sm text-on-surface/80 leading-relaxed max-w-md">
         {{ validReason || 'The current automaton cannot be rendered.' }}
       </p>
-      <p class="text-xs text-white/50">Fix the issues in the state table to unlock the editor.</p>
+      <p class="text-xs text-on-surface/50">Fix the issues in the state table to unlock the editor.</p>
     </div>
 
     <teleport to="body">

@@ -10,8 +10,12 @@
 
   /* tabs */
   --dv-activegroup-visiblepanel-tab-background-color: var(--color-elevated);
-  --dv-inactivegroup-visiblepanel-tab-background-color: var(--color-elevated);
   --dv-activegroup-visiblepanel-tab-color: var(--color-on-surface);
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-activegroup-hiddenpanel-tab-color: var(--color-on-surface-disabled);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--color-elevated);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--color-on-surface-disabled);
   --dv-inactivegroup-visiblepanel-tab-color: var(--color-on-surface-disabled);
   --dv-tab-divider-color: var(--color-surface-2);
 

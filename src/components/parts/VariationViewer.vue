@@ -12,7 +12,10 @@
       </div>
 
       <div class="min-w-0 flex-1 overflow-x-auto">
-        <FormulaRenderer :latex-expression="selectedLatex" />
+        <FormulaRenderer
+          :latex-expression="selectedLatex"
+          :colored-expression="selectedVariation?.coloredLatex"
+        />
       </div>
     </div>
   </div>
@@ -32,8 +35,7 @@ const props = defineProps<{
 
 const latexStrings = computed(() => props.variations.map((v) => v.latex))
 
-const selectedLatex = computed(() => {
-  const index = currentVariationIndex.value ?? 0
-  return props.variations[index]?.latex ?? '0'
-})
+const selectedVariation = computed(() => props.variations[currentVariationIndex.value ?? 0])
+
+const selectedLatex = computed(() => selectedVariation.value?.latex ?? '0')
 </script>

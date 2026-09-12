@@ -117,7 +117,7 @@ export function forceSyncTableToEditor(): void {
     syncTimer = null
   }
 
-  // Never push an invalid automaton back to the editor 
+  // Never push an invalid automaton back to the editor
   const validity = validateFsm(newFsm)
   console.log('[FSM] forceSyncTableToEditor: validating table', {
     model: newFsm.fsmModel,

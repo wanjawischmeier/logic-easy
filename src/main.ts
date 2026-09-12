@@ -9,6 +9,9 @@ import Toast from 'vue-toastification'
 import '@/style/toastification.css'
 import { useScreenSize } from '@/utility/useScreenSize'
 import ScreenTooSmallView from '@/views/ScreenTooSmallView.vue'
+import { applyTheme, getStoredTheme } from '@/utility/theme'
+
+applyTheme(getStoredTheme())
 
 const App = defineComponent({
   name: 'App',

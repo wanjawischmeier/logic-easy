@@ -65,7 +65,7 @@
     <div class="shrink-0 flex justify-center px-6 py-8 border-t border-surface-2">
       <button
         @click="continueAnyway"
-        class="px-3 py-1.5 text-sm rounded bg-elevated text-on-surface-disabled hover:bg-surface-2 transition-colors border-2 border-transparent hover:text-white hover:border-surface-3"
+        class="px-3 py-1.5 text-sm rounded bg-elevated text-on-surface-disabled hover:bg-surface-2 transition-colors border-2 border-transparent hover:text-on-surface hover:border-surface-3"
         title="Not recommended - the UI will likely be unusable"
       >
         Continue Anyway
@@ -95,14 +95,17 @@ const handleResize = () => {
 }
 
 const continueAnyway = () => {
-  // Store the current resolution to localStorage to bypass warning on reload
+  const oneHourInMs = 60 * 60 * 1000
+
   localStorage.setItem(
     'screenCheckBypass',
     JSON.stringify({
       width: window.innerWidth,
       height: window.innerHeight,
+      expiresAt: Date.now() + oneHourInMs,
     }),
   )
+
   emit('continue')
 }
 

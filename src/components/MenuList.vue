@@ -43,7 +43,7 @@ export default defineComponent({
                 type: 'button',
               },
               [
-                h('span', entry.label),
+                h('span', entry.headerLabel ?? entry.label),
                 entry.tooltip || entry.children
                   ? h('span', { class: 'flex items-center gap-2' }, [
                       entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
