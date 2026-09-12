@@ -22,7 +22,7 @@ let preloadedIframe: HTMLIFrameElement | undefined
 let iframeReadyHandler: EventListener | null = null
 let resizeObserver: ResizeObserver | null = null
 let pollInterval: number | null = null
-let layoutDisposable: any = null
+let layoutDisposable: { dispose?: () => void } | null = null
 
 function getGlobalIframe(): HTMLIFrameElement | undefined {
   return (window as unknown as Window & { [key: string]: HTMLIFrameElement | undefined })[
@@ -70,7 +70,7 @@ function setupIframe() {
   preloadedIframe = preloadedIframe || getGlobalIframe()
   if (!preloadedIframe) return false
 
-  preloadedIframe.style.display = 'block'
+  preloadedIframe.style.display = props.visible === false ? 'none' : 'block'
   updateIframePosition()
 
   resizeObserver = new ResizeObserver(() => updateIframePosition())
@@ -78,10 +78,21 @@ function setupIframe() {
     resizeObserver.observe(containerRef.value)
   }
 
-  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateIframePosition())
+  layoutDisposable = getDockviewApi()?.onDidLayoutChange(() => updateIframePosition()) ?? null
 
   return true
 }
+
+watch(
+  () => props.visible,
+  (visible) => {
+    preloadedIframe = preloadedIframe || getGlobalIframe()
+    if (!preloadedIframe) return
+    preloadedIframe.style.display = visible === false ? 'none' : 'block'
+    if (visible !== false) updateIframePosition()
+  },
+  { immediate: true },
+)
 
 function createIframe() {
   const w = window as unknown as Window & { [key: string]: HTMLIFrameElement | undefined }

@@ -120,10 +120,15 @@ export class FsmProject extends Project {
     }
 
     const payload = incomingFsm as EditorExportPayload
+    console.log('[FSM] FsmProject.importEditorExport: applying editor export to table')
     const { nodes, transitions } = importEditorPayload(payload, state)
     state.nodes = nodes
     state.transitions = transitions
     normalizeFsmState(state)
+    console.log('[FSM] FsmProject.importEditorExport: table state after normalize', {
+      nodes: state.nodes,
+      transitions: state.transitions,
+    })
   }
 
   static override validateState(state: AppState): boolean {

@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, defineComponent, h, type Component } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  defineComponent,
+  h,
+  type Component,
+} from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
@@ -9,17 +19,56 @@ import {
   useFsmListener,
   disposeFsmSyncService,
   forceSyncTableToEditor,
-  consumeSuppressIncomingEditorExport,
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
+import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
-const title = ref('')
-let disposable: { dispose?: () => void } | null = null
+// Single validation result used for the lock view and the legend visibility
+const fsmValidity = computed<FsmValidity>(() => {
+  const fsm = stateManager.state.fsm
+  console.log('[FSM] validating automaton', fsm)
+  return fsm ? validateFsm(fsm) : { valid: true }
+})
+const isFsmValid = computed(() => fsmValidity.value.valid)
+const validReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
+
+// Force the complete table state into the editor when the lock view closes
+watch(isFsmValid, (valid, wasValid) => {
+  if (!valid || wasValid !== false) return
+  void nextTick(() => forceSyncTableToEditor())
+})
+// Warning for when transitions are not drawn because their next state is all-don't-care
+const hiddenEdgeCount = computed(() => {
+  const fsm = stateManager.state.fsm
+  if (!fsm) return 0
+  const maxNodeId = (fsm.nodes ?? []).reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
+  const minimumNodeBits = calcBitNumber(Math.max(1, maxNodeId + 1))
+  return (fsm.transitions ?? []).filter((transition) => {
+    if (transition.toNodeId >= 0) return false
+    const targetPattern = normalizeBits(
+      transition.toBinaryId ?? '',
+      Math.max(minimumNodeBits, (transition.toBinaryId ?? '').length),
+      'x',
+      'left',
+    )
+    if (!/^x+$/.test(targetPattern)) return false
+    if (fsm.fsmModel === 'moore') return true
+    const outputPattern = normalizeBits(
+      transition.mealyOutput,
+      fsm.outputBitCount ?? 1,
+      'x',
+      'right',
+    )
+    return /^x+$/.test(outputPattern)
+  }).length
+})
 let visibilityDisposable: { dispose?: () => void } | null = null
 let isFsmSyncActive = false
+let editorExportTimer: ReturnType<typeof setTimeout> | null = null
 type IframePanelExpose = {
   getIframe: () => HTMLIFrameElement | undefined
 }
@@ -44,6 +93,17 @@ const TransitionIcon = defineComponent({
       <svg width="40" height="14" viewBox="0 0 40 14" aria-hidden="true">
         <line x1="4" y1="7" x2="32" y2="7" stroke="currentColor" stroke-width="2" />
         <polygon points="32,3 38,7 32,11" fill="currentColor" />
+      </svg>
+    </div>
+  `,
+})
+
+const HiddenTransitionIcon = defineComponent({
+  template: `
+    <div class="w-10 h-6 flex items-center justify-center">
+      <svg width="40" height="14" viewBox="0 0 40 14" aria-hidden="true">
+        <line x1="4" y1="7" x2="32" y2="7" stroke="#ffffff66" stroke-width="2" stroke-dasharray="3 3" />
+        <polygon points="32,3 38,7 32,11" fill="#ffffff66" />
       </svg>
     </div>
   `,
@@ -109,28 +169,6 @@ const SparklesIcon = defineComponent({
   `,
 })
 
-const UndoIcon = defineComponent({
-  template: `
-    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 10H4V5" />
-        <path d="M4 10c2-3 5-4 8-4 4 0 7 3 7 7s-3 7-7 7H9" />
-      </svg>
-    </div>
-  `,
-})
-
-const RedoIcon = defineComponent({
-  template: `
-    <div class="w-6 h-6 flex items-center justify-center text-on-surface">
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 10h5V5" />
-        <path d="M20 10c-2-3-5-4-8-4-4 0-7 3-7 7s3 7 7 7h4" />
-      </svg>
-    </div>
-  `,
-})
-
 function makeKeycap(text: string) {
   return defineComponent({
     name: `Keycap${text.replace(/[^a-zA-Z0-9]+/g, '')}`,
@@ -156,15 +194,11 @@ function makeActionWithShortcut(iconComponent: Component, shortcutComponent: Com
 
 const AltSKeycap = makeKeycap('Alt+S')
 const AltRKeycap = makeKeycap('Alt+R')
-const AltZKeycap = makeKeycap('Alt+Z')
-const AltYKeycap = makeKeycap('Alt+Y')
 const AltAKeycap = makeKeycap('Alt+A')
 
 const AddAction = makeActionWithShortcut(AddIcon, AltSKeycap)
 const RemoveAction = makeActionWithShortcut(RemoveIcon, AltRKeycap)
 const AutoLayoutAction = makeActionWithShortcut(SparklesIcon, AltAKeycap)
-const UndoAction = makeActionWithShortcut(UndoIcon, AltZKeycap)
-const RedoAction = makeActionWithShortcut(RedoIcon, AltYKeycap)
 
 const getFsmIframe = () => {
   const windowWithIframe = window as Window & { __fsm_preloaded_iframe?: HTMLIFrameElement }
@@ -183,6 +217,12 @@ const legend: LegendItem[] = [
     label: 'Transition',
     description:
       'Directed arrows connect states. The transition labels represent the input / output bits or, in Moore mode, only the output bits',
+  },
+  {
+    component: HiddenTransitionIcon,
+    label: 'Hidden transition',
+    description:
+      'Transitions whose next state and output are all don\u2019t-cares are hidden in the editor. A warning badge appears in the panel while any exist.',
   },
   {
     component: MoveIcon,
@@ -205,17 +245,6 @@ const legend: LegendItem[] = [
     description: 'Delete the selected item using the Remove button or the Alt+R shortcut.',
   },
   {
-    component: UndoAction,
-    label: 'Undo',
-    description: 'Revert the most recent change using the Undo button or the Alt+Z shortcut.',
-  },
-  {
-    component: RedoAction,
-    label: 'Redo',
-    description:
-      'Restore the most recently undone change using the Redo button or the Alt+Y shortcut.',
-  },
-  {
     component: AutoLayoutAction,
     label: 'Auto layout',
     description: 'Automatically rearrange the graph using the Auto Layout button or Alt+A.',
@@ -225,13 +254,6 @@ const legend: LegendItem[] = [
 let messageHandler: ((event: MessageEvent) => void) | null = null
 
 onMounted(() => {
-  disposable = props.params.api.onDidTitleChange(() => {
-    title.value = props.params.api.title ?? ''
-  })
-  title.value = props.params.api.title ?? ''
-})
-
-onMounted(() => {
   const syncWithPanelVisibility = () => {
     if (props.params.api.isVisible) {
       if (!isFsmSyncActive) {
@@ -239,8 +261,6 @@ onMounted(() => {
         isFsmSyncActive = true
       }
     } else if (isFsmSyncActive) {
-      // Clear any pending suppression so it doesn't carry over across visibility toggles
-      consumeSuppressIncomingEditorExport()
       disposeFsmSyncService()
       isFsmSyncActive = false
     }
@@ -255,7 +275,6 @@ onMounted(() => {
   // handle editor -> app exports: delegate concrete state handling to FsmProject
   messageHandler = (event: MessageEvent) => {
     if (!props.params.api.isVisible) {
-      consumeSuppressIncomingEditorExport()
       return
     }
     const fsmIframe = getFsmIframe()
@@ -264,8 +283,9 @@ onMounted(() => {
 
     const data = event.data || {}
     if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
-      // if we suppressed the next editor export (because we forced a sync), consume suppression and ignore
-      if (consumeSuppressIncomingEditorExport()) {
+      console.log('[FSM] panel received editor export', data)
+      if (!isFsmValid.value) {
+        console.log('[FSM] panel ignored editor export while lock view is shown')
         return
       }
 
@@ -284,7 +304,9 @@ onMounted(() => {
         // Force-sync whenever the node IDs changed
         const nextNodeIds = nodeIdsKey()
         const shouldForce = nextNodeIds !== prevNodeIds
-        setTimeout(() => {
+        if (editorExportTimer) clearTimeout(editorExportTimer)
+        editorExportTimer = setTimeout(() => {
+          editorExportTimer = null
           setIsSyncing(false)
           if (shouldForce) forceSyncTableToEditor()
         }, 50)
@@ -296,7 +318,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  disposable?.dispose?.()
+  if (editorExportTimer) {
+    clearTimeout(editorExportTimer)
+    editorExportTimer = null
+  }
   visibilityDisposable?.dispose?.()
   visibilityDisposable = null
 
@@ -310,8 +335,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="panelRef" class="relative flex-1 h-full text-on-surface flex flex-col bg-surface">
+  <div ref="panelRef" class="relative w-full h-full min-h-0 text-on-surface flex flex-col bg-surface">
     <IframePanel
+      v-if="isFsmValid"
       ref="iframeRef"
       iframe-key="__fsm_preloaded_iframe"
       src="/logic-easy/fsm-engine/dist/index.html"
@@ -319,9 +345,52 @@ onBeforeUnmount(() => {
       class="flex-1"
     />
 
+    <!-- Show the lock view instead of the editor while the automaton is invalid -->
+    <div
+      v-else
+      class="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-6 text-center bg-surface"
+    >
+      <span
+        class="flex items-center justify-center w-16 h-16 rounded-2xl border border-surface-3 bg-surface-2 text-on-surface"
+      >
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </span>
+      <h2 class="text-2xl font-medium text-on-surface">Automaton Invalid</h2>
+      <p class="text-sm text-on-surface/80 leading-relaxed max-w-md">
+        {{ validReason || 'The current automaton cannot be rendered.' }}
+      </p>
+      <p class="text-xs text-on-surface/50">Fix the issues in the state table to unlock the editor.</p>
+    </div>
+
     <teleport to="body">
       <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">
-        <LegendButton :legend="legend" />
+        <div
+          v-if="hiddenEdgeCount > 0 && isFsmValid"
+          class="h-7 shrink-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+          title="Transitions with all don't-care bits (next state and output) are hidden in the editor"
+        >
+          <span
+            class="h-5 w-5 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
+            aria-hidden="true"
+          >
+            !
+          </span>
+          <span class="whitespace-nowrap">Hidden don't-care transitions</span>
+        </div>
+        <LegendButton v-if="isFsmValid" :legend="legend" />
       </div>
     </teleport>
   </div>

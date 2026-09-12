@@ -76,6 +76,7 @@ function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
 }
 
 export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
+  console.log('[FSM] importEditorPayload: incoming editor export', raw)
   // Clamp to at least 1 bit: a 0 bit count would leave an empty transition matrix
   const inputBits = Math.max(1, state.inputBitCount ?? 1)
   const outputBits = Math.max(1, state.outputBitCount ?? 1)
@@ -131,9 +132,12 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
         remappedPatterns.push(calcBinaryID(remappedNode, nodeBitCount))
       })
 
+      // A pattern matching no state locks the editor (only all-x stays unassigned)
       normalizedtoBinaryId =
         remappedPatterns.length === 0
-          ? 'x'.repeat(nodeBitCount)
+          ? /^x+$/.test(normalizedPattern)
+            ? 'x'.repeat(nodeBitCount)
+            : normalizeBits(normalizedPattern, nodeBitCount, 'x', 'left')
           : Array.from({ length: nodeBitCount }, (_, index) => {
               const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
               return bits.size === 1 ? [...bits][0] : 'x'
@@ -166,6 +170,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   })
 
   const transitions = fillMissingTransitions(nodes, rawExpanded, inputBits, outputBits, isMoore)
+  console.log('[FSM] importEditorPayload: result applied to table', { nodes, transitions })
   return { nodes, transitions }
 }
 
