@@ -44,8 +44,10 @@ export function resolveTransitionTargetNodes(
 
   const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
   const totalStates = Math.max(1, maxNodeId + 1)
-  const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
-  const normalizedPattern = normalizeBits(transition.toBinaryId ?? '', nodeIdBitCount, 'x', 'left')
+  const minimumNodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
+  const pattern = String(transition.toBinaryId ?? '')
+  const nodeIdBitCount = Math.max(minimumNodeIdBitCount, pattern.length)
+  const normalizedPattern = normalizeBits(pattern, nodeIdBitCount, 'x', 'left')
 
   return state.nodes.filter((node) => {
     const nodeBits = calcBinaryID(node.nodeId, nodeIdBitCount)

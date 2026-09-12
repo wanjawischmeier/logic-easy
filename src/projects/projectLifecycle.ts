@@ -77,6 +77,17 @@ export class ProjectLifecycleManager {
   }
 
   /**
+   * Drop any open popup/draft and reset the FSM editor to the blank canvas
+   */
+  private resetFsmEditor(): void {
+    const w = window as unknown as Window & { __fsm_preloaded_iframe?: HTMLIFrameElement }
+    const fsmIframe = w.__fsm_preloaded_iframe
+    if (fsmIframe?.contentWindow) {
+      fsmIframe.contentWindow.postMessage({ action: 'fsm-reset' }, window.location.origin)
+    }
+  }
+
+  /**
    * Open a project by ID (loads state into stateManager)
    */
   open(projectId: number): StoredProject | null {
@@ -123,6 +134,9 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
     // Clear the state first
     this.clearState()
 
+    // Reset the FSM editor (close open popups, drop drafts) before new data arrives
+    this.resetFsmEditor()
+
     // Clear the ID first to force reactivity, then set it
     this.currentProjectId.value = null
     this.setCurrentId(projectId)
@@ -159,6 +173,9 @@ Version mismatch (project: ${project.state.version}, current: ${STORAGE_VERSION}
 
     // Reset document title
     document.title = 'LogicEasy'
+
+    // Reset the FSM editor (close open popups, drop drafts)
+    this.resetFsmEditor()
 
     // Clear the state to trigger reactivity updates
     this.clearState()

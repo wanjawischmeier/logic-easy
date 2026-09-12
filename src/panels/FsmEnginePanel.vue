@@ -3,6 +3,7 @@ import {
   ref,
   computed,
   watch,
+  nextTick,
   onMounted,
   onBeforeUnmount,
   defineComponent,
@@ -18,7 +19,6 @@ import {
   useFsmListener,
   disposeFsmSyncService,
   forceSyncTableToEditor,
-  consumeSuppressIncomingEditorExport,
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
@@ -27,29 +27,48 @@ import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
-const title = ref('')
-// Single validation result used for the lock overlay and the legend visibility
+// Single validation result used for the lock view and the legend visibility
 const fsmValidity = computed<FsmValidity>(() => {
   const fsm = stateManager.state.fsm
+  console.log('[FSM] validating automaton', fsm)
   return fsm ? validateFsm(fsm) : { valid: true }
 })
 const isFsmValid = computed(() => fsmValidity.value.valid)
 const validReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
+
+// Force the complete table state into the editor when the lock view closes
+watch(isFsmValid, (valid, wasValid) => {
+  if (!valid || wasValid !== false) return
+  void nextTick(() => forceSyncTableToEditor())
+})
 // Warning for when transitions are not drawn because their next state is all-don't-care
 const hiddenEdgeCount = computed(() => {
   const fsm = stateManager.state.fsm
   if (!fsm) return 0
   const maxNodeId = (fsm.nodes ?? []).reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-  const nodeBits = calcBitNumber(Math.max(1, maxNodeId + 1))
+  const minimumNodeBits = calcBitNumber(Math.max(1, maxNodeId + 1))
   return (fsm.transitions ?? []).filter((transition) => {
     if (transition.toNodeId >= 0) return false
-    const pattern = normalizeBits(transition.toBinaryId ?? '', nodeBits, 'x', 'left')
-    return /^x+$/.test(pattern)
+    const targetPattern = normalizeBits(
+      transition.toBinaryId ?? '',
+      Math.max(minimumNodeBits, (transition.toBinaryId ?? '').length),
+      'x',
+      'left',
+    )
+    if (!/^x+$/.test(targetPattern)) return false
+    if (fsm.fsmModel === 'moore') return true
+    const outputPattern = normalizeBits(
+      transition.mealyOutput,
+      fsm.outputBitCount ?? 1,
+      'x',
+      'right',
+    )
+    return /^x+$/.test(outputPattern)
   }).length
 })
-let disposable: { dispose?: () => void } | null = null
 let visibilityDisposable: { dispose?: () => void } | null = null
 let isFsmSyncActive = false
+let editorExportTimer: ReturnType<typeof setTimeout> | null = null
 type IframePanelExpose = {
   getIframe: () => HTMLIFrameElement | undefined
 }
@@ -186,20 +205,6 @@ const getFsmIframe = () => {
   return iframeRef.value?.getIframe?.() ?? windowWithIframe.__fsm_preloaded_iframe
 }
 
-// Block the editor iframe while the automaton is invalid (the overlay covers it visually)
-watch(
-  isFsmValid,
-  (valid) => {
-    const fsmIframe = getFsmIframe()
-    if (!fsmIframe) return
-    fsmIframe.style.pointerEvents = valid ? 'auto' : 'none'
-    if (!valid && document.activeElement === fsmIframe) {
-      ;(document.activeElement as HTMLElement).blur()
-    }
-  },
-  { immediate: true },
-)
-
 const legend: LegendItem[] = [
   {
     component: StateIcon,
@@ -249,13 +254,6 @@ const legend: LegendItem[] = [
 let messageHandler: ((event: MessageEvent) => void) | null = null
 
 onMounted(() => {
-  disposable = props.params.api.onDidTitleChange(() => {
-    title.value = props.params.api.title ?? ''
-  })
-  title.value = props.params.api.title ?? ''
-})
-
-onMounted(() => {
   const syncWithPanelVisibility = () => {
     if (props.params.api.isVisible) {
       if (!isFsmSyncActive) {
@@ -263,8 +261,6 @@ onMounted(() => {
         isFsmSyncActive = true
       }
     } else if (isFsmSyncActive) {
-      // Clear any pending suppression so it doesn't carry over across visibility toggles
-      consumeSuppressIncomingEditorExport()
       disposeFsmSyncService()
       isFsmSyncActive = false
     }
@@ -279,7 +275,6 @@ onMounted(() => {
   // handle editor -> app exports: delegate concrete state handling to FsmProject
   messageHandler = (event: MessageEvent) => {
     if (!props.params.api.isVisible) {
-      consumeSuppressIncomingEditorExport()
       return
     }
     const fsmIframe = getFsmIframe()
@@ -288,8 +283,9 @@ onMounted(() => {
 
     const data = event.data || {}
     if ((data.action === 'export' || data.action === 'editorToTableExport') && data.fsm) {
-      // if we suppressed the next editor export (because we forced a sync), consume suppression and ignore
-      if (consumeSuppressIncomingEditorExport()) {
+      console.log('[FSM] panel received editor export', data)
+      if (!isFsmValid.value) {
+        console.log('[FSM] panel ignored editor export while lock view is shown')
         return
       }
 
@@ -308,7 +304,9 @@ onMounted(() => {
         // Force-sync whenever the node IDs changed
         const nextNodeIds = nodeIdsKey()
         const shouldForce = nextNodeIds !== prevNodeIds
-        setTimeout(() => {
+        if (editorExportTimer) clearTimeout(editorExportTimer)
+        editorExportTimer = setTimeout(() => {
+          editorExportTimer = null
           setIsSyncing(false)
           if (shouldForce) forceSyncTableToEditor()
         }, 50)
@@ -320,7 +318,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  disposable?.dispose?.()
+  if (editorExportTimer) {
+    clearTimeout(editorExportTimer)
+    editorExportTimer = null
+  }
   visibilityDisposable?.dispose?.()
   visibilityDisposable = null
 
@@ -334,8 +335,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="panelRef" class="relative flex-1 h-full text-white flex flex-col bg-surface">
+  <div ref="panelRef" class="relative w-full h-full min-h-0 text-white flex flex-col bg-surface">
     <IframePanel
+      v-if="isFsmValid"
       ref="iframeRef"
       iframe-key="__fsm_preloaded_iframe"
       src="/logic-easy/fsm-engine/dist/index.html"
@@ -343,10 +345,10 @@ onBeforeUnmount(() => {
       class="flex-1"
     />
 
-    <!-- cover the editor while the automaton is invalid -->
+    <!-- Show the lock view instead of the editor while the automaton is invalid -->
     <div
-      v-if="!isFsmValid"
-      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center bg-surface"
+      v-else
+      class="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-6 text-center bg-surface"
     >
       <span
         class="flex items-center justify-center w-16 h-16 rounded-2xl border border-surface-3 bg-surface-2 text-white"
