@@ -77,7 +77,8 @@ export class ProjectLifecycleManager {
   }
 
   /**
-   * Drop any open popup/draft and reset the FSM editor to the blank canvas
+   * Tell the FSM editor iframe to drop any open popup/draft and reset to a
+   * blank canvas (project closed or about to be replaced).
    */
   private resetFsmEditor(): void {
     const w = window as unknown as Window & { __fsm_preloaded_iframe?: HTMLIFrameElement }
