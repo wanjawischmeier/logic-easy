@@ -346,7 +346,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
           truthTable.values,
           index,
           labelMap,
-          truthTable.inputVars.map((inputVar) => inputVar.toLowerCase()),
+
+          // Use input variable labels for coloring if available, otherwise use internal names
+          truthTable.inputVars.map((_, index) => String.fromCharCode(97 + index)),
         )
       } else {
         formulas[outputVar] = fallbackFormula(truthTable.functionType)
