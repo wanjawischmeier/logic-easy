@@ -345,7 +345,11 @@ onBeforeUnmount(() => {
     />
 
     <!-- Same lock view the KV panel shows while the automaton is invalid -->
-    <InvalidAutomatonView v-else :reason="validReason" />
+    <InvalidAutomatonView
+      v-else
+      :reason="validReason"
+      hint="Fix the issues in the state table to unlock the editor."
+    />
 
     <teleport to="body">
       <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">

@@ -24,15 +24,13 @@
     <p class="text-sm text-on-surface/80 leading-relaxed max-w-md">
       {{ reason || 'The current automaton cannot be rendered.' }}
     </p>
-    <p class="text-xs text-on-surface/50">
-      Fix the issues in the state table to unlock the editor.
-    </p>
+    <p class="text-xs text-on-surface/50">{{ hint }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
 // Shared by the editor and the KV diagram so both views lock together while the automaton is invalid
-defineProps<{ reason?: string }>()
+defineProps<{ reason?: string; hint: string }>()
 </script>
 
 <style scoped></style>

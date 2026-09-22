@@ -32,7 +32,11 @@
     </div>
 
     <!-- Same lock view the editor shows while the automaton is invalid -->
-    <InvalidAutomatonView v-if="isAutomatonInvalid" :reason="invalidReason" />
+    <InvalidAutomatonView
+      v-if="isAutomatonInvalid"
+      :reason="invalidReason"
+      hint="Fix the issues in the state table to unlock the Karnaugh-Veitch diagram."
+    />
 
     <div v-else class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
