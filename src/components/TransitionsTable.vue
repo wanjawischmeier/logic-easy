@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
 import type { FsmModel, FsmTransition } from '@/projects/state-machine/FsmTypes'
 import { normalizeBits } from '@/utility/fsm/bitOperations'
 import {
+  resolveMooreOutput,
   toggleMooreOutputBit,
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/projects/state-machine/FsmProject'
+import { findUnassignedNextStateWarning } from '@/utility/fsm/EditorSync/fsmValidation'
 
 function displayBitAt(
   source: string | undefined,
@@ -25,6 +27,12 @@ function displayBitAt(
 const { nodes, transitions, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } =
   FsmProject.useState()
 
+// Unassigned all-don't-care next states never lock the editor, but while the state count is not
+// a power of two they cover indexes that do not exist yet, so warn here instead
+const unassignedWarning = computed(() =>
+  stateManager.state.fsm ? findUnassignedNextStateWarning(stateManager.state.fsm) : null,
+)
+
 const editableCellRefs = ref<(HTMLElement | null)[][]>([])
 
 function getBinaryById(id: number) {
@@ -33,6 +41,9 @@ function getBinaryById(id: number) {
 }
 
 function getToBinary(tr: FsmTransition) {
+  // A removed target has no position anymore: show don't care until the user picks one
+  if (tr.removedTarget) return 'x'.repeat(nodeIdBitCount.value)
+
   if (tr.toBinaryId) {
     return normalizeBits(tr.toBinaryId, nodeIdBitCount.value, 'x', 'left')
   }
@@ -41,62 +52,12 @@ function getToBinary(tr: FsmTransition) {
   return node?.binaryNodeId ?? 'x'.repeat(nodeIdBitCount.value)
 }
 
-function getTargetNode(tr: FsmTransition) {
-  if (tr.toNodeId >= 0) {
-    return nodes.value.find((state) => state.nodeId === tr.toNodeId)
-  }
-
-  if (!tr.toBinaryId) return undefined
-
-  const normalized = normalizeBits(tr.toBinaryId, nodeIdBitCount.value, 'x', 'left')
-  if (!/^[01]+$/.test(normalized)) return undefined
-
-  return nodes.value.find(
-    (state) =>
-      state.binaryNodeId === normalized ||
-      state.nodeId.toString(2).padStart(nodeIdBitCount.value, '0') === normalized,
-  )
-}
-
-function getTargetNodes(tr: FsmTransition) {
-  if (tr.toNodeId >= 0) {
-    const node = nodes.value.find((state) => state.nodeId === tr.toNodeId)
-    return node ? [node] : []
-  }
-
-  if (!tr.toBinaryId) return []
-
-  const normalized = normalizeBits(tr.toBinaryId, nodeIdBitCount.value, 'x', 'left')
-  return nodes.value.filter((state) => {
-    const bits = (
-      state.binaryNodeId ?? state.nodeId.toString(2).padStart(nodeIdBitCount.value, '0')
-    )
-      .slice(-nodeIdBitCount.value)
-      .padStart(nodeIdBitCount.value, '0')
-    for (let index = 0; index < nodeIdBitCount.value; index += 1) {
-      const patternBit = normalized.charAt(index)
-      if (patternBit !== 'x' && patternBit !== bits.charAt(index)) return false
-    }
-    return true
-  })
-}
-
 function getOutputValue(tr: FsmTransition, model: FsmModel): string {
   if (model === 'moore') {
-    const targetNodes = getTargetNodes(tr)
-    if (!targetNodes.length) {
-      const node = getTargetNode(tr)
-      return node?.mooreOutput ?? ''
-    }
-
-    const bits = outputBitCount.value
-    const normalizedOutputs = targetNodes.map((node) =>
-      normalizeBits(node.mooreOutput, bits, 'x', 'right'),
-    )
-    return Array.from({ length: bits }, (_, bitIndex) => {
-      const bit = normalizedOutputs[0]?.charAt(bitIndex) || 'x'
-      return normalizedOutputs.every((out) => out.charAt(bitIndex) === bit) ? bit : 'x'
-    }).join('')
+    // Shared resolver keeps the cell, the toggle and the validation in sync
+    const fsm = stateManager.state.fsm
+    if (!fsm) return ''
+    return resolveMooreOutput(fsm, tr)
   }
 
   return tr.mealyOutput ?? ''
@@ -173,8 +134,26 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-2 w-full pt-0">
+  <div class="relative flex flex-col items-center gap-2 w-full pt-0">
     <h2 class="text-center py-2 mt-1 text-xl font-mono">Transitions</h2>
+
+    <!-- Absolutely positioned on the heading line, so toggling it never shifts the table -->
+    <div v-if="unassignedWarning" class="absolute right-0 top-3 flex items-center">
+      <div
+        class="h-7 shrink-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+        :title="`Next states consisting only of don't-cares ('-') expand to every index of their bit width. They never lock the editor, but with the current states they also cover ${unassignedWarning.missing.join(', ')}, which no state uses yet.`"
+      >
+        <span
+          class="h-5 w-5 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
+          aria-hidden="true"
+        >
+          !
+        </span>
+        <span class="whitespace-nowrap">
+          Unassigned next states cover {{ unassignedWarning.missing.join(', ') }}
+        </span>
+      </div>
+    </div>
 
     <table
       v-if="transitions.length"

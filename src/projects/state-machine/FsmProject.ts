@@ -77,8 +77,6 @@ export class FsmProject extends Project {
 
   // initialize default fsm state
   static override createState(props: FsmProps) {
-    console.log('[FSMProject.createState] Initializing project state')
-
     // initialize empty fsm state
     stateManager.state.fsm = {
       nodes: [],
@@ -91,8 +89,6 @@ export class FsmProject extends Project {
       stateEncoding: defaultStateEncoding,
       flipFlopType: defaultFlipFlopType,
     }
-
-    console.log('[FSMProject.createState] State initialized')
   }
 
   static importEditorExport(incomingFsm: unknown): void {
@@ -178,6 +174,7 @@ export {
   getStateCountLimit,
   removeStateRow,
   renameState,
+  resolveMooreOutput,
   setInitialState,
   setInputBitCount,
   setOutputBitCount,

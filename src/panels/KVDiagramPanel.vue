@@ -1,6 +1,9 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
-    <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
+    <div
+      v-if="!isAutomatonInvalid"
+      class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2"
+    >
       <SettingsButton
         :input-vars="displayInputVars"
         :output-vars="displayOutputVars"
@@ -28,7 +31,14 @@
       />
     </div>
 
-    <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
+    <!-- Same lock view the editor shows while the automaton is invalid -->
+    <InvalidAutomatonView
+      v-if="isAutomatonInvalid"
+      :reason="invalidReason"
+      hint="Fix the issues in the state table to unlock the Karnaugh-Veitch diagram."
+    />
+
+    <div v-else class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
         <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
@@ -107,6 +117,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
+import InvalidAutomatonView from '@/components/InvalidAutomatonView.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
@@ -126,6 +137,7 @@ import {
   buildFsmKVDiagramPresentation,
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
+import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import type { Formula, FormulaVariation } from '@/utility/types'
 import { mapFormulaTermsToPIColors } from '@/utility/truthtable/colorGenerator'
@@ -229,11 +241,10 @@ const getCurrentCouplingLatexForOutput = (outputVarName?: string) => {
   const result = qmcResults.value?.[outputVar]
   if (!result) return displayCouplingTermLatex.value
 
-  const outputName = outputVarLabels.value?.[outputVars.value.indexOf(outputVar)] ?? outputVar
   return result.expressions && result.expressions.length > 0
     ? result.expressions
         .map((expr) => {
-          const formula = expr as any
+          const formula = expr as unknown as { latex?: string }
           return formula?.latex ?? ''
         })
         .filter(Boolean)
@@ -286,6 +297,17 @@ const getSelectedVariationFormula = (outputVarName?: string) => {
 const selectedVariationFormula = computed(() => getSelectedVariationFormula())
 
 const isFsmProject = computed(() => !!stateManager.state.fsm)
+
+// The KV view mirrors the FSM, so it locks together with the editor while the automaton is invalid
+const fsmValidity = computed<FsmValidity>(() => {
+  const fsm = stateManager.state.fsm
+  return fsm ? validateFsm(fsm) : { valid: true }
+})
+// Only an FSM-derived truth table is locked, a combinatorial circuit has no automaton
+const isAutomatonInvalid = computed(
+  () => stateManager.state.truthTable?.fsmMode === true && !fsmValidity.value.valid,
+)
+const invalidReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),

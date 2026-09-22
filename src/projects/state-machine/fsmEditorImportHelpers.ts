@@ -116,33 +116,49 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
 
     let normalizedtoBinaryId: string
     let concreteToNodeId = -1
+    let danglingTarget = false
     if (incomingTransition.toBinaryId) {
-      const rawPattern = sanitizeEditorBits(incomingTransition.toBinaryId, targetBits)
-      const normalizedPattern = normalizeBits(rawPattern, targetBits, 'x', 'left')
+      const rawIncoming = String(incomingTransition.toBinaryId).replace(/-/g, 'x')
+      const patternBits = Math.max(targetBits, rawIncoming.length)
+      const rawPattern = sanitizeEditorBits(incomingTransition.toBinaryId, patternBits)
+      const normalizedPattern = normalizeBits(rawPattern, patternBits, 'x', 'left')
       const remappedPatterns: string[] = []
+      let unmappedTarget = false
       expandInputs(normalizedPattern).forEach((concreteOriginal) => {
         const originalState = incomingStates.find(
           (s) =>
-            Number.isFinite(s?.id) && calcBinaryID(Number(s.id), targetBits) === concreteOriginal,
+            Number.isFinite(s?.id) && calcBinaryID(Number(s.id), patternBits) === concreteOriginal,
         )
-        if (!originalState) return
+        if (!originalState) {
+          unmappedTarget = true
+          return
+        }
         const remappedNode = idMap.get(Number(originalState.id))
-        if (remappedNode === undefined) return
+        if (remappedNode === undefined) {
+          unmappedTarget = true
+          return
+        }
         remappedPatterns.push(calcBinaryID(remappedNode, nodeBitCount))
       })
 
-      normalizedtoBinaryId =
-        remappedPatterns.length === 0
-          ? 'x'.repeat(nodeBitCount)
-          : Array.from({ length: nodeBitCount }, (_, index) => {
-              const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
-              return bits.size === 1 ? [...bits][0] : 'x'
-            }).join('')
+      if (/^x+$/.test(normalizedPattern)) {
+        // An all-x pattern stays unassigned
+        normalizedtoBinaryId = 'x'.repeat(nodeBitCount)
+      } else if (unmappedTarget || remappedPatterns.length === 0) {
+        // A dangling or incomplete pattern stays dangling so validateFsm locks the editor
+        normalizedtoBinaryId = normalizedPattern
+        danglingTarget = true
+      } else {
+        normalizedtoBinaryId = Array.from({ length: nodeBitCount }, (_, index) => {
+          const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
+          return bits.size === 1 ? [...bits][0] : 'x'
+        }).join('')
+      }
     } else {
       normalizedtoBinaryId = concreteBits
     }
 
-    if (/^[01]+$/.test(normalizedtoBinaryId)) {
+    if (!danglingTarget && /^[01]+$/.test(normalizedtoBinaryId)) {
       concreteToNodeId =
         nodes.find((node) => calcBinaryID(node.nodeId, nodeBitCount) === normalizedtoBinaryId)
           ?.nodeId ?? -1
@@ -159,6 +175,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
         fromNodeId: remappedFrom,
         toNodeId: concreteToNodeId,
         toBinaryId: concreteToNodeId >= 0 ? undefined : normalizedtoBinaryId,
+        removedTarget: danglingTarget || undefined,
         input: concreteInput,
         mealyOutput: !isMoore ? outputBitsString : undefined,
       })

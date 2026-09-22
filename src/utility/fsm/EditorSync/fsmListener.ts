@@ -2,22 +2,30 @@
 import { effectScope, watch, type EffectScope } from 'vue'
 import { stateManager } from '@/projects/stateManager'
 import { calcBinaryID, normalizeBits } from '../bitOperations'
+import { validateFsm } from './fsmValidation'
 
 let isSyncing = false
 let isInitialized = false
 let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
-let suppressIncomingEditorExport = false
-let suppressTimeout: ReturnType<typeof setTimeout> | null = null
+let syncTimer: ReturnType<typeof setTimeout> | null = null
+let pendingTableSync = false
 
-function setSuppressIncomingEditorExport() {
-  suppressIncomingEditorExport = true
-  if (suppressTimeout) clearTimeout(suppressTimeout)
-  // Auto-clear if the editor's echo is delayed/missed.
-  suppressTimeout = setTimeout(() => {
-    suppressIncomingEditorExport = false
-    suppressTimeout = null
-  }, 1200)
+// Debounce table-driven syncs so fast toggling coalesces into one editor update
+function scheduleTableSync() {
+  const newFsm = stateManager.state.fsm
+  if (newFsm && !validateFsm(newFsm).valid) {
+    if (syncTimer) {
+      clearTimeout(syncTimer)
+      syncTimer = null
+    }
+    return
+  }
+  if (syncTimer) clearTimeout(syncTimer)
+  syncTimer = setTimeout(() => {
+    syncTimer = null
+    syncTableToEditor()
+  }, 120)
 }
 
 function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm>) {
@@ -69,18 +77,20 @@ function syncTableToEditor() {
   const newFsm = stateManager.state.fsm
   if (isSyncing || !newFsm) return
 
+  // Never push an invalid automaton back to the editor (the editor keeps its last valid state while locked)
+  const validity = validateFsm(newFsm)
+  if (!validity.valid) return
+
   const fsmIframe = (window as any).__fsm_preloaded_iframe
   if (!fsmIframe?.contentWindow) return
 
-  // Table-driven syncs should not be treated as editor-originated changes.
-  // Otherwise the editor can export a derived payload back and trigger a false
-  // roundtrip overwrite while we only intended to mirror table edits.
-  setSuppressIncomingEditorExport()
-
+  // One-way mirror: the editor suppresses its own echo while importing, so the
+  // table stays the source of truth and no roundtrip can overwrite it
+  const payload = buildFsmImportPayload(newFsm)
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',
-      fsm: buildFsmImportPayload(newFsm),
+      fsm: payload,
     },
     window.location.origin,
   )
@@ -91,30 +101,26 @@ export function forceSyncTableToEditor(): void {
   const newFsm = stateManager.state.fsm
   if (!newFsm) return
 
+  if (syncTimer) {
+    clearTimeout(syncTimer)
+    syncTimer = null
+  }
+
+  // Never push an invalid automaton back to the editor
+  const validity = validateFsm(newFsm)
+  if (!validity.valid) return
+
   const fsmIframe = (window as any).__fsm_preloaded_iframe
   if (!fsmIframe?.contentWindow) return
 
-  // mark that the next incoming editor export (in response) should be ignored
-  setSuppressIncomingEditorExport()
-
+  const payload = buildFsmImportPayload(newFsm)
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',
-      fsm: buildFsmImportPayload(newFsm),
+      fsm: payload,
     },
     window.location.origin,
   )
-}
-
-// returns true if the export was suppressed
-export function consumeSuppressIncomingEditorExport(): boolean {
-  const v = suppressIncomingEditorExport
-  suppressIncomingEditorExport = false
-  if (suppressTimeout) {
-    clearTimeout(suppressTimeout)
-    suppressTimeout = null
-  }
-  return v
 }
 
 export function initFsmSyncService() {
@@ -133,7 +139,12 @@ export function initFsmSyncService() {
       () => stateManager.state.fsm,
       () => {
         // updates are handled centralized in project
-        syncTableToEditor()
+        if (isSyncing) {
+          // A table edit during an editor roundtrip must still be mirrored once the flag clears
+          pendingTableSync = true
+          return
+        }
+        scheduleTableSync()
       },
       { deep: true },
     )
@@ -143,9 +154,11 @@ export function initFsmSyncService() {
 }
 
 export function disposeFsmSyncService() {
-  if (suppressTimeout) {
-    clearTimeout(suppressTimeout)
-    suppressTimeout = null
+  isSyncing = false
+  pendingTableSync = false
+  if (syncTimer) {
+    clearTimeout(syncTimer)
+    syncTimer = null
   }
   if (iframeReadyHandler) {
     window.removeEventListener('__fsm_preloaded_iframe-ready', iframeReadyHandler as EventListener)
@@ -163,8 +176,9 @@ export function useFsmListener() {
 
 export function setIsSyncing(flag: boolean) {
   isSyncing = flag
-}
-
-export function getIsSyncing(): boolean {
-  return isSyncing
+  // Flush any table mutation that arrived while the editor roundtrip was in flight
+  if (!flag && pendingTableSync) {
+    pendingTableSync = false
+    scheduleTableSync()
+  }
 }

@@ -41,6 +41,8 @@ export interface FsmTransition {
   toBinaryId?: string
   input: string
   mealyOutput?: string
+  // Set by table-side state removal when the target state no longer exists
+  removedTarget?: boolean
 }
 
 // type definition for whole central fsm state

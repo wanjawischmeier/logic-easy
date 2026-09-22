@@ -68,21 +68,45 @@ export function fillMissingTransitions(
       const found = existing.find((t) => t.fromNodeId === node.nodeId && t.input === input)
 
       if (found) {
+        // A re-added state reuses the removed id, so drop a stale marker once its target exists again
+        const restoredNode =
+          found.removedTarget && /^[01]+$/.test(found.toBinaryId ?? '')
+            ? nodes.find(
+                (node) =>
+                  calcBinaryID(node.nodeId, (found.toBinaryId ?? '').length) === found.toBinaryId,
+              )
+            : undefined
+
+        // Keep transitions whose target state was removed so the editor locks
+        if (found.removedTarget && !restoredNode) {
+          finalTransitions.push({
+            ...found,
+            toNodeId: -1,
+            ...(isMoore
+              ? { mealyOutput: undefined }
+              : { mealyOutput: found.mealyOutput ?? 'x'.repeat(outputBitCount) }),
+          })
+          return
+        }
+
+        const base = restoredNode
+          ? { ...found, removedTarget: false, toNodeId: restoredNode.nodeId, toBinaryId: undefined }
+          : found
+
         const normalizedPattern = normalizeBits(
-          found.toBinaryId ??
-            (found.toNodeId >= 0 ? calcBinaryID(found.toNodeId, nodeBitCount) : ''),
+          base.toBinaryId ?? (base.toNodeId >= 0 ? calcBinaryID(base.toNodeId, nodeBitCount) : ''),
           nodeBitCount,
           'x',
           'left',
         )
         const concreteTarget = resolveConcreteTarget(normalizedPattern)
         finalTransitions.push({
-          ...found,
+          ...base,
           toNodeId: concreteTarget,
           toBinaryId: concreteTarget >= 0 ? undefined : normalizedPattern,
           ...(isMoore
             ? { mealyOutput: undefined }
-            : { mealyOutput: found.mealyOutput ?? 'x'.repeat(outputBitCount) }),
+            : { mealyOutput: base.mealyOutput ?? 'x'.repeat(outputBitCount) }),
         })
       } else {
         const defaultPattern = 'x'.repeat(nodeBitCount)
