@@ -13,10 +13,8 @@ let pendingTableSync = false
 
 // Debounce table-driven syncs so fast toggling coalesces into one editor update
 function scheduleTableSync() {
-  console.log('[FSM] table changed, scheduling editor sync (120ms debounce)')
   const newFsm = stateManager.state.fsm
   if (newFsm && !validateFsm(newFsm).valid) {
-    console.log('[FSM] table-to-editor sync paused while the FSM is invalid')
     if (syncTimer) {
       clearTimeout(syncTimer)
       syncTimer = null
@@ -81,16 +79,7 @@ function syncTableToEditor() {
 
   // Never push an invalid automaton back to the editor (the editor keeps its last valid state while locked)
   const validity = validateFsm(newFsm)
-  console.log('[FSM] syncTableToEditor: validating table', {
-    model: newFsm.fsmModel,
-    nodes: newFsm.nodes,
-    transitions: newFsm.transitions,
-  })
-  if (!validity.valid) {
-    console.log('[FSM] syncTableToEditor: SKIPPED (invalid) ->', validity.reason)
-    return
-  }
-  console.log('[FSM] syncTableToEditor: table valid, mirroring to editor')
+  if (!validity.valid) return
 
   const fsmIframe = (window as any).__fsm_preloaded_iframe
   if (!fsmIframe?.contentWindow) return
@@ -98,7 +87,6 @@ function syncTableToEditor() {
   // One-way mirror: the editor suppresses its own echo while importing, so the
   // table stays the source of truth and no roundtrip can overwrite it
   const payload = buildFsmImportPayload(newFsm)
-  console.log('[FSM] syncTableToEditor: sending fsmimport payload', payload)
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',
@@ -120,22 +108,12 @@ export function forceSyncTableToEditor(): void {
 
   // Never push an invalid automaton back to the editor
   const validity = validateFsm(newFsm)
-  console.log('[FSM] forceSyncTableToEditor: validating table', {
-    model: newFsm.fsmModel,
-    nodes: newFsm.nodes,
-    transitions: newFsm.transitions,
-  })
-  if (!validity.valid) {
-    console.log('[FSM] forceSyncTableToEditor: SKIPPED (invalid) ->', validity.reason)
-    return
-  }
-  console.log('[FSM] forceSyncTableToEditor: table valid, forcing mirror to editor')
+  if (!validity.valid) return
 
   const fsmIframe = (window as any).__fsm_preloaded_iframe
   if (!fsmIframe?.contentWindow) return
 
   const payload = buildFsmImportPayload(newFsm)
-  console.log('[FSM] forceSyncTableToEditor: sending fsmimport payload', payload)
   fsmIframe.contentWindow.postMessage(
     {
       action: 'fsmimport',

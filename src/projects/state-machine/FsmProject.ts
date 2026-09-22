@@ -77,8 +77,6 @@ export class FsmProject extends Project {
 
   // initialize default fsm state
   static override createState(props: FsmProps) {
-    console.log('[FSMProject.createState] Initializing project state')
-
     // initialize empty fsm state
     stateManager.state.fsm = {
       nodes: [],
@@ -91,8 +89,6 @@ export class FsmProject extends Project {
       stateEncoding: defaultStateEncoding,
       flipFlopType: defaultFlipFlopType,
     }
-
-    console.log('[FSMProject.createState] State initialized')
   }
 
   static importEditorExport(incomingFsm: unknown): void {
@@ -120,15 +116,10 @@ export class FsmProject extends Project {
     }
 
     const payload = incomingFsm as EditorExportPayload
-    console.log('[FSM] FsmProject.importEditorExport: applying editor export to table')
     const { nodes, transitions } = importEditorPayload(payload, state)
     state.nodes = nodes
     state.transitions = transitions
     normalizeFsmState(state)
-    console.log('[FSM] FsmProject.importEditorExport: table state after normalize', {
-      nodes: state.nodes,
-      transitions: state.transitions,
-    })
   }
 
   static override validateState(state: AppState): boolean {
