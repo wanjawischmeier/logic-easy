@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
 import type { FsmModel, FsmTransition } from '@/projects/state-machine/FsmTypes'
@@ -10,6 +10,7 @@ import {
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/projects/state-machine/FsmProject'
+import { findUnassignedNextStateWarning } from '@/utility/fsm/EditorSync/fsmValidation'
 
 function displayBitAt(
   source: string | undefined,
@@ -25,6 +26,12 @@ function displayBitAt(
 }
 const { nodes, transitions, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } =
   FsmProject.useState()
+
+// Unassigned all-don't-care next states never lock the editor, but while the state count is not
+// a power of two they cover indexes that do not exist yet, so warn here instead
+const unassignedWarning = computed(() =>
+  stateManager.state.fsm ? findUnassignedNextStateWarning(stateManager.state.fsm) : null,
+)
 
 const editableCellRefs = ref<(HTMLElement | null)[][]>([])
 
@@ -127,8 +134,26 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-2 w-full pt-0">
+  <div class="relative flex flex-col items-center gap-2 w-full pt-0">
     <h2 class="text-center py-2 mt-1 text-xl font-mono">Transitions</h2>
+
+    <!-- Absolutely positioned on the heading line, so toggling it never shifts the table -->
+    <div v-if="unassignedWarning" class="absolute right-0 top-3 flex items-center">
+      <div
+        class="h-7 shrink-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+        :title="`Next states consisting only of don't-cares ('-') expand to every index of their bit width. They never lock the editor, but with the current states they also cover ${unassignedWarning.missing.join(', ')}, which no state uses yet.`"
+      >
+        <span
+          class="h-5 w-5 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
+          aria-hidden="true"
+        >
+          !
+        </span>
+        <span class="whitespace-nowrap">
+          Unassigned next states cover {{ unassignedWarning.missing.join(', ') }}
+        </span>
+      </div>
+    </div>
 
     <table
       v-if="transitions.length"
