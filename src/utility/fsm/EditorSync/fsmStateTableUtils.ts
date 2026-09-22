@@ -206,10 +206,7 @@ export function setOutputBitCount(state: FsmState, nextOutputBits: number, model
   const clamped = Math.max(1, Math.min(MAX_FSM_IO_BITS, nextOutputBits))
   state.transitions = state.transitions.map((transition) =>
     model === 'moore'
-      ? {
-          ...transition,
-          mealyOutput: undefined,
-        }
+      ? { ...transition, mealyOutput: undefined }
       : {
           ...transition,
           mealyOutput: normalizeBits(transition.mealyOutput, clamped, 'x', 'right'),
@@ -231,6 +228,8 @@ export function toggleTransitionTargetBit(
 ): void {
   const transition = state.transitions[transitionIndex]
   if (!transition) return
+  // A removed target has no position left, so the cycle restarts from don't care
+  const wasRemoved = !!transition.removedTarget
   // A manual toggle picks a new target, so a stale removed-target marker no longer applies
   transition.removedTarget = false
   // compute node bit count from highest node id to match editor/import logic
@@ -239,12 +238,15 @@ export function toggleTransitionTargetBit(
   const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
   syncNodeBitCount(state)
   const currentNode = state.nodes.find((node) => node.nodeId === transition.toNodeId)
-  const currentBits = normalizeBits(
-    transition.toBinaryId ?? (currentNode ? calcBinaryID(currentNode.nodeId, nodeIdBitCount) : ''),
-    nodeIdBitCount,
-    'x',
-    'left',
-  )
+  const currentBits = wasRemoved
+    ? 'x'.repeat(nodeIdBitCount)
+    : normalizeBits(
+        transition.toBinaryId ??
+          (currentNode ? calcBinaryID(currentNode.nodeId, nodeIdBitCount) : ''),
+        nodeIdBitCount,
+        'x',
+        'left',
+      )
   // Always toggle in the fixed standard order 0 -> 1 -> x -> 0, validity is checked separately
   const finalBits = toggleBitInString(currentBits, bitIndex, nodeIdBitCount)
 
@@ -276,6 +278,24 @@ export function toggleTransitionOutputBit(
   )
 }
 
+// Moore output shown for a transition: the output of its resolved target states, x where they disagree
+export function resolveMooreOutput(
+  state: FsmState,
+  transition: FsmState['transitions'][number],
+): string {
+  const outputBits = state.outputBitCount ?? 1
+  const targetNodes = resolveTransitionTargetNodes(state, transition)
+  // If the transition has no target states, return an all-x placeholder so the editor can show a mismatch
+  if (!targetNodes.length) return 'x'.repeat(outputBits)
+  const normalizedOutputs = targetNodes.map((node) =>
+    normalizeBits(node.mooreOutput, outputBits, 'x', 'right'),
+  )
+  return Array.from({ length: outputBits }, (_, bitIndex) => {
+    const bit = normalizedOutputs[0]?.charAt(bitIndex) || 'x'
+    return normalizedOutputs.every((out) => out.charAt(bitIndex) === bit) ? bit : 'x'
+  }).join('')
+}
+
 export function toggleMooreOutputBit(
   state: FsmState,
   transitionIndex: number,
@@ -285,12 +305,14 @@ export function toggleMooreOutputBit(
   if (!transition) return
 
   const outputBits = state.outputBitCount ?? 1
+  // In Moore mode the output belongs to the state, so only a single resolved target is editable.
+  // Editing is never auto-applied to several states at once.
   const targetNodes = resolveTransitionTargetNodes(state, transition)
-  // Only a single resolved target is editable; never auto-apply the value to several states
   if (targetNodes.length !== 1) return
 
   const [node] = targetNodes
   if (!node) return
+
   const bits = normalizeBits(node.mooreOutput, outputBits, 'x', 'right').split('')
   bits[bitIndex] = bits[bitIndex] === '0' ? '1' : bits[bitIndex] === '1' ? 'x' : '0'
   node.mooreOutput = bits.join('')

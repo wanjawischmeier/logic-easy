@@ -183,6 +183,7 @@ export {
   getStateCountLimit,
   removeStateRow,
   renameState,
+  resolveMooreOutput,
   setInitialState,
   setInputBitCount,
   setOutputBitCount,

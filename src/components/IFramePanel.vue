@@ -83,17 +83,6 @@ function setupIframe() {
   return true
 }
 
-watch(
-  () => props.visible,
-  (visible) => {
-    preloadedIframe = preloadedIframe || getGlobalIframe()
-    if (!preloadedIframe) return
-    preloadedIframe.style.display = visible === false ? 'none' : 'block'
-    if (visible !== false) updateIframePosition()
-  },
-  { immediate: true },
-)
-
 function createIframe() {
   const w = window as unknown as Window & { [key: string]: HTMLIFrameElement | undefined }
 

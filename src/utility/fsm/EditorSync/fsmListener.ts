@@ -9,6 +9,7 @@ let isInitialized = false
 let syncScope: EffectScope | null = null
 let iframeReadyHandler: ((event: Event) => void) | null = null
 let syncTimer: ReturnType<typeof setTimeout> | null = null
+let pendingTableSync = false
 
 // Debounce table-driven syncs so fast toggling coalesces into one editor update
 function scheduleTableSync() {
@@ -160,7 +161,11 @@ export function initFsmSyncService() {
       () => stateManager.state.fsm,
       () => {
         // updates are handled centralized in project
-        if (isSyncing) return
+        if (isSyncing) {
+          // A table edit during an editor roundtrip must still be mirrored once the flag clears
+          pendingTableSync = true
+          return
+        }
         scheduleTableSync()
       },
       { deep: true },
@@ -172,6 +177,7 @@ export function initFsmSyncService() {
 
 export function disposeFsmSyncService() {
   isSyncing = false
+  pendingTableSync = false
   if (syncTimer) {
     clearTimeout(syncTimer)
     syncTimer = null
@@ -192,4 +198,9 @@ export function useFsmListener() {
 
 export function setIsSyncing(flag: boolean) {
   isSyncing = flag
+  // Flush any table mutation that arrived while the editor roundtrip was in flight
+  if (!flag && pendingTableSync) {
+    pendingTableSync = false
+    scheduleTableSync()
+  }
 }
