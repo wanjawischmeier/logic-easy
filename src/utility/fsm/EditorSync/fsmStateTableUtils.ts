@@ -6,30 +6,19 @@ import { calcBinaryID, calcBitNumber, normalizeBits, toggleBitInString } from '.
 export const MAX_FSM_STATES = 16
 // Maximum number of input/output bits allowed in the table
 export const MAX_FSM_IO_BITS = 5
+// Maximum state name length, mirrors the limit the editor enforces
+export const MAX_STATE_NAME_LENGTH = 12
+
+// Only allow safe chars in state names
+export function sanitizeStateName(value: string | undefined): string {
+  return String(value ?? '')
+    .replace(/[^A-Za-z0-9 _-]/g, '')
+    .slice(0, MAX_STATE_NAME_LENGTH)
+}
 
 function syncNodeBitCount(state: FsmState): void {
   const maxNodeId = state.nodes.reduce((max, node) => Math.max(max, Number(node?.nodeId ?? -1)), 0)
   state.nodeIdBitCount = calcBitNumber(maxNodeId + 1)
-}
-
-function ensureInitialState(nodes: FsmNode[]): FsmNode[] {
-  if (nodes.length === 0) return nodes
-  if (nodes.some((state) => state.isInitial)) return nodes
-
-  return nodes.map((state, index) => ({
-    ...state,
-    isInitial: index === 0,
-  }))
-}
-
-function ensureFinalState(nodes: FsmNode[]): FsmNode[] {
-  if (nodes.length === 0) return nodes
-
-  const maxNodeId = Math.max(...nodes.map((node) => node.nodeId))
-  return nodes.map((node) => ({
-    ...node,
-    isFinal: node.nodeId === maxNodeId,
-  }))
 }
 
 export function resolveTransitionTargetNodes(
@@ -60,7 +49,6 @@ export function resolveTransitionTargetNodes(
 }
 
 export function normalizeFsmState(state: FsmState): void {
-  state.nodes = ensureFinalState(ensureInitialState(state.nodes))
   ensureTransitionMatrix(state)
 }
 
@@ -113,17 +101,15 @@ export function addStateRow(state: FsmState, model: FsmModel): void {
   const usedIds = new Set(state.nodes.map((n) => n.nodeId))
   let nextId = 0
   while (usedIds.has(nextId)) nextId += 1
-  const hasInitialState = state.nodes.some((node) => node.isInitial)
 
+  // only the state options can set the "initial" flag
   state.nodes.push({
     nodeId: nextId,
     name: `q${nextId}`,
-    isInitial: !hasInitialState,
-    isFinal: true,
+    isInitial: false,
     mooreOutput: model === 'moore' ? 'x' : undefined,
   })
 
-  state.nodes = ensureFinalState(ensureInitialState(state.nodes))
   syncNodeBitCount(state)
   ensureTransitionMatrix(state)
 }
@@ -161,7 +147,6 @@ export function removeStateRow(state: FsmState, stateId: number): void {
     return { ...transition, toNodeId: -1, toBinaryId: normalizedTarget }
   })
 
-  state.nodes = ensureFinalState(ensureInitialState(state.nodes))
   syncNodeBitCount(state)
   ensureTransitionMatrix(state)
 }
@@ -180,7 +165,8 @@ export function renameState(
   requestedName: string | undefined,
 ): void {
   const previousName = state.nodes.find((node) => node.nodeId === stateId)?.name ?? `q${stateId}`
-  const nextName = requestedName?.trim() ? requestedName.trim() : `q${stateId}`
+  const sanitized = sanitizeStateName(requestedName).trim()
+  const nextName = sanitized || `q${stateId}`
   const duplicateExists = state.nodes.some(
     (node) => node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
   )

@@ -5,8 +5,10 @@ import { stateManager } from '@/projects/stateManager'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
+  MAX_STATE_NAME_LENGTH,
   removeStateRow as removeFsmStateRow,
   renameState as renameFsmState,
+  sanitizeStateName,
 } from '@/projects/state-machine/FsmProject'
 
 const { nodes, nodeIdBitCount, fsmModel } = FsmProject.useState()
@@ -47,7 +49,7 @@ function startEditingName(stateId: number, currentName: string) {
 }
 
 function bufferStateName(stateId: number, name: string) {
-  editingNames[stateId] = name
+  editingNames[stateId] = sanitizeStateName(name) // applies editor rules
 }
 
 function commitStateName(stateId: number) {
@@ -61,7 +63,7 @@ function commitStateName(stateId: number) {
   if (!state) return
   if (buffered === undefined) return
 
-  const nextName = buffered.trim() ? buffered.trim() : `q${stateId}`
+  const nextName = sanitizeStateName(buffered).trim() || `q${stateId}`
   const duplicateExists = nodes.value.some(
     (node) => node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
   )
@@ -106,7 +108,7 @@ function commitStateName(stateId: number) {
               :value="
                 editingNames[state.nodeId] !== undefined ? editingNames[state.nodeId] : state.name
               "
-              maxlength="12"
+              :maxlength="MAX_STATE_NAME_LENGTH"
               class="w-full bg-transparent text-center outline-none hover:bg-surface-2 focus:bg-surface-2 transition-colors duration-100"
               @focus="startEditingName(state.nodeId, state.name)"
               @input="bufferStateName(state.nodeId, ($event.target as HTMLInputElement).value)"

@@ -26,7 +26,7 @@ export interface FsmNode {
   nodeId: number
   binaryNodeId?: string
   isInitial: boolean
-  isFinal?: boolean
+  color?: string
   editorCoordX?: number
   editorCoordY?: number
   mooreOutput?: string

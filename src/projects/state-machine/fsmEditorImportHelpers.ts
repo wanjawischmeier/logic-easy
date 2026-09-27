@@ -5,11 +5,13 @@ import {
   fillMissingTransitions,
 } from '@/utility/fsm/EditorSync/editorTransitionUtils'
 import { calcBinaryID, calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
+import { sanitizeStateName } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 
 interface EditorExportState {
   id?: number
   name?: string
   initial?: boolean
+  color?: string
   x?: number
   y?: number
   moore_output?: string
@@ -52,20 +54,16 @@ function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
   sorted.forEach((st, idx) => idMap.set(Number(st.id), idx))
 
   const firstInitial = sorted.find((st) => !!st?.initial)
-  const initialOldId = firstInitial
-    ? Number(firstInitial.id)
-    : sorted[0]
-      ? Number(sorted[0].id)
-      : -1
-  const finalOldId = sorted.length > 0 ? Number(sorted[sorted.length - 1]?.id) : -1
+  // missing initial flag is not sanitized
+  const initialOldId = firstInitial ? Number(firstInitial.id) : -1
 
   const nodes: FsmNode[] = sorted.map((incomingState, index) => {
     const previousId = Number(incomingState.id)
     return {
       nodeId: index,
-      name: String(incomingState.name ?? '').trim() || `q${index}`,
+      name: sanitizeStateName(String(incomingState.name ?? '')).trim() || `q${index}`,
       isInitial: previousId === initialOldId,
-      isFinal: previousId === finalOldId,
+      color: typeof incomingState.color === 'string' ? incomingState.color : undefined,
       editorCoordX: typeof incomingState.x === 'number' ? incomingState.x : undefined,
       editorCoordY: typeof incomingState.y === 'number' ? incomingState.y : undefined,
       mooreOutput: isMoore ? sanitizeEditorBits(incomingState.moore_output, outputBits) : undefined,

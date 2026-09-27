@@ -34,7 +34,7 @@ function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm
       id: n.nodeId,
       name: n.name,
       initial: n.isInitial,
-      final: n.isFinal,
+      color: n.color,
       x: n.editorCoordX,
       y: n.editorCoordY,
       moore_output: n.mooreOutput || '',
