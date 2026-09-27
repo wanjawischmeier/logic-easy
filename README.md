@@ -55,3 +55,17 @@ npm run test:unit
 # Update submodules
 git submodule update --remote --merge
 ```
+
+## License
+
+LogicEasy is licensed under the **GNU General Public License v3.0 or later** (`GPL-3.0-or-later`). The full license can be found in [`LICENSE`](LICENSE).
+
+Copyright (C) 2026 Julian Gransee, Aylin Kutluk, Wanja Wischmeier
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but **without any warranty**; without even the implied warranty of **merchantability** or **fitness for a particular purpose**. See the GNU General Public License for more details.
+
+### Third-party components
+
+The FSM editor in [`public/fsm-engine/`](public/fsm-engine) is a modified fork of [fsm-engine](https://github.com/karthik-saiharsh/fsm-engine) by Karthik Saiharsh. It remains under the GNU General Public License v3.0 or later; the license is kept in [`public/fsm-engine/LICENSE`](public/fsm-engine/LICENSE) and is shipped with every build of the editor (`public/fsm-engine/dist/LICENSE`).

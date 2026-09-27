@@ -78,6 +78,37 @@
         </div>
       </div>
 
+      <div
+        class="rounded border border-surface-3 bg-surface-2/40 p-4 leading-7 text-sm text-on-surface/85"
+      >
+        <p class="mb-2 text-[10px] uppercase tracking-[0.2em] text-secondary-variant">License</p>
+        <p>
+          LogicEasy is licensed under the
+          <a
+            href="https://www.gnu.org/licenses/gpl-3.0.html"
+            target="_blank"
+            rel="noreferrer"
+            class="text-primary underline underline-offset-4 hover:text-primary-variant"
+          >
+            GNU General Public License v3.0 or later
+          </a>
+          and comes without any warranty.
+        </p>
+        <div class="h-2"></div>
+        <p>
+          The built-in FSM editor is a modified fork of fsm-engine by Karthik Saiharsh and stays
+          under GPL-3.0.
+          <a
+            :href="engineLicenseUrl"
+            target="_blank"
+            rel="noreferrer"
+            class="text-primary underline underline-offset-4 hover:text-primary-variant"
+          >
+            License text
+          </a>
+        </p>
+      </div>
+
       <div class="flex justify-end pt-1 text-xs text-secondary-variant">Version {{ version }}</div>
     </div>
   </PopupBase>
@@ -89,6 +120,8 @@ import { popupService } from '@/utility/popupService'
 import packageJson from '../../../package.json'
 
 const version = packageJson.version
+// Shipped with the built FSM editor so the license reaches every user of the app
+const engineLicenseUrl = `${import.meta.env.BASE_URL}fsm-engine/dist/LICENSE`
 
 function onClose() {
   popupService.close()
