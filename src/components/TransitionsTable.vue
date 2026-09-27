@@ -135,23 +135,24 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
 
 <template>
   <div class="relative flex flex-col items-center gap-2 w-full pt-0">
-    <h2 class="text-center py-2 mt-1 text-xl font-mono">Transitions</h2>
+    <div class="w-full flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-1">
+      <h2 class="text-center py-2 text-xl font-mono">Transitions</h2>
 
-    <!-- Absolutely positioned on the heading line, so toggling it never shifts the table -->
-    <div v-if="unassignedWarning" class="absolute right-0 top-3 flex items-center">
-      <div
-        class="h-7 shrink-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-        :title="`Next states consisting only of don't-cares ('-') expand to every index of their bit width. They never lock the editor, but with the current states they also cover ${unassignedWarning.missing.join(', ')}, which no state uses yet.`"
-      >
-        <span
-          class="h-5 w-5 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
-          aria-hidden="true"
+      <div v-if="unassignedWarning" class="flex items-center">
+        <div
+          class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+          :title="`Next states consisting only of don't-cares ('-') expand to every index of their bit width. They never lock the editor, but with the current states they also cover ${unassignedWarning.missing.join(', ')}, which no state uses yet.`"
         >
-          !
-        </span>
-        <span class="whitespace-nowrap">
-          Unassigned next states cover {{ unassignedWarning.missing.join(', ') }}
-        </span>
+          <span
+            class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
+            aria-hidden="true"
+          >
+            !
+          </span>
+          <span class="truncate">
+            Unassigned next states cover {{ unassignedWarning.missing.join(', ') }}
+          </span>
+        </div>
       </div>
     </div>
 

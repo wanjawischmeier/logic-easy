@@ -142,4 +142,3 @@ export function fillMissingTransitions(
     transitionId: index + 1,
   }))
 }
-

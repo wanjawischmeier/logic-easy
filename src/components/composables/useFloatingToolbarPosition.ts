@@ -4,6 +4,7 @@ import { getDockviewApi } from '@/utility/dockview/integration'
 // floating button (settings, etc.) positioner, etc. for iframes
 export function useFloatingToolbarPosition(panelRef: Ref<HTMLElement | null>, offset = 8) {
   const style = ref<{ right?: string; top?: string }>({})
+  const width = ref<number | null>(null)
   let observer: ResizeObserver | null = null
   let layoutDisposable: { dispose?: () => void } | null | undefined = null
 
@@ -14,6 +15,7 @@ export function useFloatingToolbarPosition(panelRef: Ref<HTMLElement | null>, of
       right: `${window.innerWidth - rect.right + offset}px`,
       top: `${rect.top + offset}px`,
     }
+    width.value = rect.width
   }
 
   onMounted(() => {
@@ -33,5 +35,5 @@ export function useFloatingToolbarPosition(panelRef: Ref<HTMLElement | null>, of
     layoutDisposable = null
   })
 
-  return { style }
+  return { style, width }
 }

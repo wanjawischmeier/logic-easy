@@ -75,7 +75,7 @@ type IframePanelExpose = {
 
 const iframeRef = ref<IframePanelExpose | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
-const { style: legendButtonStyle } = useFloatingToolbarPosition(panelRef)
+const { style: legendButtonStyle, width: panelWidth } = useFloatingToolbarPosition(panelRef)
 
 const StateIcon = defineComponent({
   template: `
@@ -352,21 +352,26 @@ onBeforeUnmount(() => {
     />
 
     <teleport to="body">
-      <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">
+      <div
+        class="fixed z-10 flex items-center gap-2 min-w-0"
+        :style="[legendButtonStyle, panelWidth ? { maxWidth: `${panelWidth - 2 * 8}px` } : {}]"
+      >
         <div
           v-if="hiddenEdgeCount > 0 && isFsmValid"
-          class="h-7 shrink-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+          class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
           title="Transitions with all don't-care bits (next state and output) are hidden in the editor"
         >
           <span
-            class="h-5 w-5 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
+            class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
             aria-hidden="true"
           >
             !
           </span>
-          <span class="whitespace-nowrap">Hidden don't-care transitions</span>
+          <span class="truncate">Hidden don't-care transitions</span>
         </div>
-        <LegendButton v-if="isFsmValid" :legend="legend" />
+        <div class="shrink-0">
+          <LegendButton v-if="isFsmValid" :legend="legend" />
+        </div>
       </div>
     </teleport>
   </div>
