@@ -2,6 +2,7 @@
 import { computed, reactive } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
+import { Toast } from '@/utility/toastService'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
@@ -67,12 +68,17 @@ function commitStateName(stateId: number) {
   const duplicateExists = nodes.value.some(
     (node) => node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
   )
-  const resolvedName = duplicateExists ? state.name : nextName
+
+  // invalid renames are reported and the state keeps its name
+  if (duplicateExists) {
+    Toast.warning(`A state named "${nextName}" already exists.`)
+    return
+  }
 
   // if no effective change was made while editing, don't sync the FSM panel
-  if (resolvedName === state.name) return
+  if (nextName === state.name) return
 
-  renameFsmState(current, stateId, resolvedName)
+  renameFsmState(current, stateId, nextName)
 }
 </script>
 

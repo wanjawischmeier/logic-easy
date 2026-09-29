@@ -41,7 +41,7 @@ watch(isFsmValid, (valid, wasValid) => {
   if (!valid || wasValid !== false) return
   void nextTick(() => forceSyncTableToEditor())
 })
-// Warning for when transitions are not drawn because their next state is all-don't-care
+// Warning for transitions that are not drawn because every next-state bit is a don't-care
 const hiddenEdgeCount = computed(() => {
   const fsm = stateManager.state.fsm
   if (!fsm) return 0
@@ -55,15 +55,7 @@ const hiddenEdgeCount = computed(() => {
       'x',
       'left',
     )
-    if (!/^x+$/.test(targetPattern)) return false
-    if (fsm.fsmModel === 'moore') return true
-    const outputPattern = normalizeBits(
-      transition.mealyOutput,
-      fsm.outputBitCount ?? 1,
-      'x',
-      'right',
-    )
-    return /^x+$/.test(outputPattern)
+    return /^x+$/.test(targetPattern)
   }).length
 })
 let visibilityDisposable: { dispose?: () => void } | null = null
@@ -359,7 +351,7 @@ onBeforeUnmount(() => {
         <div
           v-if="hiddenEdgeCount > 0 && isFsmValid"
           class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          title="Transitions with all don't-care bits (next state and output) are hidden in the editor"
+          title="Transitions whose next-state bits are all don't-cares allow every next state and are not drawn in the editor"
         >
           <span
             class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"

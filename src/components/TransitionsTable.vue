@@ -10,7 +10,7 @@ import {
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/projects/state-machine/FsmProject'
-import { findUnassignedNextStateWarning } from '@/utility/fsm/EditorSync/fsmValidation'
+import { findDontCareCoverageWarning } from '@/utility/fsm/EditorSync/fsmValidation'
 
 function displayBitAt(
   source: string | undefined,
@@ -27,10 +27,10 @@ function displayBitAt(
 const { nodes, transitions, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } =
   FsmProject.useState()
 
-// Unassigned all-don't-care next states never lock the editor, but while the state count is not
-// a power of two they cover indexes that do not exist yet, so warn here instead
-const unassignedWarning = computed(() =>
-  stateManager.state.fsm ? findUnassignedNextStateWarning(stateManager.state.fsm) : null,
+// All-don't-care next states allow every next state and never lock the editor, but while the
+// state count is not a power of two they cover indexes that do not exist yet, so warn here
+const dontCareWarning = computed(() =>
+  stateManager.state.fsm ? findDontCareCoverageWarning(stateManager.state.fsm) : null,
 )
 
 const editableCellRefs = ref<(HTMLElement | null)[][]>([])
@@ -138,10 +138,10 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
     <div class="w-full flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-1">
       <h2 class="text-center py-2 text-xl font-mono">Transitions</h2>
 
-      <div v-if="unassignedWarning" class="flex items-center">
+      <div v-if="dontCareWarning" class="flex items-center">
         <div
           class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          :title="`Next states consisting only of don't-cares ('-') expand to every index of their bit width. They never lock the editor, but with the current states they also cover ${unassignedWarning.missing.join(', ')}, which no state uses yet.`"
+          :title="`Next states consisting only of don't-cares ('-') allow every next state, so they never lock the editor. With the current states they also cover ${dontCareWarning.missing.join(', ')}, which no state uses yet.`"
         >
           <span
             class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
@@ -150,7 +150,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             !
           </span>
           <span class="truncate">
-            Unassigned next states cover {{ unassignedWarning.missing.join(', ') }}
+            Don't-care next states also cover {{ dontCareWarning.missing.join(', ') }}
           </span>
         </div>
       </div>
