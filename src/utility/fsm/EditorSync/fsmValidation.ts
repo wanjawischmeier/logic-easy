@@ -41,7 +41,7 @@ function analyzeTargetPattern(state: FsmState, pattern: string) {
 
 export type DontCareCoverageWarning = { count: number; missing: string[] }
 
-// handle -* as next state by checking if the next state pattern covers any existing states (if not, show a warning)
+// Warn when an all-don't-care next-state pattern also covers indexes with no existing state
 export function findDontCareCoverageWarning(state: FsmState): DontCareCoverageWarning | null {
   let count = 0
   let missing: string[] = []
