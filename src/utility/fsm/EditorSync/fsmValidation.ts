@@ -61,7 +61,7 @@ export function findDontCareCoverageWarning(state: FsmState): DontCareCoverageWa
   return count > 0 ? { count, missing } : null
 }
 
-// Validate the automaton and return the first problem so the editor can show a precise reason
+// Validate the FSM and return the first problem so the editor can show a precise reason
 export function validateFsm(state: FsmState): FsmValidity {
   const transitions = state.transitions ?? []
 

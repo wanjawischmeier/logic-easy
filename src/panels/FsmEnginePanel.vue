@@ -12,7 +12,7 @@ import {
 } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
-import InvalidAutomatonView from '@/components/InvalidAutomatonView.vue'
+import InvalidFSMView from '@/components/InvalidFSMView.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import {
@@ -336,8 +336,8 @@ onBeforeUnmount(() => {
       class="flex-1"
     />
 
-    <!-- Same lock view the KV panel shows while the automaton is invalid -->
-    <InvalidAutomatonView
+    <!-- Same lock view the KV panel shows while the FSM is invalid -->
+    <InvalidFSMView
       v-else
       :reason="validReason"
       hint="Fix the issues in the state table to unlock the editor."
