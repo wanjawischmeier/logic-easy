@@ -157,6 +157,26 @@ let currentLCContent: LCFile | null = null
 let currentLCHeader: string | undefined = undefined
 let lastFileContent = ''
 
+// Manual edit warning state: declared before updateFormulas() so the immediate watcher can read it
+const editWarning = ref(false)
+const editWarningMessage =
+  'Manual edits in the inbuild LogicCircuits are not synced to LogicEasy. If you want to edit the circuit in LogicCircuits, export the .lc file, and import it to LogicCircuits.'
+const editWarningInlineText = 'Manual edits are not synced to LogicEasy!'
+const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
+
+type LogicCircuitsPanelState = {
+  hideManualEditWarning?: boolean
+}
+
+const hideManualEditWarning = computed(() => {
+  return (
+    stateManager.state.panelStates?.[LOGIC_CIRCUITS_PANEL_STATE_KEY]?.hideManualEditWarning === true
+  )
+})
+
+// Set while the panel is hidden, replayed once it becomes visible again
+let pendingUpdate = false
+
 // adjust the view in future lc imports/exports to match the current view.
 async function updateLCHeader() {
   const newLC = await logicCircuits.exportCurrentLC()
@@ -314,22 +334,6 @@ watch(
 /*
 Manual edit warning related stuff
 */
-const editWarning = ref(false)
-const editWarningMessage =
-  'Manual edits in the inbuild LogicCircuits are not synced to LogicEasy. If you want to edit the circuit in LogicCircuits, export the .lc file, and import it to LogicCircuits.'
-const editWarningInlineText = 'Manual edits are not synced to LogicEasy!'
-const LOGIC_CIRCUITS_PANEL_STATE_KEY = 'logicCircuits'
-
-type LogicCircuitsPanelState = {
-  hideManualEditWarning?: boolean
-}
-
-const hideManualEditWarning = computed(() => {
-  return (
-    stateManager.state.panelStates?.[LOGIC_CIRCUITS_PANEL_STATE_KEY]?.hideManualEditWarning === true
-  )
-})
-
 function setHideManualEditWarning(value: boolean) {
   if (!stateManager.state.panelStates) {
     stateManager.state.panelStates = {}
@@ -392,7 +396,6 @@ Iframe related stuff
 let detachIframeGuards: (() => void) | null = null
 let iframeReadyRebindHandler: EventListener | null = null
 let visibilityDisposable: { dispose?: () => void } | null = null
-let pendingUpdate = false
 let changeDetectionInFlight = false
 
 async function refreshSignificantChangeWarning() {
