@@ -39,12 +39,10 @@ function analyzeTargetPattern(state: FsmState, pattern: string) {
   return { nodeIdBitCount, normalizedPattern, possibleTargetBits, missingTargetBits }
 }
 
-export type UnassignedNextStateWarning = { count: number; missing: string[] }
+export type DontCareCoverageWarning = { count: number; missing: string[] }
 
-// An all-don't-care next state is unassigned, so it never locks the editor. While the state
-// count is not a power of two the pattern still covers indexes that do not exist yet, which
-// the table panel reports as a warning instead of an error
-export function findUnassignedNextStateWarning(state: FsmState): UnassignedNextStateWarning | null {
+// handle -* as next state by checking if the next state pattern covers any existing states (if not, show a warning)
+export function findDontCareCoverageWarning(state: FsmState): DontCareCoverageWarning | null {
   let count = 0
   let missing: string[] = []
 
@@ -83,7 +81,7 @@ export function validateFsm(state: FsmState): FsmValidity {
       }
     }
 
-    // An all-don't-care next state is unassigned: it stays hidden and never locks the editor
+    // All-don't-care next states stay undrawn and never lock the editor
     if (transition.toNodeId < 0 && /^x+$/.test(normalizedTargetPattern)) continue
 
     if (transition.toNodeId < 0) {

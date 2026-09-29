@@ -208,13 +208,13 @@ const legend: LegendItem[] = [
     component: TransitionIcon,
     label: 'Transition',
     description:
-      'Directed arrows connect states. The transition labels represent the input / output bits or, in Moore mode, only the output bits',
+      'Directed arrows connect states. The transition labels represent the input / output bits or, in Moore mode, only the input bits',
   },
   {
     component: HiddenTransitionIcon,
     label: 'Hidden transition',
     description:
-      'Transitions whose next state and output are all don\u2019t-cares are hidden in the editor. A warning badge appears in the panel while any exist.',
+      'Transitions whose next-state bits are all don\u2019t-cares allow every next state, so they are not drawn. Drawing the same state and input replaces the row. A warning badge appears in the panel while any exist.',
   },
   {
     component: MoveIcon,

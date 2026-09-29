@@ -140,7 +140,7 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
       })
 
       if (/^x+$/.test(normalizedPattern)) {
-        // An all-x pattern stays unassigned
+        // An all-x pattern keeps every next state allowed (for minimization)
         normalizedtoBinaryId = 'x'.repeat(nodeBitCount)
       } else if (unmappedTarget || remappedPatterns.length === 0) {
         // A dangling or incomplete pattern stays dangling so validateFsm locks the editor
