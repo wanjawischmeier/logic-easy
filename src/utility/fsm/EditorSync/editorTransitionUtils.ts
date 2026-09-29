@@ -142,29 +142,3 @@ export function fillMissingTransitions(
     transitionId: index + 1,
   }))
 }
-
-/**
- * creates new nodes list using default parameters.
- */
-export function createNodeWithDefaults(existingNodes: FsmNode[], isMoore: boolean): FsmNode[] {
-  const newId = existingNodes.length
-
-  // create new node
-  const newNode: FsmNode = {
-    nodeId: newId, // increment max current id as new node id
-    name: `Z${newId}`, // set default state name
-    isInitial: newId === 0, // set as initial if node id is zero
-    isFinal: true, // set newest (current) node as final
-    editorCoordX: 100 + newId * 50, // fallback for editor
-    editorCoordY: 100,
-    mooreOutput: isMoore ? 'x' : undefined, // set to x per default if fsm model is moore
-  }
-
-  // update existing nodes
-  const updatedNodes = existingNodes.map((node) => ({
-    ...node,
-    isFinal: false, // set other nodes as non-final
-  }))
-
-  return [...updatedNodes, newNode]
-}

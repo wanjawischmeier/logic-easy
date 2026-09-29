@@ -20,16 +20,16 @@
         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </svg>
     </span>
-    <h2 class="text-2xl font-medium text-on-surface">Automaton Invalid</h2>
+    <h2 class="text-2xl font-medium text-on-surface">FSM Invalid</h2>
     <p class="text-sm text-on-surface/80 leading-relaxed max-w-md">
-      {{ reason || 'The current automaton cannot be rendered.' }}
+      {{ reason || 'The current FSM cannot be rendered.' }}
     </p>
     <p class="text-xs text-on-surface/50">{{ hint }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
-// Shared by the editor and the KV diagram so both views lock together while the automaton is invalid
+// Shared by the editor and the KV diagram so both views lock together while the FSM is invalid
 defineProps<{ reason?: string; hint: string }>()
 </script>
 

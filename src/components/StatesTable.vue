@@ -2,11 +2,14 @@
 import { computed, reactive } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
+import { Toast } from '@/utility/toastService'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
+  MAX_STATE_NAME_LENGTH,
   removeStateRow as removeFsmStateRow,
   renameState as renameFsmState,
+  sanitizeStateName,
 } from '@/projects/state-machine/FsmProject'
 
 const { nodes, nodeIdBitCount, fsmModel } = FsmProject.useState()
@@ -46,8 +49,17 @@ function startEditingName(stateId: number, currentName: string) {
   editingNames[stateId] = currentName
 }
 
-function bufferStateName(stateId: number, name: string) {
-  editingNames[stateId] = name
+function bufferStateName(stateId: number, name: string, input?: HTMLInputElement) {
+  const sanitized = sanitizeStateName(name) // applies editor rules
+  editingNames[stateId] = sanitized
+
+  // Sanitizing can drop characters without changing the buffer, so the DOM needs the result too
+  if (input && input.value !== sanitized) {
+    const caret = input.selectionStart ?? name.length
+    const caretAfter = sanitizeStateName(name.slice(0, caret)).length
+    input.value = sanitized
+    input.setSelectionRange(caretAfter, caretAfter)
+  }
 }
 
 function commitStateName(stateId: number) {
@@ -61,16 +73,21 @@ function commitStateName(stateId: number) {
   if (!state) return
   if (buffered === undefined) return
 
-  const nextName = buffered.trim() ? buffered.trim() : `q${stateId}`
+  const nextName = sanitizeStateName(buffered).trim() || `q${stateId}`
   const duplicateExists = nodes.value.some(
     (node) => node.nodeId !== stateId && node.name.trim().toLowerCase() === nextName.toLowerCase(),
   )
-  const resolvedName = duplicateExists ? state.name : nextName
+
+  // invalid renames are reported and the state keeps its name
+  if (duplicateExists) {
+    Toast.warning(`A state named "${nextName}" already exists.`)
+    return
+  }
 
   // if no effective change was made while editing, don't sync the FSM panel
-  if (resolvedName === state.name) return
+  if (nextName === state.name) return
 
-  renameFsmState(current, stateId, resolvedName)
+  renameFsmState(current, stateId, nextName)
 }
 </script>
 
@@ -106,10 +123,16 @@ function commitStateName(stateId: number) {
               :value="
                 editingNames[state.nodeId] !== undefined ? editingNames[state.nodeId] : state.name
               "
-              maxlength="12"
+              :maxlength="MAX_STATE_NAME_LENGTH"
               class="w-full bg-transparent text-center outline-none hover:bg-surface-2 focus:bg-surface-2 transition-colors duration-100"
               @focus="startEditingName(state.nodeId, state.name)"
-              @input="bufferStateName(state.nodeId, ($event.target as HTMLInputElement).value)"
+              @input="
+                bufferStateName(
+                  state.nodeId,
+                  ($event.target as HTMLInputElement).value,
+                  $event.target as HTMLInputElement,
+                )
+              "
               @blur="commitStateName(state.nodeId)"
               @keydown.enter.prevent="
                 commitStateName(state.nodeId)

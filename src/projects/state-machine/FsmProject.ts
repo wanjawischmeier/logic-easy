@@ -99,6 +99,7 @@ export class FsmProject extends Project {
       id?: number
       name?: string
       initial?: boolean
+      color?: string
       x?: number
       y?: number
       moore_output?: string
@@ -172,9 +173,11 @@ export { importEditorPayload } from './fsmEditorImportHelpers'
 export {
   addStateRow,
   getStateCountLimit,
+  MAX_STATE_NAME_LENGTH,
   removeStateRow,
   renameState,
   resolveMooreOutput,
+  sanitizeStateName,
   setInitialState,
   setInputBitCount,
   setOutputBitCount,

@@ -12,7 +12,7 @@ import {
 } from 'vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
-import InvalidAutomatonView from '@/components/InvalidAutomatonView.vue'
+import InvalidFSMView from '@/components/InvalidFSMView.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import {
@@ -41,7 +41,7 @@ watch(isFsmValid, (valid, wasValid) => {
   if (!valid || wasValid !== false) return
   void nextTick(() => forceSyncTableToEditor())
 })
-// Warning for when transitions are not drawn because their next state is all-don't-care
+// Warning for transitions that are not drawn because every next-state bit is a don't-care
 const hiddenEdgeCount = computed(() => {
   const fsm = stateManager.state.fsm
   if (!fsm) return 0
@@ -55,15 +55,7 @@ const hiddenEdgeCount = computed(() => {
       'x',
       'left',
     )
-    if (!/^x+$/.test(targetPattern)) return false
-    if (fsm.fsmModel === 'moore') return true
-    const outputPattern = normalizeBits(
-      transition.mealyOutput,
-      fsm.outputBitCount ?? 1,
-      'x',
-      'right',
-    )
-    return /^x+$/.test(outputPattern)
+    return /^x+$/.test(targetPattern)
   }).length
 })
 let visibilityDisposable: { dispose?: () => void } | null = null
@@ -75,7 +67,7 @@ type IframePanelExpose = {
 
 const iframeRef = ref<IframePanelExpose | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
-const { style: legendButtonStyle } = useFloatingToolbarPosition(panelRef)
+const { style: legendButtonStyle, width: panelWidth } = useFloatingToolbarPosition(panelRef)
 
 const StateIcon = defineComponent({
   template: `
@@ -216,13 +208,13 @@ const legend: LegendItem[] = [
     component: TransitionIcon,
     label: 'Transition',
     description:
-      'Directed arrows connect states. The transition labels represent the input / output bits or, in Moore mode, only the output bits',
+      'Directed arrows connect states. The transition labels represent the input / output bits or, in Moore mode, only the input bits',
   },
   {
     component: HiddenTransitionIcon,
     label: 'Hidden transition',
     description:
-      'Transitions whose next state and output are all don\u2019t-cares are hidden in the editor. A warning badge appears in the panel while any exist.',
+      'Transitions whose next-state bits are all don\u2019t-cares allow every next state, so they are not drawn. Drawing the same state and input replaces the row. A warning badge appears in the panel while any exist.',
   },
   {
     component: MoveIcon,
@@ -344,29 +336,34 @@ onBeforeUnmount(() => {
       class="flex-1"
     />
 
-    <!-- Same lock view the KV panel shows while the automaton is invalid -->
-    <InvalidAutomatonView
+    <!-- Same lock view the KV panel shows while the FSM is invalid -->
+    <InvalidFSMView
       v-else
       :reason="validReason"
       hint="Fix the issues in the state table to unlock the editor."
     />
 
     <teleport to="body">
-      <div class="fixed z-10 flex items-center gap-2" :style="legendButtonStyle">
+      <div
+        class="fixed z-10 flex items-center gap-2 min-w-0"
+        :style="[legendButtonStyle, panelWidth ? { maxWidth: `${panelWidth - 2 * 8}px` } : {}]"
+      >
         <div
           v-if="hiddenEdgeCount > 0 && isFsmValid"
-          class="h-7 shrink-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          title="Transitions with all don't-care bits (next state and output) are hidden in the editor"
+          class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
+          title="Transitions whose next-state bits are all don't-cares allow every next state and are not drawn in the editor"
         >
           <span
-            class="h-5 w-5 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
+            class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
             aria-hidden="true"
           >
             !
           </span>
-          <span class="whitespace-nowrap">Hidden don't-care transitions</span>
+          <span class="truncate">Hidden don't-care transitions</span>
         </div>
-        <LegendButton v-if="isFsmValid" :legend="legend" />
+        <div class="shrink-0">
+          <LegendButton v-if="isFsmValid" :legend="legend" />
+        </div>
       </div>
     </teleport>
   </div>

@@ -1,7 +1,7 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
     <div
-      v-if="!isAutomatonInvalid"
+      v-if="!isFSMInvalid"
       class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2"
     >
       <SettingsButton
@@ -31,9 +31,9 @@
       />
     </div>
 
-    <!-- Same lock view the editor shows while the automaton is invalid -->
-    <InvalidAutomatonView
-      v-if="isAutomatonInvalid"
+    <!-- Same lock view the editor shows while the FSM is invalid -->
+    <InvalidFSMView
+      v-if="isFSMInvalid"
       :reason="invalidReason"
       hint="Fix the issues in the state table to unlock the Karnaugh-Veitch diagram."
     />
@@ -117,7 +117,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
-import InvalidAutomatonView from '@/components/InvalidAutomatonView.vue'
+import InvalidFSMView from '@/components/InvalidFSMView.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
@@ -298,13 +298,13 @@ const selectedVariationFormula = computed(() => getSelectedVariationFormula())
 
 const isFsmProject = computed(() => !!stateManager.state.fsm)
 
-// The KV view mirrors the FSM, so it locks together with the editor while the automaton is invalid
+// The KV view mirrors the FSM, so it locks together with the editor while the FSM is invalid
 const fsmValidity = computed<FsmValidity>(() => {
   const fsm = stateManager.state.fsm
   return fsm ? validateFsm(fsm) : { valid: true }
 })
-// Only an FSM-derived truth table is locked, a combinatorial circuit has no automaton
-const isAutomatonInvalid = computed(
+// Only an FSM-derived truth table is locked, a combinatorial circuit has no FSM
+const isFSMInvalid = computed(
   () => stateManager.state.truthTable?.fsmMode === true && !fsmValidity.value.valid,
 )
 const invalidReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))

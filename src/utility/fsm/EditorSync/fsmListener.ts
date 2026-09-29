@@ -34,7 +34,7 @@ function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm
       id: n.nodeId,
       name: n.name,
       initial: n.isInitial,
-      final: n.isFinal,
+      color: n.color,
       x: n.editorCoordX,
       y: n.editorCoordY,
       moore_output: n.mooreOutput || '',
@@ -77,7 +77,7 @@ function syncTableToEditor() {
   const newFsm = stateManager.state.fsm
   if (isSyncing || !newFsm) return
 
-  // Never push an invalid automaton back to the editor (the editor keeps its last valid state while locked)
+  // Never push an invalid FSM back to the editor (the editor keeps its last valid state while locked)
   const validity = validateFsm(newFsm)
   if (!validity.valid) return
 
@@ -106,7 +106,7 @@ export function forceSyncTableToEditor(): void {
     syncTimer = null
   }
 
-  // Never push an invalid automaton back to the editor
+  // Never push an invalid FSM back to the editor
   const validity = validateFsm(newFsm)
   if (!validity.valid) return
 
