@@ -43,7 +43,10 @@
         "
         @keydown.tab.prevent="
           () => {
-            if (pendingCommit) applyEdit(true)
+            if (searchStep === 2) {
+              if (pendingCommit) applyEdit(true)
+              else if (!advanceToNextRow()) resetSearch(false)
+            }
           }
         "
         @keydown.escape.prevent="() => resetSearch(false)"
@@ -150,7 +153,7 @@ function handleInput(index: number, e: Event) {
   const target = e.target as HTMLInputElement
   // Get only the last character typed
   const newChar = target.value.slice(-1)
-  const filtered = newChar.replace(/[^01]/g, '')
+  const filtered = newChar.replace(/[^01-]/g, '')
 
   // Update the value at this index
   updateBitAtIndex(index, filtered)
@@ -203,9 +206,9 @@ function resetSearch(shouldRefocus: boolean = false) {
 
 /**
  * Apply the pending edit and optionally advance to the next row
- * @param advanceToNextRow If true, select the next row after applying
+ * @param shouldAdvanceToNextRow If true, select the next row after applying
  */
-function applyEdit(advanceToNextRow: boolean = false) {
+function applyEdit(shouldAdvanceToNextRow: boolean = false) {
   const rowIdx = highlightedRow.value
   const newValue = searchInput.value
   if (rowIdx === null) return
@@ -232,27 +235,37 @@ function applyEdit(advanceToNextRow: boolean = false) {
     }, 300)
   }
 
-  if (advanceToNextRow) {
-    const nextRow = rowIdx + 1
-    if (nextRow < props.values.length) {
-      // Encode next row index as binary input string
-      const bits = props.inputVars.length
-      const nextInput = nextRow.toString(2).padStart(bits, '0')
-      pendingCommit.value = false
-      searchInput.value = ''
-      searchStep.value = 1
-      // Feed the next row's input bits in sequence
-      isTransitioningStep = true
-      searchInput.value = nextInput
-      // The watcher will handle transitioning to step 2
-      nextTick(() => {
-        isTransitioningStep = false
-      })
-      return
-    }
+  if (shouldAdvanceToNextRow) {
+    if (advanceToNextRow()) return
   }
 
   resetSearch(false)
+}
+
+/**
+ * Move to the row after the currently selected row without changing values
+ */
+function advanceToNextRow(): boolean {
+  const rowIdx = highlightedRow.value
+  if (rowIdx === null) return false
+
+  const nextRow = rowIdx + 1
+  if (nextRow >= props.values.length) return false
+
+  // Encode next row index as binary input string
+  const bits = props.inputVars.length
+  const nextInput = nextRow.toString(2).padStart(bits, '0')
+  pendingCommit.value = false
+  searchInput.value = ''
+  searchStep.value = 1
+  // Feed the next row's input bits in sequence
+  isTransitioningStep = true
+  searchInput.value = nextInput
+  // The watcher will handle transitioning to step 2
+  nextTick(() => {
+    isTransitioningStep = false
+  })
+  return true
 }
 
 /**
