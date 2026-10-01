@@ -26,6 +26,12 @@ export default defineComponent({
         { class: 'pr-1' },
         props.items.map((entry, idx) => {
           const submenuOpen = props.isOpen(level.value, idx)
+          const singleChild = entry.children?.length === 1 ? entry.children[0] : undefined
+          const hasSubmenu = Boolean(entry.children && !singleChild)
+          const isDisabled = singleChild
+            ? entry.disabled || singleChild.disabled
+            : (!entry.action && !entry.panelId && !entry.children) || entry.disabled
+
           return h('li', { class: 'relative', key: idx }, [
             h(
               'button',
@@ -34,25 +40,25 @@ export default defineComponent({
                   'w-full text-left m-0.5 px-3 py-2 rounded-xs border-0! hover:bg-surface-3 disabled:bg-surface-2 disabled:text-on-surface-disabled flex justify-between text-sm',
                   { 'bg-surface-3': submenuOpen },
                 ],
-                disabled: (!entry.action && !entry.panelId && !entry.children) || entry.disabled,
-                onClick: entry.children ? undefined : () => props.runAction(entry),
+                disabled: isDisabled,
+                onClick: hasSubmenu ? undefined : () => props.runAction(singleChild ?? entry),
                 onMouseenter:
-                  entry.children && !entry.disabled
+                  hasSubmenu && !entry.disabled
                     ? () => props.showSubmenu(level.value, idx)
                     : () => props.hideSubmenu(level.value),
                 type: 'button',
               },
               [
                 h('span', entry.headerLabel ?? entry.label),
-                entry.tooltip || entry.children
+                entry.tooltip || hasSubmenu
                   ? h('span', { class: 'flex items-center gap-2' }, [
                       entry.tooltip ? h('span', { class: 'opacity-70' }, entry.tooltip) : null,
-                      entry.children ? h('span', { class: 'opacity-70' }, '›') : null,
+                      hasSubmenu ? h('span', { class: 'opacity-70' }, '›') : null,
                     ])
                   : null,
               ],
             ),
-            submenuOpen && entry.children && !entry.disabled
+            submenuOpen && hasSubmenu && !entry.disabled
               ? h(
                   'div',
                   {
