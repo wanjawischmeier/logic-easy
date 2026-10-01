@@ -121,12 +121,14 @@ export function stateMachineToLC(
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
   const oneHotEncoding = options.encoding === 'One-Hot'
-  const binaryStateBits = calcBitNumber(nodeCount)
+  const maxNodeId = Math.max(...nodes.map((node) => node.nodeId))
+  const binaryStateBits = calcBitNumber(maxNodeId + 1)
   const stateBits = oneHotEncoding ? nodeCount : binaryStateBits
+  const stateIndexById = new Map(nodes.map((node, index) => [node.nodeId, index]))
 
   const encodeState = (nodeId: number): Bit[] =>
     oneHotEncoding
-      ? oneHot(nodeId, stateBits)
+      ? oneHot(stateIndexById.get(nodeId) ?? -1, stateBits)
       : (calcBinaryID(nodeId, binaryStateBits).split('') as Bit[])
 
   const stateVars = Array.from({ length: stateBits }, (_, i) => `Z${stateBits - 1 - i}`)
@@ -140,12 +142,27 @@ export function stateMachineToLC(
     const currentState = encodeState(tr.fromNodeId)
     const inputBitsArr = tr.input.split('').map(toBit)
 
-    const nextState: Bit[] =
-      tr.toNodeId >= 0
-        ? encodeState(tr.toNodeId)
-        : oneHotEncoding
-          ? Array.from({ length: stateBits }, () => '-')
-          : (tr.toBinaryId ?? '').padStart(binaryStateBits, '-').split('').map(toBit)
+    let nextState: Bit[]
+    if (tr.toNodeId >= 0) {
+      nextState = encodeState(tr.toNodeId)
+    } else {
+      const pattern = (tr.toBinaryId ?? '')
+        .padStart(binaryStateBits, '-')
+        .slice(-binaryStateBits)
+        .split('')
+        .map(toBit)
+      if (oneHotEncoding) {
+        const target = nodes.find((node) => {
+          const binary = calcBinaryID(node.nodeId, binaryStateBits)
+          return pattern.every((bit, index) => bit === '-' || bit === binary[index])
+        })
+        nextState = target
+          ? encodeState(target.nodeId)
+          : Array.from({ length: stateBits }, () => '-')
+      } else {
+        nextState = pattern
+      }
+    }
 
     const output = (tr.mealyOutput ?? '')
       .padEnd(outputBits, '-')
@@ -280,7 +297,7 @@ export function stateMachineToLC(
       }
       const y = topY + t * AND_V
       const inPorts = term.literals.map((l) => (l.negated ? 'i' : 'n')).join('')
-      const gate = lc.createAndGate(block.andX, y, 0, inPorts, 'n')
+      const gate = lc.createAndGate(block.andX, y, 0, inPorts, '1n')
       const inputs = term.literals.length
       term.literals.forEach((lit, k) =>
         addDemand(block, lit.variable, gate.getInConnectors()[k]!, portY(y, k, inputs)),
@@ -319,7 +336,7 @@ export function stateMachineToLC(
     const orH = gateHeight(termOuts.length)
     const orTopY = centerY - orH / 2
     const inPorts = termOuts.map((o) => (o.kind === 'wire' && o.negated ? 'i' : 'n')).join('')
-    const orGate = lc.createORGate(block.orX, orTopY, 0, inPorts, 'n')
+    const orGate = lc.createORGate(block.orX, orTopY, 0, inPorts, '1n')
     termOuts.forEach((o, t) => {
       const port = orGate.getInConnectors()[t]!
       if (o.kind === 'gate') o.node.addTarget(port)
@@ -400,6 +417,8 @@ export function stateMachineToLC(
     prevFfBottom = ffY + FF_HEIGHT
     const ff = lc.createFlipFlop(ffType, FF_X, ffY, dataInputsPerFF, 0, initialState?.[i] === '1')
     ff.addText(`${name}^n`, 1)
+    const notQEndpoint = lc.createNode(FB_X0, ffY + FF_HEIGHT - Q_OUT_DY)
+    ff.getOutConnectors()[1]!.addTarget(notQEndpoint)
     built.forEach((b, k) => {
       const py = ffY + dataPortOffset(k)
       if (b.out) {
@@ -436,6 +455,26 @@ export function stateMachineToLC(
     }
     fCursor += b.span + OUTPUT_GAP
   }
+
+  // place next state bits
+  stateVars.forEach((name, i) => {
+    const b = buildFormula(
+      fBlock,
+      minimizedFormula(inputVars, rows, (row) => row.nextState[i]!),
+      fCursor,
+    )
+    const lamp = lc.createLamp(LAMP_X, b.outY, 0)
+    lamp.addText(`${name}^(n+1)`, 1)
+    if (b.out) {
+      b.out.addTarget(lamp.getInConnectors()[0]!)
+      if (b.invert) lamp.setInPorts('i')
+    } else {
+      lc.createLow(LAMP_X - 140, b.outY)
+        .getOutConnectors()[0]!
+        .addTarget(lamp.getInConnectors()[0]!)
+    }
+    fCursor += b.span + OUTPUT_GAP
+  })
 
   const connectionEntry = new Map<string, { node: Node; x: number }>()
 
