@@ -1,5 +1,11 @@
 import type { FsmState, FsmTransition } from '@/projects/state-machine/FsmTypes'
 import { downloadFile } from '@/utility/downloadFile'
+import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
+import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import { expandInputs } from '@/utility/fsm/EditorSync/editorTransitionUtils'
+import { resolveTransitionTargetNodes } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
+import { normalizeBits } from '@/utility/fsm/bitOperations'
+import { resolveFsmOutputs, type ResolvedFsmOutputs } from './fsmOutputs'
 
 /**
  * Export an FSM (Mealy) to VHDL
@@ -23,35 +29,54 @@ import { downloadFile } from '@/utility/downloadFile'
  *   -- process_State_Logic, process_State_Register, process_State_Output
  * end Behavioral;
  */
-export function exportFsmToVHDL(fsm: FsmState | undefined, project_name: string) {
-  if (fsm?.fsmModel === 'moore') exportFsmToVHDLmoore(fsm, project_name)
-  else exportFsmToVHDLmealy(fsm, project_name)
+export function exportFsmToVHDL(
+  fsm: FsmState | undefined,
+  project_name: string,
+  cached?: TruthTableState,
+) {
+  if (fsm?.fsmModel === 'moore') return exportFsmToVHDLmoore(fsm, project_name, cached)
+  else return exportFsmToVHDLmealy(fsm, project_name, cached)
 }
 
-export function exportFsmToVHDLmealy(fsm: FsmState | undefined, project_name: string) {
+export async function exportFsmToVHDLmealy(
+  fsm: FsmState | undefined,
+  project_name: string,
+  cached?: TruthTableState,
+): Promise<FsmValidity> {
   if (!fsm) {
     console.error('No FSM data to export.')
-    return
+    return { valid: false, reason: 'No FSM data to export.' }
   }
 
+  fsm = {
+    ...fsm,
+    nodes: (fsm.nodes ?? []).map((node) => ({ ...node })),
+    transitions: (fsm.transitions ?? []).map((t) => ({ ...t })),
+    fsmModel: 'mealy',
+  }
   const nodes = fsm.nodes ?? []
   if (nodes.length === 0) {
     console.error('FSM has no states to export.')
-    return
+    return { valid: false, reason: 'FSM has no states to export.' }
   }
 
-  const transitions = fsm.transitions ?? []
+  const prepared = await prepareFsm(fsm, cached)
+  if (!prepared.valid) {
+    console.error(prepared.reason)
+    return prepared
+  }
+  const transitions = prepared.transitions
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
-  const entityName = project_name.replace(/\s+/g, '_')
+  const entityName = sanitizeIdentifier(project_name) || 'State_Machine'
 
   // stable nodeId -> VHDL enum literal map
   const literalOf = new Map<number, string>()
-  const usedLiterals = new Set<string>()
+  const usedLiterals = new Set([...generatedNames, entityName.toLowerCase()])
   nodes.forEach((node) => {
     let literal = sanitizeIdentifier(node.name) || `S${node.nodeId}`
-    while (usedLiterals.has(literal)) literal = `${literal}_${node.nodeId}`
-    usedLiterals.add(literal)
+    while (usedLiterals.has(literal.toLowerCase())) literal = `${literal}_${node.nodeId}`
+    usedLiterals.add(literal.toLowerCase())
     literalOf.set(node.nodeId, literal)
   })
 
@@ -116,7 +141,13 @@ export function exportFsmToVHDLmealy(fsm: FsmState | undefined, project_name: st
   lines.push('  case state is')
   nodes.forEach((node) => {
     lines.push(`    when ${literalOf.get(node.nodeId)} =>`)
-    const outgoing = transitions.filter((t) => t.fromNodeId === node.nodeId)
+    const outgoing = expandInputs('x'.repeat(inputBits)).map((input) => ({
+      transitionId: 0,
+      fromNodeId: node.nodeId,
+      toNodeId: node.nodeId,
+      input,
+      mealyOutput: prepared.outputs.valueAt(node.nodeId, input),
+    }))
     lines.push(
       ...transitionBranches(outgoing, inputBits, (t) => {
         const out = bitLiteral(t.mealyOutput, outputBits)
@@ -130,26 +161,41 @@ export function exportFsmToVHDLmealy(fsm: FsmState | undefined, project_name: st
   lines.push('end Behavioral;')
 
   downloadFile(lines.join('\n'), entityName + '.vhdl', 'text/vhdl')
+  return { valid: true }
 }
 
-function exportFsmToVHDLmoore(fsm: FsmState, project_name: string) {
+async function exportFsmToVHDLmoore(
+  fsm: FsmState,
+  project_name: string,
+  cached?: TruthTableState,
+): Promise<FsmValidity> {
+  fsm = {
+    ...fsm,
+    nodes: (fsm.nodes ?? []).map((node) => ({ ...node })),
+    transitions: (fsm.transitions ?? []).map((t) => ({ ...t })),
+  }
   const nodes = fsm.nodes ?? []
   if (nodes.length === 0) {
     console.error('FSM has no states to export.')
-    return
+    return { valid: false, reason: 'FSM has no states to export.' }
   }
 
-  const transitions = fsm.transitions ?? []
+  const prepared = await prepareFsm(fsm, cached)
+  if (!prepared.valid) {
+    console.error(prepared.reason)
+    return prepared
+  }
+  const transitions = prepared.transitions
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
-  const entityName = project_name.replace(/\s+/g, '_')
+  const entityName = sanitizeIdentifier(project_name) || 'State_Machine'
 
   const literalOf = new Map<number, string>()
-  const usedLiterals = new Set<string>()
+  const usedLiterals = new Set([...generatedNames, entityName.toLowerCase()])
   nodes.forEach((node) => {
     let literal = sanitizeIdentifier(node.name) || `S${node.nodeId}`
-    while (usedLiterals.has(literal)) literal = `${literal}_${node.nodeId}`
-    usedLiterals.add(literal)
+    while (usedLiterals.has(literal.toLowerCase())) literal = `${literal}_${node.nodeId}`
+    usedLiterals.add(literal.toLowerCase())
     literalOf.set(node.nodeId, literal)
   })
 
@@ -209,7 +255,8 @@ function exportFsmToVHDLmoore(fsm: FsmState, project_name: string) {
   lines.push('begin')
   lines.push('  case state is')
   nodes.forEach((node) => {
-    const out = bitLiteral(node.mooreOutput, outputBits) ?? zeroLiteral(outputBits)
+    const out =
+      bitLiteral(prepared.outputs.valueAt(node.nodeId, ''), outputBits) ?? zeroLiteral(outputBits)
     lines.push(`    when ${literalOf.get(node.nodeId)} => y <= ${out};`)
   })
   lines.push('  end case;')
@@ -218,6 +265,102 @@ function exportFsmToVHDLmoore(fsm: FsmState, project_name: string) {
   lines.push('end Behavioral;')
 
   downloadFile(lines.join('\n'), entityName + '.vhdl', 'text/vhdl')
+  return { valid: true }
+}
+
+async function prepareFsm(
+  fsm: FsmState,
+  cached?: TruthTableState,
+): Promise<
+  | { valid: true; transitions: FsmTransition[]; outputs: ResolvedFsmOutputs }
+  | { valid: false; reason: string }
+> {
+  const validity = validateFsm({ ...fsm, fsmModel: 'mealy' })
+  if (!validity.valid) return validity
+
+  const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
+  const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
+  const isMoore = fsm.fsmModel === 'moore'
+  const validBits = (value: string | undefined) => /^[01xX-]*$/.test(value ?? '')
+  const byInput = new Map<string, FsmTransition>()
+
+  if (isMoore) {
+    for (const node of fsm.nodes) {
+      if (!validBits(node.mooreOutput)) {
+        return { valid: false, reason: `State "${node.name}" has an invalid output bit pattern.` }
+      }
+    }
+  }
+
+  for (const t of fsm.transitions ?? []) {
+    const source = fsm.nodes.find((node) => node.nodeId === t.fromNodeId)
+    if (!source) {
+      return { valid: false, reason: `Transition ${t.transitionId} has no existing source state.` }
+    }
+    if (!validBits(t.input)) {
+      return {
+        valid: false,
+        reason: `The transition from "${source.name}" has an invalid input bit pattern.`,
+      }
+    }
+    if (!isMoore && !validBits(t.mealyOutput)) {
+      return {
+        valid: false,
+        reason: `The transition from "${source.name}" has an invalid output bit pattern.`,
+      }
+    }
+
+    const target = resolveTransitionTargetNodes(fsm, t).sort((a, b) => a.nodeId - b.nodeId)[0]
+    if (!target) {
+      return {
+        valid: false,
+        reason: `The transition from "${source.name}" has no existing target state.`,
+      }
+    }
+    const pattern = normalizeBits(t.input?.toLowerCase(), inputBits, 'x', 'right')
+    for (const input of expandInputs(pattern)) {
+      const key = `${source.nodeId}:${input}`
+      const existing = byInput.get(key)
+      if (existing) {
+        const previous = normalizeBits(
+          existing.mealyOutput?.toLowerCase(),
+          outputBits,
+          'x',
+          'right',
+        )
+        const output = normalizeBits(t.mealyOutput?.toLowerCase(), outputBits, 'x', 'right')
+        const conflictingOutput =
+          !isMoore &&
+          previous
+            .split('')
+            .some((bit, index) => bit !== 'x' && output[index] !== 'x' && bit !== output[index])
+        if (existing.toNodeId !== target.nodeId || conflictingOutput) {
+          return {
+            valid: false,
+            reason: `Conflicting transitions from "${source.name}" overlap at input ${input}: their next states or specified output bits differ.`,
+          }
+        }
+        if (!isMoore)
+          existing.mealyOutput = previous
+            .split('')
+            .map((bit, index) => (bit === 'x' ? output[index] : bit))
+            .join('')
+      } else {
+        byInput.set(key, { ...t, input, toNodeId: target.nodeId, toBinaryId: undefined })
+      }
+    }
+  }
+
+  const transitions = [...byInput.values()]
+  try {
+    const outputs = await resolveFsmOutputs(fsm, transitions, isMoore, cached)
+    return { valid: true, transitions, outputs }
+  } catch (error) {
+    return {
+      valid: false,
+      reason: error instanceof Error ? error.message : 'Could not minimize the FSM output.',
+    }
+  }
 }
 
 /** STD_LOGIC for a single bit, STD_LOGIC_VECTOR otherwise. */
@@ -288,3 +431,20 @@ function sanitizeIdentifier(name: string): string {
   if (!cleaned) return ''
   return /^[0-9]/.test(cleaned) ? `S_${cleaned}` : cleaned
 }
+
+const generatedNames = [
+  'x',
+  'y',
+  'reset',
+  'clock',
+  'state',
+  'next_state',
+  'state_typ',
+  'behavioral',
+  'std_logic',
+  'std_logic_vector',
+  'rising_edge',
+  'process_state_logic',
+  'process_state_register',
+  'process_state_output',
+]
