@@ -232,9 +232,20 @@ const fsmPresentation = computed(() => {
 // Use remapped display values when FSM is active, otherwise use direct state
 const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcResult.value)
 
-const displayFormulaTermColors = computed(
-  () => fsmPresentation.value.formulaTermColors ?? formulaTermColors.value,
-)
+const displayFormulaTermColors = computed(() => {
+  const fsmColors = fsmPresentation.value.formulaTermColors
+  if (fsmColors) return fsmColors
+
+  const formula = selectedVariationFormula.value
+  const result = displayQmcResult.value
+  if (!formula || !result?.termColors) return formulaTermColors.value
+
+  try {
+    return mapFormulaTermsToPIColors(formula, result.pis, result.termColors, inputVars.value)
+  } catch {
+    return formulaTermColors.value
+  }
+})
 
 const getCurrentCouplingLatexForOutput = (outputVarName?: string) => {
   const outputVar = outputVarName ?? outputVars.value[outputVariableIndex.value]
