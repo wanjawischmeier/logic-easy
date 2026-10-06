@@ -260,9 +260,9 @@ ${groups.join('\n')}
 \\end{tikzpicture}`
 }
 
-// wrap diagrams into document
+// Wrap diagrams into a content-sized document with padding on all sides.
 export function getKVDiagramDocument(body: string): string {
-  return `\\documentclass[varwidth]{standalone}
+  return `\\documentclass[varwidth,border=12pt]{standalone}
 ${KV_TIKZ_PREAMBLE}
 \\begin{document}
 ${body}

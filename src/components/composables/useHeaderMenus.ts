@@ -12,6 +12,7 @@ import {
   exportTruthTableTOVHDLcaseWhen,
 } from '@/utility/VHDL/export'
 import { exportFsmToVHDL } from '@/utility/VHDL/fsmExport'
+import { Toast } from '@/utility/toastService'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
 import { defaultStateEncoding, defaultFlipFlopType } from '@/projects/state-machine/FsmTypes'
 import { downloadFile } from '@/utility/downloadFile'
@@ -240,8 +241,12 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
             label: 'VHDL',
             tooltip: '.vhdl',
             disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-            action: () => {
-              exportFsmToVHDL(fsmState.value, projectManager.getCurrentProject()?.name ?? 'no name')
+            action: async () => {
+              const fsm = fsmState.value
+              const name = projectManager.getCurrentProject()?.name ?? 'no name'
+              await truthTableWorkerManager.whenIdle()
+              const result = await exportFsmToVHDL(fsm, name, stateManager.state.truthTable)
+              if (!result.valid) Toast.error(`VHDL export failed: ${result.reason}`)
             },
           }
         : {
