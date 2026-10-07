@@ -41,23 +41,6 @@ watch(isFsmValid, (valid, wasValid) => {
   if (!valid || wasValid !== false) return
   void nextTick(() => forceSyncTableToEditor())
 })
-// Warning for transitions that are not drawn because every next-state bit is a don't-care
-const hiddenEdgeCount = computed(() => {
-  const fsm = stateManager.state.fsm
-  if (!fsm) return 0
-  const maxNodeId = (fsm.nodes ?? []).reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-  const minimumNodeBits = calcBitNumber(Math.max(1, maxNodeId + 1))
-  return (fsm.transitions ?? []).filter((transition) => {
-    if (transition.toNodeId >= 0) return false
-    const targetPattern = normalizeBits(
-      transition.toBinaryId ?? '',
-      Math.max(minimumNodeBits, (transition.toBinaryId ?? '').length),
-      'x',
-      'left',
-    )
-    return /^x+$/.test(targetPattern)
-  }).length
-})
 let visibilityDisposable: { dispose?: () => void } | null = null
 let isFsmSyncActive = false
 let editorExportTimer: ReturnType<typeof setTimeout> | null = null
@@ -348,19 +331,6 @@ onBeforeUnmount(() => {
         class="fixed z-10 flex items-center gap-2 min-w-0"
         :style="[legendButtonStyle, panelWidth ? { maxWidth: `${panelWidth - 2 * 8}px` } : {}]"
       >
-        <div
-          v-if="hiddenEdgeCount > 0 && isFsmValid"
-          class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          title="Transitions whose next-state bits are all don't-cares allow every next state and are not drawn in the editor"
-        >
-          <span
-            class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
-            aria-hidden="true"
-          >
-            !
-          </span>
-          <span class="truncate">Hidden don't-care transitions</span>
-        </div>
         <div class="shrink-0">
           <LegendButton v-if="isFsmValid" :legend="legend" />
         </div>

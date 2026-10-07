@@ -10,7 +10,6 @@ import {
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/projects/state-machine/FsmProject'
-import { findDontCareCoverageWarning } from '@/utility/fsm/EditorSync/fsmValidation'
 
 function displayBitAt(
   source: string | undefined,
@@ -26,12 +25,6 @@ function displayBitAt(
 }
 const { nodes, transitions, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } =
   FsmProject.useState()
-
-// All-don't-care next states allow every next state and never lock the editor, but while the
-// state count is not a power of two they cover indexes that do not exist yet, so warn here
-const dontCareWarning = computed(() =>
-  stateManager.state.fsm ? findDontCareCoverageWarning(stateManager.state.fsm) : null,
-)
 
 const editableCellRefs = ref<(HTMLElement | null)[][]>([])
 
@@ -137,23 +130,6 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
   <div class="relative flex flex-col items-center gap-2 w-full pt-0">
     <div class="w-full flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-1">
       <h2 class="text-center py-2 text-xl font-mono">Transitions</h2>
-
-      <div v-if="dontCareWarning" class="flex items-center">
-        <div
-          class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          :title="`Next states consisting only of don't-cares ('-') allow every next state, so they never lock the editor. With the current states they also cover ${dontCareWarning.missing.join(', ')}, which no state uses yet.`"
-        >
-          <span
-            class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
-            aria-hidden="true"
-          >
-            !
-          </span>
-          <span class="truncate">
-            Don't-care next states also cover {{ dontCareWarning.missing.join(', ') }}
-          </span>
-        </div>
-      </div>
     </div>
 
     <table
