@@ -725,6 +725,31 @@ describe('central state guards', () => {
     expect(sanitizeStateName('a'.repeat(40)).length).toBeLessThanOrEqual(12)
   })
 
+  it('names a new state with the smallest free number, never with a used one', () => {
+    const state = createState(M2)
+    // an editor roundtrip can decouple names from ids: q0, q2, q3 on ids 0, 1, 2
+    state.nodes = [
+      { ...nodeAt(state, 0), nodeId: 0, name: 'q0' },
+      { ...nodeAt(state, 1), nodeId: 1, name: 'q2' },
+      { ...nodeAt(state, 2), nodeId: 2, name: 'q3' },
+    ]
+    addStateRow(state, 'mealy')
+    // the id is free, but the number must come from the names, so nothing duplicates
+    expect(state.nodes.map((node) => node.name)).toEqual(['q0', 'q2', 'q3', 'q1'])
+  })
+
+  it('replaces a duplicate imported name with the smallest free number', () => {
+    const state = createState(M2)
+    const payload = toEditorPayload(state)
+    const firstName = payload.states[0]!.name
+    payload.states[1] = { ...payload.states[1]!, name: firstName }
+
+    const { nodes } = importEditorPayload(payload, state)
+    const names = nodes.map((node) => node.name)
+    expect(names).toEqual(['q0', 'q1', 'q2'])
+    expect(new Set(names).size).toBe(names.length)
+  })
+
   it('flags a dangling target and keeps the row for the user', () => {
     const state = createState(M2)
     removeStateRow(state, 2)
@@ -871,6 +896,10 @@ describe('logic circuits export follows the minimized KV functions', () => {
       .map((element) => [...element.inPorts].sort().join(''))
       .sort()
 
+    // Z_1^(n+1) = !Z_1 !Z_0 X and Z_0^(n+1) = !X, so
+    //   J_1 = !Z_0 X (one literal inverted), K_1 = 1 (constant)
+    //   J_0 = !X, K_0 = X, because the excitation is a don't care while the bit holds
+    // Only J_1 needs a gate, and a wrong excitation table would change this set
     expect(twoLiteralAnds).toEqual(['in'])
     expect(lc.elements.filter((element) => element.elementType === JK_FLIPFLOP)).toHaveLength(2)
   })
@@ -1117,10 +1146,17 @@ describe('Moore output editing', () => {
 
 type TweenConfig = { onFinish?: () => void }
 
-// Loads the konva instance the editor submodule resolves; the vitest alias points it at this copy
+// Loads the konva instance the editor submodule itself resolves, so its tweens can be stubbed
 async function loadEditorKonva(): Promise<Record<string, unknown>> {
-  const mod = await import('konva')
-  return mod.default as unknown as Record<string, unknown>
+  // The submodule ships its own konva copy; a dynamic path keeps this working without that install
+  const submoduleEntry = '../../public/fsm-engine/node_modules/konva/lib/index.js'
+  try {
+    const mod = await import(/* @vite-ignore */ submoduleEntry)
+    return mod.default as unknown as Record<string, unknown>
+  } catch {
+    const mod = await import('konva')
+    return mod.default as unknown as Record<string, unknown>
+  }
 }
 
 // Stubs Konva.Tween/Animation so a layout run can be driven without a real canvas
@@ -1175,22 +1211,21 @@ function fakeStage(missingId: number | null = null) {
 }
 
 describe('editor internals', () => {
-  it('consuming a deleted state id notifies subscribers instead of mutating in place', async () => {
+  it('asks the app to create a state instead of minting an id itself', async () => {
     // @ts-expect-error - the editor submodule ships plain JS without type declarations
     const editor = await import('../../public/fsm-engine/src/lib/editor.js')
     // @ts-expect-error - the editor submodule ships plain JS without type declarations
     const stores = await import('../../public/fsm-engine/src/lib/stores.js')
-    const { store, node_list, deleted_nodes, stage_ref, editor_state } = stores
-
-    let notifications = 0
-    const unsubscribe = store.sub(deleted_nodes, () => {
-      notifications += 1
-    })
+    const { store, node_list, editor_state } = stores
 
     store.set(node_list, [])
-    store.set(deleted_nodes, [2, 5])
     store.set(editor_state, 'Add')
-    store.set(stage_ref, null)
+
+    const messages: unknown[] = []
+    Object.defineProperty(window, 'parent', {
+      configurable: true,
+      value: { postMessage: (message: unknown) => messages.push(message) },
+    })
 
     const clickEvent = {
       target: {
@@ -1200,13 +1235,45 @@ describe('editor internals', () => {
       },
     }
 
-    notifications = 0
-    editor.HandleEditorClick(clickEvent)
-    unsubscribe()
+    try {
+      editor.HandleEditorClick(clickEvent)
+    } finally {
+      delete (window as unknown as Record<string, unknown>).parent
+    }
 
-    // the consumed id must be visible to subscribers, or the UI keeps rendering a stale list
-    expect(notifications).toBeGreaterThan(0)
-    expect(store.get(deleted_nodes)).toEqual([5])
+    // the app owns ids and names, so the editor only asks for the new state
+    expect(messages).toEqual([{ action: 'add-state-request', x: 10, y: 20 }])
+    expect(store.get(node_list)).toEqual([])
+  })
+
+  it('asks the app to remove a state instead of deleting it locally', async () => {
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editor = await import('../../public/fsm-engine/src/lib/editor.js')
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const stores = await import('../../public/fsm-engine/src/lib/stores.js')
+    const { store, node_list, editor_state } = stores
+
+    store.set(node_list, [
+      { id: 0, name: 'q0', x: 0, y: 0, radius: 40, transitions: [] },
+      { id: 1, name: 'q1', x: 0, y: 0, radius: 40, transitions: [] },
+    ])
+    store.set(editor_state, 'Remove')
+
+    const messages: unknown[] = []
+    Object.defineProperty(window, 'parent', {
+      configurable: true,
+      value: { postMessage: (message: unknown) => messages.push(message) },
+    })
+
+    try {
+      editor.HandleStateClick({ cancelBubble: false, evt: { button: 0 } }, 1)
+    } finally {
+      delete (window as unknown as Record<string, unknown>).parent
+    }
+
+    expect(messages).toEqual([{ action: 'remove-state-request', id: 1 }])
+    // the app removes the state together with its edges
+    expect(store.get(node_list)).toHaveLength(2)
   })
 
   it('auto layout ignores hidden don\u2019t-care edges', async () => {

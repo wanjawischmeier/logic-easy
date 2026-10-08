@@ -8,6 +8,7 @@ import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
 import {
   MAX_FSM_IO_BITS,
   MAX_FSM_STATES,
+  addStateRow,
   normalizeFsmState,
   setInputBitCount,
   setOutputBitCount,
@@ -123,6 +124,51 @@ export class FsmProject extends Project {
     normalizeFsmState(state)
   }
 
+  // The editor is a view: it asks the app for state changes, the app owns ids and names
+  static addStateFromEditor(x?: number, y?: number): void {
+    const fsm = stateManager.state.fsm as FsmState | undefined
+    if (!fsm) return
+
+    addStateRow(fsm, fsm.fsmModel, { x, y })
+  }
+
+  // An editor-side removal drops the state together with its edges, then renumbers
+  static removeStateFromEditor(nodeId: number): void {
+    const fsm = stateManager.state.fsm as FsmState | undefined
+    if (!fsm || !Number.isFinite(nodeId)) return
+
+    const payload = {
+      states: fsm.nodes
+        .filter((node) => node.nodeId !== nodeId)
+        .map((node) => ({
+          id: node.nodeId,
+          name: node.name,
+          initial: node.isInitial,
+          color: node.color,
+          x: node.editorCoordX,
+          y: node.editorCoordY,
+          moore_output: node.mooreOutput ?? '',
+        })),
+      transitions: fsm.transitions
+        .filter((transition) => transition.fromNodeId !== nodeId && transition.toNodeId !== nodeId)
+        .map((transition) => ({
+          id: transition.transitionId,
+          groupId: transition.groupId ?? transition.transitionId,
+          from: transition.fromNodeId,
+          to: transition.toNodeId,
+          toBinaryId: transition.toBinaryId,
+          input: transition.input,
+          output: transition.mealyOutput ?? '',
+          mealy_output: transition.mealyOutput ?? '',
+        })),
+    }
+
+    const { nodes, transitions } = importEditorPayload(payload, fsm)
+    fsm.nodes = nodes
+    fsm.transitions = transitions
+    normalizeFsmState(fsm)
+  }
+
   static override validateState(state: AppState): boolean {
     return state.fsm != undefined
   }
@@ -174,6 +220,7 @@ export {
   addStateRow,
   getStateCountLimit,
   MAX_STATE_NAME_LENGTH,
+  nextFreeStateName,
   removeStateRow,
   renameState,
   resolveMooreOutput,

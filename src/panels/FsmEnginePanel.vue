@@ -265,15 +265,23 @@ onMounted(() => {
           .filter(Number.isFinite)
           .sort((a, b) => a - b)
           .join(',')
+      // The app canonicalizes names, so a changed name must be pushed back as well
+      const nodeNamesKey = () =>
+        (stateManager.state.fsm?.nodes ?? [])
+          .map((n) => String(n?.name ?? ''))
+          .sort()
+          .join(',')
       const prevNodeIds = nodeIdsKey()
+      const prevNodeNames = nodeNamesKey()
 
       try {
         setIsSyncing(true)
         FsmProject.importEditorExport(data.fsm)
       } finally {
-        // Force-sync whenever the node IDs changed
+        // Force-sync whenever the node IDs or the names changed
         const nextNodeIds = nodeIdsKey()
-        const shouldForce = nextNodeIds !== prevNodeIds
+        const nextNodeNames = nodeNamesKey()
+        const shouldForce = nextNodeIds !== prevNodeIds || nextNodeNames !== prevNodeNames
         if (editorExportTimer) clearTimeout(editorExportTimer)
         editorExportTimer = setTimeout(() => {
           editorExportTimer = null
@@ -281,6 +289,17 @@ onMounted(() => {
           if (shouldForce) forceSyncTableToEditor()
         }, 50)
       }
+    }
+
+    // The editor never mints state ids or names: it asks the central state and renders the sync
+    if (data.action === 'add-state-request') {
+      FsmProject.addStateFromEditor(Number(data.x), Number(data.y))
+      return
+    }
+
+    if (data.action === 'remove-state-request') {
+      FsmProject.removeStateFromEditor(Number(data.id))
+      return
     }
   }
 

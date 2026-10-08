@@ -5,7 +5,7 @@ import {
   fillMissingTransitions,
 } from '@/utility/fsm/EditorSync/editorTransitionUtils'
 import { calcBinaryID, calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
-import { sanitizeStateName } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
+import { nextFreeStateName, sanitizeStateName } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 
 interface EditorExportState {
   id?: number
@@ -42,6 +42,19 @@ const sanitizeEditorBits = (value: unknown, fallbackLength: number): string => {
   return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized.slice(0, fallbackLength)
 }
 
+// The app owns the canonical name: sanitize, reject duplicates, fall back to the smallest free q<number>
+function reserveImportedName(requested: string | undefined, usedNames: Set<string>): string {
+  const sanitized = sanitizeStateName(String(requested ?? '')).trim()
+  if (sanitized && !usedNames.has(sanitized.toLowerCase())) {
+    usedNames.add(sanitized.toLowerCase())
+    return sanitized
+  }
+
+  const freeName = nextFreeStateName(usedNames)
+  usedNames.add(freeName.toLowerCase())
+  return freeName
+}
+
 function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
   const isMoore = s.fsmModel === 'moore'
   // Clamp to at least 1 bit so sanitizeEditorBits never pads to zero width
@@ -57,11 +70,12 @@ function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
   // missing initial flag is not sanitized
   const initialOldId = firstInitial ? Number(firstInitial.id) : -1
 
+  const usedNames = new Set<string>()
   const nodes: FsmNode[] = sorted.map((incomingState, index) => {
     const previousId = Number(incomingState.id)
     return {
       nodeId: index,
-      name: sanitizeStateName(String(incomingState.name ?? '')).trim() || `q${index}`,
+      name: reserveImportedName(incomingState.name, usedNames),
       isInitial: previousId === initialOldId,
       color: typeof incomingState.color === 'string' ? incomingState.color : undefined,
       editorCoordX: typeof incomingState.x === 'number' ? incomingState.x : undefined,

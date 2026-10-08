@@ -16,6 +16,20 @@ export function sanitizeStateName(value: string | undefined): string {
     .slice(0, MAX_STATE_NAME_LENGTH)
 }
 
+// Smallest unused "q<number>", so a recreated state never duplicates an existing name
+export function nextFreeStateName(names: Iterable<string | undefined>): string {
+  const used = new Set(
+    [...names].map((name) =>
+      String(name ?? '')
+        .trim()
+        .toLowerCase(),
+    ),
+  )
+  let index = 0
+  while (used.has(`q${index}`)) index += 1
+  return `q${index}`
+}
+
 function syncNodeBitCount(state: FsmState): void {
   const maxNodeId = state.nodes.reduce((max, node) => Math.max(max, Number(node?.nodeId ?? -1)), 0)
   state.nodeIdBitCount = calcBitNumber(maxNodeId + 1)
@@ -141,7 +155,11 @@ export function ensureTransitionMatrix(state: FsmState): void {
   state.transitions = unique.map((t, idx) => ({ ...t, transitionId: idx + 1 }))
 }
 
-export function addStateRow(state: FsmState, model: FsmModel): void {
+export function addStateRow(
+  state: FsmState,
+  model: FsmModel,
+  position?: { x?: number; y?: number },
+): void {
   // Do not allow more states than the configured maximum.
   if (state.nodes.length >= MAX_FSM_STATES) return
 
@@ -153,8 +171,11 @@ export function addStateRow(state: FsmState, model: FsmModel): void {
   // only the state options can set the "initial" flag
   state.nodes.push({
     nodeId: nextId,
-    name: `q${nextId}`,
+    // Name from the smallest free number, never from the id, so a recreated state cannot collide
+    name: nextFreeStateName(state.nodes.map((node) => node.name)),
     isInitial: false,
+    editorCoordX: Number.isFinite(position?.x) ? position?.x : undefined,
+    editorCoordY: Number.isFinite(position?.y) ? position?.y : undefined,
     mooreOutput: model === 'moore' ? 'x' : undefined,
   })
 
