@@ -56,6 +56,10 @@ class IframeManager {
     return w[key]
   }
 
+  getKeys(): string[] {
+    return [...this.configs.keys()]
+  }
+
   async resetIframe(key: string, src?: string): Promise<HTMLIFrameElement | null> {
     const config = this.configs.get(key)
     const iframeSrc = src || config?.src

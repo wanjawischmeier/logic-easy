@@ -29,6 +29,7 @@ export function normalizeBits(
   fill: Bit = 'x',
   align: 'left' | 'right' = 'left',
 ): string {
+  if (len <= 0) return ''
   const s = (val ?? '').replace(/-/g, 'x')
   if (s.length >= len) {
     return align === 'left' ? s.slice(-len) : s.slice(0, len)

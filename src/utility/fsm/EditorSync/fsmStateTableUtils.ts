@@ -1,5 +1,5 @@
 import type { FsmModel, FsmNode, FsmState } from '@/projects/state-machine/FsmTypes'
-import { fillMissingTransitions } from './editorTransitionUtils'
+import { expandInputs, fillMissingTransitions } from './editorTransitionUtils'
 import { calcBinaryID, calcBitNumber, normalizeBits, toggleBitInString } from '../bitOperations'
 
 // Maximum number of states allowed in an FSM (4 bits -> 2^4 = 16)
@@ -19,6 +19,53 @@ export function sanitizeStateName(value: string | undefined): string {
 function syncNodeBitCount(state: FsmState): void {
   const maxNodeId = state.nodes.reduce((max, node) => Math.max(max, Number(node?.nodeId ?? -1)), 0)
   state.nodeIdBitCount = calcBitNumber(maxNodeId + 1)
+}
+
+// Merge bit patterns: identical bits stay, differing bits become don't-cares
+function mergeBitPatterns(patterns: string[], bitCount: number): string {
+  return Array.from({ length: bitCount }, (_, index) => {
+    const bits = new Set(patterns.map((pattern) => pattern.charAt(index)))
+    return bits.size === 1 ? String([...bits][0]) : 'x'
+  }).join('')
+}
+
+// Re-encode next-state patterns over the states they cover, so a changed bit width keeps the targets
+function remapPatternsToNodeBitCount(state: FsmState, previousNodeBitCount: number): void {
+  const nodeBitCount = Math.max(1, state.nodeIdBitCount || 1)
+  const existingIds = new Set(state.nodes.map((node) => Number(node.nodeId)))
+
+  state.transitions = state.transitions.map((transition) => {
+    if (transition.toNodeId >= 0 || transition.removedTarget) return transition
+
+    const pattern = String(transition.toBinaryId ?? '').replace(/-/g, 'x')
+    if (!pattern || /^x+$/.test(pattern)) return transition
+
+    const coveredIds = expandInputs(pattern).map((bits) => parseInt(bits, 2))
+    // A pattern that lost one of its states keeps its encoding, so validation reports it
+    if (coveredIds.some((id) => !existingIds.has(id))) {
+      return {
+        ...transition,
+        toBinaryId: normalizeBits(
+          pattern,
+          Math.max(previousNodeBitCount, pattern.length),
+          'x',
+          'left',
+        ),
+      }
+    }
+
+    const remapped = mergeBitPatterns(
+      coveredIds.map((id) => calcBinaryID(id, nodeBitCount)),
+      nodeBitCount,
+    )
+
+    // A pattern that collapses onto one state becomes a concrete target again
+    if (/^[01]+$/.test(remapped)) {
+      return { ...transition, toNodeId: parseInt(remapped, 2), toBinaryId: undefined }
+    }
+
+    return { ...transition, toNodeId: -1, toBinaryId: remapped }
+  })
 }
 
 export function resolveTransitionTargetNodes(
@@ -98,6 +145,7 @@ export function addStateRow(state: FsmState, model: FsmModel): void {
   // Do not allow more states than the configured maximum.
   if (state.nodes.length >= MAX_FSM_STATES) return
 
+  const previousNodeBitCount = Math.max(1, state.nodeIdBitCount || 1)
   const usedIds = new Set(state.nodes.map((n) => n.nodeId))
   let nextId = 0
   while (usedIds.has(nextId)) nextId += 1
@@ -111,6 +159,7 @@ export function addStateRow(state: FsmState, model: FsmModel): void {
   })
 
   syncNodeBitCount(state)
+  remapPatternsToNodeBitCount(state, previousNodeBitCount)
   ensureTransitionMatrix(state)
 }
 
@@ -134,20 +183,9 @@ export function removeStateRow(state: FsmState, stateId: number): void {
         : transition,
     )
 
-  // Keep each pattern as-is instead of re-resolving it, so the editor locks
-  // when a table-side removal left a next state that no longer exists
-  const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-  const totalStates = Math.max(1, maxNodeId + 1)
-  const nodeIdBitCount = totalStates <= 1 ? 1 : calcBitNumber(totalStates)
-
-  state.transitions = state.transitions.map((transition) => {
-    if (transition.toNodeId >= 0) return transition
-    if (transition.removedTarget) return transition
-    const normalizedTarget = normalizeBits(transition.toBinaryId ?? '', nodeIdBitCount, 'x', 'left')
-    return { ...transition, toNodeId: -1, toBinaryId: normalizedTarget }
-  })
-
+  // Keep each pattern over the states it still means, once the bit width shrank
   syncNodeBitCount(state)
+  remapPatternsToNodeBitCount(state, oldNodeIdBitCount)
   ensureTransitionMatrix(state)
 }
 

@@ -66,7 +66,14 @@ function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
       color: typeof incomingState.color === 'string' ? incomingState.color : undefined,
       editorCoordX: typeof incomingState.x === 'number' ? incomingState.x : undefined,
       editorCoordY: typeof incomingState.y === 'number' ? incomingState.y : undefined,
-      mooreOutput: isMoore ? sanitizeEditorBits(incomingState.moore_output, outputBits) : undefined,
+      mooreOutput: isMoore
+        ? normalizeBits(
+            sanitizeEditorBits(incomingState.moore_output, outputBits),
+            outputBits,
+            'x',
+            'right',
+          )
+        : undefined,
     }
   })
 
@@ -147,13 +154,24 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
         normalizedtoBinaryId = normalizedPattern
         danglingTarget = true
       } else {
-        normalizedtoBinaryId = Array.from({ length: nodeBitCount }, (_, index) => {
+        const merged = Array.from({ length: nodeBitCount }, (_, index) => {
           const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
           return bits.size === 1 ? [...bits][0] : 'x'
         }).join('')
+        const covered = expandInputs(merged)
+        const intended = new Set(remappedPatterns)
+        // do not allow a pattern that covers more states than the user intended
+        if (covered.length !== intended.size || !covered.every((bits) => intended.has(bits))) {
+          normalizedtoBinaryId = 'x'.repeat(nodeBitCount)
+          danglingTarget = true
+        } else {
+          normalizedtoBinaryId = merged
+        }
       }
     } else {
+      // If the editor payload has no toBinaryId, use the remapped target if it exists
       normalizedtoBinaryId = concreteBits
+      danglingTarget = remappedTo === undefined
     }
 
     if (!danglingTarget && /^[01]+$/.test(normalizedtoBinaryId)) {
