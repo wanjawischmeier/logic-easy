@@ -1117,15 +1117,10 @@ describe('Moore output editing', () => {
 
 type TweenConfig = { onFinish?: () => void }
 
-// Loads the konva instance the editor submodule itself resolves, so its tweens can be stubbed
+// Loads the konva instance the editor submodule resolves; the vitest alias points it at this copy
 async function loadEditorKonva(): Promise<Record<string, unknown>> {
-  try {
-    const mod = await import('../../public/fsm-engine/node_modules/konva/lib/index.js')
-    return mod.default as unknown as Record<string, unknown>
-  } catch {
-    const mod = await import('konva')
-    return mod.default as unknown as Record<string, unknown>
-  }
+  const mod = await import('konva')
+  return mod.default as unknown as Record<string, unknown>
 }
 
 // Stubs Konva.Tween/Animation so a layout run can be driven without a real canvas

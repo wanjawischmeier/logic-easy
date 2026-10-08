@@ -24,7 +24,6 @@ import {
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
-import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
