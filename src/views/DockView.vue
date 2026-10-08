@@ -68,6 +68,7 @@ import ProjectCreationPopup from '@/components/popups/ProjectCreationPopup.vue'
 import LoadingScreen from '@/components/LoadingScreen.vue'
 import { loadingService } from '@/utility/loadingService'
 import { dockviewService } from '@/utility/dockview/service'
+import { bindIframeShortcuts } from '@/utility/iframeShortcuts'
 import type { BaseProjectProps } from '@/projects/Project'
 import { Toast } from '@/utility/toastService'
 import { useDockViewRouting } from './composables/useDockViewRouting'
@@ -292,8 +293,12 @@ const onKeydown = (e: KeyboardEvent) => {
   }
 }
 
+// Shortcuts must also fire while an embedded editor iframe has focus
+let unbindIframeShortcuts: (() => void) | null = null
+
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  unbindIframeShortcuts = bindIframeShortcuts(onKeydown)
   setupRouteSync({
     dockviewApi,
     hasPanels,
@@ -304,6 +309,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  unbindIframeShortcuts?.()
+  unbindIframeShortcuts = null
   layoutChangeDisposable?.dispose?.()
   panelDisposable?.dispose?.()
   dockviewService.unregister()
