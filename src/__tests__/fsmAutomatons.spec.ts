@@ -871,10 +871,8 @@ describe('logic circuits export follows the minimized KV functions', () => {
       .map((element) => [...element.inPorts].sort().join(''))
       .sort()
 
-    // Z_1^(n+1) = !Z_1 !Z_0 X  and  Z_0^(n+1) = !X, so
-    //   J_1 = !Z_0 X (one inverted literal), K_1 = 1 (constant, no gate)
-    //   J_0 = !Z_0 !X (two inverted literals), K_0 = Z_0 X (none inverted)
-    expect(twoLiteralAnds).toEqual(['ii', 'in', 'nn'])
+    expect(twoLiteralAnds).toEqual(['in'])
+    expect(lc.elements.filter((element) => element.elementType === JK_FLIPFLOP)).toHaveLength(2)
   })
 })
 
@@ -1110,5 +1108,175 @@ describe('Moore output editing', () => {
     writeRow(state, 0, '0', 0)
     toggleMooreOutputBit(state, index, 0)
     expect(nodeAt(state, 0).mooreOutput).toBe('0')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Editor internals: the Konva/jotai side the app cannot reach directly
+// ---------------------------------------------------------------------------
+
+type TweenConfig = { onFinish?: () => void }
+
+// Loads the konva instance the editor submodule itself resolves, so its tweens can be stubbed
+async function loadEditorKonva(): Promise<Record<string, unknown>> {
+  try {
+    const mod = await import('../../public/fsm-engine/node_modules/konva/lib/index.js')
+    return mod.default as unknown as Record<string, unknown>
+  } catch {
+    const mod = await import('konva')
+    return mod.default as unknown as Record<string, unknown>
+  }
+}
+
+// Stubs Konva.Tween/Animation so a layout run can be driven without a real canvas
+async function withStubbedKonva<T>(run: (tweens: TweenConfig[]) => Promise<T> | T): Promise<T> {
+  const konva = await loadEditorKonva()
+  const realTween = konva.Tween
+  const realAnimation = konva.Animation
+  const tweens: TweenConfig[] = []
+
+  Object.defineProperty(konva, 'Tween', {
+    value: class {
+      constructor(config: TweenConfig) {
+        tweens.push(config)
+      }
+      play() {}
+    },
+    configurable: true,
+    writable: true,
+  })
+  Object.defineProperty(konva, 'Animation', {
+    value: class {
+      start() {}
+      stop() {}
+    },
+    configurable: true,
+    writable: true,
+  })
+
+  try {
+    return await run(tweens)
+  } finally {
+    Object.defineProperty(konva, 'Tween', { value: realTween, configurable: true, writable: true })
+    Object.defineProperty(konva, 'Animation', {
+      value: realAnimation,
+      configurable: true,
+      writable: true,
+    })
+  }
+}
+
+// Minimal Konva stage double; `missingId` simulates a state whose shape is not drawn (yet)
+function fakeStage(missingId: number | null = null) {
+  return {
+    width: () => 800,
+    height: () => 600,
+    x: () => 0,
+    y: () => 0,
+    scaleX: () => 1,
+    findOne: (selector: string) =>
+      selector === `#state_${missingId}` ? null : { x: () => 0, y: () => 0 },
+  }
+}
+
+describe('editor internals', () => {
+  it('consuming a deleted state id notifies subscribers instead of mutating in place', async () => {
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editor = await import('../../public/fsm-engine/src/lib/editor.js')
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const stores = await import('../../public/fsm-engine/src/lib/stores.js')
+    const { store, node_list, deleted_nodes, stage_ref, editor_state } = stores
+
+    let notifications = 0
+    const unsubscribe = store.sub(deleted_nodes, () => {
+      notifications += 1
+    })
+
+    store.set(node_list, [])
+    store.set(deleted_nodes, [2, 5])
+    store.set(editor_state, 'Add')
+    store.set(stage_ref, null)
+
+    const clickEvent = {
+      target: {
+        getStage: () => ({
+          findOne: () => ({ getRelativePointerPosition: () => ({ x: 10, y: 20 }) }),
+        }),
+      },
+    }
+
+    notifications = 0
+    editor.HandleEditorClick(clickEvent)
+    unsubscribe()
+
+    // the consumed id must be visible to subscribers, or the UI keeps rendering a stale list
+    expect(notifications).toBeGreaterThan(0)
+    expect(store.get(deleted_nodes)).toEqual([5])
+  })
+
+  it('auto layout ignores hidden don\u2019t-care edges', async () => {
+    await withStubbedKonva(async (tweens) => {
+      // @ts-expect-error - the editor submodule ships plain JS without type declarations
+      const stores = await import('../../public/fsm-engine/src/lib/stores.js')
+      // @ts-expect-error - the editor submodule ships plain JS without type declarations
+      const editor = await import('../../public/fsm-engine/src/lib/editor.js')
+      const { store, node_list, transition_list, stage_ref } = stores
+
+      const layout = (transitions: unknown[]) => {
+        store.set(stage_ref, fakeStage())
+        store.set(node_list, [
+          { id: 0, name: 'q0', x: 0, y: 0, radius: 40, transitions: [] },
+          { id: 1, name: 'q1', x: 0, y: 0, radius: 40, transitions: [] },
+        ])
+        store.set(transition_list, transitions)
+        tweens.length = 0
+        editor.HandleAutoLayout()
+        tweens.forEach((tween) => tween.onFinish?.())
+        return (store.get(node_list) as Array<{ x: number; y: number } | undefined>).map((node) =>
+          node ? [node.x, node.y] : undefined,
+        )
+      }
+
+      const edge = { id: 1, from: 0, to: 1, points: [], label: '0/0' }
+      const hidden = { id: 2, from: 0, to: -1, points: [], label: '1/-', hiddenDontCare: true }
+
+      const withoutHidden = layout([edge])
+      const withHidden = layout([edge, hidden])
+
+      // a hidden don't-care row has no target state and must not distort the layout
+      expect(withHidden).toEqual(withoutHidden)
+    })
+  })
+
+  it('auto layout still commits positions when a node shape is missing', async () => {
+    await withStubbedKonva(async (tweens) => {
+      // @ts-expect-error - the editor submodule ships plain JS without type declarations
+      const stores = await import('../../public/fsm-engine/src/lib/stores.js')
+      // @ts-expect-error - the editor submodule ships plain JS without type declarations
+      const editor = await import('../../public/fsm-engine/src/lib/editor.js')
+      const { store, node_list, transition_list, stage_ref } = stores
+
+      const layout = (missingId: number | null) => {
+        store.set(stage_ref, fakeStage(missingId))
+        store.set(node_list, [
+          { id: 0, name: 'q0', x: 0, y: 0, radius: 40, transitions: [] },
+          { id: 1, name: 'q1', x: 0, y: 0, radius: 40, transitions: [] },
+        ])
+        store.set(transition_list, [{ id: 1, from: 0, to: 1, points: [], label: '0/0' }])
+        tweens.length = 0
+        editor.HandleAutoLayout()
+        tweens.forEach((tween) => tween.onFinish?.())
+        return (store.get(node_list) as Array<{ x: number; y: number } | undefined>).map((node) =>
+          node ? [node.x, node.y] : undefined,
+        )
+      }
+
+      const complete = layout(null)
+      const missingShape = layout(1)
+
+      expect(complete[0]).not.toEqual([0, 0])
+      // a state without a drawn shape must not swallow the whole commit
+      expect(missingShape).toEqual(complete)
+    })
   })
 })
