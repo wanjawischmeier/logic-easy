@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FsmModel, FsmNode, FsmState, FsmTransition } from '@/projects/state-machine/FsmTypes'
+import { FsmProject } from '@/projects/state-machine/FsmProject'
+import { stateManager } from '@/projects/stateManager'
 import { importEditorPayload } from '@/projects/state-machine/fsmEditorImportHelpers'
 import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 import {
@@ -18,6 +20,7 @@ import {
   toggleTransitionTargetBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { validateFsm } from '@/utility/fsm/EditorSync/fsmValidation'
+import { buildFsmImportPayload } from '@/utility/fsm/EditorSync/fsmListener'
 import { exportFsmToTruthTable } from '@/utility/fsm/kvSync'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
 
@@ -424,7 +427,7 @@ const M5_SNAPSHOT = [
   'q2|1->q0/01',
 ]
 
-const AUTOMATONS: readonly { name: string; spec: AutoSpec; expected: string[] }[] = [
+const AUTOMATA: readonly { name: string; spec: AutoSpec; expected: string[] }[] = [
   { name: 'M2 (three states, Foto 4)', spec: M2, expected: M2_SNAPSHOT },
   { name: 'M1 (four states, Abb. 1.1)', spec: M1, expected: M1_SNAPSHOT },
   { name: 'M3 (Moore, Foto 1)', spec: M3, expected: M3_SNAPSHOT },
@@ -433,7 +436,7 @@ const AUTOMATONS: readonly { name: string; spec: AutoSpec; expected: string[] }[
 ]
 
 describe('automatons stay identical in table, central state and editor sync', () => {
-  AUTOMATONS.forEach(({ name, spec, expected }) => {
+  AUTOMATA.forEach(({ name, spec, expected }) => {
     if (expected.length > 0) {
       it(`${name}: central state is exactly the drawn automaton`, () => {
         const state = createState(spec)
@@ -727,14 +730,14 @@ describe('central state guards', () => {
 
   it('names a new state with the smallest free number, never with a used one', () => {
     const state = createState(M2)
-    // an editor roundtrip can decouple names from ids: q0, q2, q3 on ids 0, 1, 2
+    // names can drift from the ids after an editor roundtrip
     state.nodes = [
       { ...nodeAt(state, 0), nodeId: 0, name: 'q0' },
       { ...nodeAt(state, 1), nodeId: 1, name: 'q2' },
       { ...nodeAt(state, 2), nodeId: 2, name: 'q3' },
     ]
     addStateRow(state, 'mealy')
-    // the id is free, but the number must come from the names, so nothing duplicates
+    // the free id must not decide the name
     expect(state.nodes.map((node) => node.name)).toEqual(['q0', 'q2', 'q3', 'q1'])
   })
 
@@ -857,7 +860,7 @@ describe('logic circuits export follows the minimized KV functions', () => {
   const expectedFlipFlops: Record<string, number> = { M1: 2, M2: 2, M3: 2, M4: 3, M5: 2 }
 
   it('builds one D flip-flop per state bit for every automaton', () => {
-    AUTOMATONS.forEach(({ name, spec }) => {
+    AUTOMATA.forEach(({ name, spec }) => {
       const lc = stateMachineToLC(createState(spec), { encoding: 'Binary', flipFlopType: 'D' })
       const flipFlops = lc.elements.filter((element) => element.elementType === D_FLIPFLOP)
       expect(flipFlops).toHaveLength(expectedFlipFlops[name.slice(0, 2)] ?? -1)
@@ -1127,16 +1130,52 @@ describe('import hardening', () => {
 })
 
 describe('Moore output editing', () => {
-  it('is only editable when exactly one target resolves', () => {
+  it('toggles every state an open row resolves to', () => {
     const state = createState(specForCount(3, 'moore'))
     const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
-    // an all don't-care next state targets every state, so the cell stays untouched
-    toggleMooreOutputBit(state, index, 0)
-    expect(nodeAt(state, 0).mooreOutput).toBe('x')
+    // open the row, so it covers all three states and all of them follow the toggle cycle
+    writeRow(state, 0, '0', 'xx')
+    expect(resolveMooreOutput(state, rowAt(state, index))).toBe('x')
 
+    toggleMooreOutputBit(state, index, 0)
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', '0', '0'])
+    toggleMooreOutputBit(state, index, 0)
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['1', '1', '1'])
+    toggleMooreOutputBit(state, index, 0)
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['x', 'x', 'x'])
+    toggleMooreOutputBit(state, index, 0)
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', '0', '0'])
+  })
+
+  it('changes only the state a concrete row points at', () => {
+    const state = createState(specForCount(3, 'moore'))
+    const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
     writeRow(state, 0, '0', 0)
     toggleMooreOutputBit(state, index, 0)
-    expect(nodeAt(state, 0).mooreOutput).toBe('0')
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', 'x', 'x'])
+  })
+
+  it('resolves a disagreeing group with one click', () => {
+    const state = createState(specForCount(3, 'moore'))
+    const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
+    nodeAt(state, 0).mooreOutput = '0'
+    nodeAt(state, 1).mooreOutput = '1'
+    // covers the states 0 and 1, whose outputs conflict before the click
+    writeRow(state, 0, '0', '0x')
+    expect(resolveMooreOutput(state, rowAt(state, index))).toBe('x')
+
+    toggleMooreOutputBit(state, index, 0)
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', '0', 'x'])
+    expect(resolveMooreOutput(state, rowAt(state, index))).toBe('0')
+  })
+
+  it('leaves a row without a target to the invalid panels', () => {
+    const state = createState(specForCount(3, 'moore'))
+    const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
+    rowAt(state, index).removedTarget = true
+
+    toggleMooreOutputBit(state, index, 0)
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['x', 'x', 'x'])
   })
 })
 
@@ -1148,7 +1187,7 @@ type TweenConfig = { onFinish?: () => void }
 
 // Loads the konva instance the editor submodule itself resolves, so its tweens can be stubbed
 async function loadEditorKonva(): Promise<Record<string, unknown>> {
-  // The submodule ships its own konva copy; a dynamic path keeps this working without that install
+  // konva from the submodule when installed, otherwise from the app
   const submoduleEntry = '../../public/fsm-engine/node_modules/konva/lib/index.js'
   try {
     const mod = await import(/* @vite-ignore */ submoduleEntry)
@@ -1241,7 +1280,7 @@ describe('editor internals', () => {
       delete (window as unknown as Record<string, unknown>).parent
     }
 
-    // the app owns ids and names, so the editor only asks for the new state
+    // the editor asks, it does not create
     expect(messages).toEqual([{ action: 'add-state-request', x: 10, y: 20 }])
     expect(store.get(node_list)).toEqual([])
   })
@@ -1272,7 +1311,7 @@ describe('editor internals', () => {
     }
 
     expect(messages).toEqual([{ action: 'remove-state-request', id: 1 }])
-    // the app removes the state together with its edges
+    // the app removes the state, so the editor keeps its nodes
     expect(store.get(node_list)).toHaveLength(2)
   })
 
@@ -1340,5 +1379,142 @@ describe('editor internals', () => {
       // a state without a drawn shape must not swallow the whole commit
       expect(missingShape).toEqual(complete)
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// End to end over the real wire format: app -> payload -> editor -> export -> app
+// ---------------------------------------------------------------------------
+
+async function throughEditor(state: FsmState): Promise<FsmState> {
+  // @ts-expect-error - the editor submodule ships plain JS without type declarations
+  const editorStore = await import('../../public/fsm-engine/src/lib/stores.js')
+  // @ts-expect-error - the editor submodule ships plain JS without type declarations
+  const editorExport = await import('../../public/fsm-engine/src/lib/export.js')
+
+  editorExport.clearFsmFromParent()
+  // No canvas in the tests, so the render cleanup must stay out of the way
+  editorStore.store.set(editorStore.stage_ref, null)
+  editorExport.applyFsmImport(buildFsmImportPayload(state))
+  console.log(
+    'DBG before import flags',
+    state.transitions
+      .filter((t) => t.removedTarget)
+      .map((t) => `${t.fromNodeId}|${t.input}`)
+      .join(','),
+  )
+  const { nodes, transitions } = importEditorPayload(editorExport.extractFsmData(), state)
+  console.log(
+    'DBG after import flags',
+    transitions
+      .filter((t) => t.removedTarget)
+      .map((t) => `${t.fromNodeId}|${t.input}`)
+      .join(','),
+  )
+
+  const next: FsmState = { ...state, nodes, transitions }
+  ensureTransitionMatrix(next)
+  return next
+}
+
+describe('state requests sync through the editor', () => {
+  function useFsm(spec: AutoSpec): FsmState {
+    const state = createState(spec)
+    stateManager.state.fsm = state
+    return state
+  }
+
+  it('adds the requested state and keeps it through the editor', async () => {
+    const state = useFsm(M2)
+    FsmProject.addStateFromEditor(120, 240)
+
+    expect(state.nodes).toHaveLength(4)
+    expect(state.nodes[3]).toMatchObject({ name: 'q3', editorCoordX: 120, editorCoordY: 240 })
+
+    const synced = await throughEditor(state)
+    expect(snapshot(synced)).toEqual(snapshot(state))
+    expect(synced.nodes[3]).toMatchObject({ name: 'q3', editorCoordX: 120, editorCoordY: 240 })
+    expect(validateFsm(synced).valid).toBe(true)
+    expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
+  })
+
+  it('names an added state after the free number, not after its id', async () => {
+    const state = useFsm(specForCount(3))
+    // names can drift from the ids after an editor roundtrip
+    state.nodes = [
+      { ...state.nodes[0]!, name: 'q0' },
+      { ...state.nodes[1]!, name: 'q2' },
+      { ...state.nodes[2]!, name: 'q3' },
+    ]
+
+    FsmProject.addStateFromEditor(10, 20)
+    expect(state.nodes.map((node) => node.name)).toEqual(['q0', 'q2', 'q3', 'q1'])
+
+    const names = (await throughEditor(state)).nodes.map((node) => node.name)
+    expect(names).toEqual(['q0', 'q2', 'q3', 'q1'])
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('removes the requested state with its edges and keeps the other targets', async () => {
+    const state = useFsm(M4)
+    FsmProject.removeStateFromEditor(2)
+
+    expect(state.nodes).toHaveLength(5)
+    // the removed state is gone, the others keep the names they had
+    expect(state.nodes.map((node) => node.name)).toEqual(['q0', 'q1', 'q3', 'q4', 'q5'])
+
+    const synced = await throughEditor(state)
+    expect(snapshot(synced)).toEqual(snapshot(state))
+    // a row whose target is gone keeps its marker, so the machine stays invalid until it is fixed
+    expect(validateFsm(synced).valid).toBe(false)
+    expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
+
+    // the id compaction must not repoint a row at another state
+    expect(snapshot(synced)).toContain('q0|00->q5/01')
+    expect(snapshot(synced)).toContain('q0|01->q1/10')
+    expect(snapshot(synced)).toContain('q0|10->pattern:00x/11')
+    expect(snapshot(synced).some((row) => row.includes('q2'))).toBe(false)
+  })
+
+  it('syncs the complete automaton again once the removed targets are fixed', async () => {
+    const state = useFsm(M4)
+    FsmProject.removeStateFromEditor(2)
+
+    const synced = await throughEditor(state)
+    const dangling = synced.transitions
+      .map((transition, index) => (transition.removedTarget ? index : -1))
+      .filter((index) => index >= 0)
+    expect(dangling).toHaveLength(2)
+
+    // the cells stay togglable while the machine is invalid, so the rows can be repaired
+    dangling.forEach((index) => clickTargetBitsUntil(synced, index, '011'))
+    expect(validateFsm(synced).valid).toBe(true)
+
+    const repaired = await throughEditor(synced)
+    expect(validateFsm(repaired).valid).toBe(true)
+    expect(snapshot(repaired)).toEqual(snapshot(synced))
+    expectMatrix(repaired)
+    // the repair points at the state with the index 3, whose name drifted to q4 after the import
+    expect(snapshot(repaired)).toContain('q1|00->q4/11')
+    expect(snapshot(repaired)).toContain('q4|11->q4/10')
+    expect(snapshot(repaired).some((row) => row.includes('removed:'))).toBe(false)
+  })
+
+  it('canonicalizes a duplicate name on import and sends it back without drift', async () => {
+    const state = useFsm(M2)
+    const payload = buildFsmImportPayload(state)
+    payload.states[1] = { ...payload.states[1]!, name: payload.states[0]!.name }
+
+    const { nodes, transitions } = importEditorPayload(payload, state)
+    const canonical: FsmState = { ...state, nodes, transitions }
+    ensureTransitionMatrix(canonical)
+
+    const names = canonical.nodes.map((node) => node.name)
+    expect(new Set(names).size).toBe(names.length)
+    expect(names[1]).toBe('q1')
+
+    const synced = await throughEditor(canonical)
+    expect(synced.nodes.map((node) => node.name)).toEqual(names)
+    expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
   })
 })

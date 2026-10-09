@@ -124,7 +124,7 @@ export class FsmProject extends Project {
     normalizeFsmState(state)
   }
 
-  // The editor is a view: it asks the app for state changes, the app owns ids and names
+  // State changes requested by the editor
   static addStateFromEditor(x?: number, y?: number): void {
     const fsm = stateManager.state.fsm as FsmState | undefined
     if (!fsm) return
@@ -132,7 +132,7 @@ export class FsmProject extends Project {
     addStateRow(fsm, fsm.fsmModel, { x, y })
   }
 
-  // An editor-side removal drops the state together with its edges, then renumbers
+  // Drops the state with its edges, then renumbers
   static removeStateFromEditor(nodeId: number): void {
     const fsm = stateManager.state.fsm as FsmState | undefined
     if (!fsm || !Number.isFinite(nodeId)) return

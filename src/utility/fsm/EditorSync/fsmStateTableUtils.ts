@@ -16,7 +16,7 @@ export function sanitizeStateName(value: string | undefined): string {
     .slice(0, MAX_STATE_NAME_LENGTH)
 }
 
-// Smallest unused "q<number>", so a recreated state never duplicates an existing name
+// Smallest unused "q<number>"
 export function nextFreeStateName(names: Iterable<string | undefined>): string {
   const used = new Set(
     [...names].map((name) =>
@@ -171,7 +171,7 @@ export function addStateRow(
   // only the state options can set the "initial" flag
   state.nodes.push({
     nodeId: nextId,
-    // Name from the smallest free number, never from the id, so a recreated state cannot collide
+    // The name number comes from the names, never from the id
     name: nextFreeStateName(state.nodes.map((node) => node.name)),
     isInitial: false,
     editorCoordX: Number.isFinite(position?.x) ? position?.x : undefined,
@@ -350,17 +350,20 @@ export function toggleMooreOutputBit(
   if (!transition) return
 
   const outputBits = state.outputBitCount ?? 1
-  // In Moore mode the output belongs to the state, so only a single resolved target is editable.
-  // Editing is never auto-applied to several states at once.
   const targetNodes = resolveTransitionTargetNodes(state, transition)
-  if (targetNodes.length !== 1) return
+  // A row without a target is invalid, the editor shows that and there is nothing to edit
+  if (!targetNodes.length) return
 
-  const [node] = targetNodes
-  if (!node) return
+  // Always toggle in the fixed standard order 0 -> 1 -> x -> 0, validity is checked separately
+  const currentBit = resolveMooreOutput(state, transition).charAt(bitIndex) || 'x'
+  const nextBit = currentBit === '0' ? '1' : currentBit === '1' ? 'x' : '0'
 
-  const bits = normalizeBits(node.mooreOutput, outputBits, 'x', 'right').split('')
-  bits[bitIndex] = bits[bitIndex] === '0' ? '1' : bits[bitIndex] === '1' ? 'x' : '0'
-  node.mooreOutput = bits.join('')
+  // The output belongs to the state, so every target gets the bit and the group stays in agreement
+  targetNodes.forEach((node) => {
+    const bits = normalizeBits(node.mooreOutput, outputBits, 'x', 'right').split('')
+    bits[bitIndex] = nextBit
+    node.mooreOutput = bits.join('')
+  })
 }
 
 export function getStateCountLimit(): number {

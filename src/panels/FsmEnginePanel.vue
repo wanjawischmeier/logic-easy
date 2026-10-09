@@ -265,7 +265,7 @@ onMounted(() => {
           .filter(Number.isFinite)
           .sort((a, b) => a - b)
           .join(',')
-      // The app canonicalizes names, so a changed name must be pushed back as well
+      // Names are canonicalized on import, so push a rename back
       const nodeNamesKey = () =>
         (stateManager.state.fsm?.nodes ?? [])
           .map((n) => String(n?.name ?? ''))
@@ -291,7 +291,7 @@ onMounted(() => {
       }
     }
 
-    // The editor never mints state ids or names: it asks the central state and renders the sync
+    // State requests from the editor
     if (data.action === 'add-state-request') {
       FsmProject.addStateFromEditor(Number(data.x), Number(data.y))
       return

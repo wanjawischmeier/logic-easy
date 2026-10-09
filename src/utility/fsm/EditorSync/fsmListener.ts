@@ -28,7 +28,7 @@ function scheduleTableSync() {
   }, 120)
 }
 
-function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm>) {
+export function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.state.fsm>) {
   return {
     states: newFsm.nodes.map((n) => ({
       id: n.nodeId,
