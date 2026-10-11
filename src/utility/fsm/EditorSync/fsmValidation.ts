@@ -8,6 +8,17 @@ import { normalizeBits } from '../bitOperations'
 
 export type FsmValidity = { valid: true } | { valid: false; reason: string }
 
+// Which overlay a view has to show. Exactly one place decides this, so the
+// Editor, the Karnaugh-Veitch view and the LogicCircuits view can never disagree.
+// An error on the drawn edges wins: repairing it is what countPendingHiddenRows waits for.
+export type FsmViewMode = 'invalid' | 'hidden-pending' | 'ready'
+
+export function fsmViewMode(state: FsmState | undefined): FsmViewMode {
+  if (!state) return 'ready'
+  if (!validateFsm(state).valid) return 'invalid'
+  return countPendingHiddenRows(state) > 0 ? 'hidden-pending' : 'ready'
+}
+
 // Hidden rows only confuse the views while the drawn machine itself is fine
 // Clearing them cannot repair an invalid machine, so the warning waits for that
 export function countPendingHiddenRows(state: FsmState): number {

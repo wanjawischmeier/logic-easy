@@ -43,12 +43,15 @@ export function buildFsmImportPayload(newFsm: NonNullable<typeof stateManager.st
       const nodeBits = newFsm.nodeIdBitCount || 1
       const inBits = newFsm.inputBitCount || 1
       const outBits = newFsm.outputBitCount || 1
-      const toBinary = normalizeBits(
-        t.toBinaryId ?? (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, nodeBits) : ''),
-        nodeBits,
-        'x',
-        'left',
-      )
+      // A removed target has no concrete state: send a full don't care so the editor hides the row
+      const toBinary = t.removedTarget
+        ? 'x'.repeat(nodeBits)
+        : normalizeBits(
+            t.toBinaryId ?? (t.toNodeId >= 0 ? calcBinaryID(t.toNodeId, nodeBits) : ''),
+            nodeBits,
+            'x',
+            'left',
+          )
       const inputNorm = normalizeBits(t.input, inBits, 'x', 'right')
       const outputNorm = normalizeBits(
         newFsm.fsmModel === 'moore' ? '' : (t.mealyOutput ?? ''),

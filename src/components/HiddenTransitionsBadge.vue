@@ -20,8 +20,7 @@ const props = defineProps<{ count: number }>()
 
 const docsHref = '/logic-easy/docs/views/state-machine/tables.html#next-states'
 const tooltip = computed(() => {
-  const hidden =
-    props.count === 1 ? 'One transition is hidden' : `${props.count} transitions are hidden`
-  return `${hidden}: all transitions with - as a next state bit have no unique target, so they are not drawn and the Karnaugh-Veitch and LogicCircuits views ignore them. Click for details.`
+  const carried = props.count === 1 ? 'One of them' : `${props.count} of them`
+  return `All transitions with - as a next state bit are hidden: they have no unique target, so they are not drawn and the Karnaugh-Veitch and LogicCircuits views ignore them. ${carried} still show bits in the state table. Click for details.`
 })
 </script>

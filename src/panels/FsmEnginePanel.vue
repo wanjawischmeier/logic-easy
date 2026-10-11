@@ -35,7 +35,7 @@ const fsmValidity = computed<FsmValidity>(() => {
 })
 const isFsmValid = computed(() => fsmValidity.value.valid)
 const validReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
-// Rows the editor cannot draw and whose bits still look meaningful in the table
+// The editor only draws, so it never blocks: it just counts the rows it cannot draw
 const hiddenRowCount = computed(
   () => (stateManager.state.fsm?.transitions ?? []).filter(needsHiddenCleanup).length,
 )

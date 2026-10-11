@@ -1,7 +1,8 @@
 import type { BaseProjectProps } from '@/projects/Project'
 import { projectManager } from '@/projects/projectManager'
 import { getProjectType } from '@/projects/projectRegistry'
-import { type MenuEntry, findDockEntry } from '@/router/dockRegistry'
+// Type-only on purpose: a runtime import here would close a cycle with the panels
+import type { MenuEntry } from '@/router/dockRegistry'
 import { closeFsmEditorPopups } from '@/utility/fsm/EditorSync/fsmOverlayBridge'
 import { shallowRef, type Component } from 'vue'
 
@@ -52,13 +53,12 @@ export const popupService = {
  * @returns Wether or not the project was sucessfully created.
  */
 export function showProjectCreationPopup(menuEntry: MenuEntry): boolean {
-  const registryEntry = findDockEntry(menuEntry.panelId!)
-  const projectTypeString = registryEntry?.projectCreationInfo?.projectType
+  const projectTypeString = menuEntry.projectType
   if (!projectTypeString) return false
 
   const projectType = getProjectType(projectTypeString)
   const props = projectType.projectClass?.defaultProps
-  const defaultLayout = registryEntry.projectCreationInfo?.defaultLayout
+  const defaultLayout = menuEntry.defaultLayout
   if (props && defaultLayout) {
     props.defaultLayout = defaultLayout
   }

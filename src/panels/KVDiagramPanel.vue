@@ -31,22 +31,13 @@
       />
     </div>
 
-    <!-- Same lock view the editor shows while the FSM is invalid -->
-    <InvalidFSMView
-      v-if="isFSMInvalid"
-      :reason="invalidReason"
+    <!-- One shared gate decides between the FSM invalid lock and the hidden rows notice -->
+    <FsmViewGate
+      :fsm="stateManager.state.fsm"
       hint="Fix the issues in the state table to unlock the Karnaugh-Veitch diagram."
-    />
-
-    <!-- Hidden rows are ignored here, so the user clears them once before the diagram shows -->
-    <HiddenEdgesNotice
-      v-else-if="hiddenRowCount"
-      :count="hiddenRowCount"
-      @confirm="clearHiddenRows"
-    />
-
-    <div v-else class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
-      <!-- Interactive view -->
+    >
+      <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
+        <!-- Interactive view -->
       <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
         <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
           <KVDiagram
@@ -115,7 +106,8 @@
           </FormulaRenderer>
         </div>
       </div>
-    </div>
+      </div>
+    </FsmViewGate>
   </div>
 </template>
 
@@ -124,15 +116,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
-import HiddenEdgesNotice from '@/components/HiddenEdgesNotice.vue'
-import InvalidFSMView from '@/components/InvalidFSMView.vue'
+import FsmViewGate from '@/components/FsmViewGate.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import Checkbox from '@/components/parts/Checkbox.vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import { stateManager } from '@/projects/stateManager'
-import { FsmProject } from '@/projects/state-machine/FsmProject'
 import {
   TruthTableProject,
   type TruthTableCell,
@@ -147,7 +137,6 @@ import {
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
 import {
-  countPendingHiddenRows,
   validateFsm,
   type FsmValidity,
 } from '@/utility/fsm/EditorSync/fsmValidation'
@@ -320,13 +309,6 @@ const fsmValidity = computed<FsmValidity>(() => {
 const isFSMInvalid = computed(
   () => stateManager.state.truthTable?.fsmMode === true && !fsmValidity.value.valid,
 )
-const invalidReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
-// Only warns while the drawn machine is valid, clearing the bits never repairs an error
-const hiddenRowCount = computed(() => {
-  const fsm = stateManager.state.fsm
-  return fsm ? countPendingHiddenRows(fsm) : 0
-})
-const clearHiddenRows = () => FsmProject.clearHiddenRowBits()
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),

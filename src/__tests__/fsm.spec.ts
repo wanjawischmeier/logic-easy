@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick, reactive } from 'vue'
+import FsmViewGate from '@/components/FsmViewGate.vue'
 import TransitionsTable from '@/components/TransitionsTable.vue'
 import HiddenEdgesNotice from '@/components/HiddenEdgesNotice.vue'
 import HiddenTransitionsBadge from '@/components/HiddenTransitionsBadge.vue'
@@ -8,7 +10,7 @@ import type { FsmModel, FsmNode, FsmState, FsmTransition } from '@/projects/stat
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
 import { importEditorPayload } from '@/projects/state-machine/fsmEditorImportHelpers'
-import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
+import { calcBinaryID, calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 import {
   MAX_FSM_IO_BITS,
   MAX_FSM_STATES,
@@ -26,7 +28,11 @@ import {
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
-import { validateFsm, countPendingHiddenRows } from '@/utility/fsm/EditorSync/fsmValidation'
+import {
+  validateFsm,
+  countPendingHiddenRows,
+  fsmViewMode,
+} from '@/utility/fsm/EditorSync/fsmValidation'
 import { buildFsmImportPayload, forceSyncTableToEditor } from '@/utility/fsm/EditorSync/fsmListener'
 import { exportFsmToTruthTable } from '@/utility/fsm/kvSync'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
@@ -240,6 +246,7 @@ function padRight(value: string, length: number): string {
 
 // Mirrors the payload the panel sends before the editor renders it
 function toEditorPayload(state: FsmState) {
+  const nodeBits = Math.max(1, state.nodeIdBitCount || 1)
   const inputBits = Math.max(1, state.inputBitCount ?? 1)
   const outputBits = Math.max(1, state.outputBitCount ?? 1)
   const output = (transition: FsmTransition) =>
@@ -259,7 +266,8 @@ function toEditorPayload(state: FsmState) {
       groupId: transition.groupId ?? transition.transitionId,
       from: transition.fromNodeId,
       to: transition.toNodeId,
-      toBinaryId: transition.toBinaryId,
+      // A removed marker becomes a full don't care so the editor hides it, exactly like the panel
+      toBinaryId: transition.removedTarget ? 'x'.repeat(nodeBits) : transition.toBinaryId,
       input: padRight(transition.input, inputBits),
       output: output(transition),
       mealy_output: output(transition),
@@ -1548,6 +1556,28 @@ describe('state requests sync through the editor', () => {
     expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
   })
 
+  // A table-removed target keeps its hidden marker through the real editor roundtrip: the payload
+  // must not turn the stale, truncated pattern into a wrong concrete edge
+  it('keeps a target removed in the table hidden through the real editor roundtrip', async () => {
+    const state = useFsm(M2)
+    removeStateRow(state, 2)
+
+    const flagged = findRow(state, 0, '1')
+    expect(flagged.removedTarget).toBe(true)
+    // the marker remembers the removed index in the old bit width, so it can restore on re-add
+    expect(flagged.toBinaryId).toBe('10')
+    expect(validateFsm(state).valid).toBe(true)
+
+    const synced = await throughEditor(state)
+    // the row must stay a hidden marker, never silently point at another state
+    const syncedRow = findRow(synced, 0, '1')
+    expect(syncedRow.removedTarget).toBe(true)
+    expect(syncedRow.toNodeId).toBe(-1)
+    expect(isHiddenTransition(syncedRow)).toBe(true)
+    expect(validateFsm(synced).valid).toBe(true)
+    expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
+  })
+
   it('stays valid when a state is added back after an editor-side removal', async () => {
     const state = useFsm(M4)
     FsmProject.removeStateFromEditor(2)
@@ -2031,7 +2061,8 @@ describe('hidden rows are ignored and can be cleared', () => {
     const link = wrapper.get('a')
 
     expect(link.attributes('href')).toContain('docs/views/state-machine/tables.html')
-    expect(link.attributes('title')).toContain('all transitions with - as a next state bit')
+    expect(link.attributes('title')).toContain('All transitions with - as a next state bit')
+    expect(link.attributes('title')).toContain('3 of them still show bits')
     expect(link.text()).toContain('3')
     // an info badge, never an error badge
     expect(link.classes()).toContain('text-primary-variant')
@@ -2041,7 +2072,49 @@ describe('hidden rows are ignored and can be cleared', () => {
       mount(HiddenTransitionsBadge, { props: { count: 1 } })
         .get('a')
         .attributes('title'),
-    ).toContain('One transition is hidden')
+    ).toContain('One of them still show bits')
+  })
+
+  it('agrees with the editor about which rows are hidden', async () => {
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorExport = await import('../../public/fsm-engine/src/lib/export.js')
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorStore = await import('../../public/fsm-engine/src/lib/stores.js')
+
+    // pattern -> [editor keeps the row, editor flags it hidden, app flags it hidden, machine valid]
+    const cases: [string, boolean, boolean, boolean, boolean][] = [
+      ['00', true, false, false, true],
+      ['0x', true, true, true, true],
+      ['xx', true, true, true, true],
+      // index 3 has no state: a fault the app locks on, not a hidden row
+      ['11', false, false, false, false],
+    ]
+
+    const observed = cases.map(([pattern]) => {
+      const state = createState(specForCount(3))
+      const row = findRow(state, 0, '0')
+      row.toNodeId = -1
+      row.toBinaryId = pattern
+
+      editorExport.clearFsmFromParent()
+      editorStore.store.set(editorStore.stage_ref, null)
+      editorExport.applyFsmImport(buildFsmImportPayload(state))
+
+      const entry = (editorStore.store.get(editorStore.transition_list) ?? []).find(
+        (transition: { from?: number; input?: string; hiddenDontCare?: boolean }) =>
+          transition?.from === 0 && transition?.input === '0',
+      )
+
+      return [
+        pattern,
+        !!entry,
+        !!entry?.hiddenDontCare,
+        isHiddenTransition(row),
+        validateFsm(state).valid,
+      ]
+    })
+
+    expect(observed).toEqual(cases)
   })
 
   it('leaves a partially concrete Moore row as don\u2019t cares in the table', () => {
@@ -2118,5 +2191,278 @@ describe('hidden rows are ignored and can be cleared', () => {
 
     writeRow(state, 2, '0', '01')
     expect(countPendingHiddenRows(state)).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Overlay choice and cross view consistency: one decision for every panel
+// ---------------------------------------------------------------------------
+
+// The next-state cells of the exported table must be open for hidden rows and only for them
+function nextStateCellsAreOpenOnlyForHiddenRows(state: FsmState): boolean {
+  const table = exportFsmToTruthTable(state)
+  const stateBits = Math.max(1, state.nodeIdBitCount)
+  const inputBits = Math.max(1, state.inputBitCount ?? 1)
+
+  return state.transitions.every((transition) => {
+    const input = normalizeBits(transition.input, inputBits, 'x', 'right')
+    if (!/^[01]+$/.test(input)) return true
+
+    const from = normalizeBits(
+      calcBinaryID(transition.fromNodeId, stateBits),
+      stateBits,
+      '0',
+      'left',
+    )
+    const cells = table.values[parseInt(`${from}${input}`, 2)] ?? []
+    const open = cells.slice(0, stateBits).every((cell) => cell === '-')
+
+    return open === isHiddenTransition(transition)
+  })
+}
+
+const IO_CASES: readonly { model: FsmModel; inputBits: number; outputBits: number }[] = [
+  { model: 'mealy', inputBits: 1, outputBits: 1 },
+  { model: 'mealy', inputBits: 2, outputBits: 3 },
+  { model: 'moore', inputBits: 1, outputBits: 1 },
+  { model: 'moore', inputBits: 3, outputBits: 2 },
+]
+
+function lifecycleSpec(
+  model: FsmModel,
+  inputBits: number,
+  outputBits: number,
+  stateCount: number,
+): FsmSpec {
+  const edge = ['0'.repeat(inputBits), '0'.repeat(outputBits)] as const
+  return {
+    model,
+    inputBits,
+    outputBits,
+    stateCount,
+    edges:
+      stateCount > 1
+        ? [[0, stateCount - 1, edge[0], edge[1]]]
+        : stateCount === 1
+          ? [[0, 0, edge[0], edge[1]]]
+          : [],
+  }
+}
+
+describe('the overlay follows the drawn edges only', () => {
+  // Two or more state bits are needed for a partially filled hidden row
+  IO_CASES.forEach(({ model, inputBits, outputBits }) => {
+    ;[3, 4, 5, 8, 15, 16].forEach((stateCount) => {
+      it(`${model} ${inputBits}/${outputBits} bits, ${stateCount} states: hide, clear, remove, add`, () => {
+        const state = createState(lifecycleSpec(model, inputBits, outputBits, stateCount))
+        stateManager.state.fsm = state
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+        expect(nextStateCellsAreOpenOnlyForHiddenRows(state)).toBe(true)
+
+        FsmProject.addStateFromEditor()
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+
+        // a half filled hidden row asks for the hidden overlay, the machine stays valid
+        const firstInput = '0'.repeat(inputBits)
+        writeRow(state, 0, firstInput, `0${'x'.repeat(Math.max(0, state.nodeIdBitCount - 1))}`)
+        expect(validateFsm(state).valid).toBe(true)
+        expect(fsmViewMode(state)).toBe('hidden-pending')
+        expect(countPendingHiddenRows(state)).toBe(1)
+        expect(nextStateCellsAreOpenOnlyForHiddenRows(state)).toBe(true)
+
+        // accepting them opens every view again
+        expect(FsmProject.clearHiddenRowBits()).toBe(1)
+        expect(fsmViewMode(state)).toBe('ready')
+        expect(countPendingHiddenRows(state)).toBe(0)
+        expectMatrix(state)
+
+        // removing and adding states keeps the views ready and the matrix complete
+        FsmProject.removeStateFromEditor(0)
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+        FsmProject.addStateFromEditor()
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+        expect(nextStateCellsAreOpenOnlyForHiddenRows(state)).toBe(true)
+      })
+    })
+  })
+
+  IO_CASES.forEach(({ model, inputBits, outputBits }) => {
+    ;[0, 1, 2].forEach((stateCount) => {
+      it(`${model} ${inputBits}/${outputBits} bits, ${stateCount} states: the short machine never locks`, () => {
+        const state = createState(lifecycleSpec(model, inputBits, outputBits, stateCount))
+        stateManager.state.fsm = state
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+
+        FsmProject.addStateFromEditor()
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+
+        FsmProject.removeStateFromEditor(0)
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+
+        FsmProject.addStateFromEditor()
+        expectMatrix(state)
+        expect(fsmViewMode(state)).toBe('ready')
+        expect(validateFsm(state).valid).toBe(true)
+        expect(nextStateCellsAreOpenOnlyForHiddenRows(state)).toBe(true)
+      })
+    })
+  })
+})
+
+describe('a broken drawn edge locks with the known overlay', () => {
+  IO_CASES.forEach(({ model, inputBits, outputBits }) => {
+    it(`${model} ${inputBits}/${outputBits} bits: invalid wins over pending hidden rows`, () => {
+      const state = createState(lifecycleSpec(model, inputBits, outputBits, 3))
+      stateManager.state.fsm = state
+      expect(fsmViewMode(state)).toBe('ready')
+
+      // a hidden row that still carries bits
+      writeRow(state, 0, '0'.repeat(inputBits), '0x')
+      expect(fsmViewMode(state)).toBe('hidden-pending')
+
+      // a drawn row that names index 3, which has no state
+      writeRow(state, 1, '0'.repeat(inputBits), '11')
+      expect(fsmViewMode(state)).toBe('invalid')
+      expect(countPendingHiddenRows(state)).toBe(0)
+      const validity = validateFsm(state)
+      expect(validity.valid).toBe(false)
+      expect(validity.valid ? '' : validity.reason).toContain('q1')
+
+      // repairing the drawn row brings the hidden overlay back, accepting it shows the views
+      writeRow(state, 1, '0'.repeat(inputBits), '00')
+      expect(fsmViewMode(state)).toBe('hidden-pending')
+      expect(countPendingHiddenRows(state)).toBe(1)
+      expect(FsmProject.clearHiddenRowBits()).toBe(1)
+      expect(fsmViewMode(state)).toBe('ready')
+      expectMatrix(state)
+      expect(nextStateCellsAreOpenOnlyForHiddenRows(state)).toBe(true)
+    })
+  })
+})
+
+describe('a next state removed in the table never locks', () => {
+  IO_CASES.forEach(({ model, inputBits, outputBits }) => {
+    ;[1, 2, 3, 5, 9].forEach((stateCount) => {
+      it(`${model} ${inputBits}/${outputBits} bits, ${stateCount} states: the stale row stays hidden`, () => {
+        const state = createState(lifecycleSpec(model, inputBits, outputBits, stateCount))
+        stateManager.state.fsm = state
+
+        removeStateRow(state, stateCount - 1)
+        expectMatrix(state)
+        expect(validateFsm(state).valid).toBe(true)
+        expect(fsmViewMode(state)).not.toBe('invalid')
+        expect(fsmViewMode(state)).toBe(stateCount > 1 ? 'hidden-pending' : 'ready')
+        expect(nextStateCellsAreOpenOnlyForHiddenRows(state)).toBe(true)
+
+        FsmProject.clearHiddenRowBits()
+        expect(fsmViewMode(state)).toBe('ready')
+        expectMatrix(state)
+        expect(validateFsm(state).valid).toBe(true)
+      })
+    })
+  })
+})
+
+describe('the views and the editor badge ask the same question', () => {
+  it('counts pending hidden rows only while the machine is valid', () => {
+    const state = createState(specForSize(3, 'mealy'))
+    stateManager.state.fsm = state
+    writeRow(state, 0, '0', '0x')
+    writeRow(state, 1, '0', '1x')
+
+    expect(countPendingHiddenRows(state)).toBe(2)
+    expect(state.transitions.filter(needsHiddenCleanup)).toHaveLength(2)
+
+    // the drawn error wins: the views lock and the count the views use drops to zero
+    writeRow(state, 2, '0', '11')
+    expect(fsmViewMode(state)).toBe('invalid')
+    expect(countPendingHiddenRows(state)).toBe(0)
+    expect(state.transitions.filter(needsHiddenCleanup)).toHaveLength(2)
+
+    writeRow(state, 2, '0', '00')
+    expect(countPendingHiddenRows(state)).toBe(2)
+    expect(fsmViewMode(state)).toBe('hidden-pending')
+  })
+})
+
+describe('the shared gate renders exactly one overlay and reacts to it', () => {
+  // The gate reads the reactive FSM, so the tests mutate the same proxy the panels use
+  function useGate(spec: FsmSpec, hint = 'Fix it.') {
+    const state = reactive(createState(spec)) as FsmState
+    stateManager.state.fsm = state
+    const gate = mount(FsmViewGate, {
+      props: { fsm: state, hint },
+      slots: { default: '<p class="view-content">view content</p>' },
+    })
+    return { state, gate }
+  }
+
+  it('opens and closes the view the same way for Mealy and Moore', async () => {
+    for (const model of ['mealy', 'moore'] as const) {
+      const { state, gate } = useGate(lifecycleSpec(model, 1, 1, 3))
+
+      // 1) a valid machine without pending rows shows the content
+      expect(gate.text()).toContain('view content')
+
+      // 2) a hidden row with bits: the new overlay, and the content is gone
+      writeRow(state, 0, '0', '0x')
+      await nextTick()
+      expect(gate.text()).toContain('Hidden transitions')
+      expect(gate.text()).toContain('Continue anyway')
+      expect(gate.text()).not.toContain('view content')
+      expect(gate.text()).not.toContain('FSM Invalid')
+
+      // 3) accepting it clears the rows and reopens the view
+      await gate.get('button').trigger('click')
+      await nextTick()
+      expect(gate.text()).toContain('view content')
+      expect(gate.text()).not.toContain('Hidden transitions')
+      expect(fsmViewMode(state)).toBe('ready')
+      expectMatrix(state)
+
+      // 4) a broken drawn row locks with the known overlay and names the row
+      writeRow(state, 1, '0', '11')
+      await nextTick()
+      expect(gate.text()).toContain('FSM Invalid')
+      expect(gate.text()).toContain('q1')
+      expect(gate.text()).not.toContain('Continue anyway')
+
+      // 5) repairing it asks for the hidden rows again, clearing them shows the view
+      writeRow(state, 1, '0', '00')
+      writeRow(state, 2, '1', '1x')
+      await nextTick()
+      expect(gate.text()).toContain('Hidden transitions')
+      await gate.get('button').trigger('click')
+      await nextTick()
+      expect(gate.text()).toContain('view content')
+      expect(validateFsm(state).valid).toBe(true)
+      expectMatrix(state)
+    }
+  })
+
+  it('locks a broken machine even while hidden rows are pending', async () => {
+    const { state, gate } = useGate(lifecycleSpec('moore', 2, 2, 3))
+
+    writeRow(state, 0, '00', '0x')
+    await nextTick()
+    expect(gate.text()).toContain('Hidden transitions')
+
+    writeRow(state, 2, '11', '11')
+    await nextTick()
+    expect(gate.text()).toContain('FSM Invalid')
+    expect(gate.text()).toContain('q2')
+    expect(gate.text()).not.toContain('Continue anyway')
+
+    writeRow(state, 2, '11', '10')
+    await nextTick()
+    expect(gate.text()).toContain('Hidden transitions')
+    expect(gate.text()).not.toContain('FSM Invalid')
   })
 })

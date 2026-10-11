@@ -86,6 +86,7 @@ export type MenuEntry = {
   createProject?: boolean
   disabled?: boolean
   defaultLayout?: DefaultLayoutType
+  projectType?: ProjectType
 }
 
 export const dockRegistry: DockRegistryEntry[] = [
@@ -208,6 +209,7 @@ const convertRegistryEntryToMenuEntry = (
     panelId: entry.id,
     disabled: !checkDockEntryRequirements(entry, requirementType),
     defaultLayout: entry.projectCreationInfo?.defaultLayout,
+    projectType: entry.projectCreationInfo?.projectType,
   }
 
   if (createProject) {

@@ -45,9 +45,9 @@ const legend: LegendItem[] = [
   },
   {
     component: HiddenEdgeIcon,
-    label: 'Hidden edge',
+    label: 'Hidden transition',
     description:
-      'A next state with a don\u2019t care has no unique target, so the Editor does not draw the transition and the row stays dimmed.',
+      'All transitions with - as a next state bit are hidden: they have no unique target, so they are not drawn in the Editor and the whole row stays dimmed.',
   },
 ]
 </script>
