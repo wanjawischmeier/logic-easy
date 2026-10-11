@@ -37,7 +37,7 @@ const JK_FLIPFLOP = 18
 // [from, target, input, mealyOutput] - target is a state index or a next-state pattern
 type Edge = readonly [number, number | string, string, string?]
 
-interface AutoSpec {
+interface FsmSpec {
   model: FsmModel
   inputBits: number
   outputBits: number
@@ -46,7 +46,7 @@ interface AutoSpec {
   mooreOutputs?: readonly string[]
 }
 
-function createState(spec: AutoSpec): FsmState {
+function createState(spec: FsmSpec): FsmState {
   const nodes: FsmNode[] = Array.from({ length: spec.stateCount }, (_, index) => ({
     nodeId: index,
     name: `q${index}`,
@@ -108,7 +108,7 @@ function targetPattern(state: FsmState, transition: FsmTransition): string {
   return String(transition.toBinaryId ?? '').replace(/-/g, 'x')
 }
 
-// Readable, order independent picture of the automaton; targets are printed as names,
+// Readable, order independent picture of the FSM; targets are printed as names,
 // so a wrong id remapping fails even though the row still exists
 function snapshot(state: FsmState): string[] {
   return state.transitions
@@ -259,7 +259,7 @@ function toEditorPayload(state: FsmState) {
   }
 }
 
-// Panel -> editor -> panel: the automaton must come back unchanged
+// Panel -> editor -> panel: the FSM must come back unchanged
 function roundtrip(state: FsmState): FsmState {
   const { nodes, transitions } = importEditorPayload(toEditorPayload(state), state)
   const next: FsmState = { ...state, nodes, transitions }
@@ -268,11 +268,11 @@ function roundtrip(state: FsmState): FsmState {
 }
 
 // ---------------------------------------------------------------------------
-// The automatons
+// The FSMs under test
 // ---------------------------------------------------------------------------
 
 // Foto 4: A -0/00-> B, A -1/11-> C, B -0/00-> B, B -1/11-> A, C -0/00-> B, C -1/11-> A
-const M2: AutoSpec = {
+const M2: FsmSpec = {
   model: 'mealy',
   inputBits: 1,
   outputBits: 2,
@@ -296,7 +296,7 @@ const M2_SNAPSHOT = [
 ]
 
 // Foto 2 (Abb. 1.1): four states, input x, output y1y0
-const M1: AutoSpec = {
+const M1: FsmSpec = {
   model: 'mealy',
   inputBits: 1,
   outputBits: 2,
@@ -324,7 +324,7 @@ const M1_SNAPSHOT = [
 ]
 
 // Foto 1: Moore machine, two inputs, two outputs, one don't-care next state
-const M3: AutoSpec = {
+const M3: FsmSpec = {
   model: 'moore',
   inputBits: 2,
   outputBits: 2,
@@ -369,8 +369,8 @@ const M3_SNAPSHOT = [
   'q3|11->pattern:xx/-',
 ]
 
-// Extra automaton with six states, two inputs and partial patterns
-const M4: AutoSpec = {
+// Extra FSM with six states, two inputs and partial patterns
+const M4: FsmSpec = {
   model: 'mealy',
   inputBits: 2,
   outputBits: 2,
@@ -404,7 +404,7 @@ const M4: AutoSpec = {
 }
 
 // Output patterns: partial (1x) and fully unspecified (xx) Mealy outputs
-const M5: AutoSpec = {
+const M5: FsmSpec = {
   model: 'mealy',
   inputBits: 1,
   outputBits: 2,
@@ -427,7 +427,7 @@ const M5_SNAPSHOT = [
   'q2|1->q0/01',
 ]
 
-const AUTOMATA: readonly { name: string; spec: AutoSpec; expected: string[] }[] = [
+const FSM_SPECS: readonly { name: string; spec: FsmSpec; expected: string[] }[] = [
   { name: 'M2 (three states, Foto 4)', spec: M2, expected: M2_SNAPSHOT },
   { name: 'M1 (four states, Abb. 1.1)', spec: M1, expected: M1_SNAPSHOT },
   { name: 'M3 (Moore, Foto 1)', spec: M3, expected: M3_SNAPSHOT },
@@ -435,10 +435,10 @@ const AUTOMATA: readonly { name: string; spec: AutoSpec; expected: string[] }[] 
   { name: 'M5 (output patterns)', spec: M5, expected: M5_SNAPSHOT },
 ]
 
-describe('automatons stay identical in table, central state and editor sync', () => {
-  AUTOMATA.forEach(({ name, spec, expected }) => {
+describe('the FSM stays identical in table, central state and editor sync', () => {
+  FSM_SPECS.forEach(({ name, spec, expected }) => {
     if (expected.length > 0) {
-      it(`${name}: central state is exactly the drawn automaton`, () => {
+      it(`${name}: central state is exactly the drawn FSM`, () => {
         const state = createState(spec)
         expect(snapshot(state)).toEqual(expected)
       })
@@ -450,7 +450,7 @@ describe('automatons stay identical in table, central state and editor sync', ()
       expect(validateFsm(state).valid).toBe(true)
     })
 
-    it(`${name}: table path (cell cycles) builds the same automaton`, () => {
+    it(`${name}: table path (cell cycles) builds the same FSM`, () => {
       const drawn = createState(spec)
       const tableState = createState({ ...spec, edges: [] })
       tableState.transitions.forEach((_, index) => {
@@ -552,7 +552,7 @@ describe('automatons stay identical in table, central state and editor sync', ()
 })
 
 describe('M2 (three states)', () => {
-  it('encoded truth table matches the automaton by hand', () => {
+  it('encoded truth table matches the FSM by hand', () => {
     const table = exportFsmToTruthTable(createState(M2))
     expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_0^n'])
     expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1^n', 'Y_0^n'])
@@ -818,7 +818,7 @@ describe('M5 (partial and don\u2019t-care outputs)', () => {
 })
 
 describe('truth table uses the same encoding as the state table', () => {
-  const specForCount = (count: number): AutoSpec => ({
+  const specForCount = (count: number): FsmSpec => ({
     model: 'mealy',
     inputBits: 1,
     outputBits: 1,
@@ -859,8 +859,8 @@ describe('truth table uses the same encoding as the state table', () => {
 describe('logic circuits export follows the minimized KV functions', () => {
   const expectedFlipFlops: Record<string, number> = { M1: 2, M2: 2, M3: 2, M4: 3, M5: 2 }
 
-  it('builds one D flip-flop per state bit for every automaton', () => {
-    AUTOMATA.forEach(({ name, spec }) => {
+  it('builds one D flip-flop per state bit for every FSM', () => {
+    FSM_SPECS.forEach(({ name, spec }) => {
       const lc = stateMachineToLC(createState(spec), { encoding: 'Binary', flipFlopType: 'D' })
       const flipFlops = lc.elements.filter((element) => element.elementType === D_FLIPFLOP)
       expect(flipFlops).toHaveLength(expectedFlipFlops[name.slice(0, 2)] ?? -1)
@@ -882,7 +882,7 @@ describe('logic circuits export follows the minimized KV functions', () => {
     expect(andGates.every((element) => element.inPorts.length <= 3)).toBe(true)
   })
 
-  it('derives JK excitation equations without changing the automaton', () => {
+  it('derives JK excitation equations without changing the FSM', () => {
     const state = createState(M2)
     const lc = stateMachineToLC(state, { encoding: 'Binary', flipFlopType: 'JK' })
     const jkFlipFlops = lc.elements.filter((element) => element.elementType === JK_FLIPFLOP)
@@ -913,7 +913,7 @@ describe('logic circuits export follows the minimized KV functions', () => {
 // ---------------------------------------------------------------------------
 
 // Spec with one concrete edge, usable for any state count
-function specForCount(count: number, model: FsmModel = 'mealy'): AutoSpec {
+function specForCount(count: number, model: FsmModel = 'mealy'): FsmSpec {
   return {
     model,
     inputBits: 1,
@@ -1418,7 +1418,7 @@ async function throughEditor(state: FsmState): Promise<FsmState> {
 }
 
 describe('state requests sync through the editor', () => {
-  function useFsm(spec: AutoSpec): FsmState {
+  function useFsm(spec: FsmSpec): FsmState {
     const state = createState(spec)
     stateManager.state.fsm = state
     return state
@@ -1476,7 +1476,7 @@ describe('state requests sync through the editor', () => {
     expect(snapshot(synced).some((row) => row.includes('q2'))).toBe(false)
   })
 
-  it('syncs the complete automaton again once the removed targets are fixed', async () => {
+  it('syncs the complete FSM again once the removed targets are fixed', async () => {
     const state = useFsm(M4)
     FsmProject.removeStateFromEditor(2)
 

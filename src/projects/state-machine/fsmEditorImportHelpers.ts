@@ -214,22 +214,21 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
 
   const transitions = fillMissingTransitions(nodes, rawExpanded, inputBits, outputBits, isMoore)
 
-  const names = new Map(nodes.map((node) => [node.nodeId, node.name]))
-  const previousNames = new Map(state.nodes.map((node) => [node.nodeId, node.name]))
-  const rowKey = (from: number, input: string, lookup: Map<number, string> = names) =>
-    `${lookup.get(from) ?? from}|${input}`
+  // A row that lost its target stays invalid until the payload resolves a target for it again
+  const rowKey = (from: number, input: string) => `${from}|${input}`
   const providedTargets = new Set(
     rawExpanded.filter((t) => t.toNodeId >= 0).map((t) => rowKey(t.fromNodeId, t.input)),
   )
-  const previouslyRemoved = new Set(
-    (state.transitions ?? [])
-      .filter((transition) => transition.removedTarget)
-      .map((transition) => rowKey(transition.fromNodeId, transition.input, previousNames)),
-  )
+  const previouslyRemoved = new Set<string>()
+  for (const transition of state.transitions ?? []) {
+    if (!transition.removedTarget) continue
+    const remappedFrom = idMap.get(transition.fromNodeId)
+    if (remappedFrom !== undefined) previouslyRemoved.add(rowKey(remappedFrom, transition.input))
+  }
   transitions.forEach((transition) => {
     if (transition.toNodeId >= 0 || transition.removedTarget) return
     const key = rowKey(transition.fromNodeId, transition.input)
-    // Only a target the payload really resolves clears the marker, a don't care row keeps it
+    // Only a target the payload resolves clears the marker, an open row keeps it
     if (providedTargets.has(key)) return
     if (previouslyRemoved.has(key)) transition.removedTarget = true
   })
