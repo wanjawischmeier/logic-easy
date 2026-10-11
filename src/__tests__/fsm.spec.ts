@@ -1,4 +1,9 @@
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
+import { mount } from '@vue/test-utils'
+import TransitionsTable from '@/components/TransitionsTable.vue'
+import HiddenEdgesNotice from '@/components/HiddenEdgesNotice.vue'
+import HiddenTransitionsBadge from '@/components/HiddenTransitionsBadge.vue'
 import type { FsmModel, FsmNode, FsmState, FsmTransition } from '@/projects/state-machine/FsmTypes'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
@@ -9,6 +14,8 @@ import {
   MAX_FSM_STATES,
   addStateRow,
   ensureTransitionMatrix,
+  isHiddenTransition,
+  needsHiddenCleanup,
   removeStateRow,
   renameState,
   resolveMooreOutput,
@@ -19,8 +26,8 @@ import {
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
-import { validateFsm } from '@/utility/fsm/EditorSync/fsmValidation'
-import { buildFsmImportPayload } from '@/utility/fsm/EditorSync/fsmListener'
+import { validateFsm, countPendingHiddenRows } from '@/utility/fsm/EditorSync/fsmValidation'
+import { buildFsmImportPayload, forceSyncTableToEditor } from '@/utility/fsm/EditorSync/fsmListener'
 import { exportFsmToTruthTable } from '@/utility/fsm/kvSync'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
 
@@ -223,11 +230,12 @@ function clickOutputBitsUntil(state: FsmState, index: number, wanted: string): v
   throw new Error(`could not reach output ${wanted}`)
 }
 
+// Right-aligns like the panel payload: normalizeBits(..., 'right') pads at the end, keeps the first bits
 function padRight(value: string, length: number): string {
   return String(value ?? '')
     .replace(/-/g, 'x')
-    .padStart(length, 'x')
-    .slice(-length)
+    .padEnd(length, 'x')
+    .slice(0, length)
 }
 
 // Mirrors the payload the panel sends before the editor renders it
@@ -589,17 +597,28 @@ describe('M3 (Moore, two inputs, one don\u2019t-care next state)', () => {
     expect(valueRow(table, 15)).toEqual(['-', '-', '-', '-'])
   })
 
-  it('reports different outputs of a covered group and locks the editor', () => {
+  it('keeps a covered group with different outputs valid and unlocked', () => {
     const state = createState(M3)
     const row = findRow(state, 0, '00')
     row.toNodeId = -1
-    // 10xx covers the states q2 (11) and q3 (00), whose outputs differ
+    // 1x covers the states q2 (11) and q3 (00), whose outputs differ
     row.toBinaryId = '1x'
+    expect(validateFsm(state).valid).toBe(true)
+    expect(resolveMooreOutput(state, row)).toBe('xx')
+  })
+
+  it('still locks a Moore row that names a state which does not exist', () => {
+    const state = createState(specForCount(3, 'moore'))
+    stateManager.state.fsm = state
+    // index 3 has no state, and a don't care in the output cannot hide that
+    writeRow(state, 0, '0', '11')
     expect(validateFsm(state)).toEqual({
       valid: false,
-      reason:
-        'In Moore mode a transition covers states with different outputs - give these states the same output, or use concrete next states.',
+      reason: 'The transition from "q0" with input 0 points at a non-existing state.',
     })
+
+    writeRow(state, 0, '0', '01')
+    expect(validateFsm(state).valid).toBe(true)
   })
 
   it('shows the shared output of a covered group and x when they differ', () => {
@@ -614,7 +633,7 @@ describe('M3 (Moore, two inputs, one don\u2019t-care next state)', () => {
 })
 
 describe('M4 (six states, patterns, two inputs)', () => {
-  it('keeps partial patterns and reports them as don\u2019t cares in the table', () => {
+  it('keeps partial patterns as hidden rows and leaves their cells as don\u2019t cares', () => {
     const state = createState(M4)
     expectMatrix(state)
     expect(validateFsm(state).valid).toBe(true)
@@ -623,12 +642,15 @@ describe('M4 (six states, patterns, two inputs)', () => {
     // three state bits plus two input bits -> 32 rows
     expect(table.inputVars).toHaveLength(5)
     expect(table.values).toHaveLength(32)
-    // (q0, 10) covers q0 and q1 (pattern 00x) -> next state bits 0, 0, -
+    // (q0, 10) covers q0 and q1 (pattern 00x) -> hidden, so every cell stays a don't care
     const row = findRow(state, 0, '10')
     expect(row.toBinaryId).toBe('00x')
-    expect(valueRow(table, 0b00010).slice(0, 3)).toEqual([0, 0, '-'])
-    // (q4, 11) covers q2 and q3 (pattern 01x) -> next state bits 0, 1, -
-    expect(valueRow(table, 0b10011).slice(0, 3)).toEqual([0, 1, '-'])
+    expect(isHiddenTransition(row)).toBe(true)
+    expect(valueRow(table, 0b00010)).toEqual(['-', '-', '-', '-', '-'])
+    // (q4, 11) covers q2 and q3 (pattern 01x) -> hidden as well
+    expect(valueRow(table, 0b10011)).toEqual(['-', '-', '-', '-', '-'])
+    // a drawn row of the same machine keeps its target and its output
+    expect(valueRow(table, 0b00000)).toEqual([1, 0, 1, 0, 1])
   })
 
   it('survives a roundtrip without losing a pattern target', () => {
@@ -753,16 +775,19 @@ describe('central state guards', () => {
     expect(new Set(names).size).toBe(names.length)
   })
 
-  it('flags a dangling target and keeps the row for the user', () => {
+  it('turns a removed target into a hidden row instead of locking the machine', () => {
     const state = createState(M2)
     removeStateRow(state, 2)
     const flagged = state.transitions.filter((transition) => transition.removedTarget)
     expect(flagged.length).toBeGreaterThan(0)
-    expect(validateFsm(state)).toEqual({
-      valid: false,
-      reason: 'A transition points at a non-existing state.',
+    // hidden rows are not drawn and not validated, so nothing locks here
+    flagged.forEach((transition) => {
+      expect(transition.toNodeId).toBe(-1)
+      expect(isHiddenTransition(transition)).toBe(true)
+      expect(needsHiddenCleanup(transition)).toBe(true)
     })
-    // the encoding of the removed state is kept, so the user can see what was meant
+    expect(validateFsm(state).valid).toBe(true)
+    // the encoding of the removed state is kept, so the row still reports what was meant
     const firstFlagged = flagged[0]
     if (!firstFlagged) throw new Error('no dangling target was flagged')
     expect(firstFlagged.toBinaryId).toBe('10')
@@ -1038,14 +1063,23 @@ describe('editor side changes of the state set', () => {
     expect(validateFsm(after).valid).toBe(true)
   })
 
-  it('a partial pattern that covers a non-existing state locks the editor', () => {
+  it('ignores a partial pattern over a missing state but locks on a concrete one', () => {
     const state = createState(specForCount(3))
-    // "1x" would also cover index 11, which has no state
+    // "1x" would also cover index 11, which has no state, but the row is hidden
     writeRow(state, 0, '0', '1x')
+    expect(isHiddenTransition(findRow(state, 0, '0'))).toBe(true)
+    expect(validateFsm(state).valid).toBe(true)
+
+    // the same bits fully concrete name a state that does not exist
+    writeRow(state, 0, '0', '11')
     expect(validateFsm(state)).toEqual({
       valid: false,
-      reason: 'A transition points at a non-existing state.',
+      reason: 'The transition from "q0" with input 0 points at a non-existing state.',
     })
+
+    writeRow(state, 0, '0', '01')
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
   })
 })
 
@@ -1120,6 +1154,26 @@ describe('import hardening', () => {
     expect(valueRow(exportFsmToTruthTable(state), 0).slice(-3)).toEqual([1, '-', '-'])
   })
 
+  it('aligns short input and output bits exactly like the panel payload', () => {
+    const state = createState({
+      model: 'mealy',
+      inputBits: 2,
+      outputBits: 2,
+      stateCount: 3,
+      edges: [[0, 1, '00', '00']],
+    })
+    // storage can hold a short value; the panel pads it at the end before the editor sees it
+    rowAt(state, 0).input = '1'
+    rowAt(state, 0).mealyOutput = '1'
+
+    const mine = toEditorPayload(state).transitions[0]!
+    const panel = buildFsmImportPayload(state).transitions[0]!
+    expect(mine.input).toBe(panel.input)
+    expect(mine.mealy_output).toBe(panel.mealy_output)
+    expect(mine.input).toBe('1x')
+    expect(mine.mealy_output).toBe('1x')
+  })
+
   it('never builds an empty transition matrix from a 0 bit count', () => {
     const state = createState(M2)
     state.inputBitCount = 0
@@ -1167,6 +1221,26 @@ describe('Moore output editing', () => {
     toggleMooreOutputBit(state, index, 0)
     expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', '0', 'x'])
     expect(resolveMooreOutput(state, rowAt(state, index))).toBe('0')
+  })
+
+  it('keeps a hidden Moore row open while its output edit still reaches drawn rows', () => {
+    const state = createState(specForCount(3, 'moore'))
+    writeRow(state, 0, '1', '0x') // hidden: covers q0 and q1
+    writeRow(state, 1, '0', 1) // drawn: q1 -0-> q1
+    const hiddenRow = findRow(state, 0, '1')
+
+    expect(isHiddenTransition(hiddenRow)).toBe(true)
+    expect(validateFsm(state).valid).toBe(true)
+    // before the edit q1 still has an open output, so the drawn row is open as well
+    expect(valueRow(exportFsmToTruthTable(state), 0b010)).toEqual([0, 1, '-'])
+
+    toggleMooreOutputBit(state, state.transitions.indexOf(hiddenRow), 0)
+
+    // the hidden row itself stays a full don't care in the table
+    expect(valueRow(exportFsmToTruthTable(state), 0b001)).toEqual(['-', '-', '-'])
+    // the output belongs to the states, so the drawn row that targets q1 follows the edit
+    expect(nodeAt(state, 1).mooreOutput).toBe('0')
+    expect(valueRow(exportFsmToTruthTable(state), 0b010)).toEqual([0, 1, 0])
   })
 
   it('leaves a row without a target to the invalid panels', () => {
@@ -1249,6 +1323,24 @@ function fakeStage(missingId: number | null = null) {
   }
 }
 
+// Swap in a fake parent frame for one call and always put jsdom's own window back,
+// so a late editor timer never posts into an undefined parent
+function withCapturedParentMessages(run: () => void): unknown[] {
+  const messages: unknown[] = []
+  const original = Object.getOwnPropertyDescriptor(window, 'parent')
+  Object.defineProperty(window, 'parent', {
+    configurable: true,
+    value: { postMessage: (message: unknown) => messages.push(message) },
+  })
+  try {
+    run()
+  } finally {
+    if (original) Object.defineProperty(window, 'parent', original)
+    else delete (window as unknown as Record<string, unknown>).parent
+  }
+  return messages
+}
+
 describe('editor internals', () => {
   it('asks the app to create a state instead of minting an id itself', async () => {
     // @ts-expect-error - the editor submodule ships plain JS without type declarations
@@ -1260,12 +1352,6 @@ describe('editor internals', () => {
     store.set(node_list, [])
     store.set(editor_state, 'Add')
 
-    const messages: unknown[] = []
-    Object.defineProperty(window, 'parent', {
-      configurable: true,
-      value: { postMessage: (message: unknown) => messages.push(message) },
-    })
-
     const clickEvent = {
       target: {
         getStage: () => ({
@@ -1274,11 +1360,7 @@ describe('editor internals', () => {
       },
     }
 
-    try {
-      editor.HandleEditorClick(clickEvent)
-    } finally {
-      delete (window as unknown as Record<string, unknown>).parent
-    }
+    const messages = withCapturedParentMessages(() => editor.HandleEditorClick(clickEvent))
 
     // the editor asks, it does not create
     expect(messages).toEqual([{ action: 'add-state-request', x: 10, y: 20 }])
@@ -1298,17 +1380,9 @@ describe('editor internals', () => {
     ])
     store.set(editor_state, 'Remove')
 
-    const messages: unknown[] = []
-    Object.defineProperty(window, 'parent', {
-      configurable: true,
-      value: { postMessage: (message: unknown) => messages.push(message) },
-    })
-
-    try {
-      editor.HandleStateClick({ cancelBubble: false, evt: { button: 0 } }, 1)
-    } finally {
-      delete (window as unknown as Record<string, unknown>).parent
-    }
+    const messages = withCapturedParentMessages(() =>
+      editor.HandleStateClick({ cancelBubble: false, evt: { button: 0 } }, 1),
+    )
 
     expect(messages).toEqual([{ action: 'remove-state-request', id: 1 }])
     // the app removes the state, so the editor keeps its nodes
@@ -1396,21 +1470,7 @@ async function throughEditor(state: FsmState): Promise<FsmState> {
   // No canvas in the tests, so the render cleanup must stay out of the way
   editorStore.store.set(editorStore.stage_ref, null)
   editorExport.applyFsmImport(buildFsmImportPayload(state))
-  console.log(
-    'DBG before import flags',
-    state.transitions
-      .filter((t) => t.removedTarget)
-      .map((t) => `${t.fromNodeId}|${t.input}`)
-      .join(','),
-  )
   const { nodes, transitions } = importEditorPayload(editorExport.extractFsmData(), state)
-  console.log(
-    'DBG after import flags',
-    transitions
-      .filter((t) => t.removedTarget)
-      .map((t) => `${t.fromNodeId}|${t.input}`)
-      .join(','),
-  )
 
   const next: FsmState = { ...state, nodes, transitions }
   ensureTransitionMatrix(next)
@@ -1434,6 +1494,18 @@ describe('state requests sync through the editor', () => {
     const synced = await throughEditor(state)
     expect(snapshot(synced)).toEqual(snapshot(state))
     expect(synced.nodes[3]).toMatchObject({ name: 'q3', editorCoordX: 120, editorCoordY: 240 })
+    expect(validateFsm(synced).valid).toBe(true)
+    expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
+  })
+
+  it('keeps a narrowed target through the real editor roundtrip', async () => {
+    const state = useFsm(specForCount(4))
+    writeRow(state, 0, '0', 'x0')
+    FsmProject.removeStateFromEditor(2)
+
+    expect(findRow(state, 0, '0').toNodeId).toBe(0)
+    const synced = await throughEditor(state)
+    expect(snapshot(synced)).toEqual(snapshot(state))
     expect(validateFsm(synced).valid).toBe(true)
     expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
   })
@@ -1462,42 +1534,33 @@ describe('state requests sync through the editor', () => {
     expect(state.nodes).toHaveLength(5)
     // the removed state is gone, the others keep the names they had
     expect(state.nodes.map((node) => node.name)).toEqual(['q0', 'q1', 'q3', 'q4', 'q5'])
+    // rows that reached the removed state lose it, the others keep their target
+    expect(snapshot(state)).toContain('q0|00->q5/01')
+    expect(snapshot(state)).toContain('q0|01->q1/10')
+    expect(snapshot(state)).toContain('q0|10->pattern:00x/11')
+    expect(snapshot(state)).toContain('q4|11->q3/10')
+    expect(snapshot(state).some((row) => row.includes('q2'))).toBe(false)
+    expect(validateFsm(state).valid).toBe(true)
 
     const synced = await throughEditor(state)
     expect(snapshot(synced)).toEqual(snapshot(state))
-    // a row whose target is gone keeps its marker, so the machine stays invalid until it is fixed
-    expect(validateFsm(synced).valid).toBe(false)
+    expect(validateFsm(synced).valid).toBe(true)
     expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
-
-    // the id compaction must not repoint a row at another state
-    expect(snapshot(synced)).toContain('q0|00->q5/01')
-    expect(snapshot(synced)).toContain('q0|01->q1/10')
-    expect(snapshot(synced)).toContain('q0|10->pattern:00x/11')
-    expect(snapshot(synced).some((row) => row.includes('q2'))).toBe(false)
   })
 
-  it('syncs the complete FSM again once the removed targets are fixed', async () => {
+  it('stays valid when a state is added back after an editor-side removal', async () => {
     const state = useFsm(M4)
     FsmProject.removeStateFromEditor(2)
+    FsmProject.addStateFromEditor(60, 60)
+
+    expect(state.nodes).toHaveLength(6)
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
 
     const synced = await throughEditor(state)
-    const dangling = synced.transitions
-      .map((transition, index) => (transition.removedTarget ? index : -1))
-      .filter((index) => index >= 0)
-    expect(dangling).toHaveLength(2)
-
-    // the cells stay togglable while the machine is invalid, so the rows can be repaired
-    dangling.forEach((index) => clickTargetBitsUntil(synced, index, '011'))
+    expect(snapshot(synced)).toEqual(snapshot(state))
     expect(validateFsm(synced).valid).toBe(true)
-
-    const repaired = await throughEditor(synced)
-    expect(validateFsm(repaired).valid).toBe(true)
-    expect(snapshot(repaired)).toEqual(snapshot(synced))
-    expectMatrix(repaired)
-    // the repair points at the state with the index 3, whose name drifted to q4 after the import
-    expect(snapshot(repaired)).toContain('q1|00->q4/11')
-    expect(snapshot(repaired)).toContain('q4|11->q4/10')
-    expect(snapshot(repaired).some((row) => row.includes('removed:'))).toBe(false)
+    expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
   })
 
   it('canonicalizes a duplicate name on import and sends it back without drift', async () => {
@@ -1516,5 +1579,544 @@ describe('state requests sync through the editor', () => {
     const synced = await throughEditor(canonical)
     expect(synced.nodes.map((node) => node.name)).toEqual(names)
     expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
+  })
+
+  it('keeps the machine valid when the removed state is added back', () => {
+    const state = useFsm(specForCount(4))
+    // a row that reaches the states with the index 00 and 10 through a partial pattern
+    writeRow(state, 0, '0', 'x0')
+    expect(validateFsm(state).valid).toBe(true)
+
+    // the editor removes the state with the index 10, so the row keeps what is left
+    FsmProject.removeStateFromEditor(2)
+    expect(state.nodes.map((node) => node.nodeId)).toEqual([0, 1, 2])
+    expect(snapshot(state)).toContain('q0|0->q0/1')
+    expect(validateFsm(state).valid).toBe(true)
+
+    // adding a state again may not lock anything either
+    FsmProject.addStateFromEditor(100, 100)
+    ensureTransitionMatrix(state)
+    expect(state.nodes.map((node) => node.nodeId)).toEqual([0, 1, 2, 3])
+    expect(validateFsm(state).valid).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The app and the editor talk over strings, so a rename there must fail loudly
+// ---------------------------------------------------------------------------
+describe('app <-> editor protocol', () => {
+  it('posts the action name the editor listener compares against', async () => {
+    stateManager.state.fsm = createState(M2)
+
+    const posted: { action?: string; fsm?: unknown }[] = []
+    const globalWindow = window as unknown as Record<string, unknown>
+    globalWindow.__fsm_preloaded_iframe = {
+      contentWindow: { postMessage: (message: (typeof posted)[number]) => posted.push(message) },
+    }
+
+    try {
+      forceSyncTableToEditor()
+      expect(posted).toHaveLength(1)
+      expect(posted[0]?.action).toBe('fsmimport')
+
+      // The editor side is plain JS, so the action names can only be paired textually
+      const editorSource = await readFile('public/fsm-engine/src/lib/export.js', 'utf8')
+      expect(editorSource).toContain(`action !== '${posted[0]?.action}'`)
+    } finally {
+      delete globalWindow.__fsm_preloaded_iframe
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// An editor-side removal drops the state with its edges, so the rows stay exact
+// ---------------------------------------------------------------------------
+
+describe('editor-side removal keeps the rows exact', () => {
+  function removeFromEditor(spec: FsmSpec, nodeId: number): FsmState {
+    const state = createState(spec)
+    stateManager.state.fsm = state
+    FsmProject.removeStateFromEditor(nodeId)
+    expectMatrix(state)
+    return state
+  }
+
+  it('unassigns a row whose only target was removed', () => {
+    const state = removeFromEditor(M2, 2)
+    expect(state.nodes.map((node) => node.name)).toEqual(['q0', 'q1'])
+
+    const row = findRow(state, 0, '1')
+    expect(row.toNodeId).toBe(-1)
+    expect(row.toBinaryId).toBe('x'.repeat(state.nodeIdBitCount))
+    expect(row.removedTarget).toBeFalsy()
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('narrows a pattern to the states that are left', () => {
+    const state = createState(specForCount(4))
+    stateManager.state.fsm = state
+    writeRow(state, 0, '0', 'x0')
+    FsmProject.removeStateFromEditor(2)
+
+    expect(findRow(state, 0, '0').toNodeId).toBe(0)
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('unassigns a pattern whose survivors are no subcube', () => {
+    const state = createState({
+      model: 'mealy',
+      inputBits: 1,
+      outputBits: 1,
+      stateCount: 8,
+      edges: [],
+    })
+    stateManager.state.fsm = state
+    writeRow(state, 0, '0', 'x0x')
+    FsmProject.removeStateFromEditor(1)
+
+    const row = findRow(state, 0, '0')
+    expect(row.toNodeId).toBe(-1)
+    expect(row.toBinaryId).toBe('x'.repeat(state.nodeIdBitCount))
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('keeps a pattern that loses nothing', () => {
+    const state = createState(specForCount(4))
+    stateManager.state.fsm = state
+    writeRow(state, 1, '0', '0x')
+    FsmProject.removeStateFromEditor(3)
+
+    expect(findRow(state, 1, '0').toBinaryId).toBe('0x')
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('drops the rows of the removed state and keeps the coordinates', () => {
+    const state = createState(M2)
+    stateManager.state.fsm = state
+    state.nodes.forEach((node, index) => {
+      node.editorCoordX = 10 * index
+      node.editorCoordY = 20 * index
+    })
+    FsmProject.removeStateFromEditor(1)
+
+    expect(snapshot(state).some((row) => row.startsWith('q1|'))).toBe(false)
+    expect(state.nodes.map((node) => [node.editorCoordX, node.editorCoordY])).toEqual([
+      [0, 0],
+      [20, 40],
+    ])
+  })
+
+  it('survives removing the only state', () => {
+    const state = removeFromEditor(specForCount(1), 0)
+    expect(state.nodes).toHaveLength(0)
+    expect(state.transitions).toHaveLength(0)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('narrows a Moore pattern to the states that are left', () => {
+    const state = createState({
+      ...specForCount(4, 'moore'),
+      mooreOutputs: ['0', '0', '1', '0'],
+    })
+    stateManager.state.fsm = state
+    writeRow(state, 0, '0', 'x0')
+    expect(validateFsm(state).valid).toBe(true)
+
+    FsmProject.removeStateFromEditor(2)
+
+    expect(findRow(state, 0, '0').toNodeId).toBe(0)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('stays compact and stable over repeated remove and add cycles', () => {
+    const state = createState(specForCount(5))
+    stateManager.state.fsm = state
+
+    for (let cycle = 0; cycle < 3; cycle += 1) {
+      FsmProject.removeStateFromEditor(4)
+      expect(state.nodes.map((node) => node.nodeId)).toEqual([0, 1, 2, 3])
+      expectMatrix(state)
+      expect(validateFsm(state).valid).toBe(true)
+
+      FsmProject.addStateFromEditor()
+      expectMatrix(state)
+      expect(validateFsm(state).valid).toBe(true)
+    }
+
+    expect(state.nodes.map((node) => node.name)).toEqual(['q0', 'q1', 'q2', 'q3', 'q4'])
+    expect(snapshot(roundtrip(state))).toEqual(snapshot(state))
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Remove and add for every small state count in both models, plus the lock/unlock
+// ---------------------------------------------------------------------------
+
+function specForSize(count: number, model: FsmModel): FsmSpec {
+  const edges: FsmSpec['edges'] =
+    count >= 2 ? [[0, 1, '0', '1']] : count === 1 ? [[0, 0, '0', '1']] : []
+  return { model, inputBits: 1, outputBits: 1, stateCount: count, edges }
+}
+
+function useSize(count: number, model: FsmModel): FsmState {
+  const state = createState(specForSize(count, model))
+  stateManager.state.fsm = state
+  return state
+}
+
+function compactIds(state: FsmState): number[] {
+  return state.nodes.map((node) => node.nodeId)
+}
+
+function namesOf(state: FsmState): string[] {
+  return state.nodes.map((node) => node.name)
+}
+
+describe('remove and add for every small state count and model', () => {
+  const MODELS: readonly FsmModel[] = ['mealy', 'moore']
+
+  it('adds a state to an empty machine', () => {
+    const state = useSize(0, 'mealy')
+    expect(validateFsm(state).valid).toBe(true)
+
+    FsmProject.addStateFromEditor()
+    expect(compactIds(state)).toEqual([0])
+    expect(namesOf(state)).toEqual(['q0'])
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  MODELS.forEach((model) => {
+    ;[1, 2, 3].forEach((count) => {
+      // every id has to survive a removal, not only the highest one
+      Array.from({ length: count }, (_, index) => index).forEach((removedId) => {
+        it(`${model} with ${count} states: removing id ${removedId} and adding a state stays valid`, () => {
+          const state = useSize(count, model)
+          const namesBefore = namesOf(state)
+          expect(validateFsm(state).valid).toBe(true)
+
+          FsmProject.removeStateFromEditor(removedId)
+          expect(namesOf(state)).toEqual(namesBefore.filter((_, index) => index !== removedId))
+          expect(compactIds(state)).toEqual(compactIds(state).map((_, index) => index))
+          expectMatrix(state)
+          expect(validateFsm(state).valid).toBe(true)
+
+          FsmProject.addStateFromEditor()
+          expect(state.nodes).toHaveLength(count)
+          expect(compactIds(state)).toEqual(compactIds(state).map((_, index) => index))
+          const names = namesOf(state)
+          expect(new Set(names).size).toBe(names.length)
+          expectMatrix(state)
+          expect(validateFsm(state).valid).toBe(true)
+        })
+      })
+    })
+  })
+
+  it('ignores a removal on an empty machine and a request without an id', () => {
+    const state = useSize(0, 'mealy')
+
+    FsmProject.removeStateFromEditor(0)
+    FsmProject.removeStateFromEditor(Number.NaN)
+    expect(state.nodes).toHaveLength(0)
+    expect(state.transitions).toHaveLength(0)
+
+    FsmProject.addStateFromEditor(10, 20)
+    expect(compactIds(state)).toEqual([0])
+    expect(namesOf(state)).toEqual(['q0'])
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('keeps the Moore outputs of the states that stay', () => {
+    const state = createState({
+      ...specForSize(3, 'moore'),
+      outputBits: 2,
+      mooreOutputs: ['01', '10', '11'],
+    })
+    stateManager.state.fsm = state
+
+    FsmProject.removeStateFromEditor(1)
+    expect(namesOf(state)).toEqual(['q0', 'q2'])
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['01', '11'])
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('keeps every untouched row through a middle removal and a new state', () => {
+    const state = useSize(4, 'mealy')
+    const untouched = snapshot(state).filter(
+      (row) => !row.startsWith('q1|') && !row.includes('->q1'),
+    )
+
+    FsmProject.removeStateFromEditor(1)
+    expect(namesOf(state)).toEqual(['q0', 'q2', 'q3'])
+    untouched.forEach((row) => expect(snapshot(state)).toContain(row))
+
+    FsmProject.addStateFromEditor()
+    expect(namesOf(state)).toEqual(['q0', 'q2', 'q3', 'q1'])
+    untouched.forEach((row) => expect(snapshot(state)).toContain(row))
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+})
+
+describe('the panels unlock as soon as the machine is valid again', () => {
+  it('keeps a hidden row valid and resolves it again once a next state is picked', () => {
+    const state = createState(M2)
+    stateManager.state.fsm = state
+    removeStateRow(state, 2)
+    // a removed target is hidden, so the machine stays valid and unlocked
+    expect(validateFsm(state).valid).toBe(true)
+
+    writeRow(state, 0, '1', 0)
+    expectMatrix(state)
+    expect(state.transitions.some((transition) => transition.removedTarget)).toBe(false)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('resolves a row that an editor removal left without a target', () => {
+    const state = useSize(3, 'mealy')
+    writeRow(state, 0, '0', 2)
+    FsmProject.removeStateFromEditor(2)
+
+    expect(findRow(state, 0, '0').toNodeId).toBe(-1)
+    expect(findRow(state, 0, '0').toBinaryId).toBe('x'.repeat(state.nodeIdBitCount))
+    expect(validateFsm(state).valid).toBe(true)
+
+    // picking a next state again must be a normal, valid table edit
+    FsmProject.addStateFromEditor()
+    writeRow(state, 0, '0', 2)
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+})
+
+describe('the transitions table marks the rows the editor hides', () => {
+  function mountTable(state: FsmState) {
+    stateManager.state.fsm = state
+    return mount(TransitionsTable, { global: { stubs: { 'vue-latex': true } } })
+  }
+
+  // The whole row is dimmed, the numbers as well as the editable cells
+  function isDimmedRow(row: { classes(): string[] }): boolean {
+    return row.classes().includes('opacity-60')
+  }
+
+  it('dims a row with a partial next state and a row without any next state', () => {
+    const state = createState(specForCount(4))
+    writeRow(state, 0, '0', 'x0') // q0 -0-> covers two states
+    writeRow(state, 1, '0', 2) // q1 -0-> stays concrete
+    const wrapper = mountTable(state)
+
+    expect(findRow(state, 0, '0').toNodeId).toBe(-1)
+    expect(findRow(state, 1, '0').toNodeId).toBe(2)
+
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows).toHaveLength(8)
+    expect(isDimmedRow(rows[0]!)).toBe(true) // q0 -0-> two states
+    expect(isDimmedRow(rows[1]!)).toBe(true) // q0 -1-> still unassigned
+    expect(isDimmedRow(rows[2]!)).toBe(false) // q1 -0-> q2 is concrete
+    expect(isDimmedRow(rows[3]!)).toBe(true) // q1 -1-> still unassigned
+  })
+
+  it('dims a row whose target was removed until it is picked again', () => {
+    const state = createState(M2)
+    removeStateRow(state, 2)
+    const wrapper = mountTable(state)
+
+    const rows = wrapper.findAll('tbody tr')
+    const flaggedRow = state.transitions.find((transition) => transition.removedTarget)
+    const index = state.transitions.indexOf(flaggedRow as FsmTransition)
+    expect(isDimmedRow(rows[index]!)).toBe(true)
+
+    writeRow(state, 0, '1', 0)
+    const fixed = mountTable(state)
+    expect(isDimmedRow(fixed.findAll('tbody tr')[index]!)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Hidden rows: not drawn, ignored by validation, and clearable before KV and LC
+// ---------------------------------------------------------------------------
+
+describe('hidden rows are ignored and can be cleared', () => {
+  const rowWith = (state: FsmState, patch: Partial<FsmTransition>): FsmTransition =>
+    ({ ...findRow(state, 0, '0'), ...patch }) as FsmTransition
+
+  it('treats only rows without a unique next state as hidden', () => {
+    const state = createState(specForCount(4))
+
+    expect(isHiddenTransition(rowWith(state, { toNodeId: 0, toBinaryId: undefined }))).toBe(false)
+    expect(isHiddenTransition(rowWith(state, { toNodeId: -1, toBinaryId: '11' }))).toBe(false)
+    expect(isHiddenTransition(rowWith(state, { toNodeId: -1, toBinaryId: '1x' }))).toBe(true)
+    expect(isHiddenTransition(rowWith(state, { toNodeId: -1, toBinaryId: 'xx' }))).toBe(true)
+    expect(
+      isHiddenTransition(rowWith(state, { toNodeId: -1, toBinaryId: '11', removedTarget: true })),
+    ).toBe(true)
+  })
+
+  it('offers a cleanup only while a hidden row still shows concrete bits', () => {
+    const state = createState(specForCount(4))
+    writeRow(state, 0, '1', '1x') // hidden with a concrete bit
+
+    // the row the fixture draws stays drawn and needs no cleanup
+    expect(findRow(state, 0, '0').toNodeId).toBe(1)
+    expect(needsHiddenCleanup(findRow(state, 0, '0'))).toBe(false)
+    // the hidden row has a concrete bit, the six empty rows are a full don't care
+    expect(needsHiddenCleanup(findRow(state, 0, '1'))).toBe(true)
+    expect(state.transitions.filter(isHiddenTransition)).toHaveLength(7)
+    expect(state.transitions.filter(needsHiddenCleanup)).toHaveLength(1)
+  })
+
+  it('clears the bits of every hidden row without changing the derived views', () => {
+    const state = createState(M4)
+    stateManager.state.fsm = state
+    const tableBefore = exportFsmToTruthTable(state)
+    const lcBefore = stateMachineToLC(state, { encoding: 'Binary', flipFlopType: 'D' }).toString()
+
+    expect(FsmProject.clearHiddenRowBits()).toBe(4)
+    expect(state.transitions.filter(needsHiddenCleanup)).toHaveLength(0)
+
+    state.transitions.forEach((transition) => {
+      if (!isHiddenTransition(transition)) return
+      expect(transition.toNodeId).toBe(-1)
+      expect(transition.toBinaryId).toBe('x'.repeat(state.nodeIdBitCount))
+      expect(transition.removedTarget).toBe(false)
+    })
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
+
+    // clearing only makes the table match the views, it never changes the machine
+    expect(exportFsmToTruthTable(state)).toEqual(tableBefore)
+    expect(stateMachineToLC(state, { encoding: 'Binary', flipFlopType: 'D' }).toString()).toBe(
+      lcBefore,
+    )
+  })
+
+  it('clears the output of a hidden Mealy row as well', () => {
+    const state = createState(specForCount(3))
+    stateManager.state.fsm = state
+    writeRow(state, 0, '0', '1x', '1')
+    expect(needsHiddenCleanup(findRow(state, 0, '0'))).toBe(true)
+
+    FsmProject.clearHiddenRowBits()
+
+    expect(findRow(state, 0, '0').mealyOutput).toBe('x'.repeat(state.outputBitCount ?? 1))
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('tells the user about the hidden rows and confirms with the button', async () => {
+    const wrapper = mount(HiddenEdgesNotice, { props: { count: 3 } })
+    expect(wrapper.text()).toContain('Hidden transitions')
+    expect(wrapper.text()).toContain("3 transitions have a don't care (-) as their next state")
+    // what the click does has to be readable before clicking
+    expect(wrapper.text()).toContain('have to be set completely to -')
+
+    const button = wrapper.get('button')
+    expect(button.text()).toBe('Continue anyway')
+    await button.trigger('click')
+    expect(wrapper.emitted('confirm')).toHaveLength(1)
+
+    // the single case has to read as one sentence, never as a plural mix
+    const single = mount(HiddenEdgesNotice, { props: { count: 1 } })
+    expect(single.text()).toContain("One transition has a don't care (-) as its next state")
+    expect(single.text()).toContain('it is not drawn')
+    expect(single.text()).not.toContain('transitions have')
+    expect(single.text()).not.toContain('they are not drawn')
+  })
+
+  it('points the editor badge at the docs and explains the rule on hover', () => {
+    const wrapper = mount(HiddenTransitionsBadge, { props: { count: 3 } })
+    const link = wrapper.get('a')
+
+    expect(link.attributes('href')).toContain('docs/views/state-machine/tables.html')
+    expect(link.attributes('title')).toContain('all transitions with - as a next state bit')
+    expect(link.text()).toContain('3')
+    // an info badge, never an error badge
+    expect(link.classes()).toContain('text-primary-variant')
+    expect(link.classes().join(' ')).not.toContain('red-')
+
+    expect(
+      mount(HiddenTransitionsBadge, { props: { count: 1 } })
+        .get('a')
+        .attributes('title'),
+    ).toContain('One transition is hidden')
+  })
+
+  it('leaves a partially concrete Moore row as don\u2019t cares in the table', () => {
+    const state = createState({
+      ...specForSize(4, 'moore'),
+      outputBits: 2,
+      mooreOutputs: ['01', '10', '11', '00'],
+    })
+    const drawnBefore = exportFsmToTruthTable(state)
+    // (q1, 0) -> q2 keeps the output of its target, the drawn case stays untouched
+    writeRow(state, 1, '0', 2)
+    expect(valueRow(exportFsmToTruthTable(state), 0b010)).toEqual([1, 0, 1, 1])
+
+    // (q0, 0) covers two states with different outputs -> hidden, so every cell is open
+    writeRow(state, 0, '0', 'x0')
+    expect(valueRow(exportFsmToTruthTable(state), 0b000)).toEqual(['-', '-', '-', '-'])
+    expect(validateFsm(state).valid).toBe(true)
+    expect(drawnBefore.values).toHaveLength(exportFsmToTruthTable(state).values.length)
+  })
+
+  it('ignores the output of a hidden Mealy row in the table', () => {
+    const state = createState(specForSize(3, 'mealy'))
+    writeRow(state, 0, '0', '1x', '1')
+
+    // two state bits plus one output bit, every cell stays open
+    expect(valueRow(exportFsmToTruthTable(state), 0b000)).toEqual(['-', '-', '-'])
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('clears a removed target as well and drops its stale index', () => {
+    const state = createState(M2)
+    stateManager.state.fsm = state
+    removeStateRow(state, 2)
+    const flagged = state.transitions.find((transition) => transition.removedTarget)
+    if (!flagged) throw new Error('no dangling target was flagged')
+    expect(flagged.toBinaryId).toBe('10')
+
+    expect(FsmProject.clearHiddenRowBits()).toBeGreaterThan(0)
+
+    // the cleanup replaces the row object, so read the state again
+    const clearedRow = findRow(state, 0, '1')
+    expect(clearedRow.removedTarget).toBe(false)
+    expect(clearedRow.toBinaryId).toBe('x'.repeat(state.nodeIdBitCount))
+    expectMatrix(state)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
+  it('clears nothing twice and leaves the drawn rows untouched', () => {
+    const state = createState(M4)
+    stateManager.state.fsm = state
+    const drawnBefore = state.transitions
+      .filter((transition) => !isHiddenTransition(transition))
+      .map((transition) => ({ ...transition }))
+
+    expect(FsmProject.clearHiddenRowBits()).toBe(4)
+    expect(FsmProject.clearHiddenRowBits()).toBe(0)
+
+    const drawnAfter = state.transitions.filter((transition) => !isHiddenTransition(transition))
+    expect(drawnAfter.map((transition) => ({ ...transition }))).toEqual(drawnBefore)
+  })
+
+  it('reports pending hidden rows only while the drawn machine is valid', () => {
+    const state = createState(specForCount(3))
+    stateManager.state.fsm = state
+    expect(countPendingHiddenRows(state)).toBe(0)
+
+    writeRow(state, 0, '0', '1x')
+    expect(countPendingHiddenRows(state)).toBe(1)
+
+    // an error in a drawn row needs attention first: clearing bits cannot repair it
+    writeRow(state, 2, '0', '11')
+    expect(validateFsm(state).valid).toBe(false)
+    expect(countPendingHiddenRows(state)).toBe(0)
+
+    writeRow(state, 2, '0', '01')
+    expect(countPendingHiddenRows(state)).toBe(1)
   })
 })

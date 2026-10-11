@@ -5,6 +5,7 @@ import { stateManager } from '@/projects/stateManager'
 import type { FsmModel, FsmTransition } from '@/projects/state-machine/FsmTypes'
 import { normalizeBits } from '@/utility/fsm/bitOperations'
 import {
+  isHiddenTransition,
   resolveMooreOutput,
   toggleMooreOutputBit,
   toggleTransitionOutputBit,
@@ -203,7 +204,11 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
       </thead>
 
       <tbody>
-        <tr v-for="(transitionView, idx) in transitions" :key="transitionView.transitionId">
+        <tr
+          v-for="(transitionView, idx) in transitions"
+          :key="transitionView.transitionId"
+          :class="isHiddenTransition(transitionView) ? 'opacity-60' : ''"
+        >
           <td
             v-for="(_, i) in nodeIdBitCount"
             :key="transitionView.transitionId + '-from-' + i"

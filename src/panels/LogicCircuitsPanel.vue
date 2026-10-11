@@ -31,7 +31,13 @@ import { downloadFile } from '@/utility/downloadFile'
 import LegendButton from '@/components/parts/buttons/LegendButton.vue'
 import Checkbox from '@/components/parts/Checkbox.vue'
 import InvalidFSMView from '@/components/InvalidFSMView.vue'
-import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import HiddenEdgesNotice from '@/components/HiddenEdgesNotice.vue'
+import { FsmProject } from '@/projects/state-machine/FsmProject'
+import {
+  countPendingHiddenRows,
+  validateFsm,
+  type FsmValidity,
+} from '@/utility/fsm/EditorSync/fsmValidation'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -209,6 +215,12 @@ const isFSMInvalid = computed(
   () => stateManager.state.truthTable?.fsmMode === true && !fsmValidity.value.valid,
 )
 const invalidReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
+// Only warns while the drawn machine is valid, clearing the bits never repairs an error
+const hiddenRowCount = computed(() => {
+  const fsm = stateManager.state.fsm
+  return fsm ? countPendingHiddenRows(fsm) : 0
+})
+const clearHiddenRows = () => FsmProject.clearHiddenRowBits()
 
 const createLcContent = (method: LCMethodType) => {
   if (isFsmProject.value) {
@@ -548,6 +560,10 @@ onBeforeUnmount(() => {
       :reason="invalidReason"
       hint="Fix the issues in the state table to unlock the logic circuit."
     />
+
+    <template v-else-if="hiddenRowCount">
+      <HiddenEdgesNotice :count="hiddenRowCount" @confirm="clearHiddenRows" />
+    </template>
 
     <div v-else ref="iframeContainer" class="relative flex-1">
       <IframePanel

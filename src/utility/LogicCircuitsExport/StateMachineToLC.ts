@@ -5,6 +5,7 @@ import { QMC, type Operation } from 'logi.js'
 import { flattenCouplingTermsToFormula } from '@/utility/truthtable/expressionParser'
 import type { FsmState, StateEncoding, FlipFlopType } from '@/projects/state-machine/FsmTypes'
 import { fillMissingTransitions } from '@/utility/fsm/EditorSync/editorTransitionUtils'
+import { isHiddenTransition } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
 
 type Bit = '0' | '1' | '-'
@@ -139,19 +140,20 @@ export function stateMachineToLC(
   for (const tr of transitions) {
     const currentState = encodeState(tr.fromNodeId)
     const inputBitsArr = tr.input.split('').map(toBit)
+    // A hidden row has no unique next state, so it counts as a don't care everywhere
+    const hidden = isHiddenTransition(tr)
 
-    const nextState: Bit[] =
-      tr.toNodeId >= 0
+    const nextState: Bit[] = hidden
+      ? Array.from({ length: stateBits }, (): Bit => '-')
+      : tr.toNodeId >= 0
         ? encodeState(tr.toNodeId)
         : oneHotEncoding
-          ? Array.from({ length: stateBits }, () => '-')
+          ? Array.from({ length: stateBits }, (): Bit => '-')
           : (tr.toBinaryId ?? '').padStart(binaryStateBits, '-').split('').map(toBit)
 
-    const output = (tr.mealyOutput ?? '')
-      .padEnd(outputBits, '-')
-      .slice(0, outputBits)
-      .split('')
-      .map(toBit)
+    const output = hidden
+      ? Array.from({ length: outputBits }, (): Bit => '-')
+      : (tr.mealyOutput ?? '').padEnd(outputBits, '-').slice(0, outputBits).split('').map(toBit)
 
     rows.push({
       pattern: [...currentState, ...inputBitsArr],
@@ -180,7 +182,7 @@ export function stateMachineToLC(
   const initialState = initialNode ? encodeState(initialNode.nodeId) : null
 
   /*
-    Layout 
+    Layout
       */
   const ffType = FF_ELEMENT_TYPE[options.flipFlopType]
   const dataInputsPerFF = options.flipFlopType === 'D' ? 1 : 2

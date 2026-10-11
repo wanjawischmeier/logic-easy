@@ -1,4 +1,4 @@
-import type { FsmModel, FsmNode, FsmState } from '@/projects/state-machine/FsmTypes'
+import type { FsmModel, FsmNode, FsmState, FsmTransition } from '@/projects/state-machine/FsmTypes'
 import { expandInputs, fillMissingTransitions } from './editorTransitionUtils'
 import { calcBinaryID, calcBitNumber, normalizeBits, toggleBitInString } from '../bitOperations'
 
@@ -8,6 +8,46 @@ export const MAX_FSM_STATES = 16
 export const MAX_FSM_IO_BITS = 5
 // Maximum state name length, mirrors the limit the editor enforces
 export const MAX_STATE_NAME_LENGTH = 12
+
+// A row without a unique next state is hidden: not drawn and ignored by every view
+export function isHiddenTransition(
+  transition: Pick<FsmTransition, 'toNodeId' | 'toBinaryId' | 'removedTarget'>,
+): boolean {
+  if (transition.removedTarget) return true
+  if (Number(transition.toNodeId) >= 0) return false
+  return !/^[01]+$/.test(String(transition.toBinaryId ?? '').replace(/-/g, 'x'))
+}
+
+// Hidden rows still carrying concrete bits: the table shows them as if they were meaningful
+export function needsHiddenCleanup(transition: FsmTransition): boolean {
+  if (!isHiddenTransition(transition)) return false
+  if (transition.removedTarget) return true
+  if (/[01]/.test(String(transition.toBinaryId ?? ''))) return true
+  return /[01]/.test(String(transition.mealyOutput ?? ''))
+}
+
+// Clear those rows to a full don't care, so table, KV and LC show the same config
+export function clearHiddenTransitions(state: FsmState): number {
+  syncNodeBitCount(state)
+  const nodeBitCount = Math.max(1, state.nodeIdBitCount || 1)
+  const outputBitCount = Math.max(1, state.outputBitCount ?? 1)
+  let cleared = 0
+
+  state.transitions = state.transitions.map((transition) => {
+    if (!needsHiddenCleanup(transition)) return transition
+    cleared += 1
+    return {
+      ...transition,
+      toNodeId: -1,
+      toBinaryId: 'x'.repeat(nodeBitCount),
+      // In Moore mode the output belongs to the states, so only the row's bits are cleared
+      mealyOutput: state.fsmModel === 'moore' ? transition.mealyOutput : 'x'.repeat(outputBitCount),
+      removedTarget: false,
+    }
+  })
+
+  return cleared
+}
 
 // Only allow safe chars in state names
 export function sanitizeStateName(value: string | undefined): string {
@@ -41,6 +81,28 @@ function mergeBitPatterns(patterns: string[], bitCount: number): string {
     const bits = new Set(patterns.map((pattern) => pattern.charAt(index)))
     return bits.size === 1 ? String([...bits][0]) : 'x'
   }).join('')
+}
+
+// Re-encode a pattern over the states it still reaches once the ids were compacted
+export function narrowPatternToNodeIds(
+  pattern: string,
+  idMap: Map<number, number>,
+  nodeBitCount: number,
+): string {
+  const bitCount = Math.max(1, nodeBitCount)
+  const covered = expandInputs(String(pattern ?? '').replace(/-/g, 'x'))
+    .map((bits) => Number.parseInt(bits, 2))
+    .map((id) => idMap.get(id))
+    .filter((id): id is number => id !== undefined)
+
+  if (!covered.length) return 'x'.repeat(bitCount)
+
+  const merged = mergeBitPatterns(
+    covered.map((id) => calcBinaryID(id, bitCount)),
+    bitCount,
+  )
+  // Only keep the pattern when it reaches exactly the states that are left
+  return expandInputs(merged).length === covered.length ? merged : 'x'.repeat(bitCount)
 }
 
 // Re-encode next-state patterns over the states they cover, so a changed bit width keeps the targets

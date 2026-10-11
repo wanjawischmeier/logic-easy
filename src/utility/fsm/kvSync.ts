@@ -16,6 +16,7 @@ import {
   type TermColor,
 } from '@/utility/truthtable/colorGenerator'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { isHiddenTransition } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { stateManager } from '@/projects/stateManager'
 
 function buildNames(prefix: string, bits: number, suffix: string): string[] {
@@ -325,6 +326,9 @@ export function exportFsmToTruthTable(
   )
 
   for (const tr of fsm.transitions || []) {
+    // A hidden row has no unique next state, so it stays a don't care in every cell
+    if (isHiddenTransition(tr)) continue
+
     const fromBinary = normalizeBits(
       calcBinaryID(tr.fromNodeId ?? 0, Math.max(1, stateBits)),
       stateBits,

@@ -1,22 +1,18 @@
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
-import { expandInputs } from './editorTransitionUtils'
-import { resolveTransitionTargetNodes } from './fsmStateTableUtils'
-import { calcBinaryID, calcBitNumber, normalizeBits } from '../bitOperations'
+import {
+  isHiddenTransition,
+  needsHiddenCleanup,
+  resolveTransitionTargetNodes,
+} from './fsmStateTableUtils'
+import { normalizeBits } from '../bitOperations'
 
 export type FsmValidity = { valid: true } | { valid: false; reason: string }
 
-// What a next state with don't-cares expands to, and which of those indexes no state uses yet
-function analyzeTargetPattern(state: FsmState, pattern: string) {
-  const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-  const minimumNodeIdBitCount = calcBitNumber(Math.max(1, maxNodeId + 1))
-  const nodeIdBitCount = Math.max(minimumNodeIdBitCount, pattern.length)
-  const normalizedPattern = normalizeBits(pattern, nodeIdBitCount, 'x', 'left')
-  const possibleTargetBits = expandInputs(normalizedPattern)
-  const existingTargetBits = new Set(
-    state.nodes.map((node) => calcBinaryID(node.nodeId, nodeIdBitCount)),
-  )
-  const missingTargetBits = possibleTargetBits.filter((bits) => !existingTargetBits.has(bits))
-  return { nodeIdBitCount, normalizedPattern, possibleTargetBits, missingTargetBits }
+// Hidden rows only confuse the views while the drawn machine itself is fine
+// Clearing them cannot repair an invalid machine, so the warning waits for that
+export function countPendingHiddenRows(state: FsmState): number {
+  if (!validateFsm(state).valid) return 0
+  return (state.transitions ?? []).filter(needsHiddenCleanup).length
 }
 
 // Validate the FSM and return the first problem so the overlay can explain it
@@ -24,29 +20,26 @@ export function validateFsm(state: FsmState): FsmValidity {
   const transitions = state.transitions ?? []
 
   for (const transition of transitions) {
+    // Hidden rows have no unique next state, so they are not drawn and never lock a view
+    if (isHiddenTransition(transition)) continue
+
+    // Rule: a drawn transition must end in a state that exists
     const targetNodes = resolveTransitionTargetNodes(state, transition)
-    const targetPattern = transition.toNodeId >= 0 ? '' : (transition.toBinaryId ?? '')
-    const normalizedTargetPattern = targetPattern.replace(/-/g, 'x')
-
-    // A removed target keeps its dead pattern until the user picks a new next state
-    if (transition.removedTarget) {
-      return { valid: false, reason: 'A transition points at a non-existing state.' }
-    }
-
-    // All-don't-care next states stay undrawn and never lock the editor
-    if (transition.toNodeId < 0 && /^x+$/.test(normalizedTargetPattern)) continue
-
-    if (transition.toNodeId < 0) {
-      const { missingTargetBits } = analyzeTargetPattern(state, normalizedTargetPattern)
-
-      if (missingTargetBits.length > 0) {
-        return { valid: false, reason: 'A transition points at a non-existing state.' }
-      }
-    }
-
-    // Rule: every next-state pattern must resolve to an existing state
     if (targetNodes.length === 0) {
-      return { valid: false, reason: 'A transition points at a non-existing state.' }
+      // Name the row so the user can find it: (source state, input) identifies it
+      const sourceName =
+        state.nodes.find((node) => node.nodeId === transition.fromNodeId)?.name ??
+        `q${transition.fromNodeId}`
+      const input = normalizeBits(
+        transition.input,
+        Math.max(1, state.inputBitCount ?? 1),
+        'x',
+        'right',
+      ).replace(/x/g, '-')
+      return {
+        valid: false,
+        reason: `The transition from "${sourceName}" with input ${input} points at a non-existing state.`,
+      }
     }
 
     // Rule: in Moore mode all target states of a transition must show the same output

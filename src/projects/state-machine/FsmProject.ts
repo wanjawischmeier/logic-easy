@@ -9,6 +9,8 @@ import {
   MAX_FSM_IO_BITS,
   MAX_FSM_STATES,
   addStateRow,
+  clearHiddenTransitions,
+  narrowPatternToNodeIds,
   normalizeFsmState,
   setInputBitCount,
   setOutputBitCount,
@@ -132,40 +134,42 @@ export class FsmProject extends Project {
     addStateRow(fsm, fsm.fsmModel, { x, y })
   }
 
-  // Drops the state with its edges, then renumbers
+  // Accepted by the user when the KV or LC view reports hidden rows
+  static clearHiddenRowBits(): number {
+    const fsm = stateManager.state.fsm as FsmState | undefined
+    return fsm ? clearHiddenTransitions(fsm) : 0
+  }
+
+  // An editor-side removal drops the state with its edges, so no row keeps a target that is gone
   static removeStateFromEditor(nodeId: number): void {
     const fsm = stateManager.state.fsm as FsmState | undefined
     if (!fsm || !Number.isFinite(nodeId)) return
+    if (!fsm.nodes.some((node) => node.nodeId === nodeId)) return
 
-    const payload = {
-      states: fsm.nodes
-        .filter((node) => node.nodeId !== nodeId)
-        .map((node) => ({
-          id: node.nodeId,
-          name: node.name,
-          initial: node.isInitial,
-          color: node.color,
-          x: node.editorCoordX,
-          y: node.editorCoordY,
-          moore_output: node.mooreOutput ?? '',
-        })),
-      transitions: fsm.transitions
-        .filter((transition) => transition.fromNodeId !== nodeId && transition.toNodeId !== nodeId)
-        .map((transition) => ({
-          id: transition.transitionId,
-          groupId: transition.groupId ?? transition.transitionId,
-          from: transition.fromNodeId,
-          to: transition.toNodeId,
-          toBinaryId: transition.toBinaryId,
-          input: transition.input,
-          output: transition.mealyOutput ?? '',
-          mealy_output: transition.mealyOutput ?? '',
-        })),
-    }
+    const surviving = [...fsm.nodes]
+      .filter((node) => node.nodeId !== nodeId)
+      .sort((left, right) => left.nodeId - right.nodeId)
+    const idMap = new Map(surviving.map((node, index) => [node.nodeId, index]))
+    fsm.nodes = surviving.map((node, index) => ({ ...node, nodeId: index }))
+    const nodeBitCount = calcBitNumber(Math.max(1, fsm.nodes.length))
 
-    const { nodes, transitions } = importEditorPayload(payload, fsm)
-    fsm.nodes = nodes
-    fsm.transitions = transitions
+    fsm.transitions = fsm.transitions
+      .filter((transition) => transition.fromNodeId !== nodeId && transition.toNodeId !== nodeId)
+      .map((transition) => {
+        const fromNodeId = idMap.get(transition.fromNodeId) ?? 0
+        if (transition.toNodeId >= 0) {
+          return { ...transition, fromNodeId, toNodeId: idMap.get(transition.toNodeId) ?? -1 }
+        }
+
+        return {
+          ...transition,
+          fromNodeId,
+          toNodeId: -1,
+          toBinaryId: narrowPatternToNodeIds(transition.toBinaryId ?? '', idMap, nodeBitCount),
+          removedTarget: false,
+        }
+      })
+
     normalizeFsmState(fsm)
   }
 
@@ -218,8 +222,11 @@ export { importEditorPayload } from './fsmEditorImportHelpers'
 
 export {
   addStateRow,
+  clearHiddenTransitions,
   getStateCountLimit,
+  isHiddenTransition,
   MAX_STATE_NAME_LENGTH,
+  needsHiddenCleanup,
   nextFreeStateName,
   removeStateRow,
   renameState,

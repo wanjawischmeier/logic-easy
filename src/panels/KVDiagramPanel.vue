@@ -38,6 +38,13 @@
       hint="Fix the issues in the state table to unlock the Karnaugh-Veitch diagram."
     />
 
+    <!-- Hidden rows are ignored here, so the user clears them once before the diagram shows -->
+    <HiddenEdgesNotice
+      v-else-if="hiddenRowCount"
+      :count="hiddenRowCount"
+      @confirm="clearHiddenRows"
+    />
+
     <div v-else class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
       <!-- Interactive view -->
       <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
@@ -117,6 +124,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
+import HiddenEdgesNotice from '@/components/HiddenEdgesNotice.vue'
 import InvalidFSMView from '@/components/InvalidFSMView.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
@@ -124,6 +132,7 @@ import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
 import Checkbox from '@/components/parts/Checkbox.vue'
 import type { IDockviewPanelProps } from 'dockview-vue'
 import { stateManager } from '@/projects/stateManager'
+import { FsmProject } from '@/projects/state-machine/FsmProject'
 import {
   TruthTableProject,
   type TruthTableCell,
@@ -137,7 +146,11 @@ import {
   buildFsmKVDiagramPresentation,
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
-import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import {
+  countPendingHiddenRows,
+  validateFsm,
+  type FsmValidity,
+} from '@/utility/fsm/EditorSync/fsmValidation'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import type { Formula, FormulaVariation } from '@/utility/types'
 import { mapFormulaTermsToPIColors } from '@/utility/truthtable/colorGenerator'
@@ -308,6 +321,12 @@ const isFSMInvalid = computed(
   () => stateManager.state.truthTable?.fsmMode === true && !fsmValidity.value.valid,
 )
 const invalidReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
+// Only warns while the drawn machine is valid, clearing the bits never repairs an error
+const hiddenRowCount = computed(() => {
+  const fsm = stateManager.state.fsm
+  return fsm ? countPendingHiddenRows(fsm) : 0
+})
+const clearHiddenRows = () => FsmProject.clearHiddenRowBits()
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),
@@ -317,7 +336,6 @@ const immutableCellMask = computed(() =>
 watch(
   tableValues,
   (newVal) => {
-    console.log('[KVDiagramPanel] Local tableValues changed:', newVal)
     if (!stateManager.state.truthTable) return
 
     if (isUpdatingFromState) {
