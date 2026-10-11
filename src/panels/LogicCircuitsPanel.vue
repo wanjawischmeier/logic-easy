@@ -31,10 +31,7 @@ import { downloadFile } from '@/utility/downloadFile'
 import LegendButton from '@/components/parts/buttons/LegendButton.vue'
 import Checkbox from '@/components/parts/Checkbox.vue'
 import FsmViewGate from '@/components/FsmViewGate.vue'
-import {
-  validateFsm,
-  type FsmValidity,
-} from '@/utility/fsm/EditorSync/fsmValidation'
+import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 

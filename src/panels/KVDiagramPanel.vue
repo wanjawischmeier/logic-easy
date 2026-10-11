@@ -38,74 +38,77 @@
     >
       <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
         <!-- Interactive view -->
-      <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
-        <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
-          <KVDiagram
-            :key="`${functionType}-${outputVariableIndex}`"
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :input-var-labels="inputVarLabels"
-            :output-var-labels="outputVarLabels"
-            :outputVariableIndex="outputVariableIndex"
-            :formulas="{}"
-            :selected-formula="selectedVariationFormula"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="displayQmcResult"
-            :formula-term-colors="displayFormulaTermColors"
-            :immutable-cell-mask="immutableCellMask"
-            :readonly="isFsmProject"
-            :variation-index="currentVariationIndex"
-            @values-changed="tableValues = $event"
-          />
-
-          <div
-            v-if="displayFormulaVariations.length > 0 && showFormula"
-            class="pt-8 w-full flex justify-center overflow-visible"
-          >
-            <VariationViewer
-              v-model:current-variation-index="currentVariationIndex"
-              :variations="displayFormulaVariations"
+        <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
+          <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
+            <KVDiagram
+              :key="`${functionType}-${outputVariableIndex}`"
+              :values="tableValues"
+              :input-vars="inputVars"
+              :output-vars="outputVars"
+              :input-var-labels="inputVarLabels"
+              :output-var-labels="outputVarLabels"
+              :outputVariableIndex="outputVariableIndex"
+              :formulas="{}"
+              :selected-formula="selectedVariationFormula"
+              :functionType="functionType"
               :function-representation="functionRepresentation"
+              :qmc-result="displayQmcResult"
+              :formula-term-colors="displayFormulaTermColors"
+              :immutable-cell-mask="immutableCellMask"
+              :readonly="isFsmProject"
+              :variation-index="currentVariationIndex"
+              @values-changed="tableValues = $event"
             />
+
+            <div
+              v-if="displayFormulaVariations.length > 0 && showFormula"
+              class="pt-8 w-full flex justify-center overflow-visible"
+            >
+              <VariationViewer
+                v-model:current-variation-index="currentVariationIndex"
+                :variations="displayFormulaVariations"
+                :function-representation="functionRepresentation"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Screenshot-only view -->
-      <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
+        <!-- Screenshot-only view -->
         <div
-          v-for="(outputVar, index) in outputVars"
-          :key="`screenshot-${outputVar}-${functionType}`"
-          class="flex flex-col items-center gap-4"
+          data-screenshot-only-flex
+          class="hidden flex-row gap-32 items-start justify-center p-8"
         >
-          <KVDiagram
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :input-var-labels="inputVarLabels"
-            :output-var-labels="outputVarLabels"
-            :outputVariableIndex="index"
-            :formulas="{}"
-            :selected-formula="getSelectedVariationFormula(outputVar)"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResults?.[outputVar] ?? displayQmcResult"
-            :formula-term-colors="displayFormulaTermColors"
-            :immutable-cell-mask="immutableCellMask"
-            :readonly="isFsmProject"
-            :variation-index="(variationIndex as Record<string, number>)?.[outputVar] ?? 0"
-            @values-changed="tableValues = $event"
-          />
-
-          <FormulaRenderer
-            :latex-expression="getCurrentCouplingLatexForOutput(outputVar) ?? ''"
-            v-if="getCurrentCouplingLatexForOutput(outputVar)"
+          <div
+            v-for="(outputVar, index) in outputVars"
+            :key="`screenshot-${outputVar}-${functionType}`"
+            class="flex flex-col items-center gap-4"
           >
-          </FormulaRenderer>
+            <KVDiagram
+              :values="tableValues"
+              :input-vars="inputVars"
+              :output-vars="outputVars"
+              :input-var-labels="inputVarLabels"
+              :output-var-labels="outputVarLabels"
+              :outputVariableIndex="index"
+              :formulas="{}"
+              :selected-formula="getSelectedVariationFormula(outputVar)"
+              :functionType="functionType"
+              :function-representation="functionRepresentation"
+              :qmc-result="qmcResults?.[outputVar] ?? displayQmcResult"
+              :formula-term-colors="displayFormulaTermColors"
+              :immutable-cell-mask="immutableCellMask"
+              :readonly="isFsmProject"
+              :variation-index="(variationIndex as Record<string, number>)?.[outputVar] ?? 0"
+              @values-changed="tableValues = $event"
+            />
+
+            <FormulaRenderer
+              :latex-expression="getCurrentCouplingLatexForOutput(outputVar) ?? ''"
+              v-if="getCurrentCouplingLatexForOutput(outputVar)"
+            >
+            </FormulaRenderer>
+          </div>
         </div>
-      </div>
       </div>
     </FsmViewGate>
   </div>
@@ -136,10 +139,7 @@ import {
   buildFsmKVDiagramPresentation,
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
-import {
-  validateFsm,
-  type FsmValidity,
-} from '@/utility/fsm/EditorSync/fsmValidation'
+import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import type { Formula, FormulaVariation } from '@/utility/types'
 import { mapFormulaTermsToPIColors } from '@/utility/truthtable/colorGenerator'
