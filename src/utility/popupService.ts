@@ -2,6 +2,7 @@ import type { BaseProjectProps } from '@/projects/Project'
 import { projectManager } from '@/projects/projectManager'
 import { getProjectType } from '@/projects/projectRegistry'
 import { type MenuEntry, findDockEntry } from '@/router/dockRegistry'
+import { closeFsmEditorPopups } from '@/utility/fsm/EditorSync/fsmOverlayBridge'
 import { shallowRef, type Component } from 'vue'
 
 export type GenericPopupConfig = {
@@ -36,6 +37,8 @@ export const popupService = {
     config: PopupConfig | ProjectCreationPopupConfig<TProps>,
   ) {
     currentPopup.value = config as PopupConfig
+    // A panel must never show a popup and an editor popup at the same time
+    closeFsmEditorPopups()
   },
 
   close() {

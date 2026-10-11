@@ -1,3 +1,5 @@
+import { closeFsmEditorPopups } from '@/utility/fsm/EditorSync/fsmOverlayBridge'
+
 type CloseCallback = () => void
 
 let currentlyOpenDropdown: CloseCallback | null = null
@@ -13,6 +15,8 @@ export const dropdownService = {
     }
     // Store the new one
     currentlyOpenDropdown = onClose
+    // A panel must never show a dropdown and an editor popup at the same time
+    closeFsmEditorPopups()
   },
 
   /**

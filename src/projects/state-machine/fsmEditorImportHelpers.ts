@@ -5,7 +5,7 @@ import {
   fillMissingTransitions,
 } from '@/utility/fsm/EditorSync/editorTransitionUtils'
 import { calcBinaryID, calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
-import { sanitizeStateName } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
+import { nextFreeStateName, sanitizeStateName } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 
 interface EditorExportState {
   id?: number
@@ -42,6 +42,19 @@ const sanitizeEditorBits = (value: unknown, fallbackLength: number): string => {
   return normalized.length === 0 ? 'x'.repeat(fallbackLength) : normalized.slice(0, fallbackLength)
 }
 
+// Canonical name, duplicate or missing names fall back to the smallest free "q<number>"
+function reserveImportedName(requested: string | undefined, usedNames: Set<string>): string {
+  const sanitized = sanitizeStateName(String(requested ?? '')).trim()
+  if (sanitized && !usedNames.has(sanitized.toLowerCase())) {
+    usedNames.add(sanitized.toLowerCase())
+    return sanitized
+  }
+
+  const freeName = nextFreeStateName(usedNames)
+  usedNames.add(freeName.toLowerCase())
+  return freeName
+}
+
 function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
   const isMoore = s.fsmModel === 'moore'
   // Clamp to at least 1 bit so sanitizeEditorBits never pads to zero width
@@ -57,16 +70,24 @@ function remapEditorNodes(incomingStates: EditorExportState[], s: FsmState) {
   // missing initial flag is not sanitized
   const initialOldId = firstInitial ? Number(firstInitial.id) : -1
 
+  const usedNames = new Set<string>()
   const nodes: FsmNode[] = sorted.map((incomingState, index) => {
     const previousId = Number(incomingState.id)
     return {
       nodeId: index,
-      name: sanitizeStateName(String(incomingState.name ?? '')).trim() || `q${index}`,
+      name: reserveImportedName(incomingState.name, usedNames),
       isInitial: previousId === initialOldId,
       color: typeof incomingState.color === 'string' ? incomingState.color : undefined,
       editorCoordX: typeof incomingState.x === 'number' ? incomingState.x : undefined,
       editorCoordY: typeof incomingState.y === 'number' ? incomingState.y : undefined,
-      mooreOutput: isMoore ? sanitizeEditorBits(incomingState.moore_output, outputBits) : undefined,
+      mooreOutput: isMoore
+        ? normalizeBits(
+            sanitizeEditorBits(incomingState.moore_output, outputBits),
+            outputBits,
+            'x',
+            'right',
+          )
+        : undefined,
     }
   })
 
@@ -147,13 +168,24 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
         normalizedtoBinaryId = normalizedPattern
         danglingTarget = true
       } else {
-        normalizedtoBinaryId = Array.from({ length: nodeBitCount }, (_, index) => {
+        const merged = Array.from({ length: nodeBitCount }, (_, index) => {
           const bits = new Set(remappedPatterns.map((p) => p.charAt(index)))
           return bits.size === 1 ? [...bits][0] : 'x'
         }).join('')
+        const covered = expandInputs(merged)
+        const intended = new Set(remappedPatterns)
+        // do not allow a pattern that covers more states than the user intended
+        if (covered.length !== intended.size || !covered.every((bits) => intended.has(bits))) {
+          normalizedtoBinaryId = 'x'.repeat(nodeBitCount)
+          danglingTarget = true
+        } else {
+          normalizedtoBinaryId = merged
+        }
       }
     } else {
+      // If the editor payload has no toBinaryId, use the remapped target if it exists
       normalizedtoBinaryId = concreteBits
+      danglingTarget = remappedTo === undefined
     }
 
     if (!danglingTarget && /^[01]+$/.test(normalizedtoBinaryId)) {
@@ -181,6 +213,26 @@ export function importEditorPayload(raw: EditorExportPayload, state: FsmState) {
   })
 
   const transitions = fillMissingTransitions(nodes, rawExpanded, inputBits, outputBits, isMoore)
+
+  // A row that lost its target stays invalid until the payload resolves a target for it again
+  const rowKey = (from: number, input: string) => `${from}|${input}`
+  const providedTargets = new Set(
+    rawExpanded.filter((t) => t.toNodeId >= 0).map((t) => rowKey(t.fromNodeId, t.input)),
+  )
+  const previouslyRemoved = new Set<string>()
+  for (const transition of state.transitions ?? []) {
+    if (!transition.removedTarget) continue
+    const remappedFrom = idMap.get(transition.fromNodeId)
+    if (remappedFrom !== undefined) previouslyRemoved.add(rowKey(remappedFrom, transition.input))
+  }
+  transitions.forEach((transition) => {
+    if (transition.toNodeId >= 0 || transition.removedTarget) return
+    const key = rowKey(transition.fromNodeId, transition.input)
+    // Only a target the payload resolves clears the marker, an open row keeps it
+    if (providedTargets.has(key)) return
+    if (previouslyRemoved.has(key)) transition.removedTarget = true
+  })
+
   return { nodes, transitions }
 }
 

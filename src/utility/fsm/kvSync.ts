@@ -1,7 +1,7 @@
 import type { Operation } from 'logi.js'
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
+import { calcBinaryID, calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 import {
   defaultFunctionRepresentation,
   defaultFunctionType,
@@ -40,15 +40,25 @@ function buildPlaceholderVariableMap(inputVars: string[]): Record<string, string
   return map
 }
 
+// The state table encodes states by id, so the truth table must use the same width
+function stateEncodingBits(fsm: FsmState): number {
+  const maxNodeId = (fsm.nodes || []).reduce(
+    (max, node) => Math.max(max, Number(node?.nodeId ?? -1)),
+    0,
+  )
+  return calcBitNumber(Math.max(1, maxNodeId + 1))
+}
+
 function resolveTransitionTargetNode(fsm: FsmState, transition: FsmState['transitions'][number]) {
   if (transition.toNodeId >= 0) {
     return fsm.nodes.find((node) => node.nodeId === transition.toNodeId)
   }
 
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
-  if (stateBits === 0) {
-    return fsm.nodes[0]
+  const stateBits = stateEncodingBits(fsm)
+  const encodedPattern = normalizeBits(transition.toBinaryId ?? '', stateBits, 'x', 'left')
+  // If the pattern is all don't-cares, the transition is undrawn and does not lock the editor
+  if (!/[01]/.test(encodedPattern)) {
+    return fsm.nodes.length === 1 ? fsm.nodes[0] : undefined
   }
 
   const concreteTarget = normalizeBits(
@@ -200,8 +210,7 @@ export function buildFsmImmutableCellMask(
 ): boolean[][] | undefined {
   if (!fsm || !truthTable?.values?.length) return undefined
 
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
+  const stateBits = stateEncodingBits(fsm)
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
 
   const possibleRows = new Set<number>()
@@ -303,8 +312,7 @@ export function exportFsmToTruthTable(
   fsm: FsmState,
   previousState?: TruthTableState,
 ): TruthTableState {
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
+  const stateBits = stateEncodingBits(fsm)
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
 
@@ -376,8 +384,7 @@ export function syncFsmStateToTruthTable(fsm: FsmState): void {
 }
 
 export function applyTruthTableToFsm(fsm: FsmState, truthTable: TruthTableState): void {
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
+  const stateBits = stateEncodingBits(fsm)
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
 

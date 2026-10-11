@@ -30,6 +30,8 @@ import { useFloatingToolbarPosition } from '@/components/composables/useFloating
 import { downloadFile } from '@/utility/downloadFile'
 import LegendButton from '@/components/parts/buttons/LegendButton.vue'
 import Checkbox from '@/components/parts/Checkbox.vue'
+import InvalidFSMView from '@/components/InvalidFSMView.vue'
+import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
 
 const props = defineProps<Partial<IDockviewPanelProps>>()
 
@@ -197,6 +199,17 @@ const isFsmProject = computed(
   () => projectManager.getCurrentProject()?.projectType === 'state-machine',
 )
 
+// The LC view mirrors the FSM, so it locks together with the editor while the FSM is invalid
+const fsmValidity = computed<FsmValidity>(() => {
+  const fsm = stateManager.state.fsm
+  return fsm ? validateFsm(fsm) : { valid: true }
+})
+// Only an FSM-derived truth table is locked, a combinatorial circuit has no FSM
+const isFSMInvalid = computed(
+  () => stateManager.state.truthTable?.fsmMode === true && !fsmValidity.value.valid,
+)
+const invalidReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
+
 const createLcContent = (method: LCMethodType) => {
   if (isFsmProject.value) {
     const fsm = stateManager.state.fsm
@@ -247,6 +260,11 @@ const createLcContent = (method: LCMethodType) => {
 async function updateFormulas(force = false) {
   if (props.params?.api && !props.params.api.isVisible) {
     pendingUpdate = true
+    return
+  }
+
+  // Keep the circuit frozen while the FSM is invalid, the lock view replaces it
+  if (isFSMInvalid.value) {
     return
   }
 
@@ -330,6 +348,12 @@ watch(
   },
   { immediate: true, deep: true },
 )
+
+// Reload the circuit once the FSM is valid again
+watch(isFSMInvalid, (invalid, wasInvalid) => {
+  if (invalid || wasInvalid !== true) return
+  void updateFormulas(true)
+})
 
 /*
 Manual edit warning related stuff
@@ -518,7 +542,14 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="panelRef" class="relative flex-1 h-full text-on-surface flex flex-col gap-2">
-    <div ref="iframeContainer" class="relative flex-1">
+    <!-- Same lock view the KV panel and the editor show while the FSM is invalid -->
+    <InvalidFSMView
+      v-if="isFSMInvalid"
+      :reason="invalidReason"
+      hint="Fix the issues in the state table to unlock the logic circuit."
+    />
+
+    <div v-else ref="iframeContainer" class="relative flex-1">
       <IframePanel
         ref="iframePanelRef"
         iframe-key="__lc_preloaded_iframe"
@@ -530,6 +561,7 @@ onBeforeUnmount(() => {
 
     <teleport to="body">
       <div
+        v-if="!isFSMInvalid"
         id="lc-download-button"
         class="fixed z-10 flex items-center gap-2 text-sm"
         :style="toolbarStyle"
