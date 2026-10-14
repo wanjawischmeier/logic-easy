@@ -1,10 +1,8 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
-    <div
-      v-if="!isFSMInvalid"
-      class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2"
-    >
+    <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton
+        v-if="!isFSMInvalid"
         :input-vars="displayInputVars"
         :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
@@ -24,10 +22,18 @@
       </SettingsButton>
 
       <DownloadButton
+        v-if="!isFSMInvalid"
         :target-ref="screenshotRef"
         :panel-id="props.params.api.id"
         filename="kv"
         :files="downloadFiles"
+      />
+
+      <!-- Reports every hidden edge, whether or not it still shows bits -->
+      <HiddenTransitionsBadge
+        v-if="hiddenRows.total > 0"
+        :count="hiddenRows.total"
+        :pending="hiddenRows.pending"
       />
     </div>
 
@@ -120,6 +126,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
 import FsmViewGate from '@/components/FsmViewGate.vue'
+import HiddenTransitionsBadge from '@/components/HiddenTransitionsBadge.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
@@ -139,7 +146,12 @@ import {
   buildFsmKVDiagramPresentation,
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
-import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import {
+  countHiddenRows,
+  countHiddenRowsWithBits,
+  validateFsm,
+  type FsmValidity,
+} from '@/utility/fsm/EditorSync/fsmValidation'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import type { Formula, FormulaVariation } from '@/utility/types'
 import { mapFormulaTermsToPIColors } from '@/utility/truthtable/colorGenerator'
@@ -171,7 +183,6 @@ onMounted(() => {
   const visibilityDisposable = api.onDidActivePanelChange(() => {
     if (props.params.api.isActive) {
       // Panel became active/visible - refresh latex rendering
-      console.log('Refresh kv diagram')
       kvDiagramRef.value?.refresh()
     }
   })
@@ -300,6 +311,13 @@ const selectedVariationFormula = computed(() => getSelectedVariationFormula())
 
 const isFsmProject = computed(() => !!stateManager.state.fsm)
 
+// The badge reports every hidden edge, the notice only the ones that still show bits
+const hiddenRows = computed(() => {
+  const fsm = stateManager.state.fsm
+  if (!fsm) return { total: 0, pending: 0 }
+  return { total: countHiddenRows(fsm), pending: countHiddenRowsWithBits(fsm) }
+})
+
 // The KV view mirrors the FSM, so it locks together with the editor while the FSM is invalid
 const fsmValidity = computed<FsmValidity>(() => {
   const fsm = stateManager.state.fsm
@@ -322,11 +340,9 @@ watch(
 
     if (isUpdatingFromState) {
       isUpdatingFromState = false
-      console.log('[KVDiagramPanel] Skipping update (isUpdatingFromState)')
       return
     }
 
-    console.log('[KVDiagramPanel] Calling truthTableWorkerManager.update()')
     Object.assign(stateManager.state.truthTable.values, newVal)
     truthTableWorkerManager.update()
 
@@ -344,7 +360,6 @@ watch(
 watch(
   () => values.value,
   (newVal) => {
-    console.log('[KVPanel] state.value.values changed:', newVal)
     if (!newVal) return
     isUpdatingFromState = true
     tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])

@@ -26,6 +26,17 @@ export function countPendingHiddenRows(state: FsmState): number {
   return (state.transitions ?? []).filter(needsHiddenCleanup).length
 }
 
+// Rows the editor does not draw at all. This is the number the views report.
+export function countHiddenRows(state: FsmState): number {
+  return (state.transitions ?? []).filter(isHiddenTransition).length
+}
+
+// Rows that still show concrete bits, so the views ask to clean them up
+// Not gated on validity: the number stays correct while the machine is also invalid
+export function countHiddenRowsWithBits(state: FsmState): number {
+  return (state.transitions ?? []).filter(needsHiddenCleanup).length
+}
+
 // Validate the FSM and return the first problem so the overlay can explain it
 export function validateFsm(state: FsmState): FsmValidity {
   const transitions = state.transitions ?? []

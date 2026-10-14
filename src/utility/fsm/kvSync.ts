@@ -19,8 +19,11 @@ import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerMa
 import { isHiddenTransition } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { stateManager } from '@/projects/stateManager'
 
-function buildNames(prefix: string, bits: number, suffix: string): string[] {
-  return Array.from({ length: bits }, (_, index) => `${prefix}_${bits - 1 - index}^${suffix}`)
+function buildNames(prefix: string, bits: number, suffix?: string): string[] {
+  return Array.from({ length: bits }, (_, index) => {
+    const name = `${prefix}_${bits - 1 - index}`
+    return suffix ? `${name}^${suffix}` : name
+  })
 }
 
 function toTruthTableCell(bit: string): TruthTableState['values'][number][number] {
@@ -317,8 +320,10 @@ export function exportFsmToTruthTable(
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
 
-  const inputVars = [...buildNames('Z', stateBits, 'n'), ...buildNames('X', inputBits, 'n')]
-  const outputVars = [...buildNames('Z', stateBits, '(n+1)'), ...buildNames('Y', outputBits, 'n')]
+  // The state carries the time step (n / n+1), the data inputs and outputs do not:
+  // X is the current input, Y is the output the machine has after the transition
+  const inputVars = [...buildNames('Z', stateBits, 'n'), ...buildNames('X', inputBits)]
+  const outputVars = [...buildNames('Z', stateBits, '(n+1)'), ...buildNames('Y', outputBits)]
 
   const rowCount = 1 << (stateBits + inputBits)
   const values: TruthTableState['values'] = Array.from({ length: rowCount }, () =>

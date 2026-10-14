@@ -31,6 +31,8 @@ import {
 import {
   validateFsm,
   countPendingHiddenRows,
+  countHiddenRows,
+  countHiddenRowsWithBits,
   fsmViewMode,
 } from '@/utility/fsm/EditorSync/fsmValidation'
 import { buildFsmImportPayload, forceSyncTableToEditor } from '@/utility/fsm/EditorSync/fsmListener'
@@ -570,8 +572,8 @@ describe('the FSM stays identical in table, central state and editor sync', () =
 describe('M2 (three states)', () => {
   it('encoded truth table matches the FSM by hand', () => {
     const table = exportFsmToTruthTable(createState(M2))
-    expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_0^n'])
-    expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1^n', 'Y_0^n'])
+    expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_0'])
+    expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1', 'Y_0'])
     expect(table.values).toEqual([
       [0, 1, 0, 0], // 00 0 -> B (01), output 00
       [1, 0, 1, 1], // 00 1 -> C (10), output 11
@@ -592,10 +594,10 @@ describe('M2 (three states)', () => {
 })
 
 describe('M3 (Moore, two inputs, one don\u2019t-care next state)', () => {
-  it('encoded truth table uses the output of the target state', () => {
+  it('encoded truth table uses the output of the target state and names it Y^(n+1)', () => {
     const table = exportFsmToTruthTable(createState(M3))
-    expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_1^n', 'X_0^n'])
-    expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1^n', 'Y_0^n'])
+    expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_1', 'X_0'])
+    expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1', 'Y_0'])
     expect(table.values).toHaveLength(16)
     // (S0, 00) -> S2 (10) and the output comes from S2, which is 11
     expect(valueRow(table, 0)).toEqual([1, 0, 1, 1])
@@ -603,6 +605,11 @@ describe('M3 (Moore, two inputs, one don\u2019t-care next state)', () => {
     expect(valueRow(table, 2)).toEqual([0, 1, 1, 0])
     // (S3, 11) is the don't care row of the sheet
     expect(valueRow(table, 15)).toEqual(['-', '-', '-', '-'])
+  })
+
+  it('names the output of every row Y, Mealy and Moore alike', () => {
+    const table = exportFsmToTruthTable(createState(M2))
+    expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1', 'Y_0'])
   })
 
   it('keeps a covered group with different outputs valid and unlocked', () => {
@@ -814,8 +821,8 @@ describe('central state guards', () => {
 describe('M5 (partial and don\u2019t-care outputs)', () => {
   it('carries output don\u2019t cares into the encoded table as don\u2019t cares', () => {
     const table = exportFsmToTruthTable(createState(M5))
-    expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_0^n'])
-    expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1^n', 'Y_0^n'])
+    expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_0'])
+    expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1', 'Y_0'])
     expect(table.values).toEqual([
       [0, 1, 1, '-'], // q0 -0/1x-> q1
       [1, 0, '-', 1], // q0 -1/x1-> q2
@@ -864,8 +871,8 @@ describe('truth table uses the same encoding as the state table', () => {
     // the table shows Z_0 for a single state, so the KV must use that bit as well
     expect(state.nodeIdBitCount).toBe(1)
     const table = exportFsmToTruthTable(state)
-    expect(table.inputVars).toEqual(['Z_0^n', 'X_0^n'])
-    expect(table.outputVars).toEqual(['Z_0^(n+1)', 'Y_0^n'])
+    expect(table.inputVars).toEqual(['Z_0^n', 'X_0'])
+    expect(table.outputVars).toEqual(['Z_0^(n+1)', 'Y_0'])
     expect(table.values).toHaveLength(4)
     expect(valueRow(table, 0b00)).toEqual([0, 1])
     // the encoding that no state uses stays open instead of colliding with state 0
@@ -2051,28 +2058,33 @@ describe('hidden rows are ignored and can be cleared', () => {
     // the single case has to read as one sentence, never as a plural mix
     const single = mount(HiddenEdgesNotice, { props: { count: 1 } })
     expect(single.text()).toContain("One transition has a don't care (-) as its next state")
-    expect(single.text()).toContain('it is not drawn')
+    expect(single.text()).toContain('It is not drawn')
     expect(single.text()).not.toContain('transitions have')
-    expect(single.text()).not.toContain('they are not drawn')
+    expect(single.text()).not.toContain('They are not drawn')
   })
 
-  it('points the editor badge at the docs and explains the rule on hover', () => {
-    const wrapper = mount(HiddenTransitionsBadge, { props: { count: 3 } })
+  it('points the KV header badge at the docs and explains the rule on hover', () => {
+    const wrapper = mount(HiddenTransitionsBadge, { props: { count: 3, pending: 2 } })
     const link = wrapper.get('a')
 
-    expect(link.attributes('href')).toContain('docs/views/state-machine/tables.html')
+    expect(link.attributes('href')).toContain('docs/views/state-machine/tables.html#next-states')
     expect(link.attributes('title')).toContain('All transitions with - as a next state bit')
-    expect(link.attributes('title')).toContain('3 of them still show bits')
+    expect(link.attributes('title')).toContain('2 of them still show bits')
     expect(link.text()).toContain('3')
     // an info badge, never an error badge
     expect(link.classes()).toContain('text-primary-variant')
     expect(link.classes().join(' ')).not.toContain('red-')
 
+    // the badge reports every hidden edge, so the pending part is optional
+    const clean = mount(HiddenTransitionsBadge, { props: { count: 4 } })
+    expect(clean.get('a').attributes('title')).toContain('None of them still show bits')
+    expect(clean.get('a').text()).toContain('4')
+
     expect(
-      mount(HiddenTransitionsBadge, { props: { count: 1 } })
+      mount(HiddenTransitionsBadge, { props: { count: 1, pending: 1 } })
         .get('a')
         .attributes('title'),
-    ).toContain('One of them still show bits')
+    ).toContain('One of them still shows bits')
   })
 
   it('agrees with the editor about which rows are hidden', async () => {
@@ -2370,25 +2382,81 @@ describe('a next state removed in the table never locks', () => {
   })
 })
 
-describe('the views and the editor badge ask the same question', () => {
-  it('counts pending hidden rows only while the machine is valid', () => {
+describe('the views and the badge ask the same question', () => {
+  it('reports every hidden row in the badge and only the pending ones in the notice', () => {
     const state = createState(specForSize(3, 'mealy'))
     stateManager.state.fsm = state
+    // the machine starts as a placeholder matrix: the open rows are hidden, none shows bits
+    expect(countHiddenRows(state)).toBe(5)
+    expect(countHiddenRowsWithBits(state)).toBe(0)
+
     writeRow(state, 0, '0', '0x')
     writeRow(state, 1, '0', '1x')
 
-    expect(countPendingHiddenRows(state)).toBe(2)
-    expect(state.transitions.filter(needsHiddenCleanup)).toHaveLength(2)
-
-    // the drawn error wins: the views lock and the count the views use drops to zero
-    writeRow(state, 2, '0', '11')
-    expect(fsmViewMode(state)).toBe('invalid')
-    expect(countPendingHiddenRows(state)).toBe(0)
-    expect(state.transitions.filter(needsHiddenCleanup)).toHaveLength(2)
-
-    writeRow(state, 2, '0', '00')
+    // the drawn row of the spec became hidden as well, two of them carry bits
+    expect(countHiddenRows(state)).toBe(6)
+    expect(countHiddenRowsWithBits(state)).toBe(2)
     expect(countPendingHiddenRows(state)).toBe(2)
     expect(fsmViewMode(state)).toBe('hidden-pending')
+
+    // a drawn row with a missing state locks everything, the badge keeps its count
+    writeRow(state, 2, '0', '11')
+    expect(fsmViewMode(state)).toBe('invalid')
+    expect(countHiddenRows(state)).toBe(5)
+    expect(countHiddenRowsWithBits(state)).toBe(2)
+    // the notice waits for the repair instead of counting
+    expect(countPendingHiddenRows(state)).toBe(0)
+
+    writeRow(state, 2, '0', '00')
+    expect(countHiddenRows(state)).toBe(5)
+    expect(countPendingHiddenRows(state)).toBe(2)
+    expect(fsmViewMode(state)).toBe('hidden-pending')
+  })
+})
+
+describe('hidden rows keep the machine consistent through a round trip', () => {
+  it('keeps a removed target through a full editor round trip', async () => {
+    const state = createState(M2)
+    stateManager.state.fsm = state
+    removeStateRow(state, 2)
+    const before = state.transitions.filter((transition) => transition.removedTarget)
+    expect(before.length).toBeGreaterThan(0)
+
+    const synced = await throughEditor(state)
+
+    // the stale row must survive as a hidden row, never as a repointed edge
+    expect(synced.transitions.filter((transition) => transition.removedTarget)).toHaveLength(
+      before.length,
+    )
+    // the marker itself survives, but its stale encoding degrades to don't cares
+    expect(synced.transitions.find((transition) => transition.removedTarget)?.toBinaryId).toMatch(
+      /^x+$/,
+    )
+    expect(fsmViewMode(synced)).toBe('hidden-pending')
+    expect(validateFsm(synced).valid).toBe(true)
+    expectMatrix(synced)
+    expect(nextStateCellsAreOpenOnlyForHiddenRows(synced)).toBe(true)
+  })
+
+  it('ignores a Moore hidden row in the circuit as well', () => {
+    const state = createState({ ...specForSize(3, 'moore'), outputBits: 2 })
+    stateManager.state.fsm = state
+    writeRow(state, 0, '0', '1x')
+
+    const options = { encoding: 'Binary', flipFlopType: 'D' } as const
+    const withHidden = stateMachineToLC(state, options).toString()
+
+    expect(fsmViewMode(state)).toBe('hidden-pending')
+    FsmProject.clearHiddenRowBits()
+
+    // the hidden row only carried don't cares, so the circuit may not change
+    expect(stateMachineToLC(state, options).toString()).toBe(withHidden)
+    expect(validateFsm(state).valid).toBe(true)
+    expectMatrix(state)
+  })
+
+  it('treats a missing FSM as ready', () => {
+    expect(fsmViewMode(undefined)).toBe('ready')
   })
 })
 

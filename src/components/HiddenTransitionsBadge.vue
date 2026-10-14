@@ -16,11 +16,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{ count: number }>()
+const props = defineProps<{ count: number; pending?: number }>()
 
 const docsHref = '/logic-easy/docs/views/state-machine/tables.html#next-states'
 const tooltip = computed(() => {
-  const carried = props.count === 1 ? 'One of them' : `${props.count} of them`
-  return `All transitions with - as a next state bit are hidden: they have no unique target, so they are not drawn and the Karnaugh-Veitch and LogicCircuits views ignore them. ${carried} still show bits in the state table. Click for details.`
+  const pending = props.pending ?? 0
+  const carried =
+    pending === 0
+      ? 'None of them still show bits in the state table'
+      : pending === 1
+        ? 'One of them still shows bits in the state table'
+        : `${pending} of them still show bits in the state table`
+  return `All transitions with - as a next state bit are hidden: they are not drawn and the Karnaugh-Veitch and LogicCircuits views ignore them. ${carried}. Click for details.`
 })
 </script>

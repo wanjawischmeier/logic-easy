@@ -13,7 +13,6 @@ import {
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
 import InvalidFSMView from '@/components/InvalidFSMView.vue'
-import HiddenTransitionsBadge from '@/components/HiddenTransitionsBadge.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import {
@@ -23,7 +22,7 @@ import {
   forceSyncTableToEditor,
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
-import { FsmProject, needsHiddenCleanup } from '@/projects/state-machine/FsmProject'
+import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
@@ -35,10 +34,6 @@ const fsmValidity = computed<FsmValidity>(() => {
 })
 const isFsmValid = computed(() => fsmValidity.value.valid)
 const validReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
-// The editor only draws, so it never blocks: it just counts the rows it cannot draw
-const hiddenRowCount = computed(
-  () => (stateManager.state.fsm?.transitions ?? []).filter(needsHiddenCleanup).length,
-)
 
 // Force the complete table state into the editor when the lock view closes
 watch(isFsmValid, (valid, wasValid) => {
@@ -201,7 +196,7 @@ const legend: LegendItem[] = [
     component: HiddenTransitionIcon,
     label: 'Hidden transition',
     description:
-      'All transitions with - as a next state bit are hidden: they have no unique target, so they are not drawn and are dimmed in the state table. Drawing the same state and input replaces the row.',
+      'All transitions with - as a next state bit are hidden: they are not drawn and are dimmed in the state table. Drawing the same state and input replaces the row.',
   },
   {
     component: MoveIcon,
@@ -354,9 +349,6 @@ onBeforeUnmount(() => {
         class="fixed z-10 flex items-center gap-2 min-w-0"
         :style="[legendButtonStyle, panelWidth ? { maxWidth: `${panelWidth - 2 * 8}px` } : {}]"
       >
-        <div class="shrink-0">
-          <HiddenTransitionsBadge v-if="isFsmValid && hiddenRowCount" :count="hiddenRowCount" />
-        </div>
         <div class="shrink-0">
           <LegendButton v-if="isFsmValid" :legend="legend" />
         </div>

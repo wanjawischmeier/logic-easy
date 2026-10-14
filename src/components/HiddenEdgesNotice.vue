@@ -20,12 +20,12 @@
       <!-- Message -->
       <p class="text-lg mb-4">
         <template v-if="count === 1">
-          One transition has a don't care (<code>-</code>) as its next state. Without a unique
-          target it is not drawn, and this view uses the drawn transitions only.
+          One transition has a don't care (<code>-</code>) as its next state. It is not drawn, and
+          this view uses the drawn transitions only.
         </template>
         <template v-else>
-          {{ count }} transitions have a don't care (<code>-</code>) as their next state. Without a
-          unique target they are not drawn, and this view uses the drawn transitions only.
+          {{ count }} transitions have a don't care (<code>-</code>) as their next state. They are
+          not drawn, and this view uses the drawn transitions only.
         </template>
       </p>
 

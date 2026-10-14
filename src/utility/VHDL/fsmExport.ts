@@ -109,7 +109,7 @@ export function exportFsmToVHDLmealy(fsm: FsmState | undefined, project_name: st
   lines.push('  end if;')
   lines.push('end process process_State_Register;\n')
 
-  // process_State_Output: Mealy output logic (combinational, state + x)
+  // process_State_Output: Mealy output logic (combinational, state + x) - the output Y^(n+1) of the transition
   lines.push('process_State_Output : process (state, x)')
   lines.push('begin')
   lines.push(`  y <= ${zeroLiteral(outputBits)};`)
@@ -204,7 +204,7 @@ function exportFsmToVHDLmoore(fsm: FsmState, project_name: string) {
   lines.push('  end if;')
   lines.push('end process process_State_Register;\n')
 
-  // process_State_Output: Moore — depends only on state, not x
+  // process_State_Output: Moore - the state register drives the output Y^(n+1), it does not depend on x
   lines.push('process_State_Output : process (state)')
   lines.push('begin')
   lines.push('  case state is')

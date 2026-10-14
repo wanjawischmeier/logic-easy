@@ -47,7 +47,7 @@ const legend: LegendItem[] = [
     component: HiddenEdgeIcon,
     label: 'Hidden transition',
     description:
-      'All transitions with - as a next state bit are hidden: they have no unique target, so they are not drawn in the Editor and the whole row stays dimmed.',
+      'All transitions with - as a next state bit are hidden: they are not drawn in the Editor and the whole row stays dimmed.',
   },
 ]
 </script>

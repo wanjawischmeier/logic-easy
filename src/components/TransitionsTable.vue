@@ -180,7 +180,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
             :class="i === inputBitCount ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            <vue-latex :expression="`X_{${inputBitCount - i}}^n`" />
+            <vue-latex :expression="`X_{${inputBitCount - i}}`" />
           </th>
 
           <th
@@ -198,7 +198,8 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
             :class="i === outputBitCount ? '' : 'border-r border-gray-600'"
           >
-            <vue-latex :expression="`Y_{${outputBitCount - i}}^n`" />
+            <!-- A row shows the output the machine has after the transition -->
+            <vue-latex :expression="`Y_{${outputBitCount - i}}`" />
           </th>
         </tr>
       </thead>
