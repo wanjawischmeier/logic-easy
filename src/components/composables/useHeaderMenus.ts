@@ -302,17 +302,17 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
       {
         label: 'LaTeX',
         tooltip: '.tex',
-        children: [FunctionType.DNF, FunctionType.CNF].map((type) => ({
-          label: type,
-          children: [FunctionRepresentation.minimal, FunctionRepresentation.normal].map(
-            (representation) => ({
-              label: `${representation} form`,
+        children: [FunctionRepresentation.minimal, FunctionRepresentation.normal].map(
+          (representation) => ({
+            label: `${representation} form`,
+            children: [FunctionType.DNF, FunctionType.CNF].map((type) => ({
+              label: type,
               tooltip: '.tex',
               action: () => exportLatex(type, representation),
               disabled: !hasCurrentProject.value || stateManager.isSaving.value,
-            }),
-          ),
-        })),
+            })),
+          }),
+        ),
       },
     ],
     Help: [

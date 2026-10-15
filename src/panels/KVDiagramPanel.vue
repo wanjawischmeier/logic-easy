@@ -80,32 +80,42 @@
         <div
           v-for="(outputVar, index) in outputVars"
           :key="`screenshot-${outputVar}-${functionType}`"
-          class="flex flex-col items-center gap-4"
+          class="flex flex-col items-center gap-8"
         >
-          <KVDiagram
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :input-var-labels="inputVarLabels"
-            :output-var-labels="outputVarLabels"
-            :outputVariableIndex="index"
-            :formulas="{}"
-            :selected-formula="getSelectedVariationFormula(outputVar)"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResults?.[outputVar] ?? displayQmcResult"
-            :formula-term-colors="displayFormulaTermColors"
-            :immutable-cell-mask="immutableCellMask"
-            :readonly="isFsmProject"
-            :variation-index="(variationIndex as Record<string, number>)?.[outputVar] ?? 0"
-            @values-changed="tableValues = $event"
-          />
-
-          <FormulaRenderer
-            :latex-expression="getCurrentCouplingLatexForOutput(outputVar) ?? ''"
-            v-if="getCurrentCouplingLatexForOutput(outputVar)"
+          <div
+            v-for="(variation, optionIndex) in getScreenshotFormulaOptions(outputVar)"
+            :key="optionIndex"
+            class="flex flex-col items-center gap-4"
           >
-          </FormulaRenderer>
+            <KVDiagram
+              :values="tableValues"
+              :input-vars="inputVars"
+              :output-vars="outputVars"
+              :input-var-labels="inputVarLabels"
+              :output-var-labels="outputVarLabels"
+              :outputVariableIndex="index"
+              :formulas="{}"
+              :selected-formula="variation.formula"
+              :functionType="functionType"
+              :function-representation="functionRepresentation"
+              :qmc-result="qmcResults?.[outputVar] ?? displayQmcResult"
+              :formula-term-colors="
+                variation.formula
+                  ? getTermColors(outputVar, variation.formula)
+                  : displayFormulaTermColors
+              "
+              :immutable-cell-mask="immutableCellMask"
+              :readonly="isFsmProject"
+              :variation-index="optionIndex"
+            />
+
+            <FormulaRenderer
+              v-if="variation.latex"
+              :latex-expression="variation.latex"
+              :colored-expression="variation.coloredLatex"
+            >
+            </FormulaRenderer>
+          </div>
         </div>
       </div>
     </div>
@@ -222,9 +232,20 @@ const fsmPresentation = computed(() => {
 // Use remapped display values when FSM is active, otherwise use direct state
 const displayQmcResult = computed(() => fsmPresentation.value.qmcResult ?? qmcResult.value)
 
-const displayFormulaTermColors = computed(
-  () => fsmPresentation.value.formulaTermColors ?? formulaTermColors.value,
-)
+const displayFormulaTermColors = computed(() => {
+  const fsmColors = fsmPresentation.value.formulaTermColors
+  if (fsmColors) return fsmColors
+
+  const formula = selectedVariationFormula.value
+  const result = displayQmcResult.value
+  if (!formula || !result?.termColors) return formulaTermColors.value
+
+  try {
+    return mapFormulaTermsToPIColors(formula, result.pis, result.termColors, inputVars.value)
+  } catch {
+    return formulaTermColors.value
+  }
+})
 
 const getCurrentCouplingLatexForOutput = (outputVarName?: string) => {
   const outputVar = outputVarName ?? outputVars.value[outputVariableIndex.value]
@@ -357,6 +378,12 @@ const getFormulaOptions = (outputVar: string): FormulaVariation[] => {
   const source = fsmPresentation.value.variations ?? variations.value
   const options = source?.[outputVar] ?? []
   return functionRepresentation.value === 'Minimal' ? options : options.slice(0, 1)
+}
+
+// Match the LaTeX highlighted export
+const getScreenshotFormulaOptions = (outputVar: string): Partial<FormulaVariation>[] => {
+  const options = getFormulaOptions(outputVar)
+  return options.length > 0 ? options : [{ latex: getCurrentCouplingLatexForOutput(outputVar) }]
 }
 
 // resolves group colors used in the displayed kv diagram
