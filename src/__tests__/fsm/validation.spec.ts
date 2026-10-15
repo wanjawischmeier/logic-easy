@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { stateMachineToLC } from '@/utility/LogicCircuitsExport/StateMachineToLC'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
-import { removeStateRow, resolveMooreOutput } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
+import { removeStateRow } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import {
   countHiddenRows,
   countHiddenRowsWithBits,
@@ -28,18 +28,13 @@ import {
 import { throughEditor } from './support/editorHarness'
 
 describe('Moore rows over a covered group', () => {
-  it('keeps a covered group with different outputs valid and shows the shared output', () => {
+  it('keeps a covered group with different outputs valid', () => {
     const state = createState(M3)
     const row = findRow(state, 0, '00')
     row.toNodeId = -1
     // 1x covers the states q2 (11) and q3 (00), whose outputs differ
     row.toBinaryId = '1x'
     expect(validateFsm(state).valid).toBe(true)
-    expect(resolveMooreOutput(state, row)).toBe('xx')
-
-    // a concrete pattern reports the output of the state it points at
-    row.toBinaryId = '01'
-    expect(resolveMooreOutput(state, row)).toBe('10')
   })
 
   it('still locks a Moore row that names a state which does not exist', () => {

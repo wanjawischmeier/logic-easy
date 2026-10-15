@@ -239,7 +239,6 @@ export {
   nextFreeStateName,
   removeStateRow,
   renameState,
-  resolveMooreOutput,
   sanitizeStateName,
   setInitialState,
   setInputBitCount,

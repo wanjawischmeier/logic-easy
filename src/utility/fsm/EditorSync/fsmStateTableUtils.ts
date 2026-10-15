@@ -385,24 +385,6 @@ export function toggleTransitionOutputBit(
   )
 }
 
-// Moore output shown for a transition: the output of its resolved target states, x where they disagree
-export function resolveMooreOutput(
-  state: FsmState,
-  transition: FsmState['transitions'][number],
-): string {
-  const outputBits = state.outputBitCount ?? 1
-  const targetNodes = resolveTransitionTargetNodes(state, transition)
-  // If the transition has no target states, return an all-x placeholder so the editor can show a mismatch
-  if (!targetNodes.length) return 'x'.repeat(outputBits)
-  const normalizedOutputs = targetNodes.map((node) =>
-    normalizeBits(node.mooreOutput, outputBits, 'x', 'right'),
-  )
-  return Array.from({ length: outputBits }, (_, bitIndex) => {
-    const bit = normalizedOutputs[0]?.charAt(bitIndex) || 'x'
-    return normalizedOutputs.every((out) => out.charAt(bitIndex) === bit) ? bit : 'x'
-  }).join('')
-}
-
 // One state's own Moore output, toggled in the same order the transition table uses
 export function toggleStateMooreOutputBit(
   state: FsmState,
