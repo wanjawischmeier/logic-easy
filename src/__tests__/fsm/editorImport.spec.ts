@@ -129,9 +129,34 @@ describe('import hardening', () => {
       stateCount: 2,
       edges: [[0, 1, '0']],
     })
-    nodeAt(state, 1).mooreOutput = '1'
-    // the row of (q0, input 0) targets q1; a short output is filled at the end, so "1" is y1
+    nodeAt(state, 0).mooreOutput = '1'
+    // the row of (q0, input 0) starts in q0; a short output keeps its first bit, so "1" is the first one
     expect(valueRow(exportFsmToTruthTable(state), 0).slice(-3)).toEqual([1, '-', '-'])
+  })
+
+  it('keeps the Moore output on the states and never on a transition', async () => {
+    const state = createState({
+      model: 'moore',
+      inputBits: 1,
+      outputBits: 2,
+      stateCount: 2,
+      edges: [[0, 1, '0']],
+      mooreOutputs: ['01', '10'],
+    })
+    const { exportModule } = await importIntoEditor(buildFsmImportPayload(state))
+    const exported = exportModule.extractFsmData()
+
+    // every state carries its own output
+    expect(exported.states.map((entry: { moore_output?: string }) => entry.moore_output)).toEqual([
+      '01',
+      '10',
+    ])
+    // a Moore transition has no output of its own
+    expect(exported.transitions.length).toBeGreaterThan(0)
+    exported.transitions.forEach((entry: { output?: string; mealy_output?: string }) => {
+      expect(entry.output ?? '').toBe('')
+      expect(entry.mealy_output ?? '').toBe('')
+    })
   })
 
   it('aligns short input and output bits exactly like the panel payload', () => {

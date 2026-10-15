@@ -134,19 +134,20 @@ describe('hidden rows are ignored and can be cleared', () => {
   })
 
   it('leaves the cells of a hidden row open in the table, Mealy and Moore alike', () => {
-    // Moore: (q0, 0) covers two states with different outputs, so every cell stays open
+    // Moore: (q0, 0) is hidden, so only its next-state cells stay open while the output
+    // stays the one of the state the row starts in
     const moore = createState({
       ...specForSize(4, 'moore'),
       outputBits: 2,
       mooreOutputs: ['01', '10', '11', '00'],
     })
     const drawnBefore = exportFsmToTruthTable(moore)
-    // (q1, 0) -> q2 keeps the output of its target, the drawn case stays untouched
+    // (q1, 0) -> q2 keeps the output of the state the row starts in, which is q1
     writeRow(moore, 1, '0', 2)
-    expect(valueRow(exportFsmToTruthTable(moore), 0b010)).toEqual([1, 0, 1, 1])
+    expect(valueRow(exportFsmToTruthTable(moore), 0b010)).toEqual([1, 0, 1, 0])
 
     writeRow(moore, 0, '0', 'x0')
-    expect(valueRow(exportFsmToTruthTable(moore), 0b000)).toEqual(['-', '-', '-', '-'])
+    expect(valueRow(exportFsmToTruthTable(moore), 0b000)).toEqual(['-', '-', 0, 1])
     expect(validateFsm(moore).valid).toBe(true)
     expect(drawnBefore.values).toHaveLength(exportFsmToTruthTable(moore).values.length)
 

@@ -63,24 +63,6 @@ export function validateFsm(state: FsmState): FsmValidity {
         reason: `The transition from "${sourceName}" with input ${input} points at a non-existing state.`,
       }
     }
-
-    // Rule: in Moore mode all target states of a transition must show the same output
-    if (state.fsmModel === 'moore') {
-      const outputBits = state.outputBitCount ?? 1
-      const outputs = targetNodes.map((node) =>
-        normalizeBits(node.mooreOutput, outputBits, 'x', 'right'),
-      )
-      for (let bit = 0; bit < outputBits; bit += 1) {
-        const firstBit = outputs[0]?.charAt(bit) ?? 'x'
-        if (outputs.some((bits) => bits.charAt(bit) !== firstBit)) {
-          return {
-            valid: false,
-            reason:
-              'In Moore mode a transition covers states with different outputs - give these states the same output, or use concrete next states.',
-          }
-        }
-      }
-    }
   }
 
   return { valid: true }

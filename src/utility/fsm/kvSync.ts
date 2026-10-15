@@ -53,31 +53,6 @@ function stateEncodingBits(fsm: FsmState): number {
   return calcBitNumber(Math.max(1, maxNodeId + 1))
 }
 
-function resolveTransitionTargetNode(fsm: FsmState, transition: FsmState['transitions'][number]) {
-  if (transition.toNodeId >= 0) {
-    return fsm.nodes.find((node) => node.nodeId === transition.toNodeId)
-  }
-
-  const stateBits = stateEncodingBits(fsm)
-  const encodedPattern = normalizeBits(transition.toBinaryId ?? '', stateBits, 'x', 'left')
-  // If the pattern is all don't-cares, the transition is undrawn and does not lock the editor
-  if (!/[01]/.test(encodedPattern)) {
-    return fsm.nodes.length === 1 ? fsm.nodes[0] : undefined
-  }
-
-  const concreteTarget = normalizeBits(
-    transition.toBinaryId ?? '',
-    Math.max(1, stateBits),
-    'x',
-    'left',
-  )
-  if (!/^[01]+$/.test(concreteTarget)) return undefined
-
-  return fsm.nodes.find(
-    (node) => calcBinaryID(node.nodeId, Math.max(1, stateBits)) === concreteTarget,
-  )
-}
-
 function remapExpressionVariables(
   expression: unknown,
   variableMap: Record<string, string>,
@@ -321,7 +296,7 @@ export function exportFsmToTruthTable(
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
 
   // The state carries the time step (n / n+1), the data inputs and outputs do not:
-  // X is the current input, Y is the output the machine has after the transition
+  // X is the current input, Y is the current output (in Moore mode lambda of the present state)
   const inputVars = [...buildNames('Z', stateBits, 'n'), ...buildNames('X', inputBits)]
   const outputVars = [...buildNames('Z', stateBits, '(n+1)'), ...buildNames('Y', outputBits)]
 
@@ -330,10 +305,13 @@ export function exportFsmToTruthTable(
     Array.from({ length: outputVars.length }, () => '-'),
   )
 
-  for (const tr of fsm.transitions || []) {
-    // A hidden row has no unique next state, so it stays a don't care in every cell
-    if (isHiddenTransition(tr)) continue
+  // In Moore mode the output belongs to the state, so resolve it per source state once
+  const mooreOutputByNodeId = new Map<number, string>()
+  for (const node of fsm.nodes || []) {
+    mooreOutputByNodeId.set(node.nodeId, node.mooreOutput ?? '')
+  }
 
+  for (const tr of fsm.transitions || []) {
     const fromBinary = normalizeBits(
       calcBinaryID(tr.fromNodeId ?? 0, Math.max(1, stateBits)),
       stateBits,
@@ -346,18 +324,23 @@ export function exportFsmToTruthTable(
     const rowIndex = parseInt(`${fromBinary}${input}`, 2)
     if (Number.isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rowCount) continue
 
-    const toBinary =
-      tr.toNodeId >= 0
-        ? normalizeBits(calcBinaryID(tr.toNodeId, Math.max(1, stateBits)), stateBits, 'x', 'left')
-        : normalizeBits(tr.toBinaryId ?? '', stateBits, 'x', 'left')
-    const nextStateCells = toBinary.split('').map(toTruthTableCell)
-    const targetNode = fsm.fsmModel === 'moore' ? resolveTransitionTargetNode(fsm, tr) : undefined
-    const outputCells = normalizeBits(
-      fsm.fsmModel === 'moore' ? (targetNode?.mooreOutput ?? '') : (tr.mealyOutput ?? ''),
-      outputBits,
-      'x',
-      'right',
-    )
+    // A hidden row has no unique next state, so only its next-state cells stay don't care
+    const hidden = isHiddenTransition(tr)
+    const nextStatePattern =
+      tr.toNodeId >= 0 ? calcBinaryID(tr.toNodeId, Math.max(1, stateBits)) : (tr.toBinaryId ?? '')
+    const nextStateCells = hidden
+      ? normalizeBits('', stateBits, 'x', 'left').split('').map(toTruthTableCell)
+      : normalizeBits(nextStatePattern, stateBits, 'x', 'left').split('').map(toTruthTableCell)
+
+    // Moore: Y^n = lambda(Z^n) is the output of the row's own state, the input is irrelevant
+    // Mealy: the output belongs to the transition, and a hidden row has none
+    const outputSource =
+      fsm.fsmModel === 'moore'
+        ? (mooreOutputByNodeId.get(tr.fromNodeId ?? -1) ?? '')
+        : hidden
+          ? ''
+          : (tr.mealyOutput ?? '')
+    const outputCells = normalizeBits(outputSource, outputBits, 'x', 'right')
       .split('')
       .map(toTruthTableCell)
 
@@ -446,9 +429,10 @@ export function applyTruthTableToFsm(fsm: FsmState, truthTable: TruthTableState)
 
     if (outputBits > 0) {
       if (fsm.fsmModel === 'moore') {
-        const targetNode = resolveTransitionTargetNode(fsm, transition)
-        if (targetNode) {
-          targetNode.mooreOutput = outputBitsValue
+        // The Moore output belongs to the state the row starts in, so write it there
+        const fromNode = fsm.nodes.find((node) => node.nodeId === transition.fromNodeId)
+        if (fromNode) {
+          fromNode.mooreOutput = outputBitsValue
         }
       } else {
         transition.mealyOutput = outputBitsValue

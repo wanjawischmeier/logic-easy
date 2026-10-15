@@ -32,7 +32,8 @@ describe('Moore rows over a covered group', () => {
     const state = createState(M3)
     const row = findRow(state, 0, '00')
     row.toNodeId = -1
-    // 1x covers the states q2 (11) and q3 (00), whose outputs differ
+    // 1x covers the states q2 (11) and q3 (00), whose outputs differ; the output of a
+    // Moore row belongs to its own state, so no covered group can ever conflict
     row.toBinaryId = '1x'
     expect(validateFsm(state).valid).toBe(true)
   })

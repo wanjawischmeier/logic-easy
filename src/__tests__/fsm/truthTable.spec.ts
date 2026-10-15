@@ -30,17 +30,35 @@ describe('M2 (three states)', () => {
 })
 
 describe('M3 (Moore, two inputs, one don\u2019t-care next state)', () => {
-  it('encoded truth table uses the output of the target state and names it Y^(n+1)', () => {
+  it('encoded truth table uses the Moore output of the state the row starts in', () => {
     const table = exportFsmToTruthTable(createState(M3))
     expect(table.inputVars).toEqual(['Z_1^n', 'Z_0^n', 'X_1', 'X_0'])
     expect(table.outputVars).toEqual(['Z_1^(n+1)', 'Z_0^(n+1)', 'Y_1', 'Y_0'])
     expect(table.values).toHaveLength(16)
-    // (S0, 00) -> S2 (10) and the output comes from S2, which is 11
-    expect(valueRow(table, 0)).toEqual([1, 0, 1, 1])
-    // (S0, 10) -> S1 (01), output of S1 is 10
-    expect(valueRow(table, 2)).toEqual([0, 1, 1, 0])
-    // (S3, 11) is the don't care row of the sheet
-    expect(valueRow(table, 15)).toEqual(['-', '-', '-', '-'])
+    // (S0, 00) -> S2 (10), and the output is the one of S0 itself, which is 01
+    expect(valueRow(table, 0)).toEqual([1, 0, 0, 1])
+    // (S0, 10) -> S1 (01), the output stays the one of S0
+    expect(valueRow(table, 2)).toEqual([0, 1, 0, 1])
+    // (S3, 11) is the don't care row of the sheet: only the next state stays open
+    expect(valueRow(table, 15)).toEqual(['-', '-', 0, 0])
+  })
+
+  it('takes the output from the present state, never from the next state', () => {
+    const state = createState({
+      model: 'moore',
+      inputBits: 1,
+      outputBits: 1,
+      stateCount: 2,
+      mooreOutputs: ['0', '1'],
+      edges: [[0, 1, '1']],
+    })
+    const table = exportFsmToTruthTable(state)
+    // (q0, 0) is unassigned and (q0, 1) goes to q1, but q0 outputs 0 for both inputs
+    expect(valueRow(table, 0b00)).toEqual(['-', 0])
+    expect(valueRow(table, 0b01)).toEqual([1, 0])
+    // and q1 outputs 1 for both of its inputs
+    expect(valueRow(table, 0b10)[1]).toBe(1)
+    expect(valueRow(table, 0b11)[1]).toBe(1)
   })
 })
 
