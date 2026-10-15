@@ -1513,6 +1513,150 @@ describe('state requests sync through the editor', () => {
     expect(snapshot(await throughEditor(synced))).toEqual(snapshot(synced))
   })
 
+  it('does not merge distinct inputs when importing transitions with different outputs', async () => {
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorStore = await import('../../public/fsm-engine/src/lib/stores.js')
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorExport = await import('../../public/fsm-engine/src/lib/export.js')
+
+    editorExport.clearFsmFromParent()
+    editorStore.store.set(editorStore.stage_ref, null)
+    editorExport.applyFsmImport({
+      states: [
+        { id: 0, name: 'q0', initial: true },
+        { id: 1, name: 'c' },
+      ],
+      transitions: [
+        { id: 1, from: 1, to: 0, input: '0', output: '0' },
+        { id: 2, from: 1, to: 0, input: '1', output: '1' },
+      ],
+      fsmType: 'mealy',
+      inputBitCount: 1,
+      outputBitCount: 1,
+    })
+
+    const imported = (editorStore.store.get(editorStore.transition_list) ?? []).filter(
+      (transition: { from?: number; input?: string; output?: string }) =>
+        transition?.from === 1,
+    )
+
+    expect(imported).toHaveLength(2)
+    expect(imported.map((transition: { input?: string }) => transition.input).sort()).toEqual([
+      '0',
+      '1',
+    ])
+    expect(imported.map((transition: { output?: string }) => transition.output).sort()).toEqual([
+      '0',
+      '1',
+    ])
+  })
+
+  it('merges only adjacent equal-output inputs in the editor', async () => {
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorStore = await import('../../public/fsm-engine/src/lib/stores.js')
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorExport = await import('../../public/fsm-engine/src/lib/export.js')
+
+    editorExport.clearFsmFromParent()
+    editorStore.store.set(editorStore.stage_ref, null)
+    editorExport.applyFsmImport({
+      states: [
+        { id: 0, name: 'q0', initial: true },
+        { id: 1, name: 'c' },
+      ],
+      transitions: [
+        { id: 1, from: 1, to: 0, input: '0', output: '0' },
+        { id: 2, from: 1, to: 0, input: '1', output: '0' },
+      ],
+      fsmType: 'mealy',
+      inputBitCount: 1,
+      outputBitCount: 1,
+    })
+
+    const merged = (editorStore.store.get(editorStore.transition_list) ?? []).filter(
+      (transition: { from?: number }) => transition?.from === 1,
+    )
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({ input: 'x', label: 'x/0', output: '0' })
+    const shownNodes = editorStore.store.get(editorStore.node_list) as Array<{
+      transitions?: Array<{ id?: number }>
+    }>
+    expect(shownNodes[1]?.transitions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: merged[0].id })]),
+    )
+    expect(shownNodes[0]?.transitions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: merged[0].id })]),
+    )
+  })
+
+  it('keeps non-adjacent inputs separate in the editor', async () => {
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorStore = await import('../../public/fsm-engine/src/lib/stores.js')
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorExport = await import('../../public/fsm-engine/src/lib/export.js')
+
+    editorExport.clearFsmFromParent()
+    editorStore.store.set(editorStore.stage_ref, null)
+    editorExport.applyFsmImport({
+      states: [
+        { id: 0, name: 'q0', initial: true },
+        { id: 1, name: 'c' },
+      ],
+      transitions: [
+        { id: 1, from: 1, to: 0, input: '00', output: '0' },
+        { id: 2, from: 1, to: 0, input: '11', output: '0' },
+      ],
+      fsmType: 'mealy',
+      inputBitCount: 2,
+      outputBitCount: 1,
+    })
+
+    const separate = (editorStore.store.get(editorStore.transition_list) ?? []).filter(
+      (transition: { from?: number }) => transition?.from === 1,
+    )
+    expect(separate).toHaveLength(2)
+    expect(separate.map((transition: { input?: string }) => transition.input).sort()).toEqual([
+      '00',
+      '11',
+    ])
+  })
+
+  it('keeps node references in both directions for hidden target patterns', async () => {
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorStore = await import('../../public/fsm-engine/src/lib/stores.js')
+    // @ts-expect-error - the editor submodule ships plain JS without type declarations
+    const editorExport = await import('../../public/fsm-engine/src/lib/export.js')
+
+    editorExport.clearFsmFromParent()
+    editorStore.store.set(editorStore.stage_ref, null)
+    editorExport.applyFsmImport({
+      states: [
+        { id: 0, name: 'q0', initial: true },
+        { id: 1, name: 'c' },
+      ],
+      transitions: [
+        { id: 1, from: 1, to: -1, toBinaryId: 'x', input: '0', output: '0' },
+      ],
+      fsmType: 'mealy',
+      inputBitCount: 1,
+      outputBitCount: 1,
+    })
+
+    const hidden = (editorStore.store.get(editorStore.transition_list) ?? []).find(
+      (transition: { from?: number }) => transition?.from === 1,
+    )
+    expect(hidden).toMatchObject({ hiddenDontCare: true })
+    const hiddenNodes = editorStore.store.get(editorStore.node_list) as Array<{
+      transitions?: Array<{ id?: number }>
+    }>
+    expect(hiddenNodes[1]?.transitions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: hidden.id })]),
+    )
+    expect(hiddenNodes[0]?.transitions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: hidden.id })]),
+    )
+  })
+
   it('keeps a narrowed target through the real editor roundtrip', async () => {
     const state = useFsm(specForCount(4))
     writeRow(state, 0, '0', 'x0')
