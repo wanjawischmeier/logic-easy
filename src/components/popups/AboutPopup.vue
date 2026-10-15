@@ -37,6 +37,10 @@
           >
             github.com/wanjawischmeier/logic-easy/
           </a>
+          <div class="h-1"></div>
+          <p class="text-on-surface/85 text-sm italic">
+            (Embedded programs are included as submodules in the main repository)
+          </p>
         </div>
 
         <div class="rounded border border-surface-3 bg-surface-1 p-4">
@@ -78,6 +82,46 @@
         </div>
       </div>
 
+      <div>
+        <p class="mb-3 text-[10px] uppercase tracking-[0.2em] text-secondary-variant">
+          Embedded programs
+        </p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="rounded border border-surface-3 bg-surface-1 p-4 text-sm">
+            <p class="mb-2 font-semibold text-on-surface">LogicCircuits</p>
+            <p class="text-on-surface/85">
+              Developed at Institut für Technische Informatik, Universität zu Lübeck.
+            </p>
+            <ul class="mt-2 space-y-1 text-on-surface/85">
+              <li>Lucas Bergmann</li>
+              <li>Dr. habil. Jan Haase</li>
+              <li>Raphael Klink</li>
+            </ul>
+            <a
+              href="mailto:LogicCircuits@iti.uni-luebeck.de"
+              class="mt-3 inline-block text-primary underline underline-offset-4 hover:text-primary-variant"
+            >
+              LogicCircuits@iti.uni-luebeck.de
+            </a>
+          </div>
+
+          <div class="rounded border border-surface-3 bg-surface-1 p-4 text-sm">
+            <p class="mb-2 font-semibold text-on-surface">FSM Engine</p>
+            <p class="text-on-surface/85">
+              A modified fork by Karthik Saiharsh, distributed under GPL-3.0.
+            </p>
+            <a
+              :href="engineLicenseUrl"
+              target="_blank"
+              rel="noreferrer"
+              class="mt-3 inline-block text-primary underline underline-offset-4 hover:text-primary-variant"
+            >
+              License text
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div
         class="rounded border border-surface-3 bg-surface-2/40 p-4 leading-7 text-sm text-on-surface/85"
       >
@@ -93,19 +137,6 @@
             GNU General Public License v3.0 or later
           </a>
           and comes without any warranty.
-        </p>
-        <div class="h-2"></div>
-        <p>
-          The built-in FSM editor is a modified fork of fsm-engine by Karthik Saiharsh and stays
-          under GPL-3.0.
-          <a
-            :href="engineLicenseUrl"
-            target="_blank"
-            rel="noreferrer"
-            class="text-primary underline underline-offset-4 hover:text-primary-variant"
-          >
-            License text
-          </a>
         </p>
       </div>
 

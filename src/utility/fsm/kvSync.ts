@@ -333,13 +333,11 @@ export function exportFsmToTruthTable(
       : normalizeBits(nextStatePattern, stateBits, 'x', 'left').split('').map(toTruthTableCell)
 
     // Moore: Y^n = lambda(Z^n) is the output of the row's own state, the input is irrelevant
-    // Mealy: the output belongs to the transition, and a hidden row has none
+    // Mealy: the output belongs to the row itself, so it is read regardless of the target
     const outputSource =
       fsm.fsmModel === 'moore'
         ? (mooreOutputByNodeId.get(tr.fromNodeId ?? -1) ?? '')
-        : hidden
-          ? ''
-          : (tr.mealyOutput ?? '')
+        : (tr.mealyOutput ?? '')
     const outputCells = normalizeBits(outputSource, outputBits, 'x', 'right')
       .split('')
       .map(toTruthTableCell)

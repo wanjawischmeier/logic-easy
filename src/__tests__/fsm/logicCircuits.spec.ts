@@ -22,13 +22,16 @@ describe('logic circuits export follows the minimized KV functions', () => {
     })
   })
 
-  it('implements the minimized next-state term of M2 with one three-literal AND', () => {
+  it('implements the minimized next-state term of M2 with three-literal ANDs', () => {
     const lc = stateMachineToLC(createState(M2), { encoding: 'Binary', flipFlopType: 'D' })
     const andGates = lc.elements.filter((element) => element.elementType === AND_GATE)
-    // Z_1^(n+1) = !Z_1 !Z_0 X -> a single AND with two inverted inputs
+    // Z_1^(n+1) = !Z_1 !Z_0 X -> one AND with two inverted inputs, built once for the
+    // flip flop data input and once for the Z_1^(n+1) lamp
     const threeInput = andGates.filter((element) => element.inPorts.length === 3)
-    expect(threeInput).toHaveLength(1)
-    expect([...(threeInput[0]?.inPorts ?? '')].sort().join('')).toBe('iin')
+    expect(threeInput).toHaveLength(2)
+    threeInput.forEach((element) =>
+      expect([...element.inPorts].sort().join('')).toBe('iin'),
+    )
     // Z_0^(n+1) = !X and Y_1 = Y_0 = X need no multi-literal OR: extra terms would change the logic
     const multiInputOr = lc.elements.filter(
       (element) => element.elementType === OR_GATE && element.inPorts.length > 1,

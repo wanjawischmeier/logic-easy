@@ -26,11 +26,10 @@ export function needsHiddenCleanup(transition: FsmTransition): boolean {
   return /[01]/.test(String(transition.mealyOutput ?? ''))
 }
 
-// Clear those rows to a full don't care, so table, KV and LC show the same config
+// Open the next state bits of those rows, so table, KV and LC show the same config
 export function clearHiddenTransitions(state: FsmState): number {
   syncNodeBitCount(state)
   const nodeBitCount = Math.max(1, state.nodeIdBitCount || 1)
-  const outputBitCount = Math.max(1, state.outputBitCount ?? 1)
   let cleared = 0
 
   state.transitions = state.transitions.map((transition) => {
@@ -40,8 +39,7 @@ export function clearHiddenTransitions(state: FsmState): number {
       ...transition,
       toNodeId: -1,
       toBinaryId: 'x'.repeat(nodeBitCount),
-      // In Moore mode the output belongs to the states, so only the row's bits are cleared
-      mealyOutput: state.fsmModel === 'moore' ? transition.mealyOutput : 'x'.repeat(outputBitCount),
+      // Only the next state bits are opened, the output of a row never depends on its target
       removedTarget: false,
     }
   })
