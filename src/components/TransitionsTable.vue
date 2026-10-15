@@ -259,7 +259,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
                   setEditableCellRef(el as HTMLElement | null, idx, nodeIdBitCount + Number(i))
               "
               class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0 select-none hover:bg-surface-2 focus:bg-surface-2 focus:outline-none transition-colors duration-100"
-              :class="i === outputBitCount ? '' : 'border-r border-gray-600'"
+              :class="i === outputBitCount - 1 ? '' : 'border-r border-gray-600'"
               tabindex="0"
               @click="toggleOutputBit(idx, i)"
               @keydown="handleEditableCellKeydown($event, idx, nodeIdBitCount + Number(i))"

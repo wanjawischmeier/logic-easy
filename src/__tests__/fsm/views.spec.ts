@@ -79,28 +79,32 @@ describe('the hidden row overlays', () => {
     expect(single.text()).not.toContain('They are not drawn')
   })
 
-  it('points the KV header badge at the docs and explains the rule on hover', () => {
+  it('names the count, points the hidden edges badge at the rules and explains them on hover', () => {
     const wrapper = mount(HiddenTransitionsBadge, { props: { count: 3, pending: 2 } })
     const link = wrapper.get('a')
 
-    expect(link.attributes('href')).toContain('docs/views/state-machine/tables.html#next-states')
-    expect(link.attributes('title')).toContain('All transitions with - as a next state bit')
+    expect(link.attributes('href')).toContain(
+      'docs/views/state-machine/tables.html#hidden-next-states',
+    )
+    expect(link.attributes('title')).toContain(
+      "A next state with - (don't care) covers several states",
+    )
+    expect(link.attributes('title')).toContain('it never makes the machine invalid')
     expect(link.attributes('title')).toContain('2 of them still show bits')
-    expect(link.text()).toContain('3')
+    expect(link.text()).toBe('3 edges hidden')
     // an info badge, never an error badge
     expect(link.classes()).toContain('text-primary-variant')
     expect(link.classes().join(' ')).not.toContain('red-')
 
     // the badge reports every hidden edge, so the pending part is optional
     const clean = mount(HiddenTransitionsBadge, { props: { count: 4 } })
-    expect(clean.get('a').attributes('title')).toContain('None of them still show bits')
-    expect(clean.get('a').text()).toContain('4')
+    expect(clean.get('a').attributes('title')).toContain('None of them still shows bits')
+    expect(clean.get('a').text()).toBe('4 edges hidden')
 
-    expect(
-      mount(HiddenTransitionsBadge, { props: { count: 1, pending: 1 } })
-        .get('a')
-        .attributes('title'),
-    ).toContain('One of them still shows bits')
+    // a single hidden edge reads as one edge
+    const single = mount(HiddenTransitionsBadge, { props: { count: 1, pending: 1 } })
+    expect(single.get('a').text()).toBe('1 edge hidden')
+    expect(single.get('a').attributes('title')).toContain('One of them still shows bits')
   })
 })
 

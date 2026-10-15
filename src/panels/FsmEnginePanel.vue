@@ -13,6 +13,7 @@ import {
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
 import InvalidFSMView from '@/components/InvalidFSMView.vue'
+import HiddenTransitionsBadge from '@/components/HiddenTransitionsBadge.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import {
@@ -23,7 +24,12 @@ import {
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
-import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import {
+  validateFsm,
+  countHiddenRows,
+  countHiddenRowsWithBits,
+  type FsmValidity,
+} from '@/utility/fsm/EditorSync/fsmValidation'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
@@ -34,6 +40,13 @@ const fsmValidity = computed<FsmValidity>(() => {
 })
 const isFsmValid = computed(() => fsmValidity.value.valid)
 const validReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
+
+// Count the number of hidden rows
+const hiddenRows = computed(() => {
+  const fsm = stateManager.state.fsm
+  if (!fsm) return { total: 0, pending: 0 }
+  return { total: countHiddenRows(fsm), pending: countHiddenRowsWithBits(fsm) }
+})
 
 // Force the complete table state into the editor when the lock view closes
 watch(isFsmValid, (valid, wasValid) => {
@@ -363,6 +376,11 @@ onBeforeUnmount(() => {
         <div class="shrink-0">
           <LegendButton v-if="isFsmValid" :legend="legend" />
         </div>
+        <HiddenTransitionsBadge
+          v-if="hiddenRows.total > 0"
+          :count="hiddenRows.total"
+          :pending="hiddenRows.pending"
+        />
       </div>
     </teleport>
   </div>

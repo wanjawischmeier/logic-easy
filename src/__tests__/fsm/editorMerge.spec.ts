@@ -193,3 +193,73 @@ describe('the editor merges only transitions of one target and output class', ()
     }
   })
 })
+
+interface EditorEdge {
+  from?: number
+  input?: string
+  to?: number
+  toBinaryId?: string
+  hiddenDontCare?: boolean
+  points?: number[]
+}
+
+describe('parallel edges between the same states', () => {
+  const q0Rows: { id: number; from: number; to?: number; toBinaryId?: string; input: string }[] = [
+    { id: 1, from: 0, to: 1, input: '00' },
+    { id: 2, from: 0, to: -1, toBinaryId: 'xx', input: '01' },
+    { id: 3, from: 0, to: 1, input: '10' },
+    { id: 4, from: 0, to: 1, input: '11' },
+  ]
+
+  async function importQ0(transitions: unknown[]) {
+    const { stores } = await importIntoEditor({
+      states: [
+        { id: 0, name: 'q0', moore_output: '00', initial: true },
+        { id: 1, name: 'q1', moore_output: '11' },
+        { id: 2, name: 'q2', moore_output: '01' },
+        { id: 3, name: 'q3', moore_output: '10' },
+      ],
+      transitions,
+      fsmType: 'moore',
+      inputBitCount: 2,
+      outputBitCount: 2,
+    })
+    return ((stores.store.get(stores.transition_list) ?? []) as EditorEdge[]).filter(
+      (edge) => edge.from === 0,
+    )
+  }
+
+  function pointKey(edges: EditorEdge[]) {
+    return edges
+      .map((edge) => `${edge.input}:${JSON.stringify(edge.points)}`)
+      .sort()
+      .join('|')
+  }
+
+  it('keeps the unassigned row out of the merge and draws the rest apart', async () => {
+    const rows = await importQ0(q0Rows)
+    const drawn = rows.filter((edge) => !edge.hiddenDontCare)
+    const hidden = rows.filter((edge) => edge.hiddenDontCare)
+
+    // 00 and 10 merge into x0 and 11 stays its own edge, the unassigned 01 is none of them
+    expect(drawn).toHaveLength(2)
+    expect(drawn.map((edge) => edge.input).sort()).toEqual(['11', 'x0'])
+    expect(drawn.every((edge) => edge.to === 1)).toBe(true)
+
+    // the unassigned row keeps its own row without a target and is never drawn
+    expect(hidden).toHaveLength(1)
+    expect(hidden[0]).toMatchObject({ input: '01', to: -1, toBinaryId: 'xx' })
+
+    // parallel edges are fanned out instead of being stacked on top of each other
+    expect(drawn[0]?.points).not.toEqual(drawn[1]?.points)
+  })
+
+  it('does not let the unassigned row shift the drawn geometry', async () => {
+    const withHidden = await importQ0(q0Rows)
+    const withoutHidden = await importQ0(q0Rows.filter((row) => row.to === 1))
+
+    expect(pointKey(withHidden.filter((edge) => !edge.hiddenDontCare))).toBe(
+      pointKey(withoutHidden),
+    )
+  })
+})
