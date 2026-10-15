@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { exportFsmToTruthTable } from '@/utility/fsm/kvSync'
 import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 import {
   MAX_FSM_IO_BITS,
@@ -9,16 +8,15 @@ import {
   needsHiddenCleanup,
   removeStateRow,
   renameState,
-  resolveMooreOutput,
   resolveTransitionTargetNodes,
   sanitizeStateName,
   setInputBitCount,
-  toggleMooreOutputBit,
+  toggleStateMooreOutputBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { validateFsm } from '@/utility/fsm/EditorSync/fsmValidation'
-import { createState, findRow, specForCount, writeRow } from './support/fixtures'
+import { createState, findRow, specForCount } from './support/fixtures'
 import { M2 } from './support/specs'
-import { expectMatrix, nodeAt, rowAt, valueRow } from './support/assertions'
+import { expectMatrix, nodeAt } from './support/assertions'
 
 describe('central state guards', () => {
   it('never grows past the state limit', () => {
@@ -85,71 +83,20 @@ describe('central state guards', () => {
 })
 
 describe('Moore output editing', () => {
-  it('toggles every state an open row resolves to', () => {
+  it('toggles the output of one state in the states column and leaves the others alone', () => {
     const state = createState(specForCount(3, 'moore'))
-    const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
-    // open the row, so it covers all three states and all of them follow the toggle cycle
-    writeRow(state, 0, '0', 'xx')
-    expect(resolveMooreOutput(state, rowAt(state, index))).toBe('x')
 
-    toggleMooreOutputBit(state, index, 0)
-    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', '0', '0'])
-    toggleMooreOutputBit(state, index, 0)
-    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['1', '1', '1'])
-    toggleMooreOutputBit(state, index, 0)
-    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['x', 'x', 'x'])
-    toggleMooreOutputBit(state, index, 0)
-    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', '0', '0'])
-  })
-
-  it('changes only the state a concrete row points at', () => {
-    const state = createState(specForCount(3, 'moore'))
-    const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
-    writeRow(state, 0, '0', 0)
-    toggleMooreOutputBit(state, index, 0)
-    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', 'x', 'x'])
-  })
-
-  it('resolves a disagreeing group with one click', () => {
-    const state = createState(specForCount(3, 'moore'))
-    const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
-    nodeAt(state, 0).mooreOutput = '0'
-    nodeAt(state, 1).mooreOutput = '1'
-    // covers the states 0 and 1, whose outputs conflict before the click
-    writeRow(state, 0, '0', '0x')
-    expect(resolveMooreOutput(state, rowAt(state, index))).toBe('x')
-
-    toggleMooreOutputBit(state, index, 0)
-    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['0', '0', 'x'])
-    expect(resolveMooreOutput(state, rowAt(state, index))).toBe('0')
-  })
-
-  it('keeps a hidden Moore row open while its output edit still reaches drawn rows', () => {
-    const state = createState(specForCount(3, 'moore'))
-    writeRow(state, 0, '1', '0x') // hidden: covers q0 and q1
-    writeRow(state, 1, '0', 1) // drawn: q1 -0-> q1
-    const hiddenRow = findRow(state, 0, '1')
-
-    expect(isHiddenTransition(hiddenRow)).toBe(true)
-    expect(validateFsm(state).valid).toBe(true)
-    // before the edit q1 still has an open output, so the drawn row is open as well
-    expect(valueRow(exportFsmToTruthTable(state), 0b010)).toEqual([0, 1, '-'])
-
-    toggleMooreOutputBit(state, state.transitions.indexOf(hiddenRow), 0)
-
-    // the hidden row itself stays a full don't care in the table
-    expect(valueRow(exportFsmToTruthTable(state), 0b001)).toEqual(['-', '-', '-'])
-    // the output belongs to the states, so the drawn row that targets q1 follows the edit
+    // the state column cycles 0 -> 1 -> x -> 0 on the state itself
+    toggleStateMooreOutputBit(state, 1, 0)
     expect(nodeAt(state, 1).mooreOutput).toBe('0')
-    expect(valueRow(exportFsmToTruthTable(state), 0b010)).toEqual([0, 1, 0])
-  })
+    toggleStateMooreOutputBit(state, 1, 0)
+    expect(nodeAt(state, 1).mooreOutput).toBe('1')
+    toggleStateMooreOutputBit(state, 1, 0)
+    expect(nodeAt(state, 1).mooreOutput).toBe('x')
+    expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['x', 'x', 'x'])
 
-  it('leaves a row without a target to the invalid panels', () => {
-    const state = createState(specForCount(3, 'moore'))
-    const index = state.transitions.findIndex((t) => t.fromNodeId === 0 && t.input === '0')
-    rowAt(state, index).removedTarget = true
-
-    toggleMooreOutputBit(state, index, 0)
+    // an id without a state is ignored
+    toggleStateMooreOutputBit(state, 99, 0)
     expect(state.nodes.map((node) => node.mooreOutput)).toEqual(['x', 'x', 'x'])
   })
 })

@@ -403,29 +403,18 @@ export function resolveMooreOutput(
   }).join('')
 }
 
-export function toggleMooreOutputBit(
+// One state's own Moore output, toggled in the same order the transition table uses
+export function toggleStateMooreOutputBit(
   state: FsmState,
-  transitionIndex: number,
+  stateId: number,
   bitIndex: number,
 ): void {
-  const transition = state.transitions[transitionIndex]
-  if (!transition) return
+  const node = state.nodes.find((candidate) => candidate.nodeId === stateId)
+  if (!node) return
 
   const outputBits = state.outputBitCount ?? 1
-  const targetNodes = resolveTransitionTargetNodes(state, transition)
-  // A row without a target is invalid, the editor shows that and there is nothing to edit
-  if (!targetNodes.length) return
-
-  // Always toggle in the fixed standard order 0 -> 1 -> x -> 0, validity is checked separately
-  const currentBit = resolveMooreOutput(state, transition).charAt(bitIndex) || 'x'
-  const nextBit = currentBit === '0' ? '1' : currentBit === '1' ? 'x' : '0'
-
-  // The output belongs to the state, so every target gets the bit and the group stays in agreement
-  targetNodes.forEach((node) => {
-    const bits = normalizeBits(node.mooreOutput, outputBits, 'x', 'right').split('')
-    bits[bitIndex] = nextBit
-    node.mooreOutput = bits.join('')
-  })
+  const current = normalizeBits(node.mooreOutput, outputBits, 'x', 'right')
+  node.mooreOutput = toggleBitInString(current, bitIndex, outputBits)
 }
 
 export function getStateCountLimit(): number {

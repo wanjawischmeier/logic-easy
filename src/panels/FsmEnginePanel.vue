@@ -276,8 +276,19 @@ onMounted(() => {
 
       try {
         setIsSyncing(true)
-        FsmProject.importEditorExport(data.fsm)
+        const accepted = FsmProject.importEditorExport(data.fsm)
+        if (!accepted) {
+          // Keep the last valid table state authoritative and immediately
+          // restore it in the editor without accepting a roundtrip.
+          setIsSyncing(false)
+          forceSyncTableToEditor()
+          return
+        }
       } finally {
+        if (!isFsmValid.value) {
+          setIsSyncing(false)
+          return
+        }
         // Force-sync whenever the node IDs or the names changed
         const nextNodeIds = nodeIdsKey()
         const nextNodeNames = nodeNamesKey()

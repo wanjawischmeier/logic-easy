@@ -19,6 +19,7 @@ import { importEditorPayload } from './fsmEditorImportHelpers'
 import type { FsmState } from './FsmTypes'
 import { createPanel } from '@/utility/dockview/integration'
 import { defaultFunctionType } from '@/utility/types'
+import { validateFsm } from '@/utility/fsm/EditorSync/fsmValidation'
 
 export class FsmProject extends Project {
   static override get defaultProps(): FsmProps {
@@ -94,9 +95,9 @@ export class FsmProject extends Project {
     }
   }
 
-  static importEditorExport(incomingFsm: unknown): void {
+  static importEditorExport(incomingFsm: unknown): boolean {
     const state = stateManager.state.fsm as FsmState | undefined
-    if (!state || typeof incomingFsm !== 'object' || incomingFsm == null) return
+    if (!state || typeof incomingFsm !== 'object' || incomingFsm == null) return false
 
     interface EditorExportState {
       id?: number
@@ -121,9 +122,17 @@ export class FsmProject extends Project {
 
     const payload = incomingFsm as EditorExportPayload
     const { nodes, transitions } = importEditorPayload(payload, state)
-    state.nodes = nodes
-    state.transitions = transitions
-    normalizeFsmState(state)
+    const candidate: FsmState = { ...state, nodes, transitions }
+    normalizeFsmState(candidate)
+
+    // Never let an invalid editor export overwrite the last valid table state.
+    // In particular, Moore transitions with conflicting target outputs must be
+    // repaired in the table/editor before another export is accepted.
+    if (!validateFsm(candidate).valid) return false
+
+    state.nodes = candidate.nodes
+    state.transitions = candidate.transitions
+    return true
   }
 
   // State changes requested by the editor
@@ -235,7 +244,7 @@ export {
   setInitialState,
   setInputBitCount,
   setOutputBitCount,
-  toggleMooreOutputBit,
+  toggleStateMooreOutputBit,
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
