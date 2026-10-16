@@ -170,9 +170,12 @@ export function stateMachineToLC(
       }
     }
 
-    const output = hidden
-      ? Array.from({ length: outputBits }, (): Bit => '-')
-      : (tr.mealyOutput ?? '').padEnd(outputBits, '-').slice(0, outputBits).split('').map(toBit)
+    // a hidden row keeps its output
+    const output = (tr.mealyOutput ?? '')
+      .padEnd(outputBits, '-')
+      .slice(0, outputBits)
+      .split('')
+      .map(toBit)
 
     rows.push({
       pattern: [...currentState, ...inputBitsArr],

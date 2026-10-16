@@ -29,9 +29,7 @@ describe('logic circuits export follows the minimized KV functions', () => {
     // flip flop data input and once for the Z_1^(n+1) lamp
     const threeInput = andGates.filter((element) => element.inPorts.length === 3)
     expect(threeInput).toHaveLength(2)
-    threeInput.forEach((element) =>
-      expect([...element.inPorts].sort().join('')).toBe('iin'),
-    )
+    threeInput.forEach((element) => expect([...element.inPorts].sort().join('')).toBe('iin'))
     // Z_0^(n+1) = !X and Y_1 = Y_0 = X need no multi-literal OR: extra terms would change the logic
     const multiInputOr = lc.elements.filter(
       (element) => element.elementType === OR_GATE && element.inPorts.length > 1,

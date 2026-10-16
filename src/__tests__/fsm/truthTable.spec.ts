@@ -3,6 +3,7 @@ import { exportFsmToTruthTable } from '@/utility/fsm/kvSync'
 import { calcBitNumber } from '@/utility/fsm/bitOperations'
 import {
   ensureTransitionMatrix,
+  isHiddenTransition,
   toggleTransitionOutputBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { validateFsm } from '@/utility/fsm/EditorSync/fsmValidation'
@@ -59,6 +60,23 @@ describe('M3 (Moore, two inputs, one don\u2019t-care next state)', () => {
     // and q1 outputs 1 for both of its inputs
     expect(valueRow(table, 0b10)[1]).toBe(1)
     expect(valueRow(table, 0b11)[1]).toBe(1)
+  })
+})
+
+// The output of a row never depends on its target state, so an open next state leaves it alone
+describe('a hidden row keeps the output of its own row', () => {
+  it('keeps the Mealy output of a row whose next state is open', () => {
+    const state = createState({
+      model: 'mealy',
+      inputBits: 1,
+      outputBits: 1,
+      stateCount: 2,
+      edges: [[0, 1, '1', '1']],
+    })
+    // open the next state of an otherwise concrete row, its output stays
+    writeRow(state, 0, '1', 'x', '1')
+    expect(isHiddenTransition(findRow(state, 0, '1'))).toBe(true)
+    expect(valueRow(exportFsmToTruthTable(state), 0b01)).toEqual(['-', 1])
   })
 })
 

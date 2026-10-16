@@ -83,14 +83,17 @@ describe('hidden rows are ignored and can be cleared', () => {
     expect(drawnAfter.map((transition) => ({ ...transition }))).toEqual(drawnBefore)
   })
 
-  it('clears the output of a hidden Mealy row as well', () => {
+  it('keeps the output of a hidden Mealy row while opening its next state', () => {
     const state = useFsm(specForCount(3))
     writeRow(state, 0, '0', '1x', '1')
     expect(needsHiddenCleanup(findRow(state, 0, '0'))).toBe(true)
 
     FsmProject.clearHiddenRowBits()
 
-    expect(findRow(state, 0, '0').mealyOutput).toBe('x'.repeat(state.outputBitCount ?? 1))
+    // the output belongs to the row itself, so it never depends on the missing target
+    expect(findRow(state, 0, '0').mealyOutput).toBe('1')
+    expect(findRow(state, 0, '0').toBinaryId).toBe('x'.repeat(state.nodeIdBitCount))
+    expect(needsHiddenCleanup(findRow(state, 0, '0'))).toBe(false)
     expect(validateFsm(state).valid).toBe(true)
   })
 
@@ -133,7 +136,7 @@ describe('hidden rows are ignored and can be cleared', () => {
     expect(observed).toEqual(cases)
   })
 
-  it('leaves the cells of a hidden row open in the table, Mealy and Moore alike', () => {
+  it('leaves the next state cells of a hidden row open in the table, Mealy and Moore alike', () => {
     // Moore: (q0, 0) is hidden, so only its next-state cells stay open while the output
     // stays the one of the state the row starts in
     const moore = createState({
@@ -151,10 +154,10 @@ describe('hidden rows are ignored and can be cleared', () => {
     expect(validateFsm(moore).valid).toBe(true)
     expect(drawnBefore.values).toHaveLength(exportFsmToTruthTable(moore).values.length)
 
-    // Mealy: two state bits plus one output bit, the output of a hidden row is ignored
+    // Mealy: two state bits plus one output bit, the output of a hidden row stays the row's own
     const mealy = createState(specForSize(3, 'mealy'))
     writeRow(mealy, 0, '0', '1x', '1')
-    expect(valueRow(exportFsmToTruthTable(mealy), 0b000)).toEqual(['-', '-', '-'])
+    expect(valueRow(exportFsmToTruthTable(mealy), 0b000)).toEqual(['-', '-', 1])
     expect(validateFsm(mealy).valid).toBe(true)
   })
 

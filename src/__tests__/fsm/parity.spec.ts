@@ -139,7 +139,7 @@ describe('the FSM stays identical in table, central state and editor sync', () =
 })
 
 describe('M4 (six states, patterns, two inputs)', () => {
-  it('keeps partial patterns as hidden rows and leaves their cells as don\u2019t cares', () => {
+  it('keeps partial patterns as hidden rows and opens only their next state cells', () => {
     const state = createState(M4)
     expectMatrix(state)
     expect(validateFsm(state).valid).toBe(true)
@@ -148,13 +148,14 @@ describe('M4 (six states, patterns, two inputs)', () => {
     // three state bits plus two input bits -> 32 rows
     expect(table.inputVars).toHaveLength(5)
     expect(table.values).toHaveLength(32)
-    // (q0, 10) covers q0 and q1 (pattern 00x) -> hidden, so every cell stays a don't care
+    // (q0, 10) covers q0 and q1 (pattern 00x) -> hidden, so only the next state cells stay
+    // open while the row keeps the output of its own transition
     const row = findRow(state, 0, '10')
     expect(row.toBinaryId).toBe('00x')
     expect(isHiddenTransition(row)).toBe(true)
-    expect(valueRow(table, 0b00010)).toEqual(['-', '-', '-', '-', '-'])
+    expect(valueRow(table, 0b00010)).toEqual(['-', '-', '-', 1, 1])
     // (q4, 11) covers q2 and q3 (pattern 01x) -> hidden as well
-    expect(valueRow(table, 0b10011)).toEqual(['-', '-', '-', '-', '-'])
+    expect(valueRow(table, 0b10011)).toEqual(['-', '-', '-', 1, 0])
     // a drawn row of the same machine keeps its target and its output
     expect(valueRow(table, 0b00000)).toEqual([1, 0, 1, 0, 1])
   })

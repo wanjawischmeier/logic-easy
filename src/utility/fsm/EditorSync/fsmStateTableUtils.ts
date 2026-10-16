@@ -18,12 +18,11 @@ export function isHiddenTransition(
   return !/^[01]+$/.test(String(transition.toBinaryId ?? '').replace(/-/g, 'x'))
 }
 
-// Hidden rows still carrying concrete bits: the table shows them as if they were meaningful
+
 export function needsHiddenCleanup(transition: FsmTransition): boolean {
   if (!isHiddenTransition(transition)) return false
   if (transition.removedTarget) return true
-  if (/[01]/.test(String(transition.toBinaryId ?? ''))) return true
-  return /[01]/.test(String(transition.mealyOutput ?? ''))
+  return /[01]/.test(String(transition.toBinaryId ?? ''))
 }
 
 // Open the next state bits of those rows, so table, KV and LC show the same config
