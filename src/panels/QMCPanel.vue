@@ -43,12 +43,9 @@
           </div>
         </template>
       </SettingsButton>
-
-      <DownloadButton :target-ref="screenshotRef" :panel-id="props.params.api.id" filename="qmc" />
     </div>
 
     <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
-      <!-- Interactive view -->
       <div data-screenshot-ignore class="flex-1 min-h-0 flex flex-col items-center">
         <div
           v-if="(qmcResult?.iterations.length ?? 0) !== 0"
@@ -98,46 +95,6 @@
               />
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Screenshot-only view -->
-      <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
-        <div
-          v-for="(outputVar, outIdx) in outputVars"
-          :key="`screenshot-${outputVar}-${functionType}`"
-          class="flex flex-col items-center gap-4"
-        >
-          <vue-latex
-            :fontsize="14"
-            :expression="`\\text{Output Variable:}${formatLatexIdentifier(displayOutputVars[outIdx] ?? outputVar)}`"
-          />
-
-          <QMCGroupingTable
-            :values="tableValues"
-            :input-vars="displayInputVars"
-            :output-vars="displayOutputVars"
-            :outputVariableIndex="outIdx"
-            :formulas="{}"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResults?.[outputVar] ?? qmcResult"
-          />
-
-          <QMCPrimeImplicantChart
-            :values="tableValues"
-            :input-vars="displayInputVars"
-            :output-vars="displayOutputVars"
-            :outputVariableIndex="outIdx"
-            :formulas="{}"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="qmcResults?.[outputVar] ?? qmcResult"
-            :coupling-term-latex="couplingTermLatex"
-            :show-highlights="showHighlights"
-            :display-formula-variations="getDisplayFormulaVariations(outputVar)"
-            :current-variation-index="(variationIndex as Record<string, number>)?.[outputVar] ?? 0"
-          />
         </div>
       </div>
     </div>
