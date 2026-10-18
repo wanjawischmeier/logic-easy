@@ -210,7 +210,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
         <tr
           v-for="(transitionView, idx) in transitions"
           :key="transitionView.transitionId"
-          :class="isHiddenTransition(transitionView) ? 'opacity-60' : ''"
+          :class="isHiddenTransition(transitionView) ? 'text-on-surface-disabled' : ''"
         >
           <td
             v-for="(_, i) in nodeIdBitCount"

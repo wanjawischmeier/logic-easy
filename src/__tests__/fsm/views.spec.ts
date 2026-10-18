@@ -22,7 +22,7 @@ describe('the transitions table marks the rows the editor hides', () => {
 
   // The whole row is dimmed, the numbers as well as the editable cells
   function isDimmedRow(row: { classes(): string[] }): boolean {
-    return row.classes().includes('opacity-60')
+    return row.classes().includes('text-on-surface-disabled')
   }
 
   it('dims a row with a partial next state and a row without any next state', () => {
