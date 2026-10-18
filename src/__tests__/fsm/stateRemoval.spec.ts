@@ -39,6 +39,20 @@ describe('editor-side removal keeps the rows exact', () => {
     expect(validateFsm(state).valid).toBe(true)
   })
 
+  it('keeps an unassigned next state unassigned when a state is removed', () => {
+    const state = useFsm(specForCount(2))
+    // the matrix fills a row without an edge with an all don't-care placeholder
+    expect(findRow(state, 0, '1').toNodeId).toBe(-1)
+
+    FsmProject.removeStateFromEditor(1)
+    expectMatrix(state)
+
+    const row = findRow(state, 0, '1')
+    expect(row.toNodeId).toBe(-1)
+    expect(row.toBinaryId).toBe('x'.repeat(state.nodeIdBitCount))
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
   it('unassigns a pattern whose survivors are no subcube', () => {
     const state = useFsm({
       model: 'mealy',

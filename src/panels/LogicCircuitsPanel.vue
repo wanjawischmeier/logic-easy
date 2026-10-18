@@ -353,6 +353,7 @@ watch(isFSMInvalid, (invalid, wasInvalid) => {
   if (invalid || wasInvalid !== true) return
   void updateFormulas(true)
 })
+watch(iframePanelRef, () => installIframeInteractionGuards(), { flush: 'post' })
 
 /*
 Manual edit warning related stuff

@@ -18,7 +18,6 @@ export function isHiddenTransition(
   return !/^[01]+$/.test(String(transition.toBinaryId ?? '').replace(/-/g, 'x'))
 }
 
-
 export function needsHiddenCleanup(transition: FsmTransition): boolean {
   if (!isHiddenTransition(transition)) return false
   if (transition.removedTarget) return true
@@ -87,7 +86,11 @@ export function narrowPatternToNodeIds(
   nodeBitCount: number,
 ): string {
   const bitCount = Math.max(1, nodeBitCount)
-  const covered = expandInputs(String(pattern ?? '').replace(/-/g, 'x'))
+  const normalizedPattern = String(pattern ?? '').replace(/-/g, 'x')
+  // An empty or all don't-care pattern is unassigned, never a target set
+  if (!normalizedPattern || /^x+$/.test(normalizedPattern)) return 'x'.repeat(bitCount)
+
+  const covered = expandInputs(normalizedPattern)
     .map((bits) => Number.parseInt(bits, 2))
     .map((id) => idMap.get(id))
     .filter((id): id is number => id !== undefined)

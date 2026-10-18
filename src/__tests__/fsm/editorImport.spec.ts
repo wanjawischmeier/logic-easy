@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { exportFsmToTruthTable } from '@/utility/fsm/kvSync'
+import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { importEditorPayload } from '@/projects/state-machine/fsmEditorImportHelpers'
 import { buildFsmImportPayload } from '@/utility/fsm/EditorSync/fsmListener'
 import {
@@ -8,7 +9,7 @@ import {
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { validateFsm } from '@/utility/fsm/EditorSync/fsmValidation'
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
-import { createState, findRow, specForCount, writeRow } from './support/fixtures'
+import { createState, findRow, specForCount, useFsm, writeRow } from './support/fixtures'
 import { M2, M2_SNAPSHOT, M5 } from './support/specs'
 import {
   expectMatrix,
@@ -108,6 +109,22 @@ describe('editor side changes of the state set', () => {
 })
 
 describe('import hardening', () => {
+  it('keeps the normalized state width in the live state', () => {
+    const state = useFsm(specForCount(4))
+    expect(state.nodeIdBitCount).toBe(2)
+
+    // the editor sends back only two of the four states, so the ids compact to one bit
+    const payload = toEditorPayload(state)
+    payload.states = payload.states.filter((entry) => entry.id < 2)
+    payload.transitions = payload.transitions.filter((entry) => entry.from < 2 && entry.to < 2)
+
+    expect(FsmProject.importEditorExport(payload)).toBe(true)
+    expect(state.nodes).toHaveLength(2)
+    // the rows were encoded with one bit, so the live state must not keep the old width
+    expect(state.nodeIdBitCount).toBe(1)
+    expect(validateFsm(state).valid).toBe(true)
+  })
+
   it('keeps node Moore outputs at the configured width through a round trip', () => {
     const state = createState({
       model: 'moore',

@@ -132,6 +132,7 @@ export class FsmProject extends Project {
 
     state.nodes = candidate.nodes
     state.transitions = candidate.transitions
+    state.nodeIdBitCount = candidate.nodeIdBitCount
     return true
   }
 
