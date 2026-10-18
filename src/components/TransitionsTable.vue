@@ -2,15 +2,13 @@
 import { computed, ref } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
-import type { FsmModel, FsmTransition } from '@/projects/state-machine/FsmTypes'
+import type { FsmTransition } from '@/projects/state-machine/FsmTypes'
 import { normalizeBits } from '@/utility/fsm/bitOperations'
 import {
-  resolveMooreOutput,
-  toggleMooreOutputBit,
+  isHiddenTransition,
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/projects/state-machine/FsmProject'
-import { findDontCareCoverageWarning } from '@/utility/fsm/EditorSync/fsmValidation'
 
 function displayBitAt(
   source: string | undefined,
@@ -27,10 +25,9 @@ function displayBitAt(
 const { nodes, transitions, inputBitCount, outputBitCount, nodeIdBitCount, fsmModel } =
   FsmProject.useState()
 
-// All-don't-care next states allow every next state and never lock the editor, but while the
-// state count is not a power of two they cover indexes that do not exist yet, so warn here
-const dontCareWarning = computed(() =>
-  stateManager.state.fsm ? findDontCareCoverageWarning(stateManager.state.fsm) : null,
+// In Moore mode the output belongs to the states, so only Mealy rows have output cells
+const editableOutputBitCount = computed(() =>
+  fsmModel.value === 'moore' ? 0 : outputBitCount.value,
 )
 
 const editableCellRefs = ref<(HTMLElement | null)[][]>([])
@@ -52,15 +49,15 @@ function getToBinary(tr: FsmTransition) {
   return node?.binaryNodeId ?? 'x'.repeat(nodeIdBitCount.value)
 }
 
-function getOutputValue(tr: FsmTransition, model: FsmModel): string {
-  if (model === 'moore') {
-    // Shared resolver keeps the cell, the toggle and the validation in sync
-    const fsm = stateManager.state.fsm
-    if (!fsm) return ''
-    return resolveMooreOutput(fsm, tr)
-  }
-
+// Moore has no output column: the output belongs to the states and is edited there
+function getOutputValue(tr: FsmTransition): string {
   return tr.mealyOutput ?? ''
+}
+
+// The next-state column is the last one in Moore mode, so it needs no separator then
+function nextStateCellClass(index: number): string {
+  if (Number(index) !== nodeIdBitCount.value - 1) return 'border-r border-gray-600'
+  return fsmModel.value === 'moore' ? '' : 'border-r-4'
 }
 
 function setEditableCellRef(el: HTMLElement | null, rowIdx: number, colIdx: number) {
@@ -73,7 +70,7 @@ function setEditableCellRef(el: HTMLElement | null, rowIdx: number, colIdx: numb
 
 function focusEditableCell(rowIdx: number, colIdx: number) {
   const maxRow = transitions.value.length - 1
-  const maxCol = nodeIdBitCount.value + outputBitCount.value - 1
+  const maxCol = nodeIdBitCount.value + editableOutputBitCount.value - 1
   if (maxRow < 0 || maxCol < 0) return
 
   const targetRow = Math.max(0, Math.min(maxRow, rowIdx))
@@ -91,11 +88,6 @@ function toggleToBit(idx: number, i: number) {
 function toggleOutputBit(idx: number, i: number) {
   const current = stateManager.state.fsm
   if (!current) return
-
-  if (fsmModel.value === 'moore') {
-    toggleMooreOutputBit(current, idx, i)
-    return
-  }
 
   toggleTransitionOutputBit(current, idx, i)
 }
@@ -137,23 +129,6 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
   <div class="relative flex flex-col items-center gap-2 w-full pt-0">
     <div class="w-full flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-1">
       <h2 class="text-center py-2 text-xl font-mono">Transitions</h2>
-
-      <div v-if="dontCareWarning" class="flex items-center">
-        <div
-          class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          :title="`Next states consisting only of don't-cares ('-') allow every next state, so they never lock the editor. With the current states they also cover ${dontCareWarning.missing.join(', ')}, which no state uses yet.`"
-        >
-          <span
-            class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
-            aria-hidden="true"
-          >
-            !
-          </span>
-          <span class="truncate">
-            Don't-care next states also cover {{ dontCareWarning.missing.join(', ') }}
-          </span>
-        </div>
-      </div>
     </div>
 
     <table
@@ -175,12 +150,14 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             input
           </th>
           <th
-            class="px-2 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono border-r-4"
+            class="px-2 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono"
+            :class="fsmModel === 'moore' ? '' : 'border-r-4'"
             :colspan="nodeIdBitCount"
           >
             next state
           </th>
           <th
+            v-if="fsmModel !== 'moore'"
             class="px-2 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono"
             :colspan="outputBitCount"
           >
@@ -203,31 +180,38 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
             :class="i === inputBitCount ? 'border-r-4' : 'border-r border-gray-600'"
           >
-            <vue-latex :expression="`X_{${inputBitCount - i}}^n`" />
+            <vue-latex :expression="`X_{${inputBitCount - i}}`" />
           </th>
 
           <th
             v-for="i in nodeIdBitCount"
             :key="'z-to-' + i"
             class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
-            :class="i === nodeIdBitCount ? 'border-r-4' : 'border-r border-gray-600'"
+            :class="nextStateCellClass(Number(i) - 1)"
           >
             <vue-latex :expression="`Z_{${nodeIdBitCount - i}}^{(n+1)}`" />
           </th>
 
-          <th
-            v-for="i in outputBitCount"
-            :key="'y-' + i"
-            class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
-            :class="i === outputBitCount ? '' : 'border-r border-gray-600'"
-          >
-            <vue-latex :expression="`Y_{${outputBitCount - i}}^n`" />
-          </th>
+          <template v-if="fsmModel !== 'moore'">
+            <th
+              v-for="i in outputBitCount"
+              :key="'y-' + i"
+              class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1"
+              :class="i === outputBitCount ? '' : 'border-r border-gray-600'"
+            >
+              <!-- A row shows the output the machine has after the transition -->
+              <vue-latex :expression="`Y_{${outputBitCount - i}}`" />
+            </th>
+          </template>
         </tr>
       </thead>
 
       <tbody>
-        <tr v-for="(transitionView, idx) in transitions" :key="transitionView.transitionId">
+        <tr
+          v-for="(transitionView, idx) in transitions"
+          :key="transitionView.transitionId"
+          :class="isHiddenTransition(transitionView) ? 'text-on-surface-disabled' : ''"
+        >
           <td
             v-for="(_, i) in nodeIdBitCount"
             :key="transitionView.transitionId + '-from-' + i"
@@ -258,7 +242,7 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             :key="transitionView.transitionId + '-to-' + i"
             :ref="(el) => setEditableCellRef(el as HTMLElement | null, idx, Number(i))"
             class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0 select-none hover:bg-surface-2 focus:bg-surface-2 focus:outline-none transition-colors duration-100"
-            :class="i === nodeIdBitCount - 1 ? 'border-r-4' : 'border-r border-gray-600'"
+            :class="nextStateCellClass(Number(i))"
             tabindex="0"
             @click="toggleToBit(idx, i)"
             @keydown="handleEditableCellKeydown($event, idx, Number(i))"
@@ -266,30 +250,28 @@ function handleEditableCellKeydown(event: KeyboardEvent, rowIdx: number, colIdx:
             {{ displayBitAt(getToBinary(transitionView), Number(i), nodeIdBitCount) }}
           </td>
 
-          <td
-            v-for="(_, i) in outputBitCount"
-            :key="transitionView.transitionId + '-out-' + i"
-            :ref="
-              (el) => setEditableCellRef(el as HTMLElement | null, idx, nodeIdBitCount + Number(i))
-            "
-            class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0 select-none hover:bg-surface-2 focus:bg-surface-2 focus:outline-none transition-colors duration-100"
-            :class="i === outputBitCount - 1 ? '' : 'border-r border-gray-600'"
-            tabindex="0"
-            @click="toggleOutputBit(idx, i)"
-            @keydown="handleEditableCellKeydown($event, idx, nodeIdBitCount + Number(i))"
-          >
-            {{
-              displayBitAt(
-                normalizeBits(
-                  getOutputValue(transitionView, fsmModel),
-                  outputBitCount,
-                  'x',
-                  'right',
-                ),
-                Number(i),
-              )
-            }}
-          </td>
+          <template v-if="fsmModel !== 'moore'">
+            <td
+              v-for="(_, i) in outputBitCount"
+              :key="transitionView.transitionId + '-out-' + i"
+              :ref="
+                (el) =>
+                  setEditableCellRef(el as HTMLElement | null, idx, nodeIdBitCount + Number(i))
+              "
+              class="font-mono text-center bg-surface-1 border-b border-primary px-1 py-0 select-none hover:bg-surface-2 focus:bg-surface-2 focus:outline-none transition-colors duration-100"
+              :class="i === outputBitCount - 1 ? '' : 'border-r border-gray-600'"
+              tabindex="0"
+              @click="toggleOutputBit(idx, i)"
+              @keydown="handleEditableCellKeydown($event, idx, nodeIdBitCount + Number(i))"
+            >
+              {{
+                displayBitAt(
+                  normalizeBits(getOutputValue(transitionView), outputBitCount, 'x', 'right'),
+                  Number(i),
+                )
+              }}
+            </td>
+          </template>
         </tr>
       </tbody>
     </table>

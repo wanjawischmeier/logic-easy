@@ -1,7 +1,7 @@
 import type { Operation } from 'logi.js'
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
 import type { TruthTableState } from '@/projects/truth-table/TruthTableProject'
-import { calcBinaryID, normalizeBits } from '@/utility/fsm/bitOperations'
+import { calcBinaryID, calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
 import {
   defaultFunctionRepresentation,
   defaultFunctionType,
@@ -16,10 +16,14 @@ import {
   type TermColor,
 } from '@/utility/truthtable/colorGenerator'
 import { truthTableWorkerManager } from '@/utility/truthtable/truthTableWorkerManager'
+import { isHiddenTransition } from '@/utility/fsm/EditorSync/fsmStateTableUtils'
 import { stateManager } from '@/projects/stateManager'
 
-function buildNames(prefix: string, bits: number, suffix: string): string[] {
-  return Array.from({ length: bits }, (_, index) => `${prefix}_${bits - 1 - index}^${suffix}`)
+function buildNames(prefix: string, bits: number, suffix?: string): string[] {
+  return Array.from({ length: bits }, (_, index) => {
+    const name = `${prefix}_${bits - 1 - index}`
+    return suffix ? `${name}^${suffix}` : name
+  })
 }
 
 function toTruthTableCell(bit: string): TruthTableState['values'][number][number] {
@@ -40,28 +44,13 @@ function buildPlaceholderVariableMap(inputVars: string[]): Record<string, string
   return map
 }
 
-function resolveTransitionTargetNode(fsm: FsmState, transition: FsmState['transitions'][number]) {
-  if (transition.toNodeId >= 0) {
-    return fsm.nodes.find((node) => node.nodeId === transition.toNodeId)
-  }
-
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
-  if (stateBits === 0) {
-    return fsm.nodes[0]
-  }
-
-  const concreteTarget = normalizeBits(
-    transition.toBinaryId ?? '',
-    Math.max(1, stateBits),
-    'x',
-    'left',
+// The state table encodes states by id, so the truth table must use the same width
+function stateEncodingBits(fsm: FsmState): number {
+  const maxNodeId = (fsm.nodes || []).reduce(
+    (max, node) => Math.max(max, Number(node?.nodeId ?? -1)),
+    0,
   )
-  if (!/^[01]+$/.test(concreteTarget)) return undefined
-
-  return fsm.nodes.find(
-    (node) => calcBinaryID(node.nodeId, Math.max(1, stateBits)) === concreteTarget,
-  )
+  return calcBitNumber(Math.max(1, maxNodeId + 1))
 }
 
 function remapExpressionVariables(
@@ -200,8 +189,7 @@ export function buildFsmImmutableCellMask(
 ): boolean[][] | undefined {
   if (!fsm || !truthTable?.values?.length) return undefined
 
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
+  const stateBits = stateEncodingBits(fsm)
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
 
   const possibleRows = new Set<number>()
@@ -303,18 +291,25 @@ export function exportFsmToTruthTable(
   fsm: FsmState,
   previousState?: TruthTableState,
 ): TruthTableState {
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
+  const stateBits = stateEncodingBits(fsm)
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
 
-  const inputVars = [...buildNames('Z', stateBits, 'n'), ...buildNames('X', inputBits, 'n')]
-  const outputVars = [...buildNames('Z', stateBits, '(n+1)'), ...buildNames('Y', outputBits, 'n')]
+  // The state carries the time step (n / n+1), the data inputs and outputs do not:
+  // X is the current input, Y is the current output (in Moore mode lambda of the present state)
+  const inputVars = [...buildNames('Z', stateBits, 'n'), ...buildNames('X', inputBits)]
+  const outputVars = [...buildNames('Z', stateBits, '(n+1)'), ...buildNames('Y', outputBits)]
 
   const rowCount = 1 << (stateBits + inputBits)
   const values: TruthTableState['values'] = Array.from({ length: rowCount }, () =>
     Array.from({ length: outputVars.length }, () => '-'),
   )
+
+  // In Moore mode the output belongs to the state, so resolve it per source state once
+  const mooreOutputByNodeId = new Map<number, string>()
+  for (const node of fsm.nodes || []) {
+    mooreOutputByNodeId.set(node.nodeId, node.mooreOutput ?? '')
+  }
 
   for (const tr of fsm.transitions || []) {
     const fromBinary = normalizeBits(
@@ -329,18 +324,21 @@ export function exportFsmToTruthTable(
     const rowIndex = parseInt(`${fromBinary}${input}`, 2)
     if (Number.isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rowCount) continue
 
-    const toBinary =
-      tr.toNodeId >= 0
-        ? normalizeBits(calcBinaryID(tr.toNodeId, Math.max(1, stateBits)), stateBits, 'x', 'left')
-        : normalizeBits(tr.toBinaryId ?? '', stateBits, 'x', 'left')
-    const nextStateCells = toBinary.split('').map(toTruthTableCell)
-    const targetNode = fsm.fsmModel === 'moore' ? resolveTransitionTargetNode(fsm, tr) : undefined
-    const outputCells = normalizeBits(
-      fsm.fsmModel === 'moore' ? (targetNode?.mooreOutput ?? '') : (tr.mealyOutput ?? ''),
-      outputBits,
-      'x',
-      'right',
-    )
+    // A hidden row has no unique next state, so only its next-state cells stay don't care
+    const hidden = isHiddenTransition(tr)
+    const nextStatePattern =
+      tr.toNodeId >= 0 ? calcBinaryID(tr.toNodeId, Math.max(1, stateBits)) : (tr.toBinaryId ?? '')
+    const nextStateCells = hidden
+      ? normalizeBits('', stateBits, 'x', 'left').split('').map(toTruthTableCell)
+      : normalizeBits(nextStatePattern, stateBits, 'x', 'left').split('').map(toTruthTableCell)
+
+    // Moore: Y^n = lambda(Z^n) is the output of the row's own state, the input is irrelevant
+    // Mealy: the output belongs to the row itself, so it is read regardless of the target
+    const outputSource =
+      fsm.fsmModel === 'moore'
+        ? (mooreOutputByNodeId.get(tr.fromNodeId ?? -1) ?? '')
+        : (tr.mealyOutput ?? '')
+    const outputCells = normalizeBits(outputSource, outputBits, 'x', 'right')
       .split('')
       .map(toTruthTableCell)
 
@@ -376,8 +374,7 @@ export function syncFsmStateToTruthTable(fsm: FsmState): void {
 }
 
 export function applyTruthTableToFsm(fsm: FsmState, truthTable: TruthTableState): void {
-  const nodeCount = (fsm.nodes || []).length
-  const stateBits = nodeCount <= 1 ? 0 : Math.max(0, Math.ceil(Math.log2(Math.max(1, nodeCount))))
+  const stateBits = stateEncodingBits(fsm)
   const inputBits = Math.max(1, fsm.inputBitCount ?? 1)
   const outputBits = Math.max(1, fsm.outputBitCount ?? 1)
 
@@ -430,9 +427,10 @@ export function applyTruthTableToFsm(fsm: FsmState, truthTable: TruthTableState)
 
     if (outputBits > 0) {
       if (fsm.fsmModel === 'moore') {
-        const targetNode = resolveTransitionTargetNode(fsm, transition)
-        if (targetNode) {
-          targetNode.mooreOutput = outputBitsValue
+        // The Moore output belongs to the state the row starts in, so write it there
+        const fromNode = fsm.nodes.find((node) => node.nodeId === transition.fromNodeId)
+        if (fromNode) {
+          fromNode.mooreOutput = outputBitsValue
         }
       } else {
         transition.mealyOutput = outputBitsValue

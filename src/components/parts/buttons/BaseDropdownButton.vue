@@ -1,11 +1,11 @@
 <template>
   <div class="relative" ref="dropdownContainer">
     <div
-      class="group bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5"
+      class="group h-9 bg-surface-2 rounded border border-surface-3 hover:border-primary transition-colors p-0.5"
     >
       <button
         @click.stop="handleButtonClick"
-        class="px-2.5 py-1.5 rounded-xs text-on-surface group-hover:bg-primary transition-colors text-sm items-center gap-2"
+        class="h-full px-2.5 rounded-xs text-on-surface group-hover:bg-primary transition-colors text-sm inline-flex items-center justify-center gap-2"
         :class="showDropdown ? 'bg-primary' : ''"
         :title="title"
         :disabled="disabled"

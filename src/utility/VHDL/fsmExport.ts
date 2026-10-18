@@ -8,7 +8,7 @@ import { normalizeBits } from '@/utility/fsm/bitOperations'
 import { resolveFsmOutputs, type ResolvedFsmOutputs } from './fsmOutputs'
 
 /**
- * Export an FSM (Mealy) to VHDL
+ * Export an FSM (Mealy or Moore) to VHDL
  *
  * Format:
  * library IEEE;
@@ -134,7 +134,7 @@ export async function exportFsmToVHDLmealy(
   lines.push('  end if;')
   lines.push('end process process_State_Register;\n')
 
-  // process_State_Output: Mealy output logic (combinational, state + x)
+  // process_State_Output: Mealy output logic, the output of the state and input of this cycle
   lines.push('process_State_Output : process (state, x)')
   lines.push('begin')
   lines.push(`  y <= ${zeroLiteral(outputBits)};`)
@@ -250,7 +250,7 @@ async function exportFsmToVHDLmoore(
   lines.push('  end if;')
   lines.push('end process process_State_Register;\n')
 
-  // process_State_Output: Moore — depends only on state, not x
+  // process_State_Output: Moore - the state register drives the output and it does not depend on x
   lines.push('process_State_Output : process (state)')
   lines.push('begin')
   lines.push('  case state is')

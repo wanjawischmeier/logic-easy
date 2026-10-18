@@ -8,6 +8,9 @@ import { calcBinaryID, calcBitNumber } from '@/utility/fsm/bitOperations'
 import {
   MAX_FSM_IO_BITS,
   MAX_FSM_STATES,
+  addStateRow,
+  clearHiddenTransitions,
+  narrowPatternToNodeIds,
   normalizeFsmState,
   setInputBitCount,
   setOutputBitCount,
@@ -16,6 +19,7 @@ import { importEditorPayload } from './fsmEditorImportHelpers'
 import type { FsmState } from './FsmTypes'
 import { createPanel } from '@/utility/dockview/integration'
 import { defaultFunctionType } from '@/utility/types'
+import { validateFsm } from '@/utility/fsm/EditorSync/fsmValidation'
 
 export class FsmProject extends Project {
   static override get defaultProps(): FsmProps {
@@ -91,9 +95,9 @@ export class FsmProject extends Project {
     }
   }
 
-  static importEditorExport(incomingFsm: unknown): void {
+  static importEditorExport(incomingFsm: unknown): boolean {
     const state = stateManager.state.fsm as FsmState | undefined
-    if (!state || typeof incomingFsm !== 'object' || incomingFsm == null) return
+    if (!state || typeof incomingFsm !== 'object' || incomingFsm == null) return false
 
     interface EditorExportState {
       id?: number
@@ -118,9 +122,65 @@ export class FsmProject extends Project {
 
     const payload = incomingFsm as EditorExportPayload
     const { nodes, transitions } = importEditorPayload(payload, state)
-    state.nodes = nodes
-    state.transitions = transitions
-    normalizeFsmState(state)
+    const candidate: FsmState = { ...state, nodes, transitions }
+    normalizeFsmState(candidate)
+
+    // Never let an invalid editor export overwrite the last valid table state.
+    // In particular, Moore transitions with conflicting target outputs must be
+    // repaired in the table/editor before another export is accepted.
+    if (!validateFsm(candidate).valid) return false
+
+    state.nodes = candidate.nodes
+    state.transitions = candidate.transitions
+    state.nodeIdBitCount = candidate.nodeIdBitCount
+    return true
+  }
+
+  // State changes requested by the editor
+  static addStateFromEditor(x?: number, y?: number): void {
+    const fsm = stateManager.state.fsm as FsmState | undefined
+    if (!fsm) return
+
+    addStateRow(fsm, fsm.fsmModel, { x, y })
+  }
+
+  // Accepted by the user when the KV or LC view reports hidden rows
+  static clearHiddenRowBits(): number {
+    const fsm = stateManager.state.fsm as FsmState | undefined
+    return fsm ? clearHiddenTransitions(fsm) : 0
+  }
+
+  // An editor-side removal drops the state with its edges, so no row keeps a target that is gone
+  static removeStateFromEditor(nodeId: number): void {
+    const fsm = stateManager.state.fsm as FsmState | undefined
+    if (!fsm || !Number.isFinite(nodeId)) return
+    if (!fsm.nodes.some((node) => node.nodeId === nodeId)) return
+
+    const surviving = [...fsm.nodes]
+      .filter((node) => node.nodeId !== nodeId)
+      .sort((left, right) => left.nodeId - right.nodeId)
+    const idMap = new Map(surviving.map((node, index) => [node.nodeId, index]))
+    fsm.nodes = surviving.map((node, index) => ({ ...node, nodeId: index }))
+    const nodeBitCount = calcBitNumber(Math.max(1, fsm.nodes.length))
+
+    fsm.transitions = fsm.transitions
+      .filter((transition) => transition.fromNodeId !== nodeId && transition.toNodeId !== nodeId)
+      .map((transition) => {
+        const fromNodeId = idMap.get(transition.fromNodeId) ?? 0
+        if (transition.toNodeId >= 0) {
+          return { ...transition, fromNodeId, toNodeId: idMap.get(transition.toNodeId) ?? -1 }
+        }
+
+        return {
+          ...transition,
+          fromNodeId,
+          toNodeId: -1,
+          toBinaryId: narrowPatternToNodeIds(transition.toBinaryId ?? '', idMap, nodeBitCount),
+          removedTarget: false,
+        }
+      })
+
+    normalizeFsmState(fsm)
   }
 
   static override validateState(state: AppState): boolean {
@@ -172,16 +232,19 @@ export { importEditorPayload } from './fsmEditorImportHelpers'
 
 export {
   addStateRow,
+  clearHiddenTransitions,
   getStateCountLimit,
+  isHiddenTransition,
   MAX_STATE_NAME_LENGTH,
+  needsHiddenCleanup,
+  nextFreeStateName,
   removeStateRow,
   renameState,
-  resolveMooreOutput,
   sanitizeStateName,
   setInitialState,
   setInputBitCount,
   setOutputBitCount,
-  toggleMooreOutputBit,
+  toggleStateMooreOutputBit,
   toggleTransitionOutputBit,
   toggleTransitionTargetBit,
 } from '@/utility/fsm/EditorSync/fsmStateTableUtils'

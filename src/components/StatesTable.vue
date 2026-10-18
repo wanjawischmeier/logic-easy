@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
 import { stateManager } from '@/projects/stateManager'
 import { Toast } from '@/utility/toastService'
+import type { FsmNode } from '@/projects/state-machine/FsmTypes'
+import { normalizeBits } from '@/utility/fsm/bitOperations'
 import {
   addStateRow as addFsmStateRow,
   getStateCountLimit,
@@ -10,9 +12,10 @@ import {
   removeStateRow as removeFsmStateRow,
   renameState as renameFsmState,
   sanitizeStateName,
+  toggleStateMooreOutputBit,
 } from '@/projects/state-machine/FsmProject'
 
-const { nodes, nodeIdBitCount, fsmModel } = FsmProject.useState()
+const { nodes, nodeIdBitCount, fsmModel, outputBitCount } = FsmProject.useState()
 
 // The number of input/output bits is fixed once at project creation or on data import
 const stateLimit = computed(() => getStateCountLimit()) // 16
@@ -23,6 +26,76 @@ const fsm = computed(() => stateManager.state.fsm)
 
 function getFsm() {
   return fsm.value
+}
+
+// In Moore mode the output belongs to the state, so this column reads and writes the state itself
+function stateOutputValue(state: FsmNode): string {
+  return normalizeBits(state.mooreOutput, outputBitCount.value, 'x', 'right')
+}
+
+function displayOutputBit(state: FsmNode, index: number): string {
+  const bit = stateOutputValue(state).charAt(Number(index)) || 'x'
+  return bit === 'x' ? '-' : bit
+}
+
+const editableCellRefs = ref<(HTMLElement | null)[][]>([])
+
+function setEditableCellRef(el: HTMLElement | null, rowIdx: number, bitIdx: number) {
+  if (!editableCellRefs.value[rowIdx]) {
+    editableCellRefs.value[rowIdx] = []
+  }
+
+  editableCellRefs.value[rowIdx]![bitIdx] = el
+}
+
+function focusEditableCell(rowIdx: number, bitIdx: number) {
+  const maxRow = nodes.value.length - 1
+  const maxBit = outputBitCount.value - 1
+  if (maxRow < 0 || maxBit < 0) return
+
+  const targetRow = Math.max(0, Math.min(maxRow, rowIdx))
+  const targetBit = Math.max(0, Math.min(maxBit, bitIdx))
+  editableCellRefs.value[targetRow]?.[targetBit]?.focus()
+}
+
+function toggleStateOutputBit(stateId: number, bitIdx: number) {
+  const current = getFsm()
+  if (!current) return
+
+  toggleStateMooreOutputBit(current, stateId, bitIdx)
+}
+
+function handleOutputCellKeydown(
+  event: KeyboardEvent,
+  rowIdx: number,
+  bitIdx: number,
+  stateId: number,
+) {
+  switch (event.key) {
+    case 'ArrowUp':
+      event.preventDefault()
+      focusEditableCell(rowIdx - 1, bitIdx)
+      return
+    case 'ArrowDown':
+      event.preventDefault()
+      focusEditableCell(rowIdx + 1, bitIdx)
+      return
+    case 'ArrowLeft':
+      event.preventDefault()
+      focusEditableCell(rowIdx, bitIdx - 1)
+      return
+    case 'ArrowRight':
+      event.preventDefault()
+      focusEditableCell(rowIdx, bitIdx + 1)
+      return
+    case ' ':
+    case 'Spacebar':
+      event.preventDefault()
+      toggleStateOutputBit(stateId, bitIdx)
+      return
+    default:
+      return
+  }
 }
 
 function addStateRow() {
@@ -97,7 +170,37 @@ function commitStateName(stateId: number) {
 
     <table class="flex-auto bg-surface-1 border border-primary table-auto select-none mb-0">
       <thead>
-        <tr>
+        <tr v-if="fsmModel === 'moore'">
+          <th
+            rowspan="2"
+            class="px-3 text-on-surface-disabled border-b-4 border-primary bg-surface-1 w-auto font-mono border-r-4"
+          >
+            name
+          </th>
+          <th
+            rowspan="2"
+            class="px-3 text-on-surface-disabled border-b-4 border-primary bg-surface-1 w-auto font-mono border-r-4"
+          >
+            binary index
+          </th>
+          <th
+            :colspan="outputBitCount"
+            class="px-3 text-on-surface-disabled border-b border-primary bg-surface-1 w-auto font-mono"
+          >
+            output
+          </th>
+        </tr>
+        <tr v-if="fsmModel === 'moore'">
+          <th
+            v-for="i in outputBitCount"
+            :key="'y-' + i"
+            class="px-1 py-0.5 text-on-surface-disabled border-b-4 border-primary bg-surface-1 font-mono"
+            :class="i === outputBitCount ? '' : 'border-r border-gray-600'"
+          >
+            <vue-latex :expression="`Y_{${outputBitCount - i}}`" />
+          </th>
+        </tr>
+        <tr v-if="fsmModel !== 'moore'">
           <th
             class="px-3 text-on-surface-disabled border-b-4 border-primary bg-surface-1 w-auto font-mono border-r-4"
           >
@@ -115,9 +218,13 @@ function commitStateName(stateId: number) {
         <tr v-if="nodes.length === 0">
           <td class="text-lg font-mono text-center border-b border-primary border-r-4 px-2 py-0" />
           <td class="text-lg font-mono text-center border-b border-primary border-r-4 px-2 py-0" />
+          <td
+            v-if="fsmModel === 'moore'"
+            class="text-lg font-mono text-center border-b border-primary px-2 py-0"
+          />
         </tr>
 
-        <tr v-else v-for="state in nodes" :key="state.nodeId">
+        <tr v-else v-for="(state, rowIdx) in nodes" :key="state.nodeId">
           <td class="text-lg font-mono text-center border-b border-primary border-r-4 px-2 py-0">
             <input
               :value="
@@ -140,9 +247,27 @@ function commitStateName(stateId: number) {
               "
             />
           </td>
-          <td class="text-lg font-mono text-center bg-surface-1 border-b border-primary px-2 py-0">
+          <td
+            class="text-lg font-mono text-center bg-surface-1 border-b border-primary px-2 py-0"
+            :class="fsmModel === 'moore' ? 'border-r-4' : ''"
+          >
             {{ state.binaryNodeId ?? '-'.repeat(nodeIdBitCount) }}
           </td>
+
+          <template v-if="fsmModel === 'moore'">
+            <td
+              v-for="(_, i) in outputBitCount"
+              :key="state.nodeId + '-out-' + i"
+              :ref="(el) => setEditableCellRef(el as HTMLElement | null, rowIdx, Number(i))"
+              class="text-lg font-mono text-center bg-surface-1 border-b border-primary px-1 py-0 select-none hover:bg-surface-2 focus:bg-surface-2 focus:outline-none transition-colors duration-100"
+              :class="i === outputBitCount ? '' : 'border-r border-gray-600'"
+              tabindex="0"
+              @click="toggleStateOutputBit(state.nodeId, Number(i))"
+              @keydown="handleOutputCellKeydown($event, rowIdx, Number(i), state.nodeId)"
+            >
+              {{ displayOutputBit(state, Number(i)) }}
+            </td>
+          </template>
         </tr>
       </tbody>
     </table>

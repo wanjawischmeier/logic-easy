@@ -1,10 +1,8 @@
 <template>
   <div class="h-full text-on-surface flex flex-col p-2 overflow-hidden">
-    <div
-      v-if="!isFSMInvalid"
-      class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2"
-    >
+    <div class="w-full flex flex-wrap-reverse text-sm justify-end items-center gap-2">
       <SettingsButton
+        v-if="!isFSMInvalid"
         :input-vars="displayInputVars"
         :output-vars="displayOutputVars"
         :selected-output-index="outputVariableIndex"
@@ -24,101 +22,111 @@
       </SettingsButton>
 
       <DownloadButton
+        v-if="!isFSMInvalid"
         :target-ref="screenshotRef"
         :panel-id="props.params.api.id"
         filename="kv"
         :files="downloadFiles"
       />
+
+      <!-- Reports every hidden edge, whether or not it still shows bits -->
+      <HiddenTransitionsBadge
+        v-if="hiddenRows.total > 0"
+        :count="hiddenRows.total"
+        :pending="hiddenRows.pending"
+      />
     </div>
 
-    <!-- Same lock view the editor shows while the FSM is invalid -->
-    <InvalidFSMView
-      v-if="isFSMInvalid"
-      :reason="invalidReason"
+    <!-- One shared gate decides between the FSM invalid lock and the hidden rows notice -->
+    <FsmViewGate
+      :fsm="stateManager.state.fsm"
       hint="Fix the issues in the state table to unlock the Karnaugh-Veitch diagram."
-    />
-
-    <div v-else class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
-      <!-- Interactive view -->
-      <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
-        <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
-          <KVDiagram
-            :key="`${functionType}-${outputVariableIndex}`"
-            :values="tableValues"
-            :input-vars="inputVars"
-            :output-vars="outputVars"
-            :input-var-labels="inputVarLabels"
-            :output-var-labels="outputVarLabels"
-            :outputVariableIndex="outputVariableIndex"
-            :formulas="{}"
-            :selected-formula="selectedVariationFormula"
-            :functionType="functionType"
-            :function-representation="functionRepresentation"
-            :qmc-result="displayQmcResult"
-            :formula-term-colors="displayFormulaTermColors"
-            :immutable-cell-mask="immutableCellMask"
-            :readonly="isFsmProject"
-            :variation-index="currentVariationIndex"
-            @values-changed="tableValues = $event"
-          />
-
-          <div
-            v-if="displayFormulaVariations.length > 0 && showFormula"
-            class="pt-8 w-full flex justify-center overflow-visible"
-          >
-            <VariationViewer
-              v-model:current-variation-index="currentVariationIndex"
-              :variations="displayFormulaVariations"
-              :function-representation="functionRepresentation"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Screenshot-only view -->
-      <div data-screenshot-only-flex class="hidden flex-row gap-32 items-start justify-center p-8">
-        <div
-          v-for="(outputVar, index) in outputVars"
-          :key="`screenshot-${outputVar}-${functionType}`"
-          class="flex flex-col items-center gap-8"
-        >
-          <div
-            v-for="(variation, optionIndex) in getScreenshotFormulaOptions(outputVar)"
-            :key="optionIndex"
-            class="flex flex-col items-center gap-4"
-          >
+    >
+      <div class="flex-1 min-h-0 flex flex-col" ref="screenshotRef">
+        <!-- Interactive view -->
+        <div data-screenshot-ignore class="flex-1 min-h-0 overflow-auto">
+          <div class="min-h-full w-max min-w-full flex flex-col justify-center items-center">
             <KVDiagram
+              :key="`${functionType}-${outputVariableIndex}`"
               :values="tableValues"
               :input-vars="inputVars"
               :output-vars="outputVars"
               :input-var-labels="inputVarLabels"
               :output-var-labels="outputVarLabels"
-              :outputVariableIndex="index"
+              :outputVariableIndex="outputVariableIndex"
               :formulas="{}"
-              :selected-formula="variation.formula"
+              :selected-formula="selectedVariationFormula"
               :functionType="functionType"
               :function-representation="functionRepresentation"
-              :qmc-result="qmcResults?.[outputVar] ?? displayQmcResult"
-              :formula-term-colors="
-                variation.formula
-                  ? getTermColors(outputVar, variation.formula)
-                  : displayFormulaTermColors
-              "
+              :qmc-result="displayQmcResult"
+              :formula-term-colors="displayFormulaTermColors"
               :immutable-cell-mask="immutableCellMask"
               :readonly="isFsmProject"
-              :variation-index="optionIndex"
+              :variation-index="currentVariationIndex"
+              @values-changed="tableValues = $event"
             />
 
-            <FormulaRenderer
-              v-if="variation.latex"
-              :latex-expression="variation.latex"
-              :colored-expression="variation.coloredLatex"
+            <div
+              v-if="displayFormulaVariations.length > 0 && showFormula"
+              class="pt-8 w-full flex justify-center overflow-visible"
             >
-            </FormulaRenderer>
+              <VariationViewer
+                v-model:current-variation-index="currentVariationIndex"
+                :variations="displayFormulaVariations"
+                :function-representation="functionRepresentation"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Screenshot-only view -->
+        <div
+          data-screenshot-only-flex
+          class="hidden flex-row gap-32 items-start justify-center p-8"
+        >
+          <div
+            v-for="(outputVar, index) in outputVars"
+            :key="`screenshot-${outputVar}-${functionType}`"
+            class="flex flex-col items-center gap-8"
+          >
+            <div
+              v-for="(variation, optionIndex) in getScreenshotFormulaOptions(outputVar)"
+              :key="optionIndex"
+              class="flex flex-col items-center gap-4"
+            >
+              <KVDiagram
+                :values="tableValues"
+                :input-vars="inputVars"
+                :output-vars="outputVars"
+                :input-var-labels="inputVarLabels"
+                :output-var-labels="outputVarLabels"
+                :outputVariableIndex="index"
+                :formulas="{}"
+                :selected-formula="variation.formula"
+                :functionType="functionType"
+                :function-representation="functionRepresentation"
+                :qmc-result="qmcResults?.[outputVar] ?? displayQmcResult"
+                :formula-term-colors="
+                  variation.formula
+                    ? getTermColors(outputVar, variation.formula)
+                    : displayFormulaTermColors
+                "
+                :immutable-cell-mask="immutableCellMask"
+                :readonly="isFsmProject"
+                :variation-index="optionIndex"
+              />
+
+              <FormulaRenderer
+                v-if="variation.latex"
+                :latex-expression="variation.latex"
+                :colored-expression="variation.coloredLatex"
+              >
+              </FormulaRenderer>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </FsmViewGate>
   </div>
 </template>
 
@@ -127,7 +135,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import KVDiagram from '@/components/KVDiagram.vue'
-import InvalidFSMView from '@/components/InvalidFSMView.vue'
+import FsmViewGate from '@/components/FsmViewGate.vue'
+import HiddenTransitionsBadge from '@/components/HiddenTransitionsBadge.vue'
 import FormulaRenderer from '@/components/FormulaRenderer.vue'
 import DownloadButton from '@/components/parts/buttons/DownloadButton.vue'
 import SettingsButton from '@/components/parts/buttons/SettingsButton.vue'
@@ -147,7 +156,12 @@ import {
   buildFsmKVDiagramPresentation,
   applyTruthTableToFsm,
 } from '@/utility/fsm/kvSync'
-import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
+import {
+  countHiddenRows,
+  countHiddenRowsWithBits,
+  validateFsm,
+  type FsmValidity,
+} from '@/utility/fsm/EditorSync/fsmValidation'
 import { getDockviewApi } from '@/utility/dockview/integration'
 import type { Formula, FormulaVariation } from '@/utility/types'
 import { mapFormulaTermsToPIColors } from '@/utility/truthtable/colorGenerator'
@@ -179,7 +193,6 @@ onMounted(() => {
   const visibilityDisposable = api.onDidActivePanelChange(() => {
     if (props.params.api.isActive) {
       // Panel became active/visible - refresh latex rendering
-      console.log('Refresh kv diagram')
       kvDiagramRef.value?.refresh()
     }
   })
@@ -319,6 +332,13 @@ const selectedVariationFormula = computed(() => getSelectedVariationFormula())
 
 const isFsmProject = computed(() => !!stateManager.state.fsm)
 
+// The badge reports every hidden edge, the notice only the ones that still show bits
+const hiddenRows = computed(() => {
+  const fsm = stateManager.state.fsm
+  if (!fsm) return { total: 0, pending: 0 }
+  return { total: countHiddenRows(fsm), pending: countHiddenRowsWithBits(fsm) }
+})
+
 // The KV view mirrors the FSM, so it locks together with the editor while the FSM is invalid
 const fsmValidity = computed<FsmValidity>(() => {
   const fsm = stateManager.state.fsm
@@ -328,7 +348,6 @@ const fsmValidity = computed<FsmValidity>(() => {
 const isFSMInvalid = computed(
   () => stateManager.state.truthTable?.fsmMode === true && !fsmValidity.value.valid,
 )
-const invalidReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
 
 const immutableCellMask = computed(() =>
   buildFsmImmutableCellMask(stateManager.state.fsm, stateManager.state.truthTable),
@@ -338,16 +357,13 @@ const immutableCellMask = computed(() =>
 watch(
   tableValues,
   (newVal) => {
-    console.log('[KVDiagramPanel] Local tableValues changed:', newVal)
     if (!stateManager.state.truthTable) return
 
     if (isUpdatingFromState) {
       isUpdatingFromState = false
-      console.log('[KVDiagramPanel] Skipping update (isUpdatingFromState)')
       return
     }
 
-    console.log('[KVDiagramPanel] Calling truthTableWorkerManager.update()')
     Object.assign(stateManager.state.truthTable.values, newVal)
     truthTableWorkerManager.update()
 
@@ -365,7 +381,6 @@ watch(
 watch(
   () => values.value,
   (newVal) => {
-    console.log('[KVPanel] state.value.values changed:', newVal)
     if (!newVal) return
     isUpdatingFromState = true
     tableValues.value = newVal.map((row: TruthTableCell[]) => [...row])

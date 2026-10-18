@@ -23,6 +23,15 @@ const SpaceKeyIcon = defineComponent({
   `,
 })
 
+const HiddenEdgeIcon = defineComponent({
+  template: `
+    <div class="flex items-center gap-1 font-mono text-xs leading-none opacity-60">
+      <span>01</span>
+      <span>0-1</span>
+    </div>
+  `,
+})
+
 const legend: LegendItem[] = [
   {
     component: ArrowKeysIcon,
@@ -33,6 +42,12 @@ const legend: LegendItem[] = [
     component: SpaceKeyIcon,
     label: 'Toggle bit value',
     description: "Toggle the focused editable cell with 'Space'.",
+  },
+  {
+    component: HiddenEdgeIcon,
+    label: 'Hidden transition',
+    description:
+      'All transitions with - as a next state bit are hidden: they are not drawn in the Editor and the whole row stays dimmed.',
   },
 ]
 </script>

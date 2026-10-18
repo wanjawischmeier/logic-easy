@@ -13,6 +13,7 @@ import {
 import type { IDockviewPanelProps } from 'dockview-vue'
 import IframePanel from '@/components/IFramePanel.vue'
 import InvalidFSMView from '@/components/InvalidFSMView.vue'
+import HiddenTransitionsBadge from '@/components/HiddenTransitionsBadge.vue'
 import LegendButton, { type LegendItem } from '@/components/parts/buttons/LegendButton.vue'
 import { useFloatingToolbarPosition } from '@/components/composables/useFloatingToolbarPosition'
 import {
@@ -23,8 +24,12 @@ import {
 } from '@/utility/fsm/EditorSync/fsmListener'
 import { stateManager } from '@/projects/stateManager'
 import { FsmProject } from '@/projects/state-machine/FsmProject'
-import { validateFsm, type FsmValidity } from '@/utility/fsm/EditorSync/fsmValidation'
-import { calcBitNumber, normalizeBits } from '@/utility/fsm/bitOperations'
+import {
+  validateFsm,
+  countHiddenRows,
+  countHiddenRowsWithBits,
+  type FsmValidity,
+} from '@/utility/fsm/EditorSync/fsmValidation'
 
 const props = defineProps<{ params: IDockviewPanelProps }>()
 
@@ -36,27 +41,17 @@ const fsmValidity = computed<FsmValidity>(() => {
 const isFsmValid = computed(() => fsmValidity.value.valid)
 const validReason = computed(() => (fsmValidity.value.valid ? '' : fsmValidity.value.reason))
 
+// Count the number of hidden rows
+const hiddenRows = computed(() => {
+  const fsm = stateManager.state.fsm
+  if (!fsm) return { total: 0, pending: 0 }
+  return { total: countHiddenRows(fsm), pending: countHiddenRowsWithBits(fsm) }
+})
+
 // Force the complete table state into the editor when the lock view closes
 watch(isFsmValid, (valid, wasValid) => {
   if (!valid || wasValid !== false) return
   void nextTick(() => forceSyncTableToEditor())
-})
-// Warning for transitions that are not drawn because every next-state bit is a don't-care
-const hiddenEdgeCount = computed(() => {
-  const fsm = stateManager.state.fsm
-  if (!fsm) return 0
-  const maxNodeId = (fsm.nodes ?? []).reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-  const minimumNodeBits = calcBitNumber(Math.max(1, maxNodeId + 1))
-  return (fsm.transitions ?? []).filter((transition) => {
-    if (transition.toNodeId >= 0) return false
-    const targetPattern = normalizeBits(
-      transition.toBinaryId ?? '',
-      Math.max(minimumNodeBits, (transition.toBinaryId ?? '').length),
-      'x',
-      'left',
-    )
-    return /^x+$/.test(targetPattern)
-  }).length
 })
 let visibilityDisposable: { dispose?: () => void } | null = null
 let isFsmSyncActive = false
@@ -214,7 +209,7 @@ const legend: LegendItem[] = [
     component: HiddenTransitionIcon,
     label: 'Hidden transition',
     description:
-      'Transitions whose next-state bits are all don\u2019t-cares allow every next state, so they are not drawn. Drawing the same state and input replaces the row. A warning badge appears in the panel while any exist.',
+      'All transitions with - as a next state bit are hidden: they are not drawn and are dimmed in the state table. Drawing the same state and input replaces the row.',
   },
   {
     component: MoveIcon,
@@ -283,15 +278,34 @@ onMounted(() => {
           .filter(Number.isFinite)
           .sort((a, b) => a - b)
           .join(',')
+      // Names are canonicalized on import, so push a rename back
+      const nodeNamesKey = () =>
+        (stateManager.state.fsm?.nodes ?? [])
+          .map((n) => String(n?.name ?? ''))
+          .sort()
+          .join(',')
       const prevNodeIds = nodeIdsKey()
+      const prevNodeNames = nodeNamesKey()
 
       try {
         setIsSyncing(true)
-        FsmProject.importEditorExport(data.fsm)
+        const accepted = FsmProject.importEditorExport(data.fsm)
+        if (!accepted) {
+          // Keep the last valid table state authoritative and immediately
+          // restore it in the editor without accepting a roundtrip.
+          setIsSyncing(false)
+          forceSyncTableToEditor()
+          return
+        }
       } finally {
-        // Force-sync whenever the node IDs changed
+        if (!isFsmValid.value) {
+          setIsSyncing(false)
+          return
+        }
+        // Force-sync whenever the node IDs or the names changed
         const nextNodeIds = nodeIdsKey()
-        const shouldForce = nextNodeIds !== prevNodeIds
+        const nextNodeNames = nodeNamesKey()
+        const shouldForce = nextNodeIds !== prevNodeIds || nextNodeNames !== prevNodeNames
         if (editorExportTimer) clearTimeout(editorExportTimer)
         editorExportTimer = setTimeout(() => {
           editorExportTimer = null
@@ -299,6 +313,17 @@ onMounted(() => {
           if (shouldForce) forceSyncTableToEditor()
         }, 50)
       }
+    }
+
+    // State requests from the editor
+    if (data.action === 'add-state-request') {
+      FsmProject.addStateFromEditor(Number(data.x), Number(data.y))
+      return
+    }
+
+    if (data.action === 'remove-state-request') {
+      FsmProject.removeStateFromEditor(Number(data.id))
+      return
     }
   }
 
@@ -348,22 +373,14 @@ onBeforeUnmount(() => {
         class="fixed z-10 flex items-center gap-2 min-w-0"
         :style="[legendButtonStyle, panelWidth ? { maxWidth: `${panelWidth - 2 * 8}px` } : {}]"
       >
-        <div
-          v-if="hiddenEdgeCount > 0 && isFsmValid"
-          class="h-7 min-w-0 rounded-full border border-amber-500 text-amber-500 flex items-center gap-2 px-2.5 text-[11px] leading-none"
-          title="Transitions whose next-state bits are all don't-cares allow every next state and are not drawn in the editor"
-        >
-          <span
-            class="h-5 w-5 shrink-0 rounded-full border-2 border-amber-500 flex items-center justify-center font-black text-sm leading-none"
-            aria-hidden="true"
-          >
-            !
-          </span>
-          <span class="truncate">Hidden don't-care transitions</span>
-        </div>
         <div class="shrink-0">
           <LegendButton v-if="isFsmValid" :legend="legend" />
         </div>
+        <HiddenTransitionsBadge
+          v-if="hiddenRows.total > 0"
+          :count="hiddenRows.total"
+          :pending="hiddenRows.pending"
+        />
       </div>
     </teleport>
   </div>

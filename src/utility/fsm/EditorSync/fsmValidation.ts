@@ -1,137 +1,66 @@
 import type { FsmState } from '@/projects/state-machine/FsmTypes'
-import { expandInputs } from './editorTransitionUtils'
-import { resolveTransitionTargetNodes } from './fsmStateTableUtils'
-import { calcBinaryID, calcBitNumber, normalizeBits } from '../bitOperations'
+import {
+  isHiddenTransition,
+  needsHiddenCleanup,
+  resolveTransitionTargetNodes,
+} from './fsmStateTableUtils'
+import { normalizeBits } from '../bitOperations'
 
 export type FsmValidity = { valid: true } | { valid: false; reason: string }
 
-function sourceStateName(state: FsmState, transition: FsmState['transitions'][number]): string {
-  return (
-    state.nodes.find((node) => node.nodeId === transition.fromNodeId)?.name ??
-    `q${transition.fromNodeId}`
-  )
+// Which overlay a view has to show. Exactly one place decides this, so the
+// Editor, the Karnaugh-Veitch view and the LogicCircuits view can never disagree.
+// An error on the drawn edges wins: repairing it is what countPendingHiddenRows waits for.
+export type FsmViewMode = 'invalid' | 'hidden-pending' | 'ready'
+
+export function fsmViewMode(state: FsmState | undefined): FsmViewMode {
+  if (!state) return 'ready'
+  if (!validateFsm(state).valid) return 'invalid'
+  return countPendingHiddenRows(state) > 0 ? 'hidden-pending' : 'ready'
 }
 
-// Show a pattern the way the state table does, with "-" instead of the internal "x"
-function displayPattern(pattern: string): string {
-  return pattern.replace(/x/gi, '-')
+// Hidden rows only confuse the views while the drawn machine itself is fine
+// Clearing them cannot repair an invalid machine, so the warning waits for that
+export function countPendingHiddenRows(state: FsmState): number {
+  if (!validateFsm(state).valid) return 0
+  return (state.transitions ?? []).filter(needsHiddenCleanup).length
 }
 
-// Indexes that can be used as a next state right now, so the message can say what is allowed
-function existingIndexes(state: FsmState, bitCount: number, limit = 8): string {
-  const indexes = state.nodes.map((node) => calcBinaryID(node.nodeId, bitCount)).sort()
-  if (indexes.length === 0) return 'none'
-  const shown = indexes.slice(0, limit).join(', ')
-  return indexes.length > limit ? `${shown}, …` : shown
+// Rows the editor does not draw at all. This is the number the views report.
+export function countHiddenRows(state: FsmState): number {
+  return (state.transitions ?? []).filter(isHiddenTransition).length
 }
 
-// What a next state with don't-cares expands to, and which of those indexes no state uses yet
-function analyzeTargetPattern(state: FsmState, pattern: string) {
-  const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-  const minimumNodeIdBitCount = calcBitNumber(Math.max(1, maxNodeId + 1))
-  const nodeIdBitCount = Math.max(minimumNodeIdBitCount, pattern.length)
-  const normalizedPattern = normalizeBits(pattern, nodeIdBitCount, 'x', 'left')
-  const possibleTargetBits = expandInputs(normalizedPattern)
-  const existingTargetBits = new Set(
-    state.nodes.map((node) => calcBinaryID(node.nodeId, nodeIdBitCount)),
-  )
-  const missingTargetBits = possibleTargetBits.filter((bits) => !existingTargetBits.has(bits))
-  return { nodeIdBitCount, normalizedPattern, possibleTargetBits, missingTargetBits }
+// Rows that still show concrete bits, so the views ask to clean them up
+// Not gated on validity: the number stays correct while the machine is also invalid
+export function countHiddenRowsWithBits(state: FsmState): number {
+  return (state.transitions ?? []).filter(needsHiddenCleanup).length
 }
 
-export type DontCareCoverageWarning = { count: number; missing: string[] }
-
-// Warn when an all-don't-care next-state pattern also covers indexes with no existing state
-export function findDontCareCoverageWarning(state: FsmState): DontCareCoverageWarning | null {
-  let count = 0
-  let missing: string[] = []
-
-  for (const transition of state.transitions ?? []) {
-    if (transition.toNodeId >= 0) continue
-    const pattern = (transition.toBinaryId ?? '').replace(/-/g, 'x')
-    if (!/^x+$/.test(pattern)) continue
-
-    const { missingTargetBits } = analyzeTargetPattern(state, pattern)
-    if (missingTargetBits.length === 0) continue
-
-    count += 1
-    if (missing.length === 0) missing = missingTargetBits
-  }
-
-  return count > 0 ? { count, missing } : null
-}
-
-// Validate the FSM and return the first problem so the editor can show a precise reason
+// Validate the FSM and return the first problem so the overlay can explain it
 export function validateFsm(state: FsmState): FsmValidity {
   const transitions = state.transitions ?? []
 
   for (const transition of transitions) {
+    // Hidden rows have no unique next state, so they are not drawn and never lock a view
+    if (isHiddenTransition(transition)) continue
+
+    // Rule: a drawn transition must end in a state that exists
     const targetNodes = resolveTransitionTargetNodes(state, transition)
-    const targetPattern = transition.toNodeId >= 0 ? '' : (transition.toBinaryId ?? '')
-    const normalizedTargetPattern = targetPattern.replace(/-/g, 'x')
-
-    // A removed target keeps its dead pattern until the user picks a new next state
-    if (transition.removedTarget) {
-      const input = normalizeBits(transition.input, state.inputBitCount ?? 1, 'x', 'right')
-      const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-      const bitCount = calcBitNumber(Math.max(1, maxNodeId + 1))
-      return {
-        valid: false,
-        reason: `The next state of the transition from "${sourceStateName(state, transition)}" (input ${displayPattern(input)}) points at a state that was removed. Pick an existing state: ${existingIndexes(state, bitCount)}.`,
-      }
-    }
-
-    // All-don't-care next states stay undrawn and never lock the editor
-    if (transition.toNodeId < 0 && /^x+$/.test(normalizedTargetPattern)) continue
-
-    if (transition.toNodeId < 0) {
-      const { nodeIdBitCount, normalizedPattern, possibleTargetBits, missingTargetBits } =
-        analyzeTargetPattern(state, normalizedTargetPattern)
-
-      if (missingTargetBits.length > 0) {
-        const input = normalizeBits(transition.input, state.inputBitCount ?? 1, 'x', 'right')
-        return {
-          valid: false,
-          reason: `The next state "${displayPattern(normalizedPattern)}" of the transition from "${sourceStateName(state, transition)}" (input ${displayPattern(input)}) covers the states ${possibleTargetBits.join(', ')}, but there is no state with the index ${missingTargetBits.join(', ')}. A next state may only use "-" when every index it covers exists as a state. Existing indexes: ${existingIndexes(state, nodeIdBitCount)}.`,
-        }
-      }
-    }
-
-    // Rule: every next-state pattern must resolve to an existing state
     if (targetNodes.length === 0) {
-      const input = normalizeBits(transition.input, state.inputBitCount ?? 1, 'x', 'right')
-      const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-      const bitCount = calcBitNumber(Math.max(1, maxNodeId + 1))
+      // Name the row so the user can find it: (source state, input) identifies it
+      const sourceName =
+        state.nodes.find((node) => node.nodeId === transition.fromNodeId)?.name ??
+        `q${transition.fromNodeId}`
+      const input = normalizeBits(
+        transition.input,
+        Math.max(1, state.inputBitCount ?? 1),
+        'x',
+        'right',
+      ).replace(/x/g, '-')
       return {
         valid: false,
-        reason: `The next state "${displayPattern(targetPattern)}" of the transition from "${sourceStateName(state, transition)}" (input ${displayPattern(input)}) does not match any state. Existing indexes: ${existingIndexes(state, bitCount)}.`,
-      }
-    }
-
-    // Rule: in Moore mode transitions with the same target state must share one output
-    if (state.fsmModel === 'moore') {
-      const outputBits = state.outputBitCount ?? 1
-      const maxNodeId = state.nodes.reduce((m, n) => Math.max(m, Number(n?.nodeId ?? -1)), 0)
-      const bitCount = calcBitNumber(Math.max(1, maxNodeId + 1))
-      const outputs = targetNodes.map((node) =>
-        normalizeBits(node.mooreOutput, outputBits, 'x', 'right'),
-      )
-      for (let bit = 0; bit < outputBits; bit += 1) {
-        const hasZero = outputs.some((bits) => bits.charAt(bit) === '0')
-        const hasOne = outputs.some((bits) => bits.charAt(bit) === '1')
-        if (hasZero && hasOne) {
-          const input = normalizeBits(transition.input, state.inputBitCount ?? 1, 'x', 'right')
-          const reached = targetNodes
-            .map(
-              (node, index) =>
-                `${calcBinaryID(node.nodeId, bitCount)} ${displayPattern(outputs[index] ?? '')}`,
-            )
-            .join(', ')
-          return {
-            valid: false,
-            reason: `In Moore mode the output belongs to the state, so every transition to a state uses that state's output. The next state "${displayPattern(targetPattern)}" of the transition from "${sourceStateName(state, transition)}" (input ${displayPattern(input)}) covers ${reached}, whose outputs disagree. Set one output for these states, or narrow the next state to states that share an output.`,
-          }
-        }
+        reason: `The transition from "${sourceName}" with input ${input} points at a non-existing state.`,
       }
     }
   }
