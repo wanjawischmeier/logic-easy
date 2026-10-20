@@ -25,6 +25,7 @@
         <MenuList
           :items="items"
           :level="0"
+          :summarize-single-child="menu === 'Project'"
           :show-submenu="showSubmenu"
           :hide-submenu="hideSubmenu"
           :is-open="isOpen"

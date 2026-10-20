@@ -7,6 +7,7 @@ export default defineComponent({
   props: {
     items: { type: Array as PropType<MenuEntry[]>, required: true },
     level: { type: Number, default: 0 },
+    summarizeSingleChild: { type: Boolean, default: false },
     showSubmenu: {
       type: Function as PropType<(level: number, idx: number) => void>,
       required: true,
@@ -26,7 +27,10 @@ export default defineComponent({
         { class: 'pr-1' },
         props.items.map((entry, idx) => {
           const submenuOpen = props.isOpen(level.value, idx)
-          const singleChild = entry.children?.length === 1 ? entry.children[0] : undefined
+          const singleChild =
+            props.summarizeSingleChild && entry.children?.length === 1
+              ? entry.children[0]
+              : undefined
           const hasSubmenu = Boolean(entry.children && !singleChild)
           const isDisabled = singleChild
             ? entry.disabled || singleChild.disabled
@@ -69,6 +73,7 @@ export default defineComponent({
                     h(MenuListComponent, {
                       items: entry.children,
                       level: level.value + 1,
+                      summarizeSingleChild: props.summarizeSingleChild,
                       showSubmenu: props.showSubmenu,
                       hideSubmenu: props.hideSubmenu,
                       isOpen: props.isOpen,
