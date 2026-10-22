@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between px-1 h-full">
       <div class="flex items-center gap-4 select-none">
         <!-- logo + title -->
-        <a href="/logic-easy/" class="mx-2">
+        <a href="./" class="mx-2">
           <div class="flex gap-2">
             <img src="/logo/le_128.png" alt="logo" class="h-6" />
             <p class="font-medium">LogicEasy</p>

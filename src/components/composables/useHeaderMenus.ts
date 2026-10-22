@@ -318,7 +318,7 @@ export function useHeaderMenus(openFileAction: () => Promise<void>) {
     Help: [
       {
         label: 'Manual',
-        action: () => window.open('/logic-easy/docs/', '_blank', 'noopener,noreferrer'),
+        action: () => window.open(`${import.meta.env.BASE_URL}docs/`, '_blank', 'noopener,noreferrer'),
       },
       { label: 'About', action: () => popupService.open({ component: AboutPopup }) },
     ],

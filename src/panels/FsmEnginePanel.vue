@@ -356,7 +356,7 @@ onBeforeUnmount(() => {
       v-if="isFsmValid"
       ref="iframeRef"
       iframe-key="__fsm_preloaded_iframe"
-      src="/logic-easy/fsm-engine/dist/index.html"
+      src="fsm-engine/dist/index.html"
       :visible="params.api.isVisible"
       class="flex-1"
     />

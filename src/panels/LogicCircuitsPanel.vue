@@ -551,7 +551,7 @@ onBeforeUnmount(() => {
         <IframePanel
           ref="iframePanelRef"
           iframe-key="__lc_preloaded_iframe"
-          src="/logic-easy/logic-circuits/index.html"
+          src="logic-circuits/index.html"
           :visible="params.api.isVisible"
           class="flex-1"
         />

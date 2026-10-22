@@ -33,6 +33,7 @@ npm run fsm:build
 npm run docs:build
 
 # Serve main application
+BASE_URL=/ #default, change before build for different base url
 serve -s dist
 ```
 
@@ -40,7 +41,7 @@ serve -s dist
 > Building the main application automatically creates updated builds of the submodules.
 
 > [!NOTE]  
-> The `docs` module requires its builds to be copied from the public folder to the dist folder. Running `npm run build` automatically does this by executing `scripts/copy-docs.js` after the build.
+> Vite does not copy `public/` itself, since it contains the submodules with their sources and `node_modules`. Running `npm run build` executes `scripts/copy-public.js` afterwards, which copies the static assets and only the build output of the `fsm-engine` and `docs` modules into `dist`.
 
 ### Testing
 

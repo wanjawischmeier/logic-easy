@@ -5,6 +5,8 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
+const base = process.env.BASE_URL ?? '/'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -17,18 +19,17 @@ export default defineConfig({
       name: 'docs-redirect',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (req.url === '/logic-easy/docs' || req.url === '/logic-easy/docs/') {
-            req.url = '/logic-easy/docs/.vitepress/dist/index.html'
-          }
-          else if (req.url?.startsWith('/logic-easy/docs')) {
+          if (req.url === `${base}docs` || req.url === `${base}docs/`) {
+            req.url = `${base}docs/.vitepress/dist/index.html`
+          } else if (req.url?.startsWith(`${base}docs`)) {
             // Rewrite the URL to point to the correct location
-            const newPath = req.url.replace('/logic-easy/docs', '/logic-easy/docs/.vitepress/dist')
+            const newPath = req.url.replace(`${base}docs`, `${base}docs/.vitepress/dist`)
             req.url = newPath
           }
           next()
         })
-      }
-    }
+      },
+    },
   ],
   resolve: {
     alias: {
@@ -39,10 +40,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['buffer']
+    include: ['buffer'],
   },
-  base: '/logic-easy/',
+  base,
   build: {
+    copyPublicDir: false,
     rollupOptions: {
       output: {
         manualChunks(id: string) {
@@ -50,8 +52,8 @@ export default defineConfig({
             // Split by package: lodash -> lodash chunk
             return id.toString().split('node_modules/')[1].split('/')[0].toString()
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 })
