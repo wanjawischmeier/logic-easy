@@ -33,7 +33,6 @@ npm run fsm:build
 npm run docs:build
 
 # Serve main application
-BASE_URL=/ #default, change before build for different base url
 serve -s dist
 ```
 

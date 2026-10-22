@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "npm run fsm:build && npm run docs:build",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "run-p type-check \"build-only -- {@}\" --",
     "postbuild": "node scripts/copy-public.js",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -20,7 +20,7 @@
     "format": "prettier --write --experimental-cli src/ public/fsm-engine/src/",
     "fsm:build": "cd public/fsm-engine && npm ci && npm run build",
     "fsm:dev": "cd public/fsm-engine && npm run dev",
-    "docs:build": "cd public/docs && npm ci && node ../../scripts/build-docs.js",
+    "docs:build": "cd public/docs && npm ci && npm run build",
     "docs:dev": "cd public/docs && npm run dev"
   },
   "dependencies": {

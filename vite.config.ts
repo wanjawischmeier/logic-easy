@@ -5,8 +5,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
-const base = process.env.BASE_URL ?? '/'
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -18,6 +16,7 @@ export default defineConfig({
       // For routing docs from public folder on dev builds
       name: 'docs-redirect',
       configureServer(server) {
+        const base = server.config.base
         server.middlewares.use((req, res, next) => {
           if (req.url === `${base}docs` || req.url === `${base}docs/`) {
             req.url = `${base}docs/.vitepress/dist/index.html`
@@ -42,7 +41,7 @@ export default defineConfig({
   optimizeDeps: {
     include: ['buffer'],
   },
-  base,
+  base: './',
   build: {
     copyPublicDir: false,
     rollupOptions: {
