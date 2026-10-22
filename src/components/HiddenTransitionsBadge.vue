@@ -18,7 +18,7 @@ import { computed } from 'vue'
 
 const props = defineProps<{ count: number; pending?: number }>()
 
-const docsHref = '/logic-easy/docs/views/state-machine/tables.html#hidden-next-states'
+const docsHref = `${import.meta.env.BASE_URL}docs/views/state-machine/tables.html#hidden-next-states`
 
 const label = computed(() => (props.count === 1 ? '1 edge hidden' : `${props.count} edges hidden`))
 

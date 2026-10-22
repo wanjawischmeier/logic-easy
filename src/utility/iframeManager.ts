@@ -141,12 +141,12 @@ export const iframeManager = new IframeManager()
 // Register known iframes
 iframeManager.register({
   key: '__lc_preloaded_iframe',
-  src: '/logic-easy/logic-circuits/index.html',
+  src: `${import.meta.env.BASE_URL}logic-circuits/index.html`,
   preload: true,
 })
 
 iframeManager.register({
   key: '__fsm_preloaded_iframe',
-  src: '/logic-easy/fsm-engine/dist/index.html',
+  src: `${import.meta.env.BASE_URL}fsm-engine/dist/index.html`,
   preload: true,
 })

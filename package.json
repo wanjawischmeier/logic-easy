@@ -1,6 +1,6 @@
 {
   "name": "logic-easy",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "type": "module",
@@ -10,8 +10,8 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "npm run fsm:build && npm run docs:build",
-    "build": "run-p type-check \"build-only {@}\" --",
-    "postbuild": "node scripts/copy-docs.js",
+    "build": "run-p type-check \"build-only -- {@}\" --",
+    "postbuild": "node scripts/copy-public.js",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",

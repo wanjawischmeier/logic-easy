@@ -91,7 +91,7 @@ class LogicCircuitsWrapper {
   }
 
   async resetIFrame(
-    src = '/logic-easy/logic-circuits/index.html',
+    src = `${import.meta.env.BASE_URL}logic-circuits/index.html`,
     fileContent?: string,
   ): Promise<HTMLIFrameElement | null> {
     const newIframe = await iframeManager.resetIframe('__lc_preloaded_iframe', src)

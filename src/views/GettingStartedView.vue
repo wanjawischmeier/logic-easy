@@ -12,7 +12,7 @@
       </a>
       <a
         class="bg-surface-2 hover:bg-surface-3 p-0! mb-4 w-12 aspect-square rounded-full shadow-2xl text-3xl font-semibold flex justify-center items-center"
-        href="/logic-easy/docs"
+        href="docs/"
         target="_blank"
         rel="noopener noreferrer"
       >
