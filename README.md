@@ -1,6 +1,10 @@
 # LogicEasy
 
-Documentation is available at https://wanjawischmeier.github.io/logic-easy/docs/
+> [!WARNING]
+> This repository has moved to the university's [GitLab](https://gitlab.iti.uni-luebeck.de/wanja/logic-easy).
+> The GitHub copy is archived and will no longer be updated.
+
+Documentation is available at https://vlab.iti.uni-luebeck.de/logic-easy/docs/.
 
 ## Serving
 
